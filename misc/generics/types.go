@@ -15,3 +15,7 @@ type SignedInteger interface {
 type Float interface {
 	float32 | float64
 }
+
+type StringOrNumber interface {
+	string | Float | Integer
+}

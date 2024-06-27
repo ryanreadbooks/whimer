@@ -31,8 +31,7 @@ func NewServiceContext(c *config.Config) *ServiceContext {
 	)
 
 	// other services
-	ctx.Manage = NewManage(dao)
-	ctx.Manage.Ctx = ctx
+	ctx.Manage = NewManage(ctx, dao)
 
 	return ctx
 }

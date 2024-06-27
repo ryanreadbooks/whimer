@@ -22,7 +22,9 @@ var (
 	ErrUnsupportedResource = ErrArgs.Msg("不支持的资源类型")
 
 	// 笔记操作失败
-	ErrInsertNoteFail     = ErrInternal.Msg("添加笔记失败")
-	ErrUpdateNoteNotFound = ErrNotFound.Msg("笔记不存在")
-	ErrUpdateNoteFail     = ErrInternal.Msg("更新笔记失败")
+	ErrInsertNoteFail = ErrInternal.Msg("添加笔记失败")
+	ErrNoteNotFound   = ErrNotFound.Msg("笔记不存在")
+	ErrUpdateNoteFail = ErrInternal.Msg("更新笔记失败")
+	ErrDeleteNoteFail = ErrInternal.Msg("删除笔记失败")
+	ErrGetNoteFail    = ErrInternal.Msg("获取笔记失败")
 )
