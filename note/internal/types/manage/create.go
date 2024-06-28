@@ -30,7 +30,7 @@ type CreateReq struct {
 
 func (r *CreateReq) Validate() error {
 	if r == nil {
-		return global.ErrArgs.Msg("请求为空")
+		return global.ErrArgs.Msg("请求参数为空")
 	}
 
 	if len(r.Images) == 0 {

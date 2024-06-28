@@ -24,7 +24,8 @@ func ManageCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		// service to create note
-		noteId, err := c.Manage.Create(r.Context(), &req)
+		// TODO get uid from wherever
+		noteId, err := c.Manage.Create(r.Context(), 100, &req)
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -36,6 +37,24 @@ func ManageCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
 
 func ManageUpdateHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var req manage.UpdateReq
+		if err := httpx.ParseJsonBody(r, &req); err != nil {
+			httpx.Error(w, global.ErrArgs.Msg(err.Error()))
+			return
+		}
 
+		if err := req.Validate(); err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		// TODO get uid from whatever
+		err := c.Manage.Update(r.Context(), 100, &req)
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		httpx.OkJson(w, manage.UpdateRes{NoteId: req.NoteId})
 	}
 }

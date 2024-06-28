@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -17,8 +16,8 @@ import (
 var (
 	noteFieldNames          = builder.RawFieldNames(&Note{})
 	noteRows                = strings.Join(noteFieldNames, ",")
-	noteRowsExpectAutoSet   = strings.Join(stringx.Remove(noteFieldNames, "`id`", "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), ",")
-	noteRowsWithPlaceHolder = strings.Join(stringx.Remove(noteFieldNames, "`id`", "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), "=?,") + "=?"
+	noteRowsExpectAutoSet   = strings.Join(stringx.Remove(noteFieldNames, "`id`", "`=`"), ",")
+	noteRowsWithPlaceHolder = strings.Join(stringx.Remove(noteFieldNames, "`id`", "`=`"), "=?,") + "=?"
 )
 
 type (
@@ -35,12 +34,13 @@ type (
 	}
 
 	Note struct {
-		Id       int64     `db:"id"`
-		Title    string    `db:"title"`     // 标题
-		Desc     string    `db:"desc"`      // 描述
-		Privacy  int64     `db:"privacy"`   // 公开类型
-		CreateAt time.Time `db:"create_at"` // 创建时间
-		UpdateAt time.Time `db:"update_at"` // 更新时间
+		Id       int64  `db:"id"`
+		Title    string `db:"title"`     // 标题
+		Desc     string `db:"desc"`      // 描述
+		Privacy  int64  `db:"privacy"`   // 公开类型
+		Owner    int64  `db:"owner"`     // 笔记作者
+		CreateAt int64  `db:"create_at"` // 创建时间
+		UpdateAt int64  `db:"update_at"` // 更新时间
 	}
 )
 
@@ -72,14 +72,14 @@ func (m *defaultNoteModel) FindOne(ctx context.Context, id int64) (*Note, error)
 }
 
 func (m *defaultNoteModel) Insert(ctx context.Context, data *Note) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?)", m.table, noteRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Title, data.Desc, data.Privacy)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?)", m.table, noteRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Title, data.Desc, data.Privacy, data.Owner, data.CreateAt, data.UpdateAt)
 	return ret, err
 }
 
 func (m *defaultNoteModel) Update(ctx context.Context, data *Note) error {
 	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, noteRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.Title, data.Desc, data.Privacy, data.Id)
+	_, err := m.conn.ExecCtx(ctx, query, data.Title, data.Desc, data.Privacy, data.Owner, data.CreateAt, data.UpdateAt, data.Id)
 	return err
 }
 
