@@ -1,0 +1,15 @@
+name: note-api
+host: 0.0.0.0
+port: 8888
+log:
+  level: debug
+
+mysql:
+  user: ${ENV_DB_USER}
+  pass: ${ENV_DB_PASS}
+  addr: ${ENV_DB_ADDR}
+  db_name: ${ENV_DB_NAME}
+
+oss:
+  bucket: nota
+  prefix: assets
