@@ -9,3 +9,13 @@ CREATE TABLE IF NOT EXISTS note (
 	PRIMARY KEY (`id`),
 	KEY idx_owner(`owner`)
 )ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='笔记表';
+
+CREATE TABLE IF NOT EXISTS note_asset (
+	`id` BIGINT NOT NULL AUTO_INCREMENT,
+	`assert_key` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '资源key',
+	`assert_type` TINYINT NOT NULL DEFAULT 0 COMMENT '资源类型',
+	`note_id` BIGINT NOT NULL DEFAULT 0 COMMENT '所属笔记id',
+	`create_at` BIGINT NOT NULL DEFAULT 0 COMMENT '创建时间',
+	PRIMARY KEY (`id`),
+	KEY idx_note_id(`note_id`) 
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='笔记资源表';

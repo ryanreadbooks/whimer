@@ -9,6 +9,7 @@ import (
 const (
 	maxTitleLen = 20
 	maxDescLen  = 1000
+	maxImageLen = 9
 
 	PrivacyPublic  = 1
 	PrivacyPrivate = 2
@@ -21,20 +22,21 @@ type CreateReq struct {
 		Privacy int    `json:"privacy"`
 	} `json:"basic"`
 	Images []struct {
-		Mime   string `json:"mime,optional"`
 		FileId string `json:"file_id"`
-		Height int    `json:"height,optional"`
-		Weight int    `json:"weight,optional"`
 	} `json:"images"`
 }
 
 func (r *CreateReq) Validate() error {
 	if r == nil {
-		return global.ErrArgs.Msg("请求参数为空")
+		return global.ErrNilReq
 	}
 
 	if len(r.Images) == 0 {
 		return global.ErrArgs.Msg("至少需要包含一张照片")
+	}
+
+	if len(r.Images) > maxImageLen {
+		return global.ErrArgs.Msg(fmt.Sprintf("最多上传%d张图片", maxImageLen))
 	}
 
 	title := []rune(r.Basic.Title)

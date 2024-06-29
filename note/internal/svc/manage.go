@@ -9,18 +9,32 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/repo"
 	"github.com/ryanreadbooks/whimer/note/internal/repo/note"
+	notetyp "github.com/ryanreadbooks/whimer/note/internal/types"
 	mgtyp "github.com/ryanreadbooks/whimer/note/internal/types/manage"
+
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
+const (
+	noteIdConfuserSalt = "0x7c00:noteIdConfuser:.$35%io"
+)
+
 type Manage struct {
-	dao *repo.Dao
+	Ctx            *ServiceContext
+	dao            *repo.Dao
+	NoteIdConfuser *safety.Confuser
 }
 
 func NewManage(repo *repo.Dao) *Manage {
 	return &Manage{
-		dao: repo,
+		dao:            repo,
+		NoteIdConfuser: safety.NewConfuser(noteIdConfuserSalt, 24),
 	}
+}
+
+func (s *Manage) Get(ctx context.Context, uid int64, noteId string) error {
+
+	return nil
 }
 
 func (s *Manage) Create(ctx context.Context, uid int64, req *mgtyp.CreateReq) (string, error) {
@@ -48,12 +62,12 @@ func (s *Manage) Create(ctx context.Context, uid int64, req *mgtyp.CreateReq) (s
 		return "", global.ErrInsertNoteFail
 	}
 
-	return safety.Confuse(noteId), nil
+	return s.NoteIdConfuser.Confuse(noteId), nil
 }
 
 func (s *Manage) Update(ctx context.Context, uid int64, req *mgtyp.UpdateReq) error {
 	now := time.Now().Unix()
-	id := safety.DeConfuse(req.NoteId)
+	id := s.NoteIdConfuser.DeConfuse(req.NoteId)
 	queried, err := s.dao.NoteRepo.FindOne(ctx, id)
 	if errors.Is(note.ErrNotFound, err) {
 		return global.ErrUpdateNoteNotFound
@@ -88,4 +102,22 @@ func (s *Manage) Update(ctx context.Context, uid int64, req *mgtyp.UpdateReq) er
 	}
 
 	return nil
+}
+
+func (s *Manage) UploadAuth(ctx context.Context, req *notetyp.UploadAuthReq) (*notetyp.UploadAuthRes, error) {
+	// 生成count个上传凭证
+	var fileIds []string = make([]string, 0, req.Count)
+	for i := 0; i < req.Count; i++ {
+		key := s.Ctx.KeyGen.Gen()
+		fileIds = append(fileIds, key)
+	}
+
+	currentTime := time.Now().Unix()
+
+	res := notetyp.UploadAuthRes{
+		FildIds:     fileIds,
+		CurrentTime: currentTime,
+	}
+
+	return &res, nil
 }

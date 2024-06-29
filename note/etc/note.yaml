@@ -7,3 +7,7 @@ mysql:
   pass: ${ENV_DB_PASS}
   addr: ${ENV_DB_ADDR}
   db_name: ${ENV_DB_NAME}
+
+oss:
+  bucket: nota
+  prefix: assets

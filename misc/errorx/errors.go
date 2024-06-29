@@ -15,5 +15,5 @@ var (
 
 // 业务错误码定义
 const (
-	CommonCode = 100000000
+	CommonCode = 10000
 )

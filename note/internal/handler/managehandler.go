@@ -10,6 +10,7 @@ import (
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
+// /note/v1/manage/create
 func ManageCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req manage.CreateReq
@@ -35,6 +36,7 @@ func ManageCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
 	}
 }
 
+// /note/v1/manage/update
 func ManageUpdateHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req manage.UpdateReq
