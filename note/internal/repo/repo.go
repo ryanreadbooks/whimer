@@ -14,7 +14,8 @@ import (
 type Dao struct {
 	db sqlx.SqlConn
 
-	NoteRepo note.NoteModel
+	NoteRepo      note.NoteModel
+	NoteAssetRepo note.NoteAssetModel
 }
 
 func New(c *config.Config) *Dao {
@@ -35,8 +36,9 @@ func New(c *config.Config) *Dao {
 	}
 
 	return &Dao{
-		db:       db,
-		NoteRepo: note.NewNoteModel(db),
+		db:            db,
+		NoteRepo:      note.NewNoteModel(db),
+		NoteAssetRepo: note.NewNoteAssetModel(db),
 	}
 }
 
@@ -46,6 +48,7 @@ func getDbDsn(user, pass, addr, dbName string) string {
 		user, pass, addr, dbName)
 }
 
+// 事务中执行
 func (d *Dao) Transact(ctx context.Context, fns ...msqlx.TransactFunc) error {
 	return d.db.TransactCtx(ctx, func(ctx context.Context, s sqlx.Session) error {
 		for _, fn := range fns {
@@ -57,4 +60,8 @@ func (d *Dao) Transact(ctx context.Context, fns ...msqlx.TransactFunc) error {
 
 		return nil
 	})
+}
+
+func (d *Dao) DB() sqlx.SqlConn {
+	return d.db
 }

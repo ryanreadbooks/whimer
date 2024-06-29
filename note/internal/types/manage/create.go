@@ -11,8 +11,8 @@ const (
 	maxDescLen  = 1000
 	maxImageLen = 9
 
-	PrivacyPublic  = 1
-	PrivacyPrivate = 2
+	PrivacyPublic  = global.PrivacyPublic
+	PrivacyPrivate = global.PrivacyPrivate
 )
 
 type CreateReq struct {
@@ -49,7 +49,7 @@ func (r *CreateReq) Validate() error {
 	}
 
 	if r.Basic.Privacy != PrivacyPublic && r.Basic.Privacy != PrivacyPrivate {
-		return global.ErrArgs.Msg("笔记权限未知")
+		return global.ErrArgs.Msg("笔记参数权限不支持")
 	}
 
 	return nil

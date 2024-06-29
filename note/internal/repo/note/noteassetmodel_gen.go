@@ -34,11 +34,11 @@ type (
 	}
 
 	NoteAsset struct {
-		Id         int64  `db:"id"`
-		AssertKey  string `db:"assert_key"`  // 资源key
-		AssertType int64  `db:"assert_type"` // 资源类型
-		NoteId     int64  `db:"note_id"`     // 所属笔记id
-		CreateAt   int64  `db:"create_at"`   // 创建时间
+		Id        int64  `db:"id"`
+		AssetKey  string `db:"asset_key"`  // 资源key
+		AssetType int64  `db:"asset_type"` // 资源类型
+		NoteId    int64  `db:"note_id"`    // 所属笔记id
+		CreateAt  int64  `db:"create_at"`  // 创建时间
 	}
 )
 
@@ -71,13 +71,13 @@ func (m *defaultNoteAssetModel) FindOne(ctx context.Context, id int64) (*NoteAss
 
 func (m *defaultNoteAssetModel) Insert(ctx context.Context, data *NoteAsset) (sql.Result, error) {
 	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?)", m.table, noteAssetRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.AssertKey, data.AssertType, data.NoteId, data.CreateAt)
+	ret, err := m.conn.ExecCtx(ctx, query, data.AssetKey, data.AssetType, data.NoteId, data.CreateAt)
 	return ret, err
 }
 
 func (m *defaultNoteAssetModel) Update(ctx context.Context, data *NoteAsset) error {
 	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, noteAssetRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.AssertKey, data.AssertType, data.NoteId, data.CreateAt, data.Id)
+	_, err := m.conn.ExecCtx(ctx, query, data.AssetKey, data.AssetType, data.NoteId, data.CreateAt, data.Id)
 	return err
 }
 
