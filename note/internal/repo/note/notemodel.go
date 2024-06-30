@@ -19,14 +19,15 @@ type (
 	// and implement the added methods in customNoteModel.
 	NoteModel interface {
 		noteModel
-		noteModelTx
+		noteModelExtra
 		withSession(session sqlx.Session) NoteModel
 	}
 
-	noteModelTx interface {
+	noteModelExtra interface {
 		InsertTx(data *Note, callback msqlx.AfterInsert) msqlx.TransactFunc
 		UpdateTx(data *Note) msqlx.TransactFunc
 		DeleteTx(id int64) msqlx.TransactFunc
+		ListByOwner(ctx context.Context, uid int64) ([]*Note, error)
 	}
 
 	customNoteModel struct {
@@ -79,5 +80,19 @@ func (m *customNoteModel) DeleteTx(id int64) msqlx.TransactFunc {
 		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
 		_, err := s.ExecCtx(ctx, query, id)
 		return err
+	}
+}
+
+func (m *customNoteModel) ListByOwner(ctx context.Context, uid int64) ([]*Note, error) {
+	query := fmt.Sprintf("select %s from %s where `owner` = ?", noteRows, m.table)
+	var res []*Note = make([]*Note, 0)
+	err := m.conn.QueryRowsCtx(ctx, &res, query, uid)
+	switch err {
+	case nil:
+		return res, nil
+	case sqlx.ErrNotFound:
+		return nil, ErrNotFound
+	default:
+		return nil, err
 	}
 }

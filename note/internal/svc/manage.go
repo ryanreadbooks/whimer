@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/oss/signer"
 	"github.com/ryanreadbooks/whimer/misc/safety"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/repo"
@@ -21,15 +22,25 @@ const (
 )
 
 type Manage struct {
+	dao *repo.Dao
+
 	Ctx            *ServiceContext
-	dao            *repo.Dao
 	NoteIdConfuser *safety.Confuser
+	Signer         *signer.Signer
 }
 
-func NewManage(repo *repo.Dao) *Manage {
+func NewManage(ctx *ServiceContext, repo *repo.Dao) *Manage {
 	return &Manage{
 		dao:            repo,
+		Ctx:            ctx,
 		NoteIdConfuser: safety.NewConfuser(noteIdConfuserSalt, 24),
+		Signer: signer.NewSigner(
+			ctx.Config.Oss.User,
+			ctx.Config.Oss.Pass,
+			signer.Config{
+				Endpoint: ctx.Config.Oss.Endpoint,
+				Location: ctx.Config.Oss.Location,
+			}),
 	}
 }
 
@@ -94,7 +105,7 @@ func (s *Manage) Update(ctx context.Context, uid int64, req *mgtyp.UpdateReq) er
 	logx.Debugf("manage updating noteid: %d", id)
 	queried, err := s.dao.NoteRepo.FindOne(ctx, id)
 	if errors.Is(reponote.ErrNotFound, err) {
-		return global.ErrUpdateNoteNotFound
+		return global.ErrNoteNotFound
 	}
 	if err != nil {
 		logx.Errorf("repo find one note err: %v, req: %+v, uid: %d", err, req, uid)
@@ -183,17 +194,168 @@ func (s *Manage) Update(ctx context.Context, uid int64, req *mgtyp.UpdateReq) er
 
 func (s *Manage) UploadAuth(ctx context.Context, req *notetyp.UploadAuthReq) (*notetyp.UploadAuthRes, error) {
 	// 生成count个上传凭证
-	var fileIds []string = make([]string, 0, req.Count)
-	for i := 0; i < req.Count; i++ {
-		key := s.Ctx.KeyGen.Gen()
-		fileIds = append(fileIds, key)
+	fileId := s.Ctx.KeyGen.Gen()
+
+	now := time.Now()
+	currentTime := now.Unix()
+
+	// 生成签名
+	info, err := s.Signer.Sign(fileId, req.MimeType)
+	if err != nil {
+		logx.Errorf("upload auth sign err: %v, fileid: %s", err, fileId)
+		return nil, global.ErrPermDenied.Msg("服务器签名失败")
 	}
 
-	currentTime := time.Now().Unix()
-
 	res := notetyp.UploadAuthRes{
-		FildIds:     fileIds,
+		FildIds:     fileId,
 		CurrentTime: currentTime,
+		ExpireTime:  info.ExpireAt.Unix(),
+		UploadAddr:  s.Ctx.Config.Oss.Endpoint,
+		Headers: notetyp.UploadAuthResHeaders{
+			Auth:   info.Auth,
+			Date:   info.Date,
+			Sha256: info.Sha256,
+			Token:  info.Token,
+		},
+	}
+
+	return &res, nil
+}
+
+func (s *Manage) Delete(ctx context.Context, uid int64, req *mgtyp.DeleteReq) error {
+	id := s.NoteIdConfuser.DeConfuse(req.NoteId)
+	if id <= 0 {
+		return global.ErrNoteNotFound
+	}
+
+	logx.Debugf("manage updating noteid: %d", id)
+	queried, err := s.dao.NoteRepo.FindOne(ctx, id)
+	if errors.Is(reponote.ErrNotFound, err) {
+		return global.ErrNoteNotFound
+	}
+	if err != nil {
+		logx.Errorf("repo find one note err: %v, req: %+v, uid: %d", err, req, uid)
+		return global.ErrDeleteNoteFail
+	}
+
+	if uid != queried.Owner {
+		return global.ErrPermDenied.Msg("你不拥有该笔记")
+	}
+
+	// 开始删除
+	err = s.dao.DB().TransactCtx(ctx, func(ctx context.Context, sess sqlx.Session) error {
+		err := s.dao.NoteRepo.DeleteTx(id)(ctx, sess)
+		if err != nil {
+			logx.Errorf("repo delete note basic tx err: %v, noteid: %d", err, id)
+			return err
+		}
+
+		err = s.dao.NoteAssetRepo.DeleteByNoteIdTx(id, nil)(ctx, sess)
+		if err != nil {
+			logx.Errorf("repo delete note asset tx err: %v, noteid: %d", err, id)
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		logx.Errorf("repo delete note tx err: %v, noteid: %d", err, id)
+		return global.ErrDeleteNoteFail
+	}
+
+	return nil
+}
+
+func (s *Manage) List(ctx context.Context, uid int64) (*mgtyp.ListRes, error) {
+	notes, err := s.dao.NoteRepo.ListByOwner(ctx, uid)
+	if errors.Is(reponote.ErrNotFound, err) {
+		return &mgtyp.ListRes{}, nil
+	}
+
+	if err != nil {
+		logx.Errorf("repo note list by owner err: %v, uid: %d", err, uid)
+		return nil, global.ErrGetNoteFail
+	}
+
+	var noteIds = make([]int64, 0, len(notes))
+	for _, note := range notes {
+		noteIds = append(noteIds, note.Id)
+	}
+
+	// 获取资源信息
+	noteAssets, err := s.dao.NoteAssetRepo.FindByNoteIds(ctx, noteIds)
+	if err != nil && !errors.Is(err, reponote.ErrNotFound) {
+		logx.Errorf("repo note list by owner err: %v, uid: %d", err, uid)
+		return nil, global.ErrGetNoteFail
+	}
+
+	// 组合notes和noteAssets
+	var res mgtyp.ListRes
+	for _, note := range notes {
+		item := &mgtyp.ListResItem{
+			NoteId:   s.NoteIdConfuser.Confuse(note.Id),
+			Title:    note.Title,
+			Desc:     note.Desc,
+			Privacy:  note.Privacy,
+			CreateAt: note.CreateAt,
+			UpdateAt: note.UpdateAt,
+		}
+		for _, asset := range noteAssets {
+			if note.Id == asset.NoteId {
+				item.Images = append(item.Images, &mgtyp.ListResItemImage{
+					Url:  asset.AssetKey, // TODO 替换成oss能够访问的链接
+					Type: int(asset.AssetType),
+				})
+			}
+		}
+
+		res.Items = append(res.Items, item)
+	}
+
+	return &res, nil
+}
+
+func (s *Manage) GetNote(ctx context.Context, uid int64, noteId string) (*mgtyp.ListResItem, error) {
+	nid := s.NoteIdConfuser.DeConfuse(noteId)
+	if nid <= 0 {
+		return nil, global.ErrNoteNotFound
+	}
+
+	note, err := s.dao.NoteRepo.FindOne(ctx, nid)
+	if errors.Is(err, reponote.ErrNotFound) {
+		return nil, global.ErrNoteNotFound
+	}
+
+	if err != nil {
+		logx.Errorf("repo note find one err: %v, uid: %d", err, uid)
+		return nil, global.ErrGetNoteFail
+	}
+
+	if note.Owner != uid {
+		return nil, global.ErrPermDenied.Msg("你不拥有该笔记")
+	}
+
+	assets, err := s.dao.NoteAssetRepo.FindByNoteIds(ctx, []int64{note.Id})
+	if err != nil && !errors.Is(err, reponote.ErrNotFound) {
+		logx.Errorf("repo note asset find by note ids err: %v, noteid: %d", err, note.Id)
+		return nil, global.ErrGetNoteFail
+	}
+
+	var res = mgtyp.ListResItem{
+		NoteId:   noteId,
+		Title:    note.Title,
+		Desc:     note.Desc,
+		Privacy:  note.Privacy,
+		CreateAt: note.CreateAt,
+		UpdateAt: note.UpdateAt,
+	}
+
+	for _, asset := range assets {
+		res.Images = append(res.Images, &mgtyp.ListResItemImage{
+			Url:  asset.AssetKey, // TODO 替换oss
+			Type: int(asset.AssetType),
+		})
 	}
 
 	return &res, nil

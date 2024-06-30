@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	msqlx "github.com/ryanreadbooks/whimer/misc/sqlx"
+	uslices "github.com/ryanreadbooks/whimer/misc/utils/slices"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
@@ -18,7 +19,7 @@ type (
 	// and implement the added methods in customNoteAssetModel.
 	NoteAssetModel interface {
 		noteAssetModel
-		noteAssetModelTx
+		noteAssetModelExtra
 		withSession(session sqlx.Session) NoteAssetModel
 	}
 
@@ -26,13 +27,14 @@ type (
 		*defaultNoteAssetModel
 	}
 
-	noteAssetModelTx interface {
+	noteAssetModelExtra interface {
 		InsertTx(data *NoteAsset, callback msqlx.AfterInsert) msqlx.TransactFunc
 		UpdateTx(data *NoteAsset) msqlx.TransactFunc
 		DeleteTx(id int64) msqlx.TransactFunc
 		BatchInsertTx(datas []*NoteAsset) msqlx.TransactFunc
 		DeleteByNoteIdTx(noteId int64, exclude []string) msqlx.TransactFunc
 		FindByNoteIdTx(ctx context.Context, sess sqlx.Session, noteId int64) ([]*NoteAsset, error)
+		FindByNoteIds(ctx context.Context, noteIds []int64) ([]*NoteAsset, error)
 	}
 )
 
@@ -136,6 +138,24 @@ func (m *customNoteAssetModel) FindByNoteIdTx(ctx context.Context, sess sqlx.Ses
 	var res = make([]*NoteAsset, 0)
 	query := fmt.Sprintf("select %s from %s where `note_id` = ?", noteAssetRows, m.table)
 	err := sess.QueryRowsCtx(ctx, &res, query, noteId)
+	switch err {
+	case nil:
+		return res, nil
+	case sqlx.ErrNotFound:
+		return nil, ErrNotFound
+	default:
+		return nil, err
+	}
+}
+
+func (m *customNoteAssetModel) FindByNoteIds(ctx context.Context, noteIds []int64) ([]*NoteAsset, error) {
+	if len(noteIds) == 0 {
+		return []*NoteAsset{}, nil
+	}
+
+	var res = make([]*NoteAsset, 0)
+	query := fmt.Sprintf("select %s from %s where `note_id` in (%s)", noteAssetRows, m.table, uslices.JoinInts(noteIds))
+	err := m.conn.QueryRowsCtx(ctx, &res, query)
 	switch err {
 	case nil:
 		return res, nil

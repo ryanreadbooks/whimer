@@ -1,8 +1,7 @@
 package handler
 
 import (
-	"net/http"
-
+	uhttp "github.com/ryanreadbooks/whimer/misc/utils/http"
 	"github.com/ryanreadbooks/whimer/note/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -24,26 +23,17 @@ func routes(ctx *svc.ServiceContext) []rest.Route {
 // 笔记管理路由
 func noteManageRoutes(ctx *svc.ServiceContext) []rest.Route {
 	return []rest.Route{
-		{
-			Method:  http.MethodPost,
-			Path:    "/v1/manage/create",
-			Handler: ManageCreateHandler(ctx),
-		},
-		{
-			Method:  http.MethodPost,
-			Path:    "/v1/manage/update",
-			Handler: ManageUpdateHandler(ctx),
-		},
+		uhttp.Post("/v1/manage/create", ManageCreateHandler(ctx)),
+		uhttp.Post("/v1/manage/update", ManageUpdateHandler(ctx)),
+		uhttp.Post("/v1/manage/delete", ManageDeleteHandler(ctx)),
+		uhttp.Get("/v1/manage/list", ManageListHandler(ctx)),
+		uhttp.Get("/v1/manage/get/:note_id", ManageGetNoteHandler(ctx)),
 	}
 }
 
 // 笔记资源上传凭证获取路由
 func noteUploadAuthRoutes(ctx *svc.ServiceContext) []rest.Route {
 	return []rest.Route{
-		{
-			Method:  http.MethodGet,
-			Path:    "/v1/upload/auth",
-			Handler: UploadAuthHandler(ctx),
-		},
+		uhttp.Get("/v1/upload/auth", UploadAuthHandler(ctx)),
 	}
 }
