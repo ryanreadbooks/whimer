@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	msqlx "github.com/ryanreadbooks/whimer/misc/sqlx"
+	"github.com/ryanreadbooks/whimer/misc/xsql"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
@@ -24,9 +24,9 @@ type (
 	}
 
 	noteModelExtra interface {
-		InsertTx(data *Note, callback msqlx.AfterInsert) msqlx.TransactFunc
-		UpdateTx(data *Note) msqlx.TransactFunc
-		DeleteTx(id int64) msqlx.TransactFunc
+		InsertTx(data *Note, callback xsql.AfterInsert) xsql.TransactFunc
+		UpdateTx(data *Note) xsql.TransactFunc
+		DeleteTx(id int64) xsql.TransactFunc
 		ListByOwner(ctx context.Context, uid int64) ([]*Note, error)
 	}
 
@@ -46,7 +46,7 @@ func (m *customNoteModel) withSession(session sqlx.Session) NoteModel {
 	return NewNoteModel(sqlx.NewSqlConnFromSession(session))
 }
 
-func (m *customNoteModel) InsertTx(data *Note, callback msqlx.AfterInsert) msqlx.TransactFunc {
+func (m *customNoteModel) InsertTx(data *Note, callback xsql.AfterInsert) xsql.TransactFunc {
 	return func(ctx context.Context, s sqlx.Session) error {
 		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?)", m.table, noteRowsExpectAutoSet)
 		ret, err := s.ExecCtx(ctx, query, data.Title, data.Desc, data.Privacy, data.Owner, data.CreateAt, data.UpdateAt)
@@ -67,7 +67,7 @@ func (m *customNoteModel) InsertTx(data *Note, callback msqlx.AfterInsert) msqlx
 	}
 }
 
-func (m *customNoteModel) UpdateTx(data *Note) msqlx.TransactFunc {
+func (m *customNoteModel) UpdateTx(data *Note) xsql.TransactFunc {
 	return func(ctx context.Context, s sqlx.Session) error {
 		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, noteRowsWithPlaceHolder)
 		_, err := s.ExecCtx(ctx, query, data.Title, data.Desc, data.Privacy, data.Owner, data.CreateAt, data.UpdateAt, data.Id)
@@ -75,7 +75,7 @@ func (m *customNoteModel) UpdateTx(data *Note) msqlx.TransactFunc {
 	}
 }
 
-func (m *customNoteModel) DeleteTx(id int64) msqlx.TransactFunc {
+func (m *customNoteModel) DeleteTx(id int64) xsql.TransactFunc {
 	return func(ctx context.Context, s sqlx.Session) error {
 		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
 		_, err := s.ExecCtx(ctx, query, id)
