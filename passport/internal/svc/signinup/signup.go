@@ -1,23 +1,23 @@
-package login
+package signinup
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/misc/utils"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/passport/internal/config"
 	"github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
 
-	"github.com/google/uuid"
 	"github.com/ryanreadbooks/folium/sdk"
 	"github.com/zeromicro/go-zero/core/logx"
+)
+
+const (
+	foliumRegIdKey = "passport:uid:id:w"
 )
 
 type Service struct {
@@ -49,49 +49,7 @@ func New(c *config.Config, repo *repo.Repo) *Service {
 	return s
 }
 
-// 生成随机盐
-func makeSalt() (string, error) {
-	istn, err := uuid.NewUUID()
-	if err != nil {
-		return "", err
-	}
 
-	suffix := utils.RandomString(8)
-	cand := istn.String() + suffix
-
-	hasher := sha256.New()
-	hasher.Write([]byte(cand))
-	salt := hasher.Sum(nil)
-
-	return hex.EncodeToString(salt), nil
-}
-
-func concatPassSalt(pass, salt string) string {
-	idx := len(salt) / 2
-
-	concat := salt[0:idx] + pass + salt[idx:]
-
-	sh := sha256.New()
-	sh.Write([]byte(concat))
-	res := sh.Sum(nil)
-
-	return hex.EncodeToString(res)
-}
-
-// 生成随机初始密码 与其对应的盐
-func makeInitPass() (pass, salt string, err error) {
-	salt, err = makeSalt()
-	if err != nil {
-		return
-	}
-
-	// 生成随机密码
-	rawPass := utils.RandomPass(10) // 随机生成10位密码
-	// 随机密码拼接盐
-	pass = concatPassSalt(rawPass, salt)
-
-	return
-}
 
 // 初始化新注册用户的昵称
 func makeInitNickname(uid uint64) string {
@@ -99,7 +57,7 @@ func makeInitNickname(uid uint64) string {
 }
 
 func (s *Service) regTakeUid(ctx context.Context) (uint64, error) {
-	return 0, nil
+	return s.idgen.GetId(ctx, foliumRegIdKey, 10000)
 }
 
 // 通过电话注册账号

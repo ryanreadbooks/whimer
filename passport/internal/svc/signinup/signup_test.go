@@ -1,4 +1,4 @@
-package login
+package signinup
 
 import (
 	"testing"
