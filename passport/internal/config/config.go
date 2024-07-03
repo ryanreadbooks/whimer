@@ -22,4 +22,8 @@ type Config struct {
 		Bucket   string `json:"bucket"`
 		Prefix   string `json:"prefix"`
 	}
+
+	Idgen struct {
+		Addr string `json:"addr"`
+	} `json:"idgen"`
 }

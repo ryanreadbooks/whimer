@@ -13,7 +13,10 @@ mysql:
 oss:
   user: ${ENV_OSS_USER}
   pass: ${ENV_OSS_PASS}
-  endpoint: localhost:9000
+  endpoint: 127.0.0.1:9000
   location: local
-  bucket: nota
-  prefix: assets
+  bucket: passport
+  prefix: avatars
+
+idgen:
+  addr: 127.0.0.1:9528
