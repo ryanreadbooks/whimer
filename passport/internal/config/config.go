@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/rest"
 )
 
@@ -13,6 +14,8 @@ type Config struct {
 		Addr   string `json:"addr"`
 		DbName string `json:"db_name"`
 	} `json:"mysql"`
+
+	Redis redis.RedisConf `json:"redis"`
 
 	Oss struct {
 		User     string `json:"user"`

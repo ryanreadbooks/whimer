@@ -1,6 +1,6 @@
-name: note-api
+name: passport-api
 host: 0.0.0.0
-port: 8888
+port: 7777
 log:
   level: debug
 
@@ -9,6 +9,9 @@ mysql:
   pass: ${ENV_DB_PASS}
   addr: ${ENV_DB_ADDR}
   db_name: ${ENV_DB_NAME}
+
+redis:
+  host: localhost:7542
 
 oss:
   user: ${ENV_OSS_USER}

@@ -4,52 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	"github.com/ryanreadbooks/whimer/passport/internal/config"
 	"github.com/ryanreadbooks/whimer/passport/internal/gloabl"
-	"github.com/ryanreadbooks/whimer/passport/internal/repo"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
 
-	"github.com/ryanreadbooks/folium/sdk"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
 const (
 	foliumRegIdKey = "passport:uid:id:w"
 )
-
-type Service struct {
-	c    *config.Config
-	repo *repo.Repo
-
-	idgen *sdk.Client
-}
-
-func New(c *config.Config, repo *repo.Repo) *Service {
-	s := &Service{
-		c:    c,
-		repo: repo,
-	}
-
-	var err error
-	s.idgen, err = sdk.NewClient(sdk.WithGrpc(s.c.Idgen.Addr))
-	if err != nil {
-		panic(err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-	err = s.idgen.Ping(ctx)
-	if err != nil {
-		logx.Errorf("new passport svc, can not ping idgen(folium): %v", err)
-	}
-
-	return s
-}
-
-
 
 // 初始化新注册用户的昵称
 func makeInitNickname(uid uint64) string {
