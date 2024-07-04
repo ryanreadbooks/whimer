@@ -5,7 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/svc"
-	"github.com/ryanreadbooks/whimer/note/internal/types/manage"
+	mgtp "github.com/ryanreadbooks/whimer/note/internal/types/manage"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -13,7 +13,7 @@ import (
 // /note/v1/manage/create
 func ManageCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req manage.CreateReq
+		var req mgtp.CreateReq
 		if err := httpx.ParseJsonBody(r, &req); err != nil {
 			httpx.Error(w, global.ErrArgs.Msg(err.Error()))
 			return
@@ -32,14 +32,14 @@ func ManageCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		httpx.OkJson(w, manage.CreateRes{NoteId: noteId})
+		httpx.OkJson(w, mgtp.CreateRes{NoteId: noteId})
 	}
 }
 
 // /note/v1/manage/update
 func ManageUpdateHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req manage.UpdateReq
+		var req mgtp.UpdateReq
 		if err := httpx.ParseJsonBody(r, &req); err != nil {
 			httpx.Error(w, global.ErrArgs.Msg(err.Error()))
 			return
@@ -57,13 +57,13 @@ func ManageUpdateHandler(c *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		httpx.OkJson(w, manage.UpdateRes{NoteId: req.NoteId})
+		httpx.OkJson(w, mgtp.UpdateRes{NoteId: req.NoteId})
 	}
 }
 
 func ManageDeleteHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req manage.DeleteReq
+		var req mgtp.DeleteReq
 		if err := httpx.ParseJsonBody(r, &req); err != nil {
 			httpx.Error(w, global.ErrArgs.Msg(err.Error()))
 			return
@@ -98,7 +98,7 @@ func ManageListHandler(c *svc.ServiceContext) http.HandlerFunc {
 
 func ManageGetNoteHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req manage.GetNoteReq
+		var req mgtp.GetNoteReq
 		if err := httpx.ParsePath(r, &req); err != nil {
 			httpx.Error(w, global.ErrArgs.Msg(err.Error()))
 			return
@@ -110,6 +110,30 @@ func ManageGetNoteHandler(c *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		res, err := c.Manage.GetNote(r.Context(), 100, req.NoteId)
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		httpx.OkJson(w, res)
+	}
+}
+
+// /note/v1/upload/auth
+func UploadAuthHandler(c *svc.ServiceContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req mgtp.UploadAuthReq
+		if err := httpx.ParseForm(r, &req); err != nil {
+			httpx.Error(w, global.ErrArgs.Msg(err.Error()))
+			return
+		}
+
+		if err := req.Validate(); err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		res, err := c.Manage.UploadAuth(r.Context(), &req)
 		if err != nil {
 			httpx.Error(w, err)
 			return

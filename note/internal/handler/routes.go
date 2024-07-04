@@ -15,7 +15,6 @@ func RegisterHandlers(engine *rest.Server, ctx *svc.ServiceContext) {
 func routes(ctx *svc.ServiceContext) []rest.Route {
 	rs := make([]rest.Route, 0)
 	rs = append(rs, noteManageRoutes(ctx)...)
-	rs = append(rs, noteUploadAuthRoutes(ctx)...)
 
 	return rs
 }
@@ -28,12 +27,6 @@ func noteManageRoutes(ctx *svc.ServiceContext) []rest.Route {
 		uhttp.Post("/v1/manage/delete", ManageDeleteHandler(ctx)),
 		uhttp.Get("/v1/manage/list", ManageListHandler(ctx)),
 		uhttp.Get("/v1/manage/get/:note_id", ManageGetNoteHandler(ctx)),
-	}
-}
-
-// 笔记资源上传凭证获取路由
-func noteUploadAuthRoutes(ctx *svc.ServiceContext) []rest.Route {
-	return []rest.Route{
-		uhttp.Get("/v1/upload/auth", UploadAuthHandler(ctx)),
+		uhttp.Get("/v1/manage/upload/auth", UploadAuthHandler(ctx)),
 	}
 }

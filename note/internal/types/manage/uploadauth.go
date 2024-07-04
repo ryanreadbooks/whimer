@@ -1,4 +1,4 @@
-package types
+package manage
 
 import (
 	"github.com/ryanreadbooks/whimer/note/internal/global"

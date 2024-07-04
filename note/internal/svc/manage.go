@@ -10,8 +10,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/repo"
 	reponote "github.com/ryanreadbooks/whimer/note/internal/repo/note"
-	notetyp "github.com/ryanreadbooks/whimer/note/internal/types"
-	mgtyp "github.com/ryanreadbooks/whimer/note/internal/types/manage"
+	mgtp "github.com/ryanreadbooks/whimer/note/internal/types/manage"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -49,7 +48,7 @@ func (s *Manage) Get(ctx context.Context, uid int64, noteId string) error {
 	return nil
 }
 
-func (s *Manage) Create(ctx context.Context, uid int64, req *mgtyp.CreateReq) (string, error) {
+func (s *Manage) Create(ctx context.Context, uid int64, req *mgtp.CreateReq) (string, error) {
 	now := time.Now().Unix()
 	newNote := &reponote.Note{
 		Title:    req.Basic.Title,
@@ -99,7 +98,7 @@ func (s *Manage) Create(ctx context.Context, uid int64, req *mgtyp.CreateReq) (s
 	return s.NoteIdConfuser.Confuse(noteId), nil
 }
 
-func (s *Manage) Update(ctx context.Context, uid int64, req *mgtyp.UpdateReq) error {
+func (s *Manage) Update(ctx context.Context, uid int64, req *mgtp.UpdateReq) error {
 	now := time.Now().Unix()
 	id := s.NoteIdConfuser.DeConfuse(req.NoteId)
 	logx.Debugf("manage updating noteid: %d", id)
@@ -192,7 +191,7 @@ func (s *Manage) Update(ctx context.Context, uid int64, req *mgtyp.UpdateReq) er
 	return nil
 }
 
-func (s *Manage) UploadAuth(ctx context.Context, req *notetyp.UploadAuthReq) (*notetyp.UploadAuthRes, error) {
+func (s *Manage) UploadAuth(ctx context.Context, req *mgtp.UploadAuthReq) (*mgtp.UploadAuthRes, error) {
 	// 生成count个上传凭证
 	fileId := s.Ctx.KeyGen.Gen()
 
@@ -206,12 +205,12 @@ func (s *Manage) UploadAuth(ctx context.Context, req *notetyp.UploadAuthReq) (*n
 		return nil, global.ErrPermDenied.Msg("服务器签名失败")
 	}
 
-	res := notetyp.UploadAuthRes{
+	res := mgtp.UploadAuthRes{
 		FildIds:     fileId,
 		CurrentTime: currentTime,
 		ExpireTime:  info.ExpireAt.Unix(),
 		UploadAddr:  s.Ctx.Config.Oss.Endpoint,
-		Headers: notetyp.UploadAuthResHeaders{
+		Headers: mgtp.UploadAuthResHeaders{
 			Auth:   info.Auth,
 			Date:   info.Date,
 			Sha256: info.Sha256,
@@ -222,7 +221,7 @@ func (s *Manage) UploadAuth(ctx context.Context, req *notetyp.UploadAuthReq) (*n
 	return &res, nil
 }
 
-func (s *Manage) Delete(ctx context.Context, uid int64, req *mgtyp.DeleteReq) error {
+func (s *Manage) Delete(ctx context.Context, uid int64, req *mgtp.DeleteReq) error {
 	id := s.NoteIdConfuser.DeConfuse(req.NoteId)
 	if id <= 0 {
 		return global.ErrNoteNotFound
@@ -267,10 +266,10 @@ func (s *Manage) Delete(ctx context.Context, uid int64, req *mgtyp.DeleteReq) er
 	return nil
 }
 
-func (s *Manage) List(ctx context.Context, uid int64) (*mgtyp.ListRes, error) {
+func (s *Manage) List(ctx context.Context, uid int64) (*mgtp.ListRes, error) {
 	notes, err := s.dao.NoteRepo.ListByOwner(ctx, uid)
 	if errors.Is(reponote.ErrNotFound, err) {
-		return &mgtyp.ListRes{}, nil
+		return &mgtp.ListRes{}, nil
 	}
 
 	if err != nil {
@@ -291,9 +290,9 @@ func (s *Manage) List(ctx context.Context, uid int64) (*mgtyp.ListRes, error) {
 	}
 
 	// 组合notes和noteAssets
-	var res mgtyp.ListRes
+	var res mgtp.ListRes
 	for _, note := range notes {
-		item := &mgtyp.ListResItem{
+		item := &mgtp.ListResItem{
 			NoteId:   s.NoteIdConfuser.Confuse(note.Id),
 			Title:    note.Title,
 			Desc:     note.Desc,
@@ -303,7 +302,7 @@ func (s *Manage) List(ctx context.Context, uid int64) (*mgtyp.ListRes, error) {
 		}
 		for _, asset := range noteAssets {
 			if note.Id == asset.NoteId {
-				item.Images = append(item.Images, &mgtyp.ListResItemImage{
+				item.Images = append(item.Images, &mgtp.ListResItemImage{
 					Url:  asset.AssetKey, // TODO 替换成oss能够访问的链接
 					Type: int(asset.AssetType),
 				})
@@ -316,7 +315,7 @@ func (s *Manage) List(ctx context.Context, uid int64) (*mgtyp.ListRes, error) {
 	return &res, nil
 }
 
-func (s *Manage) GetNote(ctx context.Context, uid int64, noteId string) (*mgtyp.ListResItem, error) {
+func (s *Manage) GetNote(ctx context.Context, uid int64, noteId string) (*mgtp.ListResItem, error) {
 	nid := s.NoteIdConfuser.DeConfuse(noteId)
 	if nid <= 0 {
 		return nil, global.ErrNoteNotFound
@@ -342,7 +341,7 @@ func (s *Manage) GetNote(ctx context.Context, uid int64, noteId string) (*mgtyp.
 		return nil, global.ErrGetNoteFail
 	}
 
-	var res = mgtyp.ListResItem{
+	var res = mgtp.ListResItem{
 		NoteId:   noteId,
 		Title:    note.Title,
 		Desc:     note.Desc,
@@ -352,7 +351,7 @@ func (s *Manage) GetNote(ctx context.Context, uid int64, noteId string) (*mgtyp.
 	}
 
 	for _, asset := range assets {
-		res.Images = append(res.Images, &mgtyp.ListResItemImage{
+		res.Images = append(res.Images, &mgtp.ListResItemImage{
 			Url:  asset.AssetKey, // TODO 替换oss
 			Type: int(asset.AssetType),
 		})
