@@ -17,6 +17,7 @@ func passportRoutes(engine *rest.Server, ctx *svc.ServiceContext) {
 
 func signInRoutes(ctx *svc.ServiceContext) []rest.Route {
 	return []rest.Route{
-		uhttp.Post("/v1/sms/send", SmsSendHandler(ctx)),
+		uhttp.Post("/v1/sms/send", SmsSendHandler(ctx)),   // 获取登录短信验证码
+		uhttp.Post("/v1/sign_in/sms", SignInWithSms(ctx)), // 手机号+短信验证码登录
 	}
 }

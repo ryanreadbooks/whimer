@@ -2,18 +2,15 @@ package handler
 
 import (
 	"net/http"
-	"regexp"
 
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
 	tp "github.com/ryanreadbooks/whimer/passport/internal/types/passport"
+
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-var (
-	telRegx = regexp.MustCompile(`^1[3-9]\d{9}$`)
-)
-
+// 获取手机验证码
 func SmsSendHandler(ctx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req tp.SmsSendReq
@@ -22,8 +19,8 @@ func SmsSendHandler(ctx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		if !telRegx.MatchString(req.Tel) {
-			httpx.Error(w, global.ErrInvalidTel)
+		if err := req.Validate(); err != nil {
+			httpx.Error(w, err)
 			return
 		}
 
@@ -34,5 +31,31 @@ func SmsSendHandler(ctx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		httpx.OkJson(w, tp.SmdSendRes{})
+	}
+}
+
+// 手机号+短信验证码登录
+func SignInWithSms(ctx *svc.ServiceContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req tp.SignInSmdReq
+		if err := httpx.ParseJsonBody(r, &req); err != nil {
+			httpx.Error(w, global.ErrArgs.Msg(err.Error()))
+			return
+		}
+
+		if err := req.Validate(); err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		user, err := ctx.SignInUpSvc.SignInWithSms(r.Context(), &req)
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		// TODO set-cookie
+		httpx.OkJson(w, tp.NewFromRepoBasic(user))
+
 	}
 }

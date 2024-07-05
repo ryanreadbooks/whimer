@@ -11,18 +11,26 @@ import (
 
 // all sqls here
 const (
-	sqlFindAll      = `select uid,nickname,avatar,style_sign,gender,tel,email,pass,salt,create_at,update_at from user_base where uid=?`
+	sqlFindAll      = `select uid,nickname,avatar,style_sign,gender,tel,email,pass,salt,create_at,update_at from user_base where %s=?`
 	sqlInsertAll    = `insert into user_base(uid,nickname,avatar,style_sign,gender,tel,email,pass,salt,create_at,update_at) values(?,?,?,?,?,?,?,?,?,?,?)`
 	sqlDel          = `delete from user_base where uid=?`
 	sqlUpdateCol    = `update user_base set %s=?,update_at=? where uid=?`
 	sqlFindPassSalt = `select uid,pass,salt from user_base where uid=?`
-	sqlFindBasic    = `select uid,nickname,avatar,style_sign,gender,tel,email,create_at,update_at from user_base where uid=?`
+	sqlFindBasic    = `select uid,nickname,avatar,style_sign,gender,tel,email,create_at,update_at from user_base where %s=?`
 )
 
-func (r *Repo) Find(ctx context.Context, uid uint64) (*Model, error) {
+func (r *Repo) find(ctx context.Context, cond string, val interface{}) (*Model, error) {
 	model := new(Model)
-	err := r.db.QueryRowCtx(ctx, model, sqlFindAll, uid)
+	err := r.db.QueryRowCtx(ctx, model, fmt.Sprintf(sqlFindAll, cond), val)
 	return model, xsql.ConvertError(err)
+}
+
+func (r *Repo) Find(ctx context.Context, uid uint64) (*Model, error) {
+	return r.find(ctx, "uid", uid)
+}
+
+func (r *Repo) FindByTel(ctx context.Context, tel string) (*Model, error) {
+	return r.find(ctx, "tel", tel)
 }
 
 func (r *Repo) FindPassSalt(ctx context.Context, uid uint64) (*PassSalt, error) {
@@ -31,14 +39,21 @@ func (r *Repo) FindPassSalt(ctx context.Context, uid uint64) (*PassSalt, error) 
 	return model, xsql.ConvertError(err)
 }
 
-func (r *Repo) FindBasic(ctx context.Context, uid uint64) (*Basic, error) {
+func (r *Repo) findBasicBy(ctx context.Context, cond string, val interface{}) (*Basic, error) {
 	model := new(Basic)
-	err := r.db.QueryRowCtx(ctx, model, sqlFindBasic, uid)
+	err := r.db.QueryRowCtx(ctx, model, fmt.Sprintf(sqlFindBasic, cond), val)
 	return model, xsql.ConvertError(err)
 }
 
+func (r *Repo) FindBasic(ctx context.Context, uid uint64) (*Basic, error) {
+	return r.findBasicBy(ctx, "uid", uid)
+}
+
+func (r *Repo) FindBasicByTel(ctx context.Context, tel string) (*Basic, error) {
+	return r.findBasicBy(ctx, "tel", tel)
+}
+
 func (r *Repo) insert(ctx context.Context, sess sqlx.Session, user *Model) error {
-	now := time.Now().Unix()
 	_, err := sess.ExecCtx(ctx,
 		sqlInsertAll,
 		user.Uid,
@@ -50,8 +65,8 @@ func (r *Repo) insert(ctx context.Context, sess sqlx.Session, user *Model) error
 		user.Email,
 		user.Pass,
 		user.Salt,
-		now,
-		now)
+		user.CreateAt,
+		user.UpdateAt)
 
 	return xsql.ConvertError(err)
 }

@@ -24,6 +24,9 @@ var (
 	ErrSmsCodeNotMatch    = ErrPermDenied.Msg("验证码错误")
 	ErrPassNotMatch       = ErrPermDenied.Msg("密码不对")
 	ErrInvalidTel         = ErrArgs.Msg("手机号格式不正确")
+	ErrInvalidSmsCode     = ErrArgs.Msg("短信验证码格式不正确")
+	ErrSignIn             = ErrInternal.Msg("登录失败, 请稍后重试")
+	ErrSignInTooFrequent  = ErrRateLimit.Msg("登录太快, 请稍后重试")
 
 	// sign-up related
 	ErrTelTaken   = ErrPermDenied.Msg("该手机号已经注册")

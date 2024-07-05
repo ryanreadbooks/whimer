@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	"github.com/ryanreadbooks/whimer/passport/internal/gloabl"
+	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -26,7 +27,11 @@ func (s *Service) regTakeUid(ctx context.Context) (uint64, error) {
 }
 
 // 通过电话注册账号
-func (s *Service) RegisterTel(ctx context.Context, tel string) (*userbase.Model, error) {
+func (s *Service) SignUpTel(ctx context.Context, tel string) (*userbase.Model, error) {
+	var (
+		now = time.Now().Unix()
+	)
+
 	// 1. 初始化密码
 	pass, salt, err := makeInitPass()
 	if err != nil {
@@ -51,6 +56,10 @@ func (s *Service) RegisterTel(ctx context.Context, tel string) (*userbase.Model,
 		Tel:      tel,
 		Pass:     pass,
 		Salt:     salt,
+		Timing: userbase.Timing{
+			CreateAt: now,
+			UpdateAt: now,
+		},
 	}
 
 	err = s.repo.UserBaseRepo.Insert(ctx, &user)
