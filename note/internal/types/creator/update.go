@@ -1,4 +1,4 @@
-package manage
+package creator
 
 import (
 	"github.com/ryanreadbooks/whimer/note/internal/global"
@@ -17,7 +17,7 @@ func (r *UpdateReq) Validate() error {
 	if len(r.NoteId) == 0 {
 		return global.ErrArgs.Msg("笔记id错误")
 	}
-	
+
 	return r.CreateReq.Validate()
 }
 

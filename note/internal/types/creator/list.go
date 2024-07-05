@@ -1,4 +1,4 @@
-package manage
+package creator
 
 type ListResItemImage struct {
 	Url  string `json:"url"`

@@ -14,19 +14,19 @@ func RegisterHandlers(engine *rest.Server, ctx *svc.ServiceContext) {
 
 func routes(ctx *svc.ServiceContext) []rest.Route {
 	rs := make([]rest.Route, 0)
-	rs = append(rs, noteManageRoutes(ctx)...)
+	rs = append(rs, noteCreatorRoutes(ctx)...)
 
 	return rs
 }
 
 // 笔记管理路由
-func noteManageRoutes(ctx *svc.ServiceContext) []rest.Route {
+func noteCreatorRoutes(ctx *svc.ServiceContext) []rest.Route {
 	return []rest.Route{
-		uhttp.Post("/v1/manage/create", ManageCreateHandler(ctx)),
-		uhttp.Post("/v1/manage/update", ManageUpdateHandler(ctx)),
-		uhttp.Post("/v1/manage/delete", ManageDeleteHandler(ctx)),
-		uhttp.Get("/v1/manage/list", ManageListHandler(ctx)),
-		uhttp.Get("/v1/manage/get/:note_id", ManageGetNoteHandler(ctx)),
-		uhttp.Get("/v1/manage/upload/auth", UploadAuthHandler(ctx)),
+		uhttp.Post("/v1/creator/create", CreatorCreateHandler(ctx)),
+		uhttp.Post("/v1/creator/update", CreatorUpdateHandler(ctx)),
+		uhttp.Post("/v1/creator/delete", CreatorDeleteHandler(ctx)),
+		uhttp.Get("/v1/creator/list", CreatorListHandler(ctx)),
+		uhttp.Get("/v1/creator/get/:note_id", CreatorGetNoteHandler(ctx)),
+		uhttp.Get("/v1/creator/upload/auth", UploadAuthHandler(ctx)),
 	}
 }

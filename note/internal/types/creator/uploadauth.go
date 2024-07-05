@@ -1,4 +1,4 @@
-package manage
+package creator
 
 import (
 	"github.com/ryanreadbooks/whimer/note/internal/global"
@@ -32,10 +32,10 @@ func (r *UploadAuthReq) Validate() error {
 }
 
 type UploadAuthResHeaders struct {
-	Auth        string `json:"auth"`
-	Sha256      string `json:"sha256"`
-	Date        string `json:"date"`
-	Token       string `json:"token"`
+	Auth   string `json:"auth"`
+	Sha256 string `json:"sha256"`
+	Date   string `json:"date"`
+	Token  string `json:"token"`
 }
 
 // 上传凭证响应

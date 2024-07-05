@@ -5,13 +5,13 @@ import (
 
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/svc"
-	mgtp "github.com/ryanreadbooks/whimer/note/internal/types/manage"
+	mgtp "github.com/ryanreadbooks/whimer/note/internal/types/creator"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-// /note/v1/manage/create
-func ManageCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
+// /note/v1/creator/create
+func CreatorCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req mgtp.CreateReq
 		if err := httpx.ParseJsonBody(r, &req); err != nil {
@@ -26,7 +26,7 @@ func ManageCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
 
 		// service to create note
 		// TODO get uid from wherever
-		noteId, err := c.Manage.Create(r.Context(), 100, &req)
+		noteId, err := c.CreatorSvc.Create(r.Context(), 100, &req)
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -36,8 +36,8 @@ func ManageCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
 	}
 }
 
-// /note/v1/manage/update
-func ManageUpdateHandler(c *svc.ServiceContext) http.HandlerFunc {
+// /note/v1/creator/update
+func CreatorUpdateHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req mgtp.UpdateReq
 		if err := httpx.ParseJsonBody(r, &req); err != nil {
@@ -51,7 +51,7 @@ func ManageUpdateHandler(c *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		// TODO get uid from whatever
-		err := c.Manage.Update(r.Context(), 100, &req)
+		err := c.CreatorSvc.Update(r.Context(), 100, &req)
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -61,7 +61,7 @@ func ManageUpdateHandler(c *svc.ServiceContext) http.HandlerFunc {
 	}
 }
 
-func ManageDeleteHandler(c *svc.ServiceContext) http.HandlerFunc {
+func CreatorDeleteHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req mgtp.DeleteReq
 		if err := httpx.ParseJsonBody(r, &req); err != nil {
@@ -74,7 +74,7 @@ func ManageDeleteHandler(c *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		err := c.Manage.Delete(r.Context(), 100, &req)
+		err := c.CreatorSvc.Delete(r.Context(), 100, &req)
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -84,9 +84,9 @@ func ManageDeleteHandler(c *svc.ServiceContext) http.HandlerFunc {
 	}
 }
 
-func ManageListHandler(c *svc.ServiceContext) http.HandlerFunc {
+func CreatorListHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		res, err := c.Manage.List(r.Context(), 100)
+		res, err := c.CreatorSvc.List(r.Context(), 100)
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -96,7 +96,7 @@ func ManageListHandler(c *svc.ServiceContext) http.HandlerFunc {
 	}
 }
 
-func ManageGetNoteHandler(c *svc.ServiceContext) http.HandlerFunc {
+func CreatorGetNoteHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req mgtp.GetNoteReq
 		if err := httpx.ParsePath(r, &req); err != nil {
@@ -109,7 +109,7 @@ func ManageGetNoteHandler(c *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		res, err := c.Manage.GetNote(r.Context(), 100, req.NoteId)
+		res, err := c.CreatorSvc.GetNote(r.Context(), 100, req.NoteId)
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -133,7 +133,7 @@ func UploadAuthHandler(c *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		res, err := c.Manage.UploadAuth(r.Context(), &req)
+		res, err := c.CreatorSvc.UploadAuth(r.Context(), &req)
 		if err != nil {
 			httpx.Error(w, err)
 			return

@@ -1,4 +1,4 @@
-package manage
+package creator
 
 import "github.com/ryanreadbooks/whimer/note/internal/global"
 

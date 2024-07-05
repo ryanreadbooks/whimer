@@ -10,7 +10,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/repo"
 	reponote "github.com/ryanreadbooks/whimer/note/internal/repo/note"
-	mgtp "github.com/ryanreadbooks/whimer/note/internal/types/manage"
+	crtp "github.com/ryanreadbooks/whimer/note/internal/types/creator"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -20,7 +20,7 @@ const (
 	noteIdConfuserSalt = "0x7c00:noteIdConfuser:.$35%io"
 )
 
-type Manage struct {
+type CreatorSvc struct {
 	dao *repo.Dao
 
 	Ctx            *ServiceContext
@@ -28,8 +28,8 @@ type Manage struct {
 	Signer         *signer.Signer
 }
 
-func NewManage(ctx *ServiceContext, repo *repo.Dao) *Manage {
-	return &Manage{
+func NewCreatorSvc(ctx *ServiceContext, repo *repo.Dao) *CreatorSvc {
+	return &CreatorSvc{
 		dao:            repo,
 		Ctx:            ctx,
 		NoteIdConfuser: safety.NewConfuser(noteIdConfuserSalt, 24),
@@ -43,12 +43,12 @@ func NewManage(ctx *ServiceContext, repo *repo.Dao) *Manage {
 	}
 }
 
-func (s *Manage) Get(ctx context.Context, uid int64, noteId string) error {
+func (s *CreatorSvc) Get(ctx context.Context, uid int64, noteId string) error {
 
 	return nil
 }
 
-func (s *Manage) Create(ctx context.Context, uid int64, req *mgtp.CreateReq) (string, error) {
+func (s *CreatorSvc) Create(ctx context.Context, uid int64, req *crtp.CreateReq) (string, error) {
 	now := time.Now().Unix()
 	newNote := &reponote.Note{
 		Title:    req.Basic.Title,
@@ -98,10 +98,10 @@ func (s *Manage) Create(ctx context.Context, uid int64, req *mgtp.CreateReq) (st
 	return s.NoteIdConfuser.Confuse(noteId), nil
 }
 
-func (s *Manage) Update(ctx context.Context, uid int64, req *mgtp.UpdateReq) error {
+func (s *CreatorSvc) Update(ctx context.Context, uid int64, req *crtp.UpdateReq) error {
 	now := time.Now().Unix()
 	id := s.NoteIdConfuser.DeConfuse(req.NoteId)
-	logx.Debugf("manage updating noteid: %d", id)
+	logx.Debugf("creator updating noteid: %d", id)
 	queried, err := s.dao.NoteRepo.FindOne(ctx, id)
 	if errors.Is(reponote.ErrNotFound, err) {
 		return global.ErrNoteNotFound
@@ -191,7 +191,7 @@ func (s *Manage) Update(ctx context.Context, uid int64, req *mgtp.UpdateReq) err
 	return nil
 }
 
-func (s *Manage) UploadAuth(ctx context.Context, req *mgtp.UploadAuthReq) (*mgtp.UploadAuthRes, error) {
+func (s *CreatorSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*crtp.UploadAuthRes, error) {
 	// 生成count个上传凭证
 	fileId := s.Ctx.KeyGen.Gen()
 
@@ -205,12 +205,12 @@ func (s *Manage) UploadAuth(ctx context.Context, req *mgtp.UploadAuthReq) (*mgtp
 		return nil, global.ErrPermDenied.Msg("服务器签名失败")
 	}
 
-	res := mgtp.UploadAuthRes{
+	res := crtp.UploadAuthRes{
 		FildIds:     fileId,
 		CurrentTime: currentTime,
 		ExpireTime:  info.ExpireAt.Unix(),
 		UploadAddr:  s.Ctx.Config.Oss.Endpoint,
-		Headers: mgtp.UploadAuthResHeaders{
+		Headers: crtp.UploadAuthResHeaders{
 			Auth:   info.Auth,
 			Date:   info.Date,
 			Sha256: info.Sha256,
@@ -221,13 +221,13 @@ func (s *Manage) UploadAuth(ctx context.Context, req *mgtp.UploadAuthReq) (*mgtp
 	return &res, nil
 }
 
-func (s *Manage) Delete(ctx context.Context, uid int64, req *mgtp.DeleteReq) error {
+func (s *CreatorSvc) Delete(ctx context.Context, uid int64, req *crtp.DeleteReq) error {
 	id := s.NoteIdConfuser.DeConfuse(req.NoteId)
 	if id <= 0 {
 		return global.ErrNoteNotFound
 	}
 
-	logx.Debugf("manage updating noteid: %d", id)
+	logx.Debugf("creator updating noteid: %d", id)
 	queried, err := s.dao.NoteRepo.FindOne(ctx, id)
 	if errors.Is(reponote.ErrNotFound, err) {
 		return global.ErrNoteNotFound
@@ -266,10 +266,10 @@ func (s *Manage) Delete(ctx context.Context, uid int64, req *mgtp.DeleteReq) err
 	return nil
 }
 
-func (s *Manage) List(ctx context.Context, uid int64) (*mgtp.ListRes, error) {
+func (s *CreatorSvc) List(ctx context.Context, uid int64) (*crtp.ListRes, error) {
 	notes, err := s.dao.NoteRepo.ListByOwner(ctx, uid)
 	if errors.Is(reponote.ErrNotFound, err) {
-		return &mgtp.ListRes{}, nil
+		return &crtp.ListRes{}, nil
 	}
 
 	if err != nil {
@@ -290,9 +290,9 @@ func (s *Manage) List(ctx context.Context, uid int64) (*mgtp.ListRes, error) {
 	}
 
 	// 组合notes和noteAssets
-	var res mgtp.ListRes
+	var res crtp.ListRes
 	for _, note := range notes {
-		item := &mgtp.ListResItem{
+		item := &crtp.ListResItem{
 			NoteId:   s.NoteIdConfuser.Confuse(note.Id),
 			Title:    note.Title,
 			Desc:     note.Desc,
@@ -302,7 +302,7 @@ func (s *Manage) List(ctx context.Context, uid int64) (*mgtp.ListRes, error) {
 		}
 		for _, asset := range noteAssets {
 			if note.Id == asset.NoteId {
-				item.Images = append(item.Images, &mgtp.ListResItemImage{
+				item.Images = append(item.Images, &crtp.ListResItemImage{
 					Url:  asset.AssetKey, // TODO 替换成oss能够访问的链接
 					Type: int(asset.AssetType),
 				})
@@ -315,7 +315,7 @@ func (s *Manage) List(ctx context.Context, uid int64) (*mgtp.ListRes, error) {
 	return &res, nil
 }
 
-func (s *Manage) GetNote(ctx context.Context, uid int64, noteId string) (*mgtp.ListResItem, error) {
+func (s *CreatorSvc) GetNote(ctx context.Context, uid int64, noteId string) (*crtp.ListResItem, error) {
 	nid := s.NoteIdConfuser.DeConfuse(noteId)
 	if nid <= 0 {
 		return nil, global.ErrNoteNotFound
@@ -341,7 +341,7 @@ func (s *Manage) GetNote(ctx context.Context, uid int64, noteId string) (*mgtp.L
 		return nil, global.ErrGetNoteFail
 	}
 
-	var res = mgtp.ListResItem{
+	var res = crtp.ListResItem{
 		NoteId:   noteId,
 		Title:    note.Title,
 		Desc:     note.Desc,
@@ -351,7 +351,7 @@ func (s *Manage) GetNote(ctx context.Context, uid int64, noteId string) (*mgtp.L
 	}
 
 	for _, asset := range assets {
-		res.Images = append(res.Images, &mgtp.ListResItemImage{
+		res.Images = append(res.Images, &crtp.ListResItemImage{
 			Url:  asset.AssetKey, // TODO 替换oss
 			Type: int(asset.AssetType),
 		})
