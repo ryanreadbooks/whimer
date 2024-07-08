@@ -24,7 +24,7 @@ func SmsSendHandler(ctx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		err := ctx.SignInUpSvc.RequestSms(r.Context(), req.Tel)
+		err := ctx.AccessSvc.RequestSms(r.Context(), req.Tel)
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -48,14 +48,13 @@ func SignInWithSms(ctx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		user, err := ctx.SignInUpSvc.SignInWithSms(r.Context(), &req)
+		user, sess, err := ctx.AccessSvc.SignInWithSms(r.Context(), &req)
 		if err != nil {
 			httpx.Error(w, err)
 			return
 		}
 
-		// TODO set-cookie
+		http.SetCookie(w, sess.Cookie())
 		httpx.OkJson(w, tp.NewFromRepoBasic(user))
-
 	}
 }

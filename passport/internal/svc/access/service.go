@@ -1,4 +1,4 @@
-package signinup
+package access
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/passport/internal/config"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo"
+	"github.com/ryanreadbooks/whimer/passport/internal/svc/session"
 
 	"github.com/ryanreadbooks/folium/sdk"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -13,10 +14,11 @@ import (
 )
 
 type Service struct {
-	c     *config.Config
-	repo  *repo.Repo
-	cache *redis.Redis
-	idgen *sdk.Client
+	c       *config.Config
+	repo    *repo.Repo
+	cache   *redis.Redis
+	idgen   *sdk.Client
+	sessMgr *session.Manager
 }
 
 func New(c *config.Config, repo *repo.Repo, cache *redis.Redis) *Service {
@@ -38,6 +40,8 @@ func New(c *config.Config, repo *repo.Repo, cache *redis.Redis) *Service {
 	if err != nil {
 		logx.Errorf("new passport svc, can not ping idgen(folium): %v", err)
 	}
+
+	s.sessMgr = session.NewManager(s.cache)
 
 	return s
 }

@@ -1,11 +1,13 @@
-package signinup
+package access
 
 import (
 	"context"
 	"errors"
 
+	"github.com/ryanreadbooks/whimer/misc/utils"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
+	"github.com/ryanreadbooks/whimer/passport/internal/model"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
 	tp "github.com/ryanreadbooks/whimer/passport/internal/types/passport"
 
@@ -67,7 +69,7 @@ func (s *Service) RequestSms(ctx context.Context, tel string) error {
 }
 
 // 短信验证码登录
-func (s *Service) SignInWithSms(ctx context.Context, req *tp.SignInSmdReq) (*userbase.Basic, error) {
+func (s *Service) SignInWithSms(ctx context.Context, req *tp.SignInSmdReq) (*userbase.Basic, *model.Session, error) {
 	var (
 		tel        string = req.Tel
 		reqSmsCode string = req.Code
@@ -77,10 +79,10 @@ func (s *Service) SignInWithSms(ctx context.Context, req *tp.SignInSmdReq) (*use
 	acquired, err := lock.AcquireCtx(ctx)
 	if err != nil {
 		logx.Errorf("redis lock fail when sign in with sms, err: %v, tel: %s", err, tel)
-		return nil, global.ErrSignIn
+		return nil, nil, global.ErrSignIn
 	}
 	if !acquired {
-		return nil, global.ErrSignInTooFrequent
+		return nil, nil, global.ErrSignInTooFrequent
 	}
 	defer func() {
 		if _, err := lock.Release(); err != nil {
@@ -91,48 +93,53 @@ func (s *Service) SignInWithSms(ctx context.Context, req *tp.SignInSmdReq) (*use
 	smsCode, err := s.cache.GetCtx(ctx, getSmsCodeTelKey(tel))
 	if err != nil {
 		logx.Errorf("redis get err: %v, tel: %s", err, tel)
-		return nil, global.ErrSignIn
+		return nil, nil, global.ErrSignIn
 	}
 
 	if smsCode != reqSmsCode {
-		return nil, global.ErrSmsCodeNotMatch
+		return nil, nil, global.ErrSmsCodeNotMatch
 	}
 
 	// 验证码正确 允许登录
-	user, err := s.signIn(ctx, tel)
+	user, sess, err := s.signIn(ctx, tel)
 	if err != nil {
 		logx.Errorf("sign in err: %v, tel: %s", err, tel)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return user, nil
+	// 删除验证码
+	utils.SafeGo(func() {
+		if _, err := s.cache.DelCtx(context.Background(), getSmsCodeTelKey(tel)); err != nil {
+			logx.Errorf("cache del sms code err: %v", err)
+		}
+	})
+
+	return user, sess, nil
 }
 
-func (s *Service) signIn(ctx context.Context, tel string) (*userbase.Basic, error) {
-	// 检查该手机用户是否存在
+func (s *Service) signIn(ctx context.Context, tel string) (*userbase.Basic, *model.Session, error) {
 	var (
 		user *userbase.Model
 		err  error
 	)
 
+	// 检查该手机用户是否存在
 	user, err = s.repo.UserBaseRepo.FindByTel(ctx, tel)
 	if err != nil {
 		if !errors.Is(xsql.ErrNoRecord, err) {
 			logx.Errorf("user base find basic by tel err: %v, tel: %s", err, tel)
-			return nil, global.ErrSignIn
+			return nil, nil, global.ErrSignIn
 		}
 
 		// 用户未注册 自动注册
 		user, err = s.SignUpTel(ctx, tel)
 		if err != nil {
 			logx.Errorf("auto register tel err: %v, tel: %s", err, tel)
-			return nil, global.ErrSignIn
+			return nil, nil, global.ErrSignIn
 		}
 	}
 
-	// TODO 验证user是否已经登录 为user登录
-
-	basic := &userbase.Basic{
+	userBasic := &userbase.Basic{
 		Uid:       user.Uid,
 		Nickname:  user.Nickname,
 		Avatar:    user.Avatar,
@@ -144,5 +151,22 @@ func (s *Service) signIn(ctx context.Context, tel string) (*userbase.Basic, erro
 		},
 	}
 
-	return basic, nil
+	// 为user登录
+	sess, err := s.userSignIn(ctx, userBasic)
+	if err != nil {
+		logx.Errorf("user sign in err: %v", err)
+		return nil, nil, err
+	}
+
+	return userBasic, sess, nil
+}
+
+func (s *Service) userSignIn(ctx context.Context, user *userbase.Basic) (*model.Session, error) {
+	sess, err := s.sessMgr.NewSession(ctx, user, "web")
+	if err != nil {
+		logx.Errorf("new session err: %v, uid: %d", err, user.Uid)
+		return nil, err
+	}
+
+	return sess, nil
 }
