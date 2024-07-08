@@ -1,10 +1,10 @@
 module github.com/ryanreadbooks/whimer/passport
 
-go 1.22.2
+go 1.22
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/ryanreadbooks/folium v0.1.0
+	github.com/ryanreadbooks/folium v0.1.1
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/zeromicro/go-zero v1.6.6
