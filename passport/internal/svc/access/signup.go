@@ -19,7 +19,7 @@ const (
 
 // 初始化新注册用户的昵称
 func makeInitNickname(uid uint64) string {
-	return fmt.Sprintf("野生的用户_%d", uid)
+	return fmt.Sprintf("whimer_%d", uid)
 }
 
 func (s *Service) regTakeUid(ctx context.Context) (uint64, error) {

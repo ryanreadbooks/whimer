@@ -27,10 +27,12 @@ var (
 	ErrPassNotMatch       = ErrPermDenied.Msg("密码不对")
 	ErrInvalidTel         = ErrArgs.Msg("手机号格式不正确")
 	ErrInvalidSmsCode     = ErrArgs.Msg("短信验证码格式不正确")
+	ErrInvalidPlatform    = ErrArgs.Msg("暂不支持该平台")
 	ErrSignIn             = ErrInternal.Msg("登录失败, 请稍后重试")
 	ErrSessRenewal        = ErrInternal.Msg("续期失败, 请稍后重试")
 	ErrSignInTooFrequent  = ErrRateLimit.Msg("登录太快, 请稍后重试")
 	ErrSessInvalidated    = ErrPermDenied.Msg("登录过期, 请重新登录")
+	ErrMeNotFound         = ErrPermDenied.Msg("没有找到你的信息")
 
 	// sign-up related
 	ErrTelTaken   = ErrPermDenied.Msg("该手机号已经注册")

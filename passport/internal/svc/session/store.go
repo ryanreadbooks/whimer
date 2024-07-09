@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
@@ -23,14 +24,21 @@ type Store interface {
 }
 
 const (
-	defaultPrefix = "whimer:sess:rs:"
+	defaultSessPrefix = "whimer:sess:rs:"
+	defaultUidPrefix  = "whimer:uid:sessid:"
 )
 
 type RedisStoreOpt func(*RedisStore)
 
-func WithPrefix(px string) RedisStoreOpt {
+func WithSessPrefix(px string) RedisStoreOpt {
 	return func(rs *RedisStore) {
-		rs.prefix = px
+		rs.sessPrefix = px
+	}
+}
+
+func WithUidPrefix(px string) RedisStoreOpt {
+	return func(rs *RedisStore) {
+		rs.uidPrefix = px
 	}
 }
 
@@ -41,16 +49,18 @@ func WithSerializer(ser model.SessionSerializer) RedisStoreOpt {
 }
 
 type RedisStore struct {
-	cache  *redis.Redis
-	ser    model.SessionSerializer
-	prefix string
+	cache      *redis.Redis
+	ser        model.SessionSerializer
+	sessPrefix string
+	uidPrefix  string
 }
 
 func NewRedisStore(cache *redis.Redis, opts ...RedisStoreOpt) Store {
 	rs := &RedisStore{
-		cache:  cache,
-		ser:    model.JsonSessionSerializer{},
-		prefix: defaultPrefix,
+		cache:      cache,
+		ser:        model.JsonSessionSerializer{},
+		sessPrefix: defaultSessPrefix,
+		uidPrefix:  defaultUidPrefix,
 	}
 
 	for _, opt := range opts {
@@ -60,12 +70,16 @@ func NewRedisStore(cache *redis.Redis, opts ...RedisStoreOpt) Store {
 	return rs
 }
 
-func (r *RedisStore) getKey(key string) string {
-	return r.prefix + key
+func (r *RedisStore) getSessKey(key string) string {
+	return r.sessPrefix + key
+}
+
+func (r *RedisStore) getUidKey(uid uint64) string {
+	return fmt.Sprintf("%s%d", r.uidPrefix, uid)
 }
 
 func (r *RedisStore) Get(ctx context.Context, key string) (sess *model.Session, found bool, err error) {
-	result, err := r.cache.GetCtx(ctx, r.getKey(key))
+	result, err := r.cache.GetCtx(ctx, r.getSessKey(key))
 	if err != nil {
 		return
 	}
@@ -112,10 +126,61 @@ func (r *RedisStore) Set(ctx context.Context, key string, sess *model.Session) e
 
 	value := base64.StdEncoding.EncodeToString(data)
 
-	return r.cache.SetexCtx(ctx, r.getKey(key), value, int(ttl))
+	// 设置session
+	// uid -> (sess_id1, sess_id2, ...)
+	// 一个uid可以有多个session, uid采用set结构，每个member为sessid
+	// 需要获取具体的session内容，需要通过sessid取获取
+	err = r.cache.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
+		p.SAdd(ctx, r.getUidKey(sess.Uid), key)                                // member中的key不带前缀
+		p.SetEx(ctx, r.getSessKey(key), value, time.Second*time.Duration(ttl)) // 作为string-key的带前缀
+
+		res, err := p.Exec(ctx)
+		if err != nil {
+			return err
+		}
+
+		for _, cmd := range res {
+			if cmd.Err() != nil {
+				return cmd.Err()
+			}
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 func (r *RedisStore) Del(ctx context.Context, key string) error {
-	_, err := r.cache.DelCtx(ctx, r.getKey(key))
+	// 两次RT
+	sess, found, err := r.Get(ctx, key)
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return nil
+	}
+
+	// 在pipeline中移除
+	err = r.cache.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
+		r.Del(ctx, r.getSessKey(key))
+		uid := sess.Uid
+		p.SRem(ctx, r.getUidKey(uid), r.getSessKey(key))
+
+		res, err := p.Exec(ctx)
+		if err != nil {
+			return err
+		}
+
+		for _, cmd := range res {
+			if cmd.Err() != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
 	return err
 }

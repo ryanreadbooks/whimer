@@ -84,9 +84,3 @@ func (s *Service) verifyPass(ctx context.Context, uid uint64, pass string) error
 
 	return nil
 }
-
-// 验证用户输入的短信验证码是否正确
-func (s *Service) verifySmsCode(ctx context.Context, uid int64, code string) error {
-
-	return nil
-}

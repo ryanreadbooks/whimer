@@ -83,6 +83,7 @@ func (m *Manager) GetSession(ctx context.Context, sessId string) (*model.Session
 	return sess, nil
 }
 
+// 创建新的session并且存储
 func (m *Manager) NewSession(ctx context.Context, user *userbase.Basic, platform string) (*model.Session, error) {
 	sessId, err := getToken()
 	if err != nil {
@@ -110,7 +111,7 @@ func (m *Manager) NewSession(ctx context.Context, user *userbase.Basic, platform
 	return session, nil
 }
 
-// 立即另session过期
+// 立即令session过期
 func (m *Manager) InvalidateSession(ctx context.Context, sessId string) error {
 	if len(sessId) == 0 {
 		return nil

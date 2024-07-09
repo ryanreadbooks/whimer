@@ -10,10 +10,18 @@ const (
 	WhimerSessId = "WHIMERSESSID"
 )
 
+const (
+	SessionStatusInited  int8 = 0
+	SessionStatusActive  int8 = 1
+	SessionStatusExpired int8 = 2
+	SessionStatusKicked  int8 = 3
+)
+
 // session元数据
 type SessionMeta struct {
 	Id       string `json:"id"`
 	ExpireAt int64  `json:"expire_at"` // 过期时间 unix second timestamp
+	Status   int8   `json:"status"`    // session 状态
 }
 
 // 用户session信息

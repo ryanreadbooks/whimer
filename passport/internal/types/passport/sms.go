@@ -4,6 +4,7 @@ import (
 	"regexp"
 
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
+	"github.com/ryanreadbooks/whimer/passport/internal/model/platform"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
 )
 
@@ -35,9 +36,10 @@ type SmdSendRes struct {
 
 // 手机+短信验证码登录
 type SignInSmdReq struct {
-	Tel  string `json:"tel"`
-	Zone string `json:"zone,optiona"`
-	Code string `json:"code"` // 短信验证码
+	Tel      string `json:"tel"`
+	Zone     string `json:"zone,optional"`
+	Code     string `json:"code"` // 短信验证码
+	Platform string `json:"platform"`
 	// TODO 其它验证字段
 }
 
@@ -53,6 +55,12 @@ func (r *SignInSmdReq) Validate() error {
 	if !codeRegx.MatchString(r.Code) {
 		return global.ErrInvalidSmsCode
 	}
+
+	if !platform.Supported(r.Platform) {
+		return global.ErrInvalidPlatform
+	}
+
+	r.Platform = platform.Transform(r.Platform)
 
 	return nil
 }

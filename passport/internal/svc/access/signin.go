@@ -22,23 +22,23 @@ const (
 	fiveMinutes = 5 * minute
 )
 
-// redis key template
+// redis key template prefix
 const (
-	lockTelForSmsKey = "lock:tel:sms:" // lock:tel:sms:%s
-	smsCodeTelKey    = "sms:code:tel:" // sms:code:tel:%s
-	lockSignInTel    = "lock:signin:tel:"
+	lockKeyForTelSms = "lock:tel:sms:" // lock:tel:sms:%s
+	lockKeySignInTel = "lock:signin:tel:"
+	keySmsCodeTel    = "sms:code:tel:" // sms:code:tel:%s
 )
 
 func getLockTelForSmsKey(tel string) string {
-	return lockTelForSmsKey + tel
+	return lockKeyForTelSms + tel
 }
 
 func getSmsCodeTelKey(tel string) string {
-	return smsCodeTelKey + tel
+	return keySmsCodeTel + tel
 }
 
 func getLockSignInTel(tel string) string {
-	return lockSignInTel + tel
+	return lockKeySignInTel + tel
 }
 
 // 请求发送手机验证码
@@ -72,6 +72,7 @@ func (s *Service) RequestSms(ctx context.Context, tel string) error {
 func (s *Service) SignInWithSms(ctx context.Context, req *tp.SignInSmdReq) (*userbase.Basic, *model.Session, error) {
 	var (
 		tel        string = req.Tel
+		platform   string = req.Platform
 		reqSmsCode string = req.Code
 	)
 
@@ -96,12 +97,13 @@ func (s *Service) SignInWithSms(ctx context.Context, req *tp.SignInSmdReq) (*use
 		return nil, nil, global.ErrSignIn
 	}
 
+	// 检查短信验证码是否正确
 	if smsCode != reqSmsCode {
 		return nil, nil, global.ErrSmsCodeNotMatch
 	}
 
 	// 验证码正确 允许登录
-	user, sess, err := s.signIn(ctx, tel)
+	user, sess, err := s.signIn(ctx, tel, platform)
 	if err != nil {
 		logx.Errorf("sign in err: %v, tel: %s", err, tel)
 		return nil, nil, err
@@ -117,7 +119,7 @@ func (s *Service) SignInWithSms(ctx context.Context, req *tp.SignInSmdReq) (*use
 	return user, sess, nil
 }
 
-func (s *Service) signIn(ctx context.Context, tel string) (*userbase.Basic, *model.Session, error) {
+func (s *Service) signIn(ctx context.Context, tel string, platform string) (*userbase.Basic, *model.Session, error) {
 	var (
 		user *userbase.Model
 		err  error
@@ -152,7 +154,7 @@ func (s *Service) signIn(ctx context.Context, tel string) (*userbase.Basic, *mod
 	}
 
 	// 为user登录
-	sess, err := s.userSignIn(ctx, userBasic)
+	sess, err := s.userSignIn(ctx, userBasic, platform)
 	if err != nil {
 		logx.Errorf("user sign in err: %v", err)
 		return nil, nil, err
@@ -161,12 +163,24 @@ func (s *Service) signIn(ctx context.Context, tel string) (*userbase.Basic, *mod
 	return userBasic, sess, nil
 }
 
-func (s *Service) userSignIn(ctx context.Context, user *userbase.Basic) (*model.Session, error) {
-	sess, err := s.sessMgr.NewSession(ctx, user, "web")
+func (s *Service) userSignIn(ctx context.Context, user *userbase.Basic, platform string) (*model.Session, error) {
+	sess, err := s.sessMgr.NewSession(ctx, user, platform)
 	if err != nil {
 		logx.Errorf("new session err: %v, uid: %d", err, user.Uid)
 		return nil, err
 	}
 
 	return sess, nil
+}
+
+// 检查是否登录了
+func (s *Service) CheckSignedIn(ctx context.Context, sessId string) (*model.MeInfo, error) {
+	sess, err := s.sessMgr.GetSession(ctx, sessId)
+	if err != nil {
+		logx.Errorf("check signed in get session err: %v, sessId: %s", err, sessId)
+		return nil, err
+	}
+
+	// 登录了返回用户信息 返回缓存中的用户信息
+	return s.extractMeInfo(sess.Detail)
 }
