@@ -1,6 +1,13 @@
-name: passport-api
-host: 0.0.0.0
-port: 7777
+http:
+  name: passport-api
+  host: 0.0.0.0
+  port: 7777
+
+grpc:
+  mode: dev
+  name: passport-grpc
+  listenon: 0.0.0.0:7778
+
 log:
   level: debug
 

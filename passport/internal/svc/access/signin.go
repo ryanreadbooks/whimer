@@ -173,7 +173,7 @@ func (s *Service) userSignIn(ctx context.Context, user *userbase.Basic, platform
 	return sess, nil
 }
 
-// 检查是否登录了
+// 检查是否登录了 不检查登录的平台
 func (s *Service) CheckSignedIn(ctx context.Context, sessId string) (*model.MeInfo, error) {
 	sess, err := s.sessMgr.GetSession(ctx, sessId)
 	if err != nil {
@@ -182,5 +182,20 @@ func (s *Service) CheckSignedIn(ctx context.Context, sessId string) (*model.MeIn
 	}
 
 	// 登录了返回用户信息 返回缓存中的用户信息
-	return s.extractMeInfo(sess.Detail)
+	return s.ExtractMeInfo(sess.Detail)
+}
+
+// 检查对应的平台是否登录了
+func (s *Service) CheckPlatformSignedIn(ctx context.Context, sessId string, platform string) (*model.MeInfo, error) {
+	sess, err := s.sessMgr.GetSession(ctx, sessId)
+	if err != nil {
+		logx.Errorf("check signed in get session err: %v, sessId: %s", err, sessId)
+		return nil, err
+	}
+
+	if sess.Platform != platform {
+		return nil, global.ErrSessPlatformNotMatched
+	}
+
+	return s.ExtractMeInfo(sess.Detail)
 }
