@@ -34,8 +34,14 @@ var (
 	ErrSessInvalidated        = ErrPermDenied.Msg("登录过期, 请重新登录")
 	ErrSessPlatformNotMatched = ErrPermDenied.Msg("未在此设备上登录")
 	ErrMeNotFound             = ErrPermDenied.Msg("没有找到你的信息")
+	ErrInvalidUid             = ErrArgs.Msg("uid格式不对")
+	ErrNicknameTooShort       = ErrArgs.Msg("昵称不能为空")
+	ErrNickNameTooLong        = ErrArgs.Msg("你的昵称太长啦")
+	ErrInvalidGender          = ErrArgs.Msg("没有这种性别")
+	ErrStyleSignTooLong       = ErrArgs.Msg("你的个性签名太长啦")
 
 	// sign-up related
-	ErrTelTaken   = ErrPermDenied.Msg("该手机号已经注册")
-	ErrEmailTaken = ErrPermDenied.Msg("该邮箱已经使用")
+	ErrTelTaken      = ErrPermDenied.Msg("该手机号已经注册")
+	ErrEmailTaken    = ErrPermDenied.Msg("该邮箱已经使用")
+	ErrNicknameTaken = ErrPermDenied.Msg("该昵称已被占用")
 )

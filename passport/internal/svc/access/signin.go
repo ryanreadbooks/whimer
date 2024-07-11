@@ -199,3 +199,13 @@ func (s *Service) CheckPlatformSignedIn(ctx context.Context, sessId string, plat
 
 	return s.ExtractMeInfo(sess.Detail)
 }
+
+func (s *Service) ExtractMeInfo(detail string) (*model.MeInfo, error) {
+	user, err := s.sessMgr.UnmarshalUserBasic(detail)
+	if err != nil {
+		logx.Errorf("unmarshal user basic err: %v", err)
+		return nil, global.ErrInternal.Msg(err.Error())
+	}
+
+	return model.NewMeInfoFromUserBasic(user), nil
+}

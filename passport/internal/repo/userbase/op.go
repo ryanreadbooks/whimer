@@ -11,12 +11,13 @@ import (
 
 // all sqls here
 const (
-	sqlFindAll      = `select uid,nickname,avatar,style_sign,gender,tel,email,pass,salt,create_at,update_at from user_base where %s=?`
-	sqlInsertAll    = `insert into user_base(uid,nickname,avatar,style_sign,gender,tel,email,pass,salt,create_at,update_at) values(?,?,?,?,?,?,?,?,?,?,?)`
-	sqlDel          = `delete from user_base where uid=?`
-	sqlUpdateCol    = `update user_base set %s=?,update_at=? where uid=?`
-	sqlFindPassSalt = `select uid,pass,salt from user_base where uid=?`
-	sqlFindBasic    = `select uid,nickname,avatar,style_sign,gender,tel,email,create_at,update_at from user_base where %s=?`
+	sqlFindAll         = `select uid,nickname,avatar,style_sign,gender,tel,email,pass,salt,create_at,update_at from user_base where %s=?`
+	sqlInsertAll       = `insert into user_base(uid,nickname,avatar,style_sign,gender,tel,email,pass,salt,create_at,update_at) values(?,?,?,?,?,?,?,?,?,?,?)`
+	sqlDel             = `delete from user_base where uid=?`
+	sqlUpdateCol       = `update user_base set %s=?,update_at=? where uid=?`
+	sqlFindPassSalt    = `select uid,pass,salt from user_base where uid=?`
+	sqlFindBasic       = `select uid,nickname,avatar,style_sign,gender,tel,email,create_at,update_at from user_base where %s=?`
+	sqlUpdateBasicCore = `update user_base set nickname=?,style_sign=?,gender=?,update_at=? where uid=?`
 )
 
 func (r *Repo) find(ctx context.Context, cond string, val interface{}) (*Model, error) {
@@ -160,4 +161,17 @@ func (r *Repo) UpdateSalt(ctx context.Context, value string, uid uint64) error {
 
 func (r *Repo) UpdateSaltTx(ctx context.Context, tx sqlx.Session, value string, uid uint64) error {
 	return r.updateCol(ctx, tx, "salt", value, uid)
+}
+
+func (r *Repo) UpdateBasicCore(ctx context.Context, core *Basic) error {
+	_, err := r.db.ExecCtx(ctx,
+		sqlUpdateBasicCore,
+		core.Nickname,
+		core.StyleSign,
+		core.Gender,
+		time.Now().Unix(),
+		core.Uid,
+	)
+
+	return xsql.ConvertError(err)
 }

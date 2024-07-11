@@ -1,12 +1,19 @@
 package model
 
-import "github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
+import (
+	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
+)
+
+const (
+	MaxNicknameLen  = 20
+	MaxStyleSignLen = 64
+)
 
 // 可以返回给各端的个人信息
 type MeInfo struct {
 	Uid       uint64 `json:"uid"`
 	Nickname  string `json:"nickname"`
-	Avatar    string `json:"avatar"`
+	Avatar    string `json:"avatar,omitempty"`
 	StyleSign string `json:"style_sign"`
 	Gender    string `json:"gender"`
 }

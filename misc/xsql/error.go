@@ -1,6 +1,7 @@
 package xsql
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/go-sql-driver/mysql"
@@ -27,4 +28,16 @@ func ConvertError(err error) error {
 
 		return err
 	}
+}
+
+func IsMildErr(err error) bool {
+	return errors.Is(err, ErrNoRecord) || errors.Is(err, ErrDuplicate)
+}
+
+func IsCriticalErr(err error) bool {
+	return !IsMildErr(err)
+}
+
+func IsDuplicate(err error) bool {
+	return errors.Is(err, ErrDuplicate)
 }
