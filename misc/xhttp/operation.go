@@ -1,4 +1,4 @@
-package http
+package xhttp
 
 import (
 	stdhttp "net/http"

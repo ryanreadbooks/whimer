@@ -20,7 +20,7 @@ type MeInfo struct {
 
 var (
 	GenderMap = map[int8]string{
-		0: "未设置",
+		0: "保密",
 		1: "男",
 		2: "女",
 	}

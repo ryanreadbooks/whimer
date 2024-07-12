@@ -1,47 +1,39 @@
 package handler
 
 import (
-	uhttp "github.com/ryanreadbooks/whimer/misc/utils/http"
+	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/passport/internal/handler/middleware"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
 
+	"github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/rest"
 )
 
 // 注册路由
 func RegisterHandlers(engine *rest.Server, ctx *svc.ServiceContext) {
-	registerPassportRoutes(engine, ctx)
-	registerProfileRoutes(engine, ctx)
-}
+	xGroup := xhttp.NewRouterGroup(engine)
+	regPassportRoutes(xGroup, ctx)
+	regProfileRoutes(xGroup, ctx)
 
-func registerPassportRoutes(engine *rest.Server, ctx *svc.ServiceContext) {
-	engine.AddRoutes(signInRoutes(ctx), rest.WithPrefix("/passport"))
-}
-
-func signInRoutes(ctx *svc.ServiceContext) []rest.Route {
-	return []rest.Route{
-		uhttp.Post("/v1/sms/send", SmsSendHandler(ctx)),  // 获取登录短信验证码
-		uhttp.Post("/v1/signin/sms", SignInWithSms(ctx)), // 手机号+短信验证码登录
+	mod := ctx.Config.Http.Mode
+	if mod == service.DevMode || mod == service.TestMode {
+		engine.PrintRoutes()
 	}
 }
 
-func registerProfileRoutes(engine *rest.Server, ctx *svc.ServiceContext) {
-	// 中间件定义
-	middlewares := []rest.Middleware{
-		middleware.EnsureSignedIn(ctx),
+func regPassportRoutes(group *xhttp.RouterGroup, ctx *svc.ServiceContext) {
+	passportGroup := group.Group("/passport")
+	{
+		passportGroup.Post("/v1/sms/send", SmsSendHandler(ctx))  // 获取登录短信验证码
+		passportGroup.Post("/v1/signin/sms", SignInWithSms(ctx)) // 手机号+短信验证码登录
 	}
-	engine.AddRoutes(
-		rest.WithMiddlewares(
-			middlewares,
-			profileRoutes(ctx)...,
-		),
-		rest.WithPrefix("/profile"),
-	)
 }
 
-func profileRoutes(ctx *svc.ServiceContext) []rest.Route {
-	return []rest.Route{
-		uhttp.Get("/v1/me", ProfileMe(ctx)),               // 获取个人信息
-		uhttp.Post("/v1/me/update", ProfileUpdateMe(ctx)), // 更新个人信息
+func regProfileRoutes(group *xhttp.RouterGroup, ctx *svc.ServiceContext) {
+	profileGroup := group.Group("/profile", middleware.EnsureSignedIn(ctx))
+	{
+		profileGroup.Get("/v1/me", ProfileMe(ctx))               // 获取个人信息
+		profileGroup.Post("/v1/me/update", ProfileUpdateMe(ctx)) // 更新个人信息
 	}
+
 }

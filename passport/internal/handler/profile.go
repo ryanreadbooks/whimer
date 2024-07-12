@@ -5,8 +5,8 @@ import (
 
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
+	ptp "github.com/ryanreadbooks/whimer/passport/internal/model/trans/profile"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
-	ptp "github.com/ryanreadbooks/whimer/passport/internal/types/profile"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )

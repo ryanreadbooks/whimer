@@ -7,8 +7,8 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
+	ptp "github.com/ryanreadbooks/whimer/passport/internal/model/trans/profile"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
-	ptp "github.com/ryanreadbooks/whimer/passport/internal/types/profile"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -66,7 +66,8 @@ func (s *Service) UpdateEmail(ctx context.Context, uid uint64, email string) err
 	return nil
 }
 
+// 上传头像
 func (s *Service) UpdateAvatar(ctx context.Context, uid int64, avatar string) error {
-
+	
 	return nil
 }

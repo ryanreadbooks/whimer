@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
+	tp "github.com/ryanreadbooks/whimer/passport/internal/model/trans/passport"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
-	tp "github.com/ryanreadbooks/whimer/passport/internal/types/passport"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )

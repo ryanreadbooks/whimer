@@ -1,7 +1,7 @@
 package handler
 
 import (
-	uhttp "github.com/ryanreadbooks/whimer/misc/utils/http"
+	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/note/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -22,11 +22,11 @@ func routes(ctx *svc.ServiceContext) []rest.Route {
 // 笔记管理路由
 func noteCreatorRoutes(ctx *svc.ServiceContext) []rest.Route {
 	return []rest.Route{
-		uhttp.Post("/v1/creator/create", CreatorCreateHandler(ctx)),
-		uhttp.Post("/v1/creator/update", CreatorUpdateHandler(ctx)),
-		uhttp.Post("/v1/creator/delete", CreatorDeleteHandler(ctx)),
-		uhttp.Get("/v1/creator/list", CreatorListHandler(ctx)),
-		uhttp.Get("/v1/creator/get/:note_id", CreatorGetNoteHandler(ctx)),
-		uhttp.Get("/v1/creator/upload/auth", UploadAuthHandler(ctx)),
+		xhttp.Post("/v1/creator/create", CreatorCreateHandler(ctx)),
+		xhttp.Post("/v1/creator/update", CreatorUpdateHandler(ctx)),
+		xhttp.Post("/v1/creator/delete", CreatorDeleteHandler(ctx)),
+		xhttp.Get("/v1/creator/list", CreatorListHandler(ctx)),
+		xhttp.Get("/v1/creator/get/:note_id", CreatorGetNoteHandler(ctx)),
+		xhttp.Get("/v1/creator/upload/auth", UploadAuthHandler(ctx)),
 	}
 }

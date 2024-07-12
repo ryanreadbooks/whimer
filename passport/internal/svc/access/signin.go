@@ -8,8 +8,8 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
+	tp "github.com/ryanreadbooks/whimer/passport/internal/model/trans/passport"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
-	tp "github.com/ryanreadbooks/whimer/passport/internal/types/passport"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"

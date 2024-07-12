@@ -33,7 +33,9 @@ func EnsureSignedIn(c *svc.ServiceContext) rest.Middleware {
 				return
 			}
 
+			// 注入后续使用的参数
 			ctx := model.WithMeInfo(r.Context(), user)
+			ctx = model.WithSessId(ctx, sessId)
 			nr := r.WithContext(ctx)
 
 			next(w, nr)
