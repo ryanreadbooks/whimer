@@ -20,12 +20,13 @@ type Config struct {
 	Redis redis.RedisConf `json:"redis"`
 
 	Oss struct {
-		User     string `json:"user"`
-		Pass     string `json:"pass"`
-		Endpoint string `json:"endpoint"`
-		Location string `json:"location"`
-		Bucket   string `json:"bucket"`
-		Prefix   string `json:"prefix"`
+		Ak              string `json:"ak"`
+		Sk              string `json:"sk"`
+		Endpoint        string `json:"endpoint"`
+		Location        string `json:"location"`
+		Bucket          string `json:"bucket"`
+		Prefix          string `json:"prefix"`
+		DisplayEndpoint string `json:"display_endpoint"`
 	}
 
 	Idgen struct {

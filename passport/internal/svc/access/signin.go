@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ryanreadbooks/whimer/misc/utils"
+	"github.com/ryanreadbooks/whimer/misc/concur"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
+	"github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
-	tp "github.com/ryanreadbooks/whimer/passport/internal/model/trans/passport"
+	tp "github.com/ryanreadbooks/whimer/passport/internal/model/passport"
+	"github.com/ryanreadbooks/whimer/passport/internal/model/profile"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -110,7 +111,7 @@ func (s *Service) SignInWithSms(ctx context.Context, req *tp.SignInSmdReq) (*use
 	}
 
 	// 删除验证码
-	utils.SafeGo(func() {
+	concur.SafeGo(func() {
 		if _, err := s.cache.DelCtx(context.Background(), getSmsCodeTelKey(tel)); err != nil {
 			logx.Errorf("cache del sms code err: %v", err)
 		}
@@ -174,7 +175,7 @@ func (s *Service) userSignIn(ctx context.Context, user *userbase.Basic, platform
 }
 
 // 检查是否登录了 不检查登录的平台
-func (s *Service) CheckSignedIn(ctx context.Context, sessId string) (*model.MeInfo, error) {
+func (s *Service) CheckSignedIn(ctx context.Context, sessId string) (*profile.MeInfo, error) {
 	sess, err := s.sessMgr.GetSession(ctx, sessId)
 	if err != nil {
 		logx.Errorf("check signed in get session err: %v, sessId: %s", err, sessId)
@@ -186,7 +187,7 @@ func (s *Service) CheckSignedIn(ctx context.Context, sessId string) (*model.MeIn
 }
 
 // 检查对应的平台是否登录了
-func (s *Service) CheckPlatformSignedIn(ctx context.Context, sessId string, platform string) (*model.MeInfo, error) {
+func (s *Service) CheckPlatformSignedIn(ctx context.Context, sessId string, platform string) (*profile.MeInfo, error) {
 	sess, err := s.sessMgr.GetSession(ctx, sessId)
 	if err != nil {
 		logx.Errorf("check signed in get session err: %v, sessId: %s", err, sessId)
@@ -200,12 +201,12 @@ func (s *Service) CheckPlatformSignedIn(ctx context.Context, sessId string, plat
 	return s.ExtractMeInfo(sess.Detail)
 }
 
-func (s *Service) ExtractMeInfo(detail string) (*model.MeInfo, error) {
+func (s *Service) ExtractMeInfo(detail string) (*profile.MeInfo, error) {
 	user, err := s.sessMgr.UnmarshalUserBasic(detail)
 	if err != nil {
 		logx.Errorf("unmarshal user basic err: %v", err)
 		return nil, global.ErrInternal.Msg(err.Error())
 	}
 
-	return model.NewMeInfoFromUserBasic(user), nil
+	return profile.NewMeInfoFromUserBasic(user), nil
 }

@@ -27,6 +27,7 @@ type Generator struct {
 	prefix        string
 	suffix        string
 	prependBucket bool
+	prependPrefix bool
 
 	stringer Stringer
 }
@@ -54,6 +55,12 @@ func WithSuffix(s string) Option {
 func WithPrependBucket(p bool) Option {
 	return func(g *Generator) {
 		g.prependBucket = p
+	}
+}
+
+func WithPrependPrefix(p bool) Option {
+	return func(g *Generator) {
+		g.prependPrefix = p
 	}
 }
 
@@ -104,9 +111,14 @@ func (g *Generator) Gen() string {
 	hasher.Write(utils.StringToBytes(b64))
 
 	res := hex.EncodeToString(hasher.Sum(nil))
+	var prefix string
 	if g.prependBucket {
-		return g.bucket + "/" + res
+		prefix = g.bucket + "/"
 	}
 
-	return res
+	if g.prependPrefix {
+		prefix = prefix + g.prefix + "/"
+	}
+
+	return prefix + res
 }

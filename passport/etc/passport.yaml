@@ -3,14 +3,15 @@ http:
   name: passport-api
   host: 0.0.0.0
   port: 7777
+  log:
+    level: debug
 
 grpc:
   mode: dev
   name: passport-grpc
   listenon: 0.0.0.0:7778
-
-log:
-  level: debug
+  log:
+    level: debug
 
 mysql:
   user: ${ENV_DB_USER}
@@ -22,12 +23,13 @@ redis:
   host: 127.0.0.1:7542
 
 oss:
-  user: ${ENV_OSS_USER}
-  pass: ${ENV_OSS_PASS}
+  ak: ${ENV_OSS_AK}
+  sk: ${ENV_OSS_SK}
   endpoint: 127.0.0.1:9000
   location: local
-  bucket: passport
+  bucket: pasaporte
   prefix: avatars
+  display_endpoint: http://s1-file.whimer.com:9000
 
 idgen:
   addr: 127.0.0.1:9528

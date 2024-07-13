@@ -5,7 +5,8 @@ import (
 
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
-	ptp "github.com/ryanreadbooks/whimer/passport/internal/model/trans/profile"
+	"github.com/ryanreadbooks/whimer/passport/internal/model/profile"
+	ptp "github.com/ryanreadbooks/whimer/passport/internal/model/profile"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
@@ -60,5 +61,30 @@ func ProfileUpdateMe(ctx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		httpx.OkJson(w, me)
+	}
+}
+
+// 通过服务上传头像
+func ProfileUpdateAvatar(ctx *svc.ServiceContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		file, header, err := r.FormFile("avatar")
+		if err != nil {
+			httpx.Error(w, global.ErrAvatarNotFound)
+			return
+		}
+
+		req, err := profile.ParseAvatarFile(file, header)
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		avatarUrl, err := ctx.ProfileSvc.UpdateAvatar(r.Context(), req)
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		httpx.OkJson(w, &profile.UploadAvatarRes{Url: avatarUrl})
 	}
 }
