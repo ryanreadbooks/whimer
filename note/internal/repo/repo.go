@@ -6,18 +6,19 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/repo/note"
+	"github.com/ryanreadbooks/whimer/note/internal/repo/noteasset"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-type Dao struct {
+type Repo struct {
 	db sqlx.SqlConn
 
-	NoteRepo      note.NoteModel
-	NoteAssetRepo note.NoteAssetModel
+	NoteRepo      *note.Repo
+	NoteAssetRepo *noteasset.Repo
 }
 
-func New(c *config.Config) *Dao {
+func New(c *config.Config) *Repo {
 	db := sqlx.NewMysql(xsql.GetDsn(
 		c.MySql.User,
 		c.MySql.Pass,
@@ -34,15 +35,15 @@ func New(c *config.Config) *Dao {
 		panic(err)
 	}
 
-	return &Dao{
+	return &Repo{
 		db:            db,
-		NoteRepo:      note.NewNoteModel(db),
-		NoteAssetRepo: note.NewNoteAssetModel(db),
+		NoteRepo:      note.New(db),
+		NoteAssetRepo: noteasset.New(db),
 	}
 }
 
 // 事务中执行
-func (d *Dao) Transact(ctx context.Context, fns ...xsql.TransactFunc) error {
+func (d *Repo) Transact(ctx context.Context, fns ...xsql.TransactFunc) error {
 	return d.db.TransactCtx(ctx, func(ctx context.Context, s sqlx.Session) error {
 		for _, fn := range fns {
 			err := fn(ctx, s)
@@ -55,6 +56,6 @@ func (d *Dao) Transact(ctx context.Context, fns ...xsql.TransactFunc) error {
 	})
 }
 
-func (d *Dao) DB() sqlx.SqlConn {
+func (d *Repo) DB() sqlx.SqlConn {
 	return d.db
 }

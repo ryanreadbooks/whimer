@@ -1,7 +1,10 @@
 package safety
 
 import (
+	"strconv"
+
 	"github.com/speps/go-hashids/v2"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 const (
@@ -63,4 +66,25 @@ func (c *Confuser) DeConfuse(s string) int64 {
 	}
 
 	return res[0]
+}
+
+func (c *Confuser) ConfuseU(number uint64) string {
+	h, _ := hashids.NewWithData(c.hd)
+	s, _ := h.EncodeHex(strconv.FormatUint(number, 10))
+	return s
+}
+
+func (c *Confuser) DeConfuseU(s string) uint64 {
+	h, _ := hashids.NewWithData(c.hd)
+	res, err := h.DecodeHex(s)
+	if err != nil || len(res) <= 0 {
+		logx.Errorf("confuder DecodeHex err: %v", err)
+		return 0
+	}
+	number, err := strconv.ParseUint(res, 10, 64)
+	if err != nil {
+		logx.Errorf("confuser ParseUint err: %v", err)
+	}
+
+	return number
 }

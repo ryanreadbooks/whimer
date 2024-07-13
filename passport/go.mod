@@ -3,6 +3,7 @@ module github.com/ryanreadbooks/whimer/passport
 go 1.22
 
 require (
+	github.com/gabriel-vasile/mimetype v1.4.3
 	github.com/google/uuid v1.6.0
 	github.com/ryanreadbooks/folium v0.1.1
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
@@ -28,7 +29,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/fatih/color v1.17.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.10.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
