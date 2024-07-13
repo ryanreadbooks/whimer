@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
-	tp "github.com/ryanreadbooks/whimer/passport/internal/model/trans/passport"
+	tp "github.com/ryanreadbooks/whimer/passport/internal/model/passport"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest/httpx"

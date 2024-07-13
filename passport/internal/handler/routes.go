@@ -32,8 +32,8 @@ func regPassportRoutes(group *xhttp.RouterGroup, ctx *svc.ServiceContext) {
 func regProfileRoutes(group *xhttp.RouterGroup, ctx *svc.ServiceContext) {
 	profileGroup := group.Group("/profile", middleware.EnsureSignedIn(ctx))
 	{
-		profileGroup.Get("/v1/me", ProfileMe(ctx))               // 获取个人信息
-		profileGroup.Post("/v1/me/update", ProfileUpdateMe(ctx)) // 更新个人信息
+		profileGroup.Get("/v1/me", ProfileMe(ctx))                // 获取个人信息
+		profileGroup.Post("/v1/me/update", ProfileUpdateMe(ctx))  // 更新个人信息
+		profileGroup.Post("/v1/avatar", ProfileUpdateAvatar(ctx)) // 上传头像
 	}
-
 }

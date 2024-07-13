@@ -5,8 +5,8 @@ import (
 	"net/url"
 
 	"github.com/ryanreadbooks/whimer/misc/errorx"
-	"github.com/ryanreadbooks/whimer/passport/internal/model"
 	"github.com/ryanreadbooks/whimer/passport/internal/model/platform"
+	"github.com/ryanreadbooks/whimer/passport/internal/model/profile"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
 	"github.com/ryanreadbooks/whimer/passport/sdk/access"
 	"google.golang.org/grpc/codes"
@@ -33,7 +33,7 @@ func (s *AccessServer) CheckSignIn(ctx context.Context, in *access.CheckSignInRe
 
 	var (
 		res    access.CheckSignInRes
-		meInfo *model.MeInfo
+		meInfo *profile.MeInfo
 		err    error
 	)
 

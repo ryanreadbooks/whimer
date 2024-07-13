@@ -11,6 +11,7 @@ import (
 	miniosigner "github.com/minio/minio-go/v7/pkg/signer"
 )
 
+// 使用临时用户生成签名的上传凭证
 type Signer struct {
 	sync.Mutex
 	c        Config

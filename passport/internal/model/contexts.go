@@ -1,13 +1,17 @@
 package model
 
-import "context"
+import (
+	"context"
+
+	"github.com/ryanreadbooks/whimer/passport/internal/model/profile"
+)
 
 const (
 	CtxMeInfoKey = "CtxMeInfoKey"
 	CtxSessIdKey = "CtxSessIdKey"
 )
 
-func WithMeInfo(ctx context.Context, me *MeInfo) context.Context {
+func WithMeInfo(ctx context.Context, me *profile.MeInfo) context.Context {
 	return context.WithValue(ctx, CtxMeInfoKey, me)
 }
 
@@ -15,8 +19,8 @@ func WithSessId(ctx context.Context, sessId string) context.Context {
 	return context.WithValue(ctx, CtxSessIdKey, sessId)
 }
 
-func CtxGetMeInfo(ctx context.Context) *MeInfo {
-	if me, ok := ctx.Value(CtxMeInfoKey).(*MeInfo); ok {
+func CtxGetMeInfo(ctx context.Context) *profile.MeInfo {
+	if me, ok := ctx.Value(CtxMeInfoKey).(*profile.MeInfo); ok {
 		return me
 	}
 

@@ -30,6 +30,21 @@ func (e *Error) Msg(msg string) *Error {
 	}
 }
 
+func (e *Error) ExtMsg(extmsg string) *Error {
+	// 保留原来msg的基础下 在msg中新增extmsg
+	if e == nil {
+		return nil
+	}
+
+	msg := e.Message + ": " + extmsg
+
+	return &Error{
+		Code:       e.Code,
+		StatusCode: e.StatusCode,
+		Message:    msg,
+	}
+}
+
 func (e *Error) ErrCode(ecode int) *Error {
 	if e == nil {
 		return nil

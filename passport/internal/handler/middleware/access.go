@@ -11,6 +11,7 @@ import (
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
+// 登录验证中间件
 func EnsureSignedIn(c *svc.ServiceContext) rest.Middleware {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
