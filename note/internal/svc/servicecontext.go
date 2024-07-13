@@ -13,7 +13,7 @@ type ServiceContext struct {
 	KeyGen *keygen.Generator
 
 	// other service
-	Manage *Manage
+	CreatorSvc *CreatorSvc
 }
 
 // 初始化一个service
@@ -31,7 +31,7 @@ func NewServiceContext(c *config.Config) *ServiceContext {
 	)
 
 	// other services
-	ctx.Manage = NewManage(ctx, dao)
+	ctx.CreatorSvc = NewCreatorSvc(ctx, dao)
 
 	return ctx
 }

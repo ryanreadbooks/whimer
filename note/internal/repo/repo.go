@@ -2,9 +2,8 @@ package repo
 
 import (
 	"context"
-	"fmt"
 
-	msqlx "github.com/ryanreadbooks/whimer/misc/sqlx"
+	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/repo/note"
 
@@ -19,7 +18,7 @@ type Dao struct {
 }
 
 func New(c *config.Config) *Dao {
-	db := sqlx.NewMysql(getDbDsn(
+	db := sqlx.NewMysql(xsql.GetDsn(
 		c.MySql.User,
 		c.MySql.Pass,
 		c.MySql.Addr,
@@ -42,14 +41,8 @@ func New(c *config.Config) *Dao {
 	}
 }
 
-func getDbDsn(user, pass, addr, dbName string) string {
-	// [username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]
-	return fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		user, pass, addr, dbName)
-}
-
 // 事务中执行
-func (d *Dao) Transact(ctx context.Context, fns ...msqlx.TransactFunc) error {
+func (d *Dao) Transact(ctx context.Context, fns ...xsql.TransactFunc) error {
 	return d.db.TransactCtx(ctx, func(ctx context.Context, s sqlx.Session) error {
 		for _, fn := range fns {
 			err := fn(ctx, s)

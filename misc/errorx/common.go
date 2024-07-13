@@ -2,6 +2,7 @@ package errorx
 
 import (
 	"encoding/json"
+	"net/http"
 
 	"github.com/ryanreadbooks/whimer/misc/utils"
 )
@@ -47,4 +48,12 @@ func NewError(st, code int, msg string) *Error {
 		Code:       code,
 		Message:    msg,
 	}
+}
+
+func IsInternal(err error) bool {
+	if e, ok := err.(*Error); ok {
+		return e.Code >= http.StatusInternalServerError
+	}
+
+	return true
 }

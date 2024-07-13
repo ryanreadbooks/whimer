@@ -1,7 +1,7 @@
 package handler
 
 import (
-	uhttp "github.com/ryanreadbooks/whimer/misc/utils/http"
+	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/note/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -14,26 +14,19 @@ func RegisterHandlers(engine *rest.Server, ctx *svc.ServiceContext) {
 
 func routes(ctx *svc.ServiceContext) []rest.Route {
 	rs := make([]rest.Route, 0)
-	rs = append(rs, noteManageRoutes(ctx)...)
-	rs = append(rs, noteUploadAuthRoutes(ctx)...)
+	rs = append(rs, noteCreatorRoutes(ctx)...)
 
 	return rs
 }
 
 // 笔记管理路由
-func noteManageRoutes(ctx *svc.ServiceContext) []rest.Route {
+func noteCreatorRoutes(ctx *svc.ServiceContext) []rest.Route {
 	return []rest.Route{
-		uhttp.Post("/v1/manage/create", ManageCreateHandler(ctx)),
-		uhttp.Post("/v1/manage/update", ManageUpdateHandler(ctx)),
-		uhttp.Post("/v1/manage/delete", ManageDeleteHandler(ctx)),
-		uhttp.Get("/v1/manage/list", ManageListHandler(ctx)),
-		uhttp.Get("/v1/manage/get/:note_id", ManageGetNoteHandler(ctx)),
-	}
-}
-
-// 笔记资源上传凭证获取路由
-func noteUploadAuthRoutes(ctx *svc.ServiceContext) []rest.Route {
-	return []rest.Route{
-		uhttp.Get("/v1/upload/auth", UploadAuthHandler(ctx)),
+		xhttp.Post("/v1/creator/create", CreatorCreateHandler(ctx)),
+		xhttp.Post("/v1/creator/update", CreatorUpdateHandler(ctx)),
+		xhttp.Post("/v1/creator/delete", CreatorDeleteHandler(ctx)),
+		xhttp.Get("/v1/creator/list", CreatorListHandler(ctx)),
+		xhttp.Get("/v1/creator/get/:note_id", CreatorGetNoteHandler(ctx)),
+		xhttp.Get("/v1/creator/upload/auth", UploadAuthHandler(ctx)),
 	}
 }

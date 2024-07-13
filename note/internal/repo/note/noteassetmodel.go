@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	msqlx "github.com/ryanreadbooks/whimer/misc/sqlx"
+	"github.com/ryanreadbooks/whimer/misc/xsql"
 	uslices "github.com/ryanreadbooks/whimer/misc/utils/slices"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -28,11 +28,11 @@ type (
 	}
 
 	noteAssetModelExtra interface {
-		InsertTx(data *NoteAsset, callback msqlx.AfterInsert) msqlx.TransactFunc
-		UpdateTx(data *NoteAsset) msqlx.TransactFunc
-		DeleteTx(id int64) msqlx.TransactFunc
-		BatchInsertTx(datas []*NoteAsset) msqlx.TransactFunc
-		DeleteByNoteIdTx(noteId int64, exclude []string) msqlx.TransactFunc
+		InsertTx(data *NoteAsset, callback xsql.AfterInsert) xsql.TransactFunc
+		UpdateTx(data *NoteAsset) xsql.TransactFunc
+		DeleteTx(id int64) xsql.TransactFunc
+		BatchInsertTx(datas []*NoteAsset) xsql.TransactFunc
+		DeleteByNoteIdTx(noteId int64, exclude []string) xsql.TransactFunc
 		FindByNoteIdTx(ctx context.Context, sess sqlx.Session, noteId int64) ([]*NoteAsset, error)
 		FindByNoteIds(ctx context.Context, noteIds []int64) ([]*NoteAsset, error)
 	}
@@ -49,7 +49,7 @@ func (m *customNoteAssetModel) withSession(session sqlx.Session) NoteAssetModel 
 	return NewNoteAssetModel(sqlx.NewSqlConnFromSession(session))
 }
 
-func (m *customNoteAssetModel) InsertTx(data *NoteAsset, callback msqlx.AfterInsert) msqlx.TransactFunc {
+func (m *customNoteAssetModel) InsertTx(data *NoteAsset, callback xsql.AfterInsert) xsql.TransactFunc {
 	return func(ctx context.Context, s sqlx.Session) error {
 		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?)", m.table, noteAssetRowsExpectAutoSet)
 		ret, err := s.ExecCtx(ctx, query, data.AssetKey, data.AssetType, data.NoteId, data.CreateAt)
@@ -70,7 +70,7 @@ func (m *customNoteAssetModel) InsertTx(data *NoteAsset, callback msqlx.AfterIns
 	}
 }
 
-func (m *customNoteAssetModel) UpdateTx(data *NoteAsset) msqlx.TransactFunc {
+func (m *customNoteAssetModel) UpdateTx(data *NoteAsset) xsql.TransactFunc {
 	return func(ctx context.Context, s sqlx.Session) error {
 		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, noteAssetRowsWithPlaceHolder)
 		_, err := s.ExecCtx(ctx, query, data.AssetKey, data.AssetType, data.NoteId, data.CreateAt, data.Id)
@@ -78,7 +78,7 @@ func (m *customNoteAssetModel) UpdateTx(data *NoteAsset) msqlx.TransactFunc {
 	}
 }
 
-func (m *customNoteAssetModel) DeleteTx(id int64) msqlx.TransactFunc {
+func (m *customNoteAssetModel) DeleteTx(id int64) xsql.TransactFunc {
 	return func(ctx context.Context, s sqlx.Session) error {
 		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
 		_, err := s.ExecCtx(ctx, query, id)
@@ -87,7 +87,7 @@ func (m *customNoteAssetModel) DeleteTx(id int64) msqlx.TransactFunc {
 }
 
 // 批量插入
-func (m *customNoteAssetModel) BatchInsertTx(datas []*NoteAsset) msqlx.TransactFunc {
+func (m *customNoteAssetModel) BatchInsertTx(datas []*NoteAsset) xsql.TransactFunc {
 	return func(ctx context.Context, s sqlx.Session) error {
 		if len(datas) == 0 {
 			return nil
@@ -111,7 +111,7 @@ func (m *customNoteAssetModel) BatchInsertTx(datas []*NoteAsset) msqlx.TransactF
 	}
 }
 
-func (m *customNoteAssetModel) DeleteByNoteIdTx(noteId int64, assetKeys []string) msqlx.TransactFunc {
+func (m *customNoteAssetModel) DeleteByNoteIdTx(noteId int64, assetKeys []string) xsql.TransactFunc {
 	return func(ctx context.Context, s sqlx.Session) error {
 		query := fmt.Sprintf("delete from %s where `note_id` = ?", m.table)
 		var alen = len(assetKeys)

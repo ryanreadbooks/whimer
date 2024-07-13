@@ -4,7 +4,7 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-func SafeGo(f func()) {
+func SafeGo(job func()) {
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
@@ -12,6 +12,6 @@ func SafeGo(f func()) {
 			}
 		}()
 
-		f()
+		job()
 	}()
 }

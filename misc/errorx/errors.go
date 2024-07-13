@@ -2,18 +2,23 @@ package errorx
 
 import "net/http"
 
-// 常用错误
-var (
-	ErrSuccess = NewError(http.StatusOK, 0, "success")
-
-	ErrInvalidArgs = NewError(http.StatusBadRequest, CommonCode, "请求参数错误")
-	ErrNotLogin    = NewError(http.StatusUnauthorized, CommonCode, "请先登录")
-	ErrPermission  = NewError(http.StatusForbidden, CommonCode, "权限不足")
-	ErrNotFound    = NewError(http.StatusNotFound, CommonCode, "资源不存在")
-	ErrInternal    = NewError(http.StatusInternalServerError, CommonCode, "服务出错, 稍后再试")
-)
-
 // 业务错误码定义
 const (
-	CommonCode = 10000
+	CommonCodeOk           = 0
+	CommonCodeUnauthorized = 10001
+	CommonCodeInvalidParam = 10002
+	CommonCodeForbidden    = 10003
+	CommonCodeNotFound     = 10004
+	CommonCodeInternal     = 10005
+)
+
+// 常用错误
+var (
+	ErrSuccess = NewError(http.StatusOK, CommonCodeOk, "success")
+
+	ErrInvalidArgs = NewError(http.StatusBadRequest, CommonCodeInvalidParam, "参数出错了(；一_一)")
+	ErrNotLogin    = NewError(http.StatusUnauthorized, CommonCodeUnauthorized, "请先登录一下吧~(≧▽≦)")
+	ErrPermission  = NewError(http.StatusForbidden, CommonCodeForbidden, "需要特殊通行证")
+	ErrNotFound    = NewError(http.StatusNotFound, CommonCodeNotFound, "找不到你要的资源")
+	ErrInternal    = NewError(http.StatusInternalServerError, CommonCodeInternal, "服务器被怪兽踢烂了(ノ｀Д´)ノ")
 )
