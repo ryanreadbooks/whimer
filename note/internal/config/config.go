@@ -15,12 +15,13 @@ type Config struct {
 	} `json:"mysql"`
 
 	Oss struct {
-		User     string `json:"user"`
-		Pass     string `json:"pass"`
-		Endpoint string `json:"endpoint"`
-		Location string `json:"location"`
-		Bucket   string `json:"bucket"`
-		Prefix   string `json:"prefix"`
+		User            string `json:"user"`
+		Pass            string `json:"pass"`
+		Endpoint        string `json:"endpoint"`
+		Location        string `json:"location"`
+		Bucket          string `json:"bucket"`
+		Prefix          string `json:"prefix"`
+		DisplayEndpoint string `json:"display_endpoint"`
 	} `json:"oss"`
 
 	ThreeRd struct {

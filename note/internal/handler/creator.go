@@ -24,7 +24,6 @@ func CreatorCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		// service to create note
-		// TODO get uid from wherever
 		noteId, err := c.CreatorSvc.Create(r.Context(), &req)
 		if err != nil {
 			httpx.Error(w, err)
@@ -48,7 +47,6 @@ func CreatorUpdateHandler(c *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		// TODO get uid from whatever
 		err := c.CreatorSvc.Update(r.Context(), &req)
 		if err != nil {
 			httpx.Error(w, err)
