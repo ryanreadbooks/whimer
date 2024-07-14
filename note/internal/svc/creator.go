@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/oss"
 	"github.com/ryanreadbooks/whimer/misc/oss/signer"
 	"github.com/ryanreadbooks/whimer/misc/safety"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
@@ -28,7 +29,7 @@ type CreatorSvc struct {
 
 	Ctx            *ServiceContext
 	NoteIdConfuser *safety.Confuser
-	Signer         *signer.Signer
+	OssSigner      *signer.Signer
 }
 
 func NewCreatorSvc(ctx *ServiceContext, repo *repo.Repo) *CreatorSvc {
@@ -36,7 +37,7 @@ func NewCreatorSvc(ctx *ServiceContext, repo *repo.Repo) *CreatorSvc {
 		repo:           repo,
 		Ctx:            ctx,
 		NoteIdConfuser: safety.NewConfuser(noteIdConfuserSalt, 24),
-		Signer: signer.NewSigner(
+		OssSigner: signer.NewSigner(
 			ctx.Config.Oss.User,
 			ctx.Config.Oss.Pass,
 			signer.Config{
@@ -209,7 +210,7 @@ func (s *CreatorSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*
 	currentTime := now.Unix()
 
 	// 生成签名
-	info, err := s.Signer.Sign(fileId, req.MimeType)
+	info, err := s.OssSigner.Sign(fileId, req.MimeType)
 	if err != nil {
 		logx.Errorf("upload auth sign err: %v, fileid: %s, uid: %d", err, fileId, uid)
 		return nil, global.ErrPermDenied.Msg("服务器签名失败")
@@ -322,7 +323,11 @@ func (s *CreatorSvc) List(ctx context.Context) (*crtp.ListRes, error) {
 		for _, asset := range noteAssets {
 			if note.Id == asset.NoteId {
 				item.Images = append(item.Images, &crtp.ListResItemImage{
-					Url:  asset.AssetKey, // TODO 替换成oss能够访问的链接
+					Url: oss.GetPublicVisitUrl(
+						s.Ctx.Config.Oss.Bucket,
+						asset.AssetKey,
+						s.Ctx.Config.Oss.DisplayEndpoint,
+					),
 					Type: int(asset.AssetType),
 				})
 			}
@@ -375,7 +380,11 @@ func (s *CreatorSvc) GetNote(ctx context.Context, noteId string) (*crtp.ListResI
 
 	for _, asset := range assets {
 		res.Images = append(res.Images, &crtp.ListResItemImage{
-			Url:  asset.AssetKey, // TODO 替换oss
+			Url: oss.GetPublicVisitUrl(
+				s.Ctx.Config.Oss.Bucket,
+				asset.AssetKey,
+				s.Ctx.Config.Oss.DisplayEndpoint,
+			),
 			Type: int(asset.AssetType),
 		})
 	}

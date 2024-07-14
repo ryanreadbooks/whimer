@@ -19,6 +19,7 @@ oss:
   location: local
   bucket: nota
   prefix: assets
+  display_endpoint: http://s1-file.whimer.com:9000
 
 # 外部依赖
 3rd:
