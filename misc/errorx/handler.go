@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
+	"google.golang.org/grpc/status"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
 
 func init() {
@@ -21,6 +23,13 @@ func errorHandler(err error) (int, any) {
 	xerr, ok := err.(*Error)
 	if ok {
 		return xerr.StatusCode, xerr
+	}
+
+	// 一并处理grpc错误
+	gerr, ok := status.FromError(err)
+	if ok {
+		httpCode := runtime.HTTPStatusFromCode(gerr.Code())
+		return httpCode, NewError(httpCode, CommonCodeOther, gerr.Message())
 	}
 
 	return http.StatusInternalServerError, err

@@ -10,6 +10,7 @@ const (
 	CommonCodeForbidden    = 10003
 	CommonCodeNotFound     = 10004
 	CommonCodeInternal     = 10005
+	CommonCodeOther        = 19999
 )
 
 // 常用错误

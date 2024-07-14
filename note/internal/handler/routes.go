@@ -2,31 +2,37 @@ package handler
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
+	"github.com/ryanreadbooks/whimer/note/internal/handler/middleware"
 	"github.com/ryanreadbooks/whimer/note/internal/svc"
 
+	"github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/rest"
 )
 
 // 注册路由
 func RegisterHandlers(engine *rest.Server, ctx *svc.ServiceContext) {
-	engine.AddRoutes(routes(ctx), rest.WithPrefix("/note"))
-}
+	xGroup := xhttp.NewRouterGroup(engine)
+	regCreatorRoutes(xGroup, ctx)
 
-func routes(ctx *svc.ServiceContext) []rest.Route {
-	rs := make([]rest.Route, 0)
-	rs = append(rs, noteCreatorRoutes(ctx)...)
-
-	return rs
+	mod := ctx.Config.Http.Mode
+	if mod == service.DevMode || mod == service.TestMode {
+		engine.PrintRoutes()
+	}
 }
 
 // 笔记管理路由
-func noteCreatorRoutes(ctx *svc.ServiceContext) []rest.Route {
-	return []rest.Route{
-		xhttp.Post("/v1/creator/create", CreatorCreateHandler(ctx)),
-		xhttp.Post("/v1/creator/update", CreatorUpdateHandler(ctx)),
-		xhttp.Post("/v1/creator/delete", CreatorDeleteHandler(ctx)),
-		xhttp.Get("/v1/creator/list", CreatorListHandler(ctx)),
-		xhttp.Get("/v1/creator/get/:note_id", CreatorGetNoteHandler(ctx)),
-		xhttp.Get("/v1/creator/upload/auth", UploadAuthHandler(ctx)),
+func regCreatorRoutes(group *xhttp.RouterGroup, ctx *svc.ServiceContext) {
+	creatorGroup := group.Group("/creator", middleware.Auth(ctx))
+	{
+		v1Group := creatorGroup.Group("/v1/note")
+		{
+			v1Group.Post("/create", CreatorCreateHandler(ctx))
+			v1Group.Post("/update", CreatorUpdateHandler(ctx))
+			v1Group.Post("/delete", CreatorDeleteHandler(ctx))
+			v1Group.Get("/list", CreatorListHandler(ctx))
+			v1Group.Get("/get/:note_id", CreatorGetNoteHandler(ctx))
+			v1Group.Get("/upload/auth", UploadAuthHandler(ctx))
+		}
+
 	}
 }

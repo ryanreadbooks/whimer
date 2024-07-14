@@ -4,13 +4,12 @@ import (
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/note/internal/global"
+	mgtp "github.com/ryanreadbooks/whimer/note/internal/model/creator"
 	"github.com/ryanreadbooks/whimer/note/internal/svc"
-	mgtp "github.com/ryanreadbooks/whimer/note/internal/types/creator"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-// /note/v1/creator/create
 func CreatorCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req mgtp.CreateReq
@@ -26,7 +25,7 @@ func CreatorCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
 
 		// service to create note
 		// TODO get uid from wherever
-		noteId, err := c.CreatorSvc.Create(r.Context(), 100, &req)
+		noteId, err := c.CreatorSvc.Create(r.Context(), &req)
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -36,7 +35,6 @@ func CreatorCreateHandler(c *svc.ServiceContext) http.HandlerFunc {
 	}
 }
 
-// /note/v1/creator/update
 func CreatorUpdateHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req mgtp.UpdateReq
@@ -51,7 +49,7 @@ func CreatorUpdateHandler(c *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		// TODO get uid from whatever
-		err := c.CreatorSvc.Update(r.Context(), 100, &req)
+		err := c.CreatorSvc.Update(r.Context(), &req)
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -74,7 +72,7 @@ func CreatorDeleteHandler(c *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		err := c.CreatorSvc.Delete(r.Context(), 100, &req)
+		err := c.CreatorSvc.Delete(r.Context(), &req)
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -86,7 +84,7 @@ func CreatorDeleteHandler(c *svc.ServiceContext) http.HandlerFunc {
 
 func CreatorListHandler(c *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		res, err := c.CreatorSvc.List(r.Context(), 100)
+		res, err := c.CreatorSvc.List(r.Context())
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -109,7 +107,7 @@ func CreatorGetNoteHandler(c *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		res, err := c.CreatorSvc.GetNote(r.Context(), 100, req.NoteId)
+		res, err := c.CreatorSvc.GetNote(r.Context(), req.NoteId)
 		if err != nil {
 			httpx.Error(w, err)
 			return

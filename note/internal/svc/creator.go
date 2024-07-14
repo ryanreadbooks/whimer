@@ -7,10 +7,13 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/oss/signer"
 	"github.com/ryanreadbooks/whimer/misc/safety"
+	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
+	"github.com/ryanreadbooks/whimer/note/internal/model"
+	crtp "github.com/ryanreadbooks/whimer/note/internal/model/creator"
 	"github.com/ryanreadbooks/whimer/note/internal/repo"
-	reponote "github.com/ryanreadbooks/whimer/note/internal/repo/note"
-	crtp "github.com/ryanreadbooks/whimer/note/internal/types/creator"
+	noterepo "github.com/ryanreadbooks/whimer/note/internal/repo/note"
+	noteassetrepo "github.com/ryanreadbooks/whimer/note/internal/repo/noteasset"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -21,16 +24,16 @@ const (
 )
 
 type CreatorSvc struct {
-	dao *repo.Dao
+	repo *repo.Repo
 
 	Ctx            *ServiceContext
 	NoteIdConfuser *safety.Confuser
 	Signer         *signer.Signer
 }
 
-func NewCreatorSvc(ctx *ServiceContext, repo *repo.Dao) *CreatorSvc {
+func NewCreatorSvc(ctx *ServiceContext, repo *repo.Repo) *CreatorSvc {
 	return &CreatorSvc{
-		dao:            repo,
+		repo:           repo,
 		Ctx:            ctx,
 		NoteIdConfuser: safety.NewConfuser(noteIdConfuserSalt, 24),
 		Signer: signer.NewSigner(
@@ -43,47 +46,45 @@ func NewCreatorSvc(ctx *ServiceContext, repo *repo.Dao) *CreatorSvc {
 	}
 }
 
-func (s *CreatorSvc) Get(ctx context.Context, uid int64, noteId string) error {
+func (s *CreatorSvc) Get(ctx context.Context, noteId string) error {
 
 	return nil
 }
 
-func (s *CreatorSvc) Create(ctx context.Context, uid int64, req *crtp.CreateReq) (string, error) {
+func (s *CreatorSvc) Create(ctx context.Context, req *crtp.CreateReq) (string, error) {
+	var (
+		uid    uint64 = model.CtxGetUid(ctx)
+		noteId uint64
+	)
+
 	now := time.Now().Unix()
-	newNote := &reponote.Note{
-		Title:    req.Basic.Title,
-		Desc:     req.Basic.Desc,
-		Privacy:  int64(req.Basic.Privacy),
-		Owner:    uid,
-		CreateAt: now,
-		UpdateAt: now,
+	newNote := &noterepo.Model{
+		Title:   req.Basic.Title,
+		Desc:    req.Basic.Desc,
+		Privacy: int8(req.Basic.Privacy),
+		Owner:   uid,
 	}
 
-	var noteId int64
-	err := s.dao.DB().TransactCtx(ctx, func(ctx context.Context, sess sqlx.Session) error {
+	err := s.repo.DB().TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
 		// 插入图片基础内容
-		err := s.dao.NoteRepo.InsertTx(newNote, func(id, cnt int64) {
-			noteId = id
-		})(ctx, sess)
-
+		var err error
+		noteId, err = s.repo.NoteRepo.InsertTx(ctx, tx, newNote)
 		if err != nil {
-			logx.Errorf("note repo insert tx err: %v", err)
 			return err
 		}
 
 		// 插入笔记资源数据
-		var noteAssets = make([]*reponote.NoteAsset, 0, len(req.Images))
+		var noteAssets = make([]*noteassetrepo.Model, 0, len(req.Images))
 		for _, img := range req.Images {
-			noteAssets = append(noteAssets, &reponote.NoteAsset{
+			noteAssets = append(noteAssets, &noteassetrepo.Model{
 				AssetKey:  img.FileId,
 				AssetType: global.AssetTypeImage,
 				NoteId:    noteId,
 				CreateAt:  now,
 			})
 		}
-		err = s.dao.NoteAssetRepo.BatchInsertTx(noteAssets)(ctx, sess)
+		err = s.repo.NoteAssetRepo.BatchInsertTx(ctx, tx, noteAssets)
 		if err != nil {
-			logx.Errorf("noteasset repo batch insert tx err: %v, noteid: %d", err, noteId)
 			return err
 		}
 
@@ -95,15 +96,19 @@ func (s *CreatorSvc) Create(ctx context.Context, uid int64, req *crtp.CreateReq)
 		return "", global.ErrInsertNoteFail
 	}
 
-	return s.NoteIdConfuser.Confuse(noteId), nil
+	return s.NoteIdConfuser.ConfuseU(noteId), nil
 }
 
-func (s *CreatorSvc) Update(ctx context.Context, uid int64, req *crtp.UpdateReq) error {
+func (s *CreatorSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
+	var (
+		uid uint64 = model.CtxGetUid(ctx)
+	)
+
 	now := time.Now().Unix()
-	id := s.NoteIdConfuser.DeConfuse(req.NoteId)
-	logx.Debugf("creator updating noteid: %d", id)
-	queried, err := s.dao.NoteRepo.FindOne(ctx, id)
-	if errors.Is(reponote.ErrNotFound, err) {
+	noteId := s.NoteIdConfuser.DeConfuseU(req.NoteId)
+	logx.Debugf("creator updating noteid: %d", noteId)
+	queried, err := s.repo.NoteRepo.FindOne(ctx, noteId)
+	if errors.Is(xsql.ErrNoRecord, err) {
 		return global.ErrNoteNotFound
 	}
 	if err != nil {
@@ -116,28 +121,28 @@ func (s *CreatorSvc) Update(ctx context.Context, uid int64, req *crtp.UpdateReq)
 		return global.ErrPermDenied.Msg("你不拥有该笔记")
 	}
 
-	newNote := &reponote.Note{
-		Id:       id,
+	newNote := &noterepo.Model{
+		Id:       noteId,
 		Title:    req.Basic.Title,
 		Desc:     req.Basic.Desc,
-		Privacy:  int64(req.Basic.Privacy),
+		Privacy:  int8(req.Basic.Privacy),
 		Owner:    queried.Owner,
 		CreateAt: queried.CreateAt,
 		UpdateAt: now,
 	}
 
 	// 开启事务执行
-	err = s.dao.DB().TransactCtx(ctx, func(ctx context.Context, sess sqlx.Session) error {
+	err = s.repo.DB().TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
 		// 先更新基础信息
-		err := s.dao.NoteRepo.UpdateTx(newNote)(ctx, sess)
+		err := s.repo.NoteRepo.UpdateTx(ctx, tx, newNote)
 		if err != nil {
-			logx.Errorf("note repo update tx err: %v, noteid: %d", err, id)
+			logx.Errorf("note repo update tx err: %v, noteid: %d", err, noteId)
 			return err
 		}
 
-		oldAssets, err := s.dao.NoteAssetRepo.FindByNoteIdTx(ctx, sess, id)
-		if err != nil && !errors.Is(reponote.ErrNotFound, err) {
-			logx.Errorf("noteasset repo find err: %v, noteid: %d", err, id)
+		oldAssets, err := s.repo.NoteAssetRepo.FindByNoteIdTx(ctx, tx, noteId)
+		if err != nil && !errors.Is(xsql.ErrNoRecord, err) {
+			logx.Errorf("noteasset repo find err: %v, noteid: %d", err, noteId)
 			return err
 		}
 		newAssetKeys := make([]string, 0, len(req.Images))
@@ -146,9 +151,9 @@ func (s *CreatorSvc) Update(ctx context.Context, uid int64, req *crtp.UpdateReq)
 		}
 
 		// 随后删除旧资源
-		err = s.dao.NoteAssetRepo.DeleteByNoteIdTx(id, newAssetKeys)(ctx, sess)
+		err = s.repo.NoteAssetRepo.ExcludeDeleteByNoteIdTx(ctx, tx, noteId, newAssetKeys)
 		if err != nil {
-			logx.Errorf("noteasset repo delete tx err: %v, noteid: %d", err, id)
+			logx.Errorf("noteasset repo delete tx err: %v, noteid: %d", err, noteId)
 			return err
 		}
 
@@ -158,13 +163,13 @@ func (s *CreatorSvc) Update(ctx context.Context, uid int64, req *crtp.UpdateReq)
 		for _, old := range oldAssets {
 			oldAssetMap[old.AssetKey] = struct{}{}
 		}
-		newAssets := make([]*reponote.NoteAsset, 0, len(req.Images))
+		newAssets := make([]*noteassetrepo.Model, 0, len(req.Images))
 		for _, img := range req.Images {
 			if _, ok := oldAssetMap[img.FileId]; !ok {
-				newAssets = append(newAssets, &reponote.NoteAsset{
+				newAssets = append(newAssets, &noteassetrepo.Model{
 					AssetKey:  img.FileId,
 					AssetType: global.AssetTypeImage,
-					NoteId:    id,
+					NoteId:    noteId,
 					CreateAt:  now,
 				})
 			}
@@ -175,9 +180,9 @@ func (s *CreatorSvc) Update(ctx context.Context, uid int64, req *crtp.UpdateReq)
 		}
 
 		// 插入新的资源
-		err = s.dao.NoteAssetRepo.BatchInsertTx(newAssets)(ctx, sess)
+		err = s.repo.NoteAssetRepo.BatchInsertTx(ctx, tx, newAssets)
 		if err != nil {
-			logx.Errorf("noteasset repo batch insert tx err: %v, noteid: %d", err, id)
+			logx.Errorf("noteasset repo batch insert tx err: %v, noteid: %d", err, noteId)
 			return err
 		}
 
@@ -185,13 +190,18 @@ func (s *CreatorSvc) Update(ctx context.Context, uid int64, req *crtp.UpdateReq)
 	})
 
 	if err != nil {
-		logx.Errorf("repo transact update note err: %v, id: %d", err, id)
+		logx.Errorf("repo transact update note err: %v, id: %d", err, noteId)
+		return global.ErrUpdateNoteFail
 	}
 
 	return nil
 }
 
 func (s *CreatorSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*crtp.UploadAuthRes, error) {
+	var (
+		uid uint64 = model.CtxGetUid(ctx)
+	)
+
 	// 生成count个上传凭证
 	fileId := s.Ctx.KeyGen.Gen()
 
@@ -201,7 +211,7 @@ func (s *CreatorSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*
 	// 生成签名
 	info, err := s.Signer.Sign(fileId, req.MimeType)
 	if err != nil {
-		logx.Errorf("upload auth sign err: %v, fileid: %s", err, fileId)
+		logx.Errorf("upload auth sign err: %v, fileid: %s, uid: %d", err, fileId, uid)
 		return nil, global.ErrPermDenied.Msg("服务器签名失败")
 	}
 
@@ -221,15 +231,19 @@ func (s *CreatorSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*
 	return &res, nil
 }
 
-func (s *CreatorSvc) Delete(ctx context.Context, uid int64, req *crtp.DeleteReq) error {
-	id := s.NoteIdConfuser.DeConfuse(req.NoteId)
-	if id <= 0 {
+func (s *CreatorSvc) Delete(ctx context.Context, req *crtp.DeleteReq) error {
+	var (
+		uid uint64 = model.CtxGetUid(ctx)
+	)
+
+	noteId := s.NoteIdConfuser.DeConfuseU(req.NoteId)
+	if noteId <= 0 {
 		return global.ErrNoteNotFound
 	}
 
-	logx.Debugf("creator updating noteid: %d", id)
-	queried, err := s.dao.NoteRepo.FindOne(ctx, id)
-	if errors.Is(reponote.ErrNotFound, err) {
+	logx.Debugf("creator deleting noteid: %d", noteId)
+	queried, err := s.repo.NoteRepo.FindOne(ctx, noteId)
+	if errors.Is(xsql.ErrNoRecord, err) {
 		return global.ErrNoteNotFound
 	}
 	if err != nil {
@@ -242,16 +256,17 @@ func (s *CreatorSvc) Delete(ctx context.Context, uid int64, req *crtp.DeleteReq)
 	}
 
 	// 开始删除
-	err = s.dao.DB().TransactCtx(ctx, func(ctx context.Context, sess sqlx.Session) error {
-		err := s.dao.NoteRepo.DeleteTx(id)(ctx, sess)
+	err = s.repo.DB().TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
+		err := s.repo.NoteRepo.DeleteTx(ctx, tx, noteId)
 		if err != nil {
-			logx.Errorf("repo delete note basic tx err: %v, noteid: %d", err, id)
+			logx.Errorf("repo delete note basic tx err: %v, noteid: %d", err, noteId)
 			return err
 		}
 
-		err = s.dao.NoteAssetRepo.DeleteByNoteIdTx(id, nil)(ctx, sess)
+		// err = s.repo.NoteAssetRepo.DeleteByNoteIdTx(id, nil)(ctx, sess)
+		err = s.repo.NoteAssetRepo.DeleteByNoteIdTx(ctx, tx, noteId)
 		if err != nil {
-			logx.Errorf("repo delete note asset tx err: %v, noteid: %d", err, id)
+			logx.Errorf("repo delete note asset tx err: %v, noteid: %d", err, noteId)
 			return err
 		}
 
@@ -259,16 +274,20 @@ func (s *CreatorSvc) Delete(ctx context.Context, uid int64, req *crtp.DeleteReq)
 	})
 
 	if err != nil {
-		logx.Errorf("repo delete note tx err: %v, noteid: %d", err, id)
+		logx.Errorf("repo delete note tx err: %v, noteid: %d", err, noteId)
 		return global.ErrDeleteNoteFail
 	}
 
 	return nil
 }
 
-func (s *CreatorSvc) List(ctx context.Context, uid int64) (*crtp.ListRes, error) {
-	notes, err := s.dao.NoteRepo.ListByOwner(ctx, uid)
-	if errors.Is(reponote.ErrNotFound, err) {
+func (s *CreatorSvc) List(ctx context.Context) (*crtp.ListRes, error) {
+	var (
+		uid uint64 = model.CtxGetUid(ctx)
+	)
+
+	notes, err := s.repo.NoteRepo.ListByOwner(ctx, uid)
+	if errors.Is(xsql.ErrNoRecord, err) {
 		return &crtp.ListRes{}, nil
 	}
 
@@ -277,14 +296,14 @@ func (s *CreatorSvc) List(ctx context.Context, uid int64) (*crtp.ListRes, error)
 		return nil, global.ErrGetNoteFail
 	}
 
-	var noteIds = make([]int64, 0, len(notes))
+	var noteIds = make([]uint64, 0, len(notes))
 	for _, note := range notes {
 		noteIds = append(noteIds, note.Id)
 	}
 
 	// 获取资源信息
-	noteAssets, err := s.dao.NoteAssetRepo.FindByNoteIds(ctx, noteIds)
-	if err != nil && !errors.Is(err, reponote.ErrNotFound) {
+	noteAssets, err := s.repo.NoteAssetRepo.FindByNoteIds(ctx, noteIds)
+	if err != nil && !errors.Is(err, xsql.ErrNoRecord) {
 		logx.Errorf("repo note list by owner err: %v, uid: %d", err, uid)
 		return nil, global.ErrGetNoteFail
 	}
@@ -293,7 +312,7 @@ func (s *CreatorSvc) List(ctx context.Context, uid int64) (*crtp.ListRes, error)
 	var res crtp.ListRes
 	for _, note := range notes {
 		item := &crtp.ListResItem{
-			NoteId:   s.NoteIdConfuser.Confuse(note.Id),
+			NoteId:   s.NoteIdConfuser.ConfuseU(note.Id),
 			Title:    note.Title,
 			Desc:     note.Desc,
 			Privacy:  note.Privacy,
@@ -315,14 +334,18 @@ func (s *CreatorSvc) List(ctx context.Context, uid int64) (*crtp.ListRes, error)
 	return &res, nil
 }
 
-func (s *CreatorSvc) GetNote(ctx context.Context, uid int64, noteId string) (*crtp.ListResItem, error) {
-	nid := s.NoteIdConfuser.DeConfuse(noteId)
+func (s *CreatorSvc) GetNote(ctx context.Context, noteId string) (*crtp.ListResItem, error) {
+	var (
+		uid uint64 = model.CtxGetUid(ctx)
+	)
+
+	nid := s.NoteIdConfuser.DeConfuseU(noteId)
 	if nid <= 0 {
 		return nil, global.ErrNoteNotFound
 	}
 
-	note, err := s.dao.NoteRepo.FindOne(ctx, nid)
-	if errors.Is(err, reponote.ErrNotFound) {
+	note, err := s.repo.NoteRepo.FindOne(ctx, nid)
+	if errors.Is(err, xsql.ErrNoRecord) {
 		return nil, global.ErrNoteNotFound
 	}
 
@@ -335,8 +358,8 @@ func (s *CreatorSvc) GetNote(ctx context.Context, uid int64, noteId string) (*cr
 		return nil, global.ErrPermDenied.Msg("你不拥有该笔记")
 	}
 
-	assets, err := s.dao.NoteAssetRepo.FindByNoteIds(ctx, []int64{note.Id})
-	if err != nil && !errors.Is(err, reponote.ErrNotFound) {
+	assets, err := s.repo.NoteAssetRepo.FindByNoteIds(ctx, []uint64{note.Id})
+	if err != nil && !errors.Is(err, xsql.ErrNoRecord) {
 		logx.Errorf("repo note asset find by note ids err: %v, noteid: %d", err, note.Id)
 		return nil, global.ErrGetNoteFail
 	}

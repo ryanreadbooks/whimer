@@ -28,7 +28,7 @@ func NewAccessServer(ctx *svc.ServiceContext) *AccessServer {
 // 检查是否有登录
 func (s *AccessServer) CheckSignIn(ctx context.Context, in *access.CheckSignInReq) (*access.CheckSignInRes, error) {
 	if len(in.SessId) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "empty sessid")
+		return nil, status.Error(codes.PermissionDenied, "empty sessid")
 	}
 
 	var (
@@ -39,7 +39,7 @@ func (s *AccessServer) CheckSignIn(ctx context.Context, in *access.CheckSignInRe
 
 	val, err := url.PathUnescape(in.SessId)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid sessid")
+		return nil, status.Error(codes.PermissionDenied, "invalid sessid")
 	}
 	in.SessId = val
 
@@ -52,7 +52,7 @@ func (s *AccessServer) CheckSignIn(ctx context.Context, in *access.CheckSignInRe
 		}
 	} else {
 		if !platform.Supported(in.Platform) {
-			return nil, status.Error(codes.InvalidArgument, "unsupported platform")
+			return nil, status.Error(codes.PermissionDenied, "unsupported platform")
 		}
 		meInfo, err = s.Svc.AccessSvc.CheckPlatformSignedIn(ctx, in.SessId, in.Platform)
 		if err != nil {

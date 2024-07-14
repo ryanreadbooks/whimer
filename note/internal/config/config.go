@@ -5,7 +5,7 @@ import (
 )
 
 type Config struct {
-	rest.RestConf
+	Http rest.RestConf `json:"http"`
 
 	MySql struct {
 		User   string `json:"user"`
@@ -21,5 +21,11 @@ type Config struct {
 		Location string `json:"location"`
 		Bucket   string `json:"bucket"`
 		Prefix   string `json:"prefix"`
-	}
+	} `json:"oss"`
+
+	ThreeRd struct {
+		Grpc struct {
+			Passport string `json:"passport"`
+		} `json:"grpc"`
+	} `json:"3rd"`
 }
