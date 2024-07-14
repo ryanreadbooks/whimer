@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	// do not easily change this constant
 	WhimerSessId = "WHIMERSESSID"
 )
 

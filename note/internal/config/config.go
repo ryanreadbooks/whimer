@@ -25,7 +25,7 @@ type Config struct {
 
 	ThreeRd struct {
 		Grpc struct {
-			Access string `json:"access"`
+			Passport string `json:"passport"`
 		} `json:"grpc"`
 	} `json:"3rd"`
 }
