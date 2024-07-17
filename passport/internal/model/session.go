@@ -50,7 +50,7 @@ func (s *Session) Cookie() *http.Cookie {
 		Expires:  time.Unix(s.Meta.ExpireAt, 0),
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 	}
 }
 
