@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
+	"github.com/ryanreadbooks/whimer/passport/internal/model"
 	tp "github.com/ryanreadbooks/whimer/passport/internal/model/passport"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
 
@@ -56,5 +57,37 @@ func SignInWithSms(ctx *svc.ServiceContext) http.HandlerFunc {
 
 		http.SetCookie(w, sess.Cookie())
 		httpx.OkJson(w, tp.NewFromRepoBasic(user))
+	}
+}
+
+// 针对当前session退出登录
+func SignoutCurrent(ctx *svc.ServiceContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// TODO do some checking
+		sessId := model.CtxGetSessId(r.Context())
+		err := ctx.AccessSvc.SignOutCurrent(r.Context(), sessId)
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		// invalidate cookie
+		http.SetCookie(w, expiredSessIdCookie())
+		httpx.Ok(w)
+	}
+}
+
+// 全平台退登
+func SignoutAllPlatform(ctx *svc.ServiceContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+	}
+}
+
+func expiredSessIdCookie() *http.Cookie {
+	return &http.Cookie{
+		Name:   model.WhimerSessId,
+		Value:  "",
+		MaxAge: -1,
 	}
 }

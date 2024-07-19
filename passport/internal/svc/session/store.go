@@ -164,7 +164,7 @@ func (r *RedisStore) Del(ctx context.Context, key string) error {
 
 	// 在pipeline中移除
 	err = r.cache.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
-		r.Del(ctx, r.getSessKey(key))
+		p.Del(ctx, r.getSessKey(key))
 		uid := sess.Uid
 		p.SRem(ctx, r.getUidKey(uid), r.getSessKey(key))
 
