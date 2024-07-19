@@ -26,6 +26,12 @@ func regPassportRoutes(group *xhttp.RouterGroup, ctx *svc.ServiceContext) {
 	{
 		passportGroup.Post("/v1/sms/send", SmsSendHandler(ctx))  // 获取登录短信验证码
 		passportGroup.Post("/v1/signin/sms", SignInWithSms(ctx)) // 手机号+短信验证码登录
+
+		signoutGroup := passportGroup.Group("/v1/signout", middleware.EnsureSignedIn(ctx))
+		{
+			signoutGroup.Post("/current", SignoutCurrent(ctx)) // 退登
+			signoutGroup.Post("/all", SignoutAllPlatform(ctx)) // 退登全平台
+		}
 	}
 }
 

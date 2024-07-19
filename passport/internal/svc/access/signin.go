@@ -6,7 +6,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/concur"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	"github.com/ryanreadbooks/whimer/passport/internal/gloabl"
+	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
 	tp "github.com/ryanreadbooks/whimer/passport/internal/model/passport"
 	"github.com/ryanreadbooks/whimer/passport/internal/model/profile"
@@ -209,4 +209,14 @@ func (s *Service) ExtractMeInfo(detail string) (*profile.MeInfo, error) {
 	}
 
 	return profile.NewMeInfoFromUserBasic(user), nil
+}
+
+func (s *Service) SignOutCurrent(ctx context.Context, sessId string) error {
+	err := s.sessMgr.InvalidateSession(ctx, sessId)
+	if err != nil {
+		logx.Errorf("signout single invalidate session err: %v, sessId: %s", err, sessId)
+		return global.ErrInternal
+	}
+
+	return nil
 }
