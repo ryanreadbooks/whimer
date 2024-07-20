@@ -29,7 +29,7 @@ func errorHandler(err error) (int, any) {
 	gerr, ok := status.FromError(err)
 	if ok {
 		httpCode := runtime.HTTPStatusFromCode(gerr.Code())
-		return httpCode, NewError(httpCode, CommonCodeOther, gerr.Message())
+		return httpCode, NewError(httpCode, CodeOther, gerr.Message())
 	}
 
 	return http.StatusInternalServerError, err

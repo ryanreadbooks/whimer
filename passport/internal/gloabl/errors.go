@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	PassportErrCode = 30000
+	PassportErrCode = errorx.BizPassport
 )
 
 var (

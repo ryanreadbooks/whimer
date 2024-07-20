@@ -3,7 +3,7 @@ package global
 import "github.com/ryanreadbooks/whimer/misc/errorx"
 
 const (
-	NoteErrCode = 20000
+	NoteErrCode = errorx.BizNote
 )
 
 // 业务错误定义
