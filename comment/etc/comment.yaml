@@ -1,0 +1,18 @@
+http:
+  mode: dev
+  name: comment-api
+  host: 0.0.0.0
+  port: 6666
+  log:
+    level: debug
+
+mysql:
+  user: ${ENV_DB_USER}
+  pass: ${ENV_DB_PASS}
+  addr: ${ENV_DB_ADDR}
+  db_name: ${ENV_DB_NAME}
+
+# 外部依赖
+3rd:
+  grpc:
+    passport: 127.0.0.1:7778
