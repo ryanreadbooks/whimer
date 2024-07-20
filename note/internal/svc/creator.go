@@ -8,9 +8,9 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/oss"
 	"github.com/ryanreadbooks/whimer/misc/oss/signer"
 	"github.com/ryanreadbooks/whimer/misc/safety"
+	"github.com/ryanreadbooks/whimer/misc/xhttp/middleware/auth"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
-	"github.com/ryanreadbooks/whimer/note/internal/model"
 	crtp "github.com/ryanreadbooks/whimer/note/internal/model/creator"
 	"github.com/ryanreadbooks/whimer/note/internal/repo"
 	noterepo "github.com/ryanreadbooks/whimer/note/internal/repo/note"
@@ -54,7 +54,7 @@ func (s *CreatorSvc) Get(ctx context.Context, noteId string) error {
 
 func (s *CreatorSvc) Create(ctx context.Context, req *crtp.CreateReq) (string, error) {
 	var (
-		uid    uint64 = model.CtxGetUid(ctx)
+		uid    uint64 = auth.CtxGetUid(ctx)
 		noteId uint64
 	)
 
@@ -102,7 +102,7 @@ func (s *CreatorSvc) Create(ctx context.Context, req *crtp.CreateReq) (string, e
 
 func (s *CreatorSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
 	var (
-		uid uint64 = model.CtxGetUid(ctx)
+		uid uint64 = auth.CtxGetUid(ctx)
 	)
 
 	now := time.Now().Unix()
@@ -200,7 +200,7 @@ func (s *CreatorSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
 
 func (s *CreatorSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*crtp.UploadAuthRes, error) {
 	var (
-		uid uint64 = model.CtxGetUid(ctx)
+		uid uint64 = auth.CtxGetUid(ctx)
 	)
 
 	// 生成count个上传凭证
@@ -234,7 +234,7 @@ func (s *CreatorSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*
 
 func (s *CreatorSvc) Delete(ctx context.Context, req *crtp.DeleteReq) error {
 	var (
-		uid uint64 = model.CtxGetUid(ctx)
+		uid uint64 = auth.CtxGetUid(ctx)
 	)
 
 	noteId := s.NoteIdConfuser.DeConfuseU(req.NoteId)
@@ -284,7 +284,7 @@ func (s *CreatorSvc) Delete(ctx context.Context, req *crtp.DeleteReq) error {
 
 func (s *CreatorSvc) List(ctx context.Context) (*crtp.ListRes, error) {
 	var (
-		uid uint64 = model.CtxGetUid(ctx)
+		uid uint64 = auth.CtxGetUid(ctx)
 	)
 
 	notes, err := s.repo.NoteRepo.ListByOwner(ctx, uid)
@@ -341,7 +341,7 @@ func (s *CreatorSvc) List(ctx context.Context) (*crtp.ListRes, error) {
 
 func (s *CreatorSvc) GetNote(ctx context.Context, noteId string) (*crtp.ListResItem, error) {
 	var (
-		uid uint64 = model.CtxGetUid(ctx)
+		uid uint64 = auth.CtxGetUid(ctx)
 	)
 
 	nid := s.NoteIdConfuser.DeConfuseU(noteId)

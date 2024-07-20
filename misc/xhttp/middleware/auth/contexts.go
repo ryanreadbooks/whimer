@@ -1,4 +1,4 @@
-package model
+package auth
 
 import "context"
 
@@ -11,7 +11,7 @@ func WithUid(ctx context.Context, uid uint64) context.Context {
 	return context.WithValue(ctx, CtxUidKey, uid)
 }
 
-func WithSessId(ctx context.Context, sessId uint64) context.Context {
+func WithSessId(ctx context.Context, sessId string) context.Context {
 	return context.WithValue(ctx, CtxSessIdKey, sessId)
 }
 

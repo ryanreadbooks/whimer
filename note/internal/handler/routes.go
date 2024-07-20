@@ -2,7 +2,8 @@ package handler
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	"github.com/ryanreadbooks/whimer/note/internal/handler/middleware"
+	"github.com/ryanreadbooks/whimer/misc/xhttp/middleware/auth"
+	"github.com/ryanreadbooks/whimer/note/internal/external"
 	"github.com/ryanreadbooks/whimer/note/internal/svc"
 
 	"github.com/zeromicro/go-zero/core/service"
@@ -22,7 +23,7 @@ func RegisterHandlers(engine *rest.Server, ctx *svc.ServiceContext) {
 
 // 笔记管理路由
 func regCreatorRoutes(group *xhttp.RouterGroup, ctx *svc.ServiceContext) {
-	creatorGroup := group.Group("/creator", middleware.Auth(ctx))
+	creatorGroup := group.Group("/creator", auth.UserWeb(external.GetAuther()))
 	{
 		v1Group := creatorGroup.Group("/v1/note")
 		{
