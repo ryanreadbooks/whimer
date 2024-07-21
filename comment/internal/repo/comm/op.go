@@ -11,25 +11,29 @@ import (
 
 // all sqls here
 const (
-	fields     = "id,note_id,ctype,content,uid,parent_id,reply_id,reply_uid,state,like_count,dislike_count,report_count,is_top,client_info,ctime"
-	fieldsNoId = "note_id,ctype,content,uid,parent_id,reply_id,reply_uid,state,like_count,dislike_count,report_count,is_top,client_info,ctime"
+	fields     = "id,oid,ctype,content,uid,root,parent,ruid,state,`like`,dislike,report,pin,cli,ctime,mtime"
+	fieldsNoId = "oid,ctype,content,uid,root,parent,ruid,state,like,dislike,report,pin,cli,ctime,mtime"
 
-	sqlUdState    = "update comment set state=? where id=?"
-	sqlAddLike    = "update comment set like_count=like_count+1 where id=?"
-	sqlSubLike    = "update comment set like_count=like_count-1 where id=?"
-	sqlAddDislike = "update comment set dislike_count=dislike_count+1 where id=?"
-	sqlSubDislike = "update comment set dislike_count=dislike_count-1 where id=?"
-	sqlAddReport  = "update comment set report_count=report_count+1 where id=?"
-	sqlSubReport  = "update comment set report_count=report_count-1 where id=?"
-	sqlSetIsTop   = "update comment set is_top=1 where id=?"
+	sqlUdState    = "UPDATE comment SET state=? WHERE id=?"
+	sqlIncLike    = "UPDATE comment SET `like`=`like`+1 WHERE id=?"
+	sqlDecLike    = "UPDATE comment SET `like`=`like`-1 WHERE id=?"
+	sqlIncDislike = "UPDATE comment SET dislike=dislike+1 WHERE id=?"
+	sqlDecDislike = "UPDATE comment SET dislike=dislike-1 WHERE id=?"
+	sqlIncReport  = "UPDATE comment SET report=report+1 WHERE id=?"
+	sqlDecReport  = "UPDATE comment SET report=report-1 WHERE id=?"
+	sqlSetPin     = "UPDATE comment SET pin=1 WHERE id=?"
 
-	forUpdate = "for update"
+	sqlSetLike    = "UPDATE comment SET `like`=? WHERE id=?"
+	sqlSetDisLike = "UPDATE comment SET dislike=? WHERE id=?"
+	sqlSetReport  = "UPDATE comment SET report=? WHERE id=?"
+
+	forUpdate = "FOR UPDATE"
 )
 
 var (
-	sqlSelByNote   = fmt.Sprintf("select %s from comment where note_id=? %%s", fields)
-	sqlSelByParent = fmt.Sprintf("select %s from comment where parent_id=? %%s", fields)
-	sqlInsert      = fmt.Sprintf("insert into comment(%s) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fieldsNoId)
+	sqlSelByNote   = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? %%s", fields)
+	sqlSelByParent = fmt.Sprintf("SELECT %s FROM comment WHERE root=? %%s", fields)
+	sqlInsert      = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fieldsNoId)
 )
 
 func (r *Repo) insert(ctx context.Context, sess sqlx.Session, model *Model) (uint64, error) {
@@ -37,21 +41,26 @@ func (r *Repo) insert(ctx context.Context, sess sqlx.Session, model *Model) (uin
 		model.Ctime = time.Now().Unix()
 	}
 
+	if model.Mtime <= 0 {
+		model.Mtime = model.Ctime
+	}
+
 	res, err := sess.ExecCtx(ctx, sqlInsert,
-		model.NoteId,
+		model.Oid,
 		model.CType,
 		model.Content,
 		model.Uid,
+		model.RootId,
 		model.ParentId,
-		model.ReplyId,
 		model.ReplyUid,
 		model.State,
 		model.Like,
 		model.Dislike,
 		model.Report,
-		model.IsTop,
-		model.ClientInfo,
-		model.Ctime)
+		model.IsPin,
+		model.Ip,
+		model.Ctime,
+		model.Mtime)
 	if err != nil {
 		return 0, xsql.ConvertError(err)
 	}
@@ -124,55 +133,55 @@ func (r *Repo) udCount(ctx context.Context, sess sqlx.Session, query string, id 
 }
 
 func (r *Repo) AddLike(ctx context.Context, id uint64) error {
-	return r.udCount(ctx, r.db, sqlAddLike, id)
+	return r.udCount(ctx, r.db, sqlIncLike, id)
 }
 
 func (r *Repo) AddLikeTx(ctx context.Context, tx sqlx.Session, id uint64) error {
-	return r.udCount(ctx, tx, sqlAddLike, id)
+	return r.udCount(ctx, tx, sqlIncLike, id)
 }
 
 func (r *Repo) AddReport(ctx context.Context, id uint64) error {
-	return r.udCount(ctx, r.db, sqlAddReport, id)
+	return r.udCount(ctx, r.db, sqlIncReport, id)
 }
 
 func (r *Repo) AddReportTx(ctx context.Context, tx sqlx.Session, id uint64) error {
-	return r.udCount(ctx, tx, sqlAddReport, id)
+	return r.udCount(ctx, tx, sqlIncReport, id)
 }
 
 func (r *Repo) AddDisLike(ctx context.Context, id uint64) error {
-	return r.udCount(ctx, r.db, sqlAddDislike, id)
+	return r.udCount(ctx, r.db, sqlIncDislike, id)
 }
 
 func (r *Repo) AddDisLikeTx(ctx context.Context, tx sqlx.Session, id uint64) error {
-	return r.udCount(ctx, tx, sqlAddDislike, id)
+	return r.udCount(ctx, tx, sqlIncDislike, id)
 }
 
 func (r *Repo) SubLike(ctx context.Context, id uint64) error {
-	return r.udCount(ctx, r.db, sqlSubLike, id)
+	return r.udCount(ctx, r.db, sqlDecLike, id)
 }
 
 func (r *Repo) SubLikeTx(ctx context.Context, tx sqlx.Session, id uint64) error {
-	return r.udCount(ctx, tx, sqlSubLike, id)
+	return r.udCount(ctx, tx, sqlDecLike, id)
 }
 
 func (r *Repo) SubReport(ctx context.Context, id uint64) error {
-	return r.udCount(ctx, r.db, sqlSubReport, id)
+	return r.udCount(ctx, r.db, sqlDecReport, id)
 }
 
 func (r *Repo) SubReportTx(ctx context.Context, tx sqlx.Session, id uint64) error {
-	return r.udCount(ctx, tx, sqlSubReport, id)
+	return r.udCount(ctx, tx, sqlDecReport, id)
 }
 
 func (r *Repo) SubDisLike(ctx context.Context, id uint64) error {
-	return r.udCount(ctx, r.db, sqlSubDislike, id)
+	return r.udCount(ctx, r.db, sqlDecDislike, id)
 }
 
 func (r *Repo) SubDisLikeTx(ctx context.Context, tx sqlx.Session, id uint64) error {
-	return r.udCount(ctx, tx, sqlSubDislike, id)
+	return r.udCount(ctx, tx, sqlDecDislike, id)
 }
 
 func (r *Repo) setTop(ctx context.Context, sess sqlx.Session, id uint64) error {
-	_, err := sess.ExecCtx(ctx, sqlSetIsTop, id)
+	_, err := sess.ExecCtx(ctx, sqlSetPin, id)
 	return xsql.ConvertError(err)
 }
 

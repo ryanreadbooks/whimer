@@ -11,7 +11,7 @@ type ServiceContext struct {
 	Config *config.Config
 
 	// utilities
-	KeyGen *keygen.Generator
+	OssKeyGen *keygen.Generator
 
 	// other service
 	CreatorSvc *CreatorSvc
@@ -28,7 +28,7 @@ func NewServiceContext(c *config.Config) *ServiceContext {
 	external.Init(c)
 
 	// utilities
-	ctx.KeyGen = keygen.NewGenerator(
+	ctx.OssKeyGen = keygen.NewGenerator(
 		keygen.WithBucket(c.Oss.Bucket),
 		keygen.WithPrefix(c.Oss.Prefix),
 		keygen.WithPrependBucket(true),

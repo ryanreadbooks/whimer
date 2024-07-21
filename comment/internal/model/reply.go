@@ -6,6 +6,7 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/global"
 )
 
+// 评论类型
 type ReplyType int8
 
 const (
@@ -14,17 +15,28 @@ const (
 )
 
 const (
+	IsNotTop = 0
+	IsTop    = 1
+)
+
+// 评论状态
+type ReplyState int8
+
+const ()
+
+const (
 	minContentLen = 1
 	maxContentLen = 2000
 )
 
 // 发表评论参数
 type ReplyReq struct {
-	Type     ReplyType `json:"type" form:"type"`         // 评论类型 (0-文本; 1-图文)
-	NoteId   string    `json:"nid" form:"nid"`           // 笔记id
-	Content  string    `json:"content" form:"content"`   // 评论内容
-	ParentId uint64    `json:"pid,omitempty" form:"pid"` // 根评论id
-	ReplyId  uint64    `json:"rid,omitempty" form:"rid"` // 被回复的评论id
+	Type     ReplyType `json:"type"`    // 评论类型 (0-文本; 1-图文)
+	Oid      uint64    `json:"nid"`     // 对象id
+	Content  string    `json:"content"` // 评论内容
+	RootId   uint64    `json:"pid"`     // 根评论id
+	ParentId uint64    `json:"rid"`     // 被回复的评论id
+	ReplyUid uint64    `json:"ruid"`    // 被回复的用户id
 }
 
 func (r *ReplyReq) Validate() error {
@@ -36,8 +48,8 @@ func (r *ReplyReq) Validate() error {
 		return global.ErrUnsupportedType
 	}
 
-	if len(r.NoteId) == 0 {
-		return global.ErrNoteIdEmpty
+	if r.Oid <= 0 {
+		return global.ErrObjectIdEmpty
 	}
 
 	cLen := utf8.RuneCountInString(r.Content)

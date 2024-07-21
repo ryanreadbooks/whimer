@@ -3,6 +3,7 @@ package repo
 import (
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/comm"
+	"github.com/ryanreadbooks/whimer/comment/internal/repo/queue"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
@@ -11,6 +12,7 @@ type Repo struct {
 	db sqlx.SqlConn
 
 	CommentRepo *comm.Repo
+	Queue       *queue.Bus
 }
 
 func New(c *config.Config) *Repo {

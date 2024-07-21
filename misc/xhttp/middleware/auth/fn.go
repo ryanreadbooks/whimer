@@ -3,6 +3,8 @@ package auth
 import (
 	"net/http"
 
+	"github.com/ryanreadbooks/whimer/misc/metadata"
+
 	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -16,8 +18,8 @@ func User(a *Auth) rest.Middleware {
 				return
 			}
 
-			ctx := WithUid(r.Context(), uid)
-			ctx = WithSessId(ctx, sessId)
+			ctx := metadata.WithUid(r.Context(), uid)
+			ctx = metadata.WithSessId(ctx, sessId)
 
 			next(w, r.WithContext(ctx))
 		}
@@ -33,8 +35,8 @@ func UserWeb(a *Auth) rest.Middleware {
 				return
 			}
 
-			ctx := WithUid(r.Context(), uid)
-			ctx = WithSessId(ctx, sessId)
+			ctx := metadata.WithUid(r.Context(), uid)
+			ctx = metadata.WithSessId(ctx, sessId)
 
 			next(w, r.WithContext(ctx))
 		}

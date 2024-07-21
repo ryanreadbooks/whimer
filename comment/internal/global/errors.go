@@ -19,7 +19,7 @@ var (
 
 	ErrNilReq          = ErrArgs.Msg("请求参数为空")
 	ErrUnsupportedType = ErrArgs.Msg("内容类型不支持")
-	ErrNoteIdEmpty     = ErrArgs.Msg("笔记id为空")
+	ErrObjectIdEmpty   = ErrArgs.Msg("对象id为空")
 	ErrContentTooShort = ErrArgs.Msg("评论内容太短")
 	ErrContentTooLong  = ErrArgs.Msg("评论内容太长")
 )

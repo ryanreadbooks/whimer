@@ -5,7 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/passport/internal/config"
 	"github.com/ryanreadbooks/whimer/passport/internal/handler"
-	stubaccess "github.com/ryanreadbooks/whimer/passport/internal/stub/access"
+	accrpc "github.com/ryanreadbooks/whimer/passport/internal/rpc/access"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
 	"github.com/ryanreadbooks/whimer/passport/sdk/access"
 
@@ -30,7 +30,7 @@ func main() {
 	restServer := rest.MustNewServer(c.Http)
 
 	grpcServer := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
-		access.RegisterAccessServer(s, stubaccess.NewAccessServer(ctx))
+		access.RegisterAccessServer(s, accrpc.NewAccessServer(ctx))
 		if c.Grpc.Mode == service.DevMode || c.Grpc.Mode == service.TestMode {
 			reflection.Register(s)
 		}

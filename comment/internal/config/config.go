@@ -1,11 +1,11 @@
 package config
 
 import (
-	"github.com/zeromicro/go-zero/rest"
+	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type Config struct {
-	Http rest.RestConf `json:"http"`
+	Grpc zrpc.RpcServerConf `json:"grpc"`
 
 	MySql struct {
 		User   string `json:"user"`
@@ -17,6 +17,7 @@ type Config struct {
 	ThreeRd struct {
 		Grpc struct {
 			Passport string `json:"passport"`
+			Seqer    string `json:"seqer"`
 		} `json:"grpc"`
 	} `json:"3rd"`
 }

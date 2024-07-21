@@ -4,14 +4,18 @@ import (
 	"flag"
 
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
-	"github.com/ryanreadbooks/whimer/comment/internal/handler"
+	"github.com/ryanreadbooks/whimer/comment/internal/rpc"
 	"github.com/ryanreadbooks/whimer/comment/internal/svc"
+	"github.com/ryanreadbooks/whimer/comment/sdk"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/rest"
+	"github.com/zeromicro/go-zero/core/service"
+	"github.com/zeromicro/go-zero/zrpc"
 )
-
 
 var configFile = flag.String("f", "etc/comment.yaml", "the config file")
 
@@ -22,10 +26,16 @@ func main() {
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
 
 	ctx := svc.NewServiceContext(&c)
-	server := rest.MustNewServer(c.Http)
+
+	server := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
+		sdk.RegisterReplyServer(s, rpc.NewReplyServer(ctx))
+		if c.Grpc.Mode == service.DevMode || c.Grpc.Mode == service.TestMode {
+			reflection.Register(s)
+		}
+	})
+	server.AddUnaryInterceptors(interceptor.ErrorHandle)
 	defer server.Stop()
 
-	handler.RegisterHandlers(server, ctx)
 	logx.Info("note is serving...")
 	server.Start()
 }
