@@ -34,7 +34,7 @@ func NewCommentSvc(ctx *ServiceContext, repo *repo.Repo) *CommentSvc {
 	}
 
 	var err error
-	s.seqer, err = sdk.NewClient(sdk.WithGrpc(s.c.ThreeRd.Grpc.Seqer))
+	s.seqer, err = sdk.NewClient(sdk.WithGrpc(s.c.External.Grpc.Seqer))
 	if err != nil {
 		panic(err)
 	}
@@ -47,19 +47,19 @@ func isRootReply(root, parent uint64) bool {
 }
 
 // 发表评论
-func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) error {
+func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.ReplyRes, error) {
 	var (
-		uid      = metadata.GetUid(ctx)
+		uid      = metadata.Uid(ctx)
 		oid      = req.Oid
 		rootId   = req.RootId
 		parentId = req.ParentId
-		ip       = xnet.IpAsInt(metadata.GetClientIp(ctx))
+		ip       = xnet.IpAsInt(metadata.ClientIp(ctx))
 	)
 
 	replyId, err := s.seqer.GetId(ctx, seqerReplyKey, 10000)
 	if err != nil {
 		logx.Errorf("reply add get reply id err: %v", err)
-		return global.ErrInternal
+		return nil, global.ErrInternal
 	}
 
 	now := time.Now().Unix()
@@ -72,24 +72,24 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) error {
 		RootId:   rootId,
 		ParentId: parentId,
 		ReplyUid: req.ReplyUid,
-		State:    0, // TODO define state of reply
+		State:    int8(model.ReplyStateNormal),
 		Ip:       ip,
 		Ctime:    now,
 		Mtime:    now,
 	}
 
-	err = s.repo.Queue.AddReply(ctx, &reply)
+	err = s.repo.Bus.AddReply(ctx, &reply)
 	if err != nil {
 		logx.Errorf("push reply to queue err: %v, replyId: %d", err, replyId)
-		return global.ErrInternal
+		return nil, global.ErrInternal
 	}
 
 	// TODO notify reply_uid
 
-	return nil
+	return &model.ReplyRes{ReplyId: replyId, Uid: uid}, nil
 }
 
-func (s *CommentSvc) ReplyDel(ctx context.Context) error {
+func (s *CommentSvc) ReplyDel(ctx context.Context, rid uint64) error {
 
 	return nil
 }

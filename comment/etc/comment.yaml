@@ -12,7 +12,7 @@ mysql:
   db_name: ${ENV_DB_NAME}
 
 # 外部依赖
-3rd:
+external:
   grpc:
     passport: 127.0.0.1:7778
     seqer: 127.0.0.1:9528

@@ -14,15 +14,20 @@ const (
 	ReplyImageText ReplyType = 1
 )
 
+// 评论是否置顶
 const (
-	IsNotTop = 0
-	IsTop    = 1
+	IsNotPinned = 0
+	IsPinned    = 1
 )
 
 // 评论状态
 type ReplyState int8
 
-const ()
+// 评论状态
+const (
+	// TODO define more reply state
+	ReplyStateNormal ReplyState = 0
+)
 
 const (
 	minContentLen = 1
@@ -63,4 +68,10 @@ func (r *ReplyReq) Validate() error {
 	}
 
 	return nil
+}
+
+// 发表评论结果
+type ReplyRes struct {
+	ReplyId uint64
+	Uid     uint64
 }

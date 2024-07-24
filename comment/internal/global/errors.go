@@ -22,4 +22,5 @@ var (
 	ErrObjectIdEmpty   = ErrArgs.Msg("对象id为空")
 	ErrContentTooShort = ErrArgs.Msg("评论内容太短")
 	ErrContentTooLong  = ErrArgs.Msg("评论内容太长")
+	ErrInvalidReplyId  = ErrArgs.Msg("评论id错误")
 )

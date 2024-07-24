@@ -14,10 +14,14 @@ message AddReplyReq {
   uint64 reply_uid = 6;  // 被回复的用户id
 }
 
-message AddReplyRes {}
+message AddReplyRes {
+  uint64 reply_id = 1; // 评论id
+}
 
 // 删除评论
-message DelReplyReq {}
+message DelReplyReq {
+  uint64 reply_id = 1; // 评论id
+}
 
 message DelReplyRes {}
 
@@ -36,10 +40,16 @@ message ReportReplyReq {}
 
 message ReportReplyRes {}
 
+// 置顶
+message PinReplyReq {}
+
+message PinReplyRes {}
+
 service Reply {
   rpc AddReply(AddReplyReq) returns (AddReplyRes);
   rpc DelReply(DelReplyReq) returns (DelReplyRes);
   rpc LikeAction(LikeActionReq) returns (LikeActionRes);
   rpc DislikeAction(DislikeActionReq) returns (DislikeActionRes);
   rpc ReportReply(ReportReplyReq) returns (ReportReplyRes);
+  rpc PinReply(PinReplyReq) returns (PinReplyRes);
 }

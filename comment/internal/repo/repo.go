@@ -12,7 +12,7 @@ type Repo struct {
 	db sqlx.SqlConn
 
 	CommentRepo *comm.Repo
-	Queue       *queue.Bus
+	Bus         *queue.Bus
 }
 
 func New(c *config.Config) *Repo {
@@ -35,6 +35,7 @@ func New(c *config.Config) *Repo {
 	r := &Repo{
 		db:          db,
 		CommentRepo: comm.New(db),
+		Bus:         queue.New(c),
 	}
 
 	return r

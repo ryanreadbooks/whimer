@@ -27,6 +27,7 @@ type ReplyClient interface {
 	LikeAction(ctx context.Context, in *LikeActionReq, opts ...grpc.CallOption) (*LikeActionRes, error)
 	DislikeAction(ctx context.Context, in *DislikeActionReq, opts ...grpc.CallOption) (*DislikeActionRes, error)
 	ReportReply(ctx context.Context, in *ReportReplyReq, opts ...grpc.CallOption) (*ReportReplyRes, error)
+	PinReply(ctx context.Context, in *PinReplyReq, opts ...grpc.CallOption) (*PinReplyRes, error)
 }
 
 type replyClient struct {
@@ -82,6 +83,15 @@ func (c *replyClient) ReportReply(ctx context.Context, in *ReportReplyReq, opts 
 	return out, nil
 }
 
+func (c *replyClient) PinReply(ctx context.Context, in *PinReplyReq, opts ...grpc.CallOption) (*PinReplyRes, error) {
+	out := new(PinReplyRes)
+	err := c.cc.Invoke(ctx, "/comment.v1.Reply/PinReply", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ReplyServer is the server API for Reply service.
 // All implementations must embed UnimplementedReplyServer
 // for forward compatibility
@@ -91,6 +101,7 @@ type ReplyServer interface {
 	LikeAction(context.Context, *LikeActionReq) (*LikeActionRes, error)
 	DislikeAction(context.Context, *DislikeActionReq) (*DislikeActionRes, error)
 	ReportReply(context.Context, *ReportReplyReq) (*ReportReplyRes, error)
+	PinReply(context.Context, *PinReplyReq) (*PinReplyRes, error)
 	mustEmbedUnimplementedReplyServer()
 }
 
@@ -112,6 +123,9 @@ func (UnimplementedReplyServer) DislikeAction(context.Context, *DislikeActionReq
 }
 func (UnimplementedReplyServer) ReportReply(context.Context, *ReportReplyReq) (*ReportReplyRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReportReply not implemented")
+}
+func (UnimplementedReplyServer) PinReply(context.Context, *PinReplyReq) (*PinReplyRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PinReply not implemented")
 }
 func (UnimplementedReplyServer) mustEmbedUnimplementedReplyServer() {}
 
@@ -216,6 +230,24 @@ func _Reply_ReportReply_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Reply_PinReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PinReplyReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReplyServer).PinReply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/comment.v1.Reply/PinReply",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReplyServer).PinReply(ctx, req.(*PinReplyReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Reply_ServiceDesc is the grpc.ServiceDesc for Reply service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -242,6 +274,10 @@ var Reply_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReportReply",
 			Handler:    _Reply_ReportReply_Handler,
+		},
+		{
+			MethodName: "PinReply",
+			Handler:    _Reply_PinReply_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

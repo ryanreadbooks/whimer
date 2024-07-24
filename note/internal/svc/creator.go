@@ -51,7 +51,7 @@ func (s *CreatorSvc) Get(ctx context.Context, noteId string) error {
 
 func (s *CreatorSvc) Create(ctx context.Context, req *crtp.CreateReq) (string, error) {
 	var (
-		uid    uint64 = metadata.GetUid(ctx)
+		uid    uint64 = metadata.Uid(ctx)
 		noteId uint64
 	)
 
@@ -99,7 +99,7 @@ func (s *CreatorSvc) Create(ctx context.Context, req *crtp.CreateReq) (string, e
 
 func (s *CreatorSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
 	var (
-		uid uint64 = metadata.GetUid(ctx)
+		uid uint64 = metadata.Uid(ctx)
 	)
 
 	now := time.Now().Unix()
@@ -197,7 +197,7 @@ func (s *CreatorSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
 
 func (s *CreatorSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*crtp.UploadAuthRes, error) {
 	var (
-		uid uint64 = metadata.GetUid(ctx)
+		uid uint64 = metadata.Uid(ctx)
 	)
 
 	// 生成count个上传凭证
@@ -231,7 +231,7 @@ func (s *CreatorSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*
 
 func (s *CreatorSvc) Delete(ctx context.Context, req *crtp.DeleteReq) error {
 	var (
-		uid uint64 = metadata.GetUid(ctx)
+		uid uint64 = metadata.Uid(ctx)
 	)
 
 	noteId := s.NoteIdConfuser.DeConfuseU(req.NoteId)
@@ -281,7 +281,7 @@ func (s *CreatorSvc) Delete(ctx context.Context, req *crtp.DeleteReq) error {
 
 func (s *CreatorSvc) List(ctx context.Context) (*crtp.ListRes, error) {
 	var (
-		uid uint64 = metadata.GetUid(ctx)
+		uid uint64 = metadata.Uid(ctx)
 	)
 
 	notes, err := s.repo.NoteRepo.ListByOwner(ctx, uid)
@@ -338,7 +338,7 @@ func (s *CreatorSvc) List(ctx context.Context) (*crtp.ListRes, error) {
 
 func (s *CreatorSvc) GetNote(ctx context.Context, noteId string) (*crtp.ListResItem, error) {
 	var (
-		uid uint64 = metadata.GetUid(ctx)
+		uid uint64 = metadata.Uid(ctx)
 	)
 
 	nid := s.NoteIdConfuser.DeConfuseU(noteId)

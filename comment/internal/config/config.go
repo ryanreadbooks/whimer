@@ -14,10 +14,10 @@ type Config struct {
 		DbName string `json:"db_name"`
 	} `json:"mysql"`
 
-	ThreeRd struct {
+	External struct {
 		Grpc struct {
 			Passport string `json:"passport"`
 			Seqer    string `json:"seqer"`
 		} `json:"grpc"`
-	} `json:"3rd"`
+	} `json:"external"`
 }
