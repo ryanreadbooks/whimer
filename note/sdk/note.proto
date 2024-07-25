@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package note.v1;
+
+option go_package = "./sdk";
+
+message IsUserOwnNoteReq {
+  uint64 uid = 1;               // 用户id
+  repeated uint64 note_ids = 2; // 笔记id
+}
+
+message IsUserOwnNoteRes {
+  uint64 uid = 1;
+  repeated bool result = 2; // 结果
+}
+
+service Note {
+  // 检查用户是否拥有指定的笔记
+  rpc IsUserOwnNote(IsUserOwnNoteReq) returns (IsUserOwnNoteRes);
+}

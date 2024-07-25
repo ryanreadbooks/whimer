@@ -16,3 +16,4 @@ external:
   grpc:
     passport: 127.0.0.1:7778
     seqer: 127.0.0.1:9528
+    note: 127.0.0.1:9998

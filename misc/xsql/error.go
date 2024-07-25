@@ -41,3 +41,7 @@ func IsCriticalErr(err error) bool {
 func IsDuplicate(err error) bool {
 	return errors.Is(err, ErrDuplicate)
 }
+
+func IsNotFound(err error) bool {
+	return errors.Is(err, ErrNoRecord)
+}

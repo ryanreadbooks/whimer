@@ -24,7 +24,7 @@ type Config struct {
 		DisplayEndpoint string `json:"display_endpoint"`
 	} `json:"oss"`
 
-	ThreeRd struct {
+	External struct {
 		Grpc struct {
 			Passport string `json:"passport"`
 		} `json:"grpc"`

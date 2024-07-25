@@ -15,7 +15,7 @@ var (
 
 	ErrArgs       = ErrBizCommentArgs.Msg("参数错误")
 	ErrInternal   = ErrBizCommentInternal.Msg("服务错误, 请稍后重试")
-	ErrPermDenied = ErrBizCommentDenied.Msg("你的操作权限不足")
+	ErrPermDenied = ErrBizCommentDenied.Msg("操作权限不足")
 
 	ErrNilReq          = ErrArgs.Msg("请求参数为空")
 	ErrUnsupportedType = ErrArgs.Msg("内容类型不支持")
@@ -23,4 +23,5 @@ var (
 	ErrContentTooShort = ErrArgs.Msg("评论内容太短")
 	ErrContentTooLong  = ErrArgs.Msg("评论内容太长")
 	ErrInvalidReplyId  = ErrArgs.Msg("评论id错误")
+	ErrReplyNotFound   = ErrNotFound.Msg("评论不存在")
 )

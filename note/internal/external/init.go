@@ -11,7 +11,7 @@ var (
 )
 
 func Init(c *config.Config) {
-	auther, err = auth.New(&auth.Config{Addr: c.ThreeRd.Grpc.Passport})
+	auther, err = auth.New(&auth.Config{Addr: c.External.Grpc.Passport})
 	if err != nil || auther == nil {
 		panic(err)
 	}

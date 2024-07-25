@@ -18,6 +18,7 @@ type Config struct {
 		Grpc struct {
 			Passport string `json:"passport"`
 			Seqer    string `json:"seqer"`
+			Note string `json:"note"`
 		} `json:"grpc"`
 	} `json:"external"`
 }
