@@ -23,10 +23,11 @@ const (
 	sqlDecReport  = "UPDATE comment SET report=report-1 WHERE id=?"
 	sqlPin        = "UPDATE comment SET pin=1 WHERE id=?"
 	sqlUnpin      = "UPDATE comment SET pin=0 WHERE id=?"
-
 	sqlSetLike    = "UPDATE comment SET `like`=? WHERE id=?"
 	sqlSetDisLike = "UPDATE comment SET dislike=? WHERE id=?"
 	sqlSetReport  = "UPDATE comment SET report=? WHERE id=?"
+	sqlDelById    = "DELETE FROM comment WHERE id=?"
+	sqlDelByRoot  = "DELETE FROM comment WHERE root=?"
 
 	forUpdate = "FOR UPDATE"
 )
@@ -99,6 +100,24 @@ func (r *Repo) Insert(ctx context.Context, model *Model) (uint64, error) {
 
 func (r *Repo) InsertTx(ctx context.Context, tx sqlx.Session, model *Model) (uint64, error) {
 	return r.insert(ctx, tx, model)
+}
+
+func (r *Repo) delete(ctx context.Context, sess sqlx.Session, id uint64) error {
+	_, err := sess.ExecCtx(ctx, sqlDelById, id)
+	return xsql.ConvertError(err)
+}
+
+func (r *Repo) DeleteById(ctx context.Context, id uint64) error {
+	return r.delete(ctx, r.db, id)
+}
+
+func (r *Repo) DeleteByIdTx(ctx context.Context, tx sqlx.Session, id uint64) error {
+	return r.delete(ctx, tx, id)
+}
+
+func (r *Repo) DeleteByRootTx(ctx context.Context, tx sqlx.Session, rootId uint64) error {
+	_, err := tx.ExecCtx(ctx, sqlDelByRoot, rootId)
+	return xsql.ConvertError(err)
 }
 
 func (r *Repo) findByOId(ctx context.Context, sess sqlx.Session, oid uint64, lock bool) ([]*Model, error) {

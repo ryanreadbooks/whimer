@@ -34,13 +34,14 @@ type (
 
 	// 删除评论所需数据
 	DelReplyData struct {
-		ReplyId uint64 `json:"reply_id"`
+		ReplyId uint64      `json:"reply_id"`
+		Reply   *comm.Model `json:"reply"`
 	}
 
 	LikeReplyData struct {
 		ReplyId uint64 `json:"reply_id"`
-		Action  int    `json:"action"`
-		Type    int    `json:"type"`
+		Action  int    `json:"action"` // do or undo
+		Type    int    `json:"type"`   // like or dislike
 	}
 )
 
@@ -79,7 +80,7 @@ func (b *Bus) pushReplyAct(ctx context.Context, data *Data) error {
 	var key string
 	switch data.Action {
 	case ActAddReply, ActDelReply:
-		key = addDelKey
+		key = addDelKey // 新增和删除方同一个partition中
 	default:
 		key = otherKey
 	}
@@ -94,11 +95,12 @@ func (b *Bus) AddReply(ctx context.Context, data *comm.Model) error {
 	})
 }
 
-func (b *Bus) DelReply(ctx context.Context, rid uint64) error {
+func (b *Bus) DelReply(ctx context.Context, rid uint64, reply *comm.Model) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActDelReply,
 		DelReplyData: &DelReplyData{
 			ReplyId: rid,
+			Reply:   reply,
 		},
 	})
 }

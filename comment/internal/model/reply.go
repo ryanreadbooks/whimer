@@ -55,8 +55,12 @@ func (r *ReplyReq) Validate() error {
 	}
 
 	// 平陵对象id不能为空
-	if r.Oid <= 0 {
+	if r.Oid == 0 {
 		return global.ErrObjectIdEmpty
+	}
+
+	if r.ReplyUid == 0 {
+		return global.ErrReplyUidEmpty
 	}
 
 	// 评论长度不能太长或者太短

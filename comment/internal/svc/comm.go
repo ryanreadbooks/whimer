@@ -14,7 +14,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	"github.com/ryanreadbooks/whimer/note/sdk"
+	notesdk "github.com/ryanreadbooks/whimer/note/sdk"
 
 	seqer "github.com/ryanreadbooks/folium/sdk"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -92,8 +92,21 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 			return nil, global.ErrInternal
 		}
 	} else {
-		// 这里校验非主评论是否能够插入
-		if err := s.checkAddSubReply(ctx, s.repo.DB(), rootId, parentId); err != nil {
+		err := s.repo.DB().TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
+			// 这里校验非主评论是否能够插入
+			if err := s.canAddSubReply(ctx, tx, rootId, parentId); err != nil {
+				return err
+			}
+			// 可以插入
+			err = s.repo.Bus.AddReply(ctx, &reply)
+			if err != nil {
+				logx.Errorf("push subreply to queue err: %v, replyId: %d", err, replyId)
+				return global.ErrInternal
+			}
+			return nil
+		})
+
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -103,9 +116,27 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 	return &model.ReplyRes{ReplyId: replyId, Uid: uid}, nil
 }
 
+func (s *CommentSvc) canYouDel(ctx context.Context, reply *comm.Model) error {
+	var (
+		uid   = metadata.Uid(ctx)
+		owner = reply.Uid
+	)
+
+	if uid == owner {
+		// 用户是评论的作者 可以删除
+		return nil
+	}
+
+	if err := s.userOwnsOid(ctx, uid, reply.Oid, reply.Id); err == nil {
+		// 用户是评论对象的作者 可以删除
+		return nil
+	}
+
+	return global.ErrYouDontOwnThis
+}
+
 func (s *CommentSvc) ReplyDel(ctx context.Context, rid uint64) error {
-	// TODO 可以不检查是否存在
-	_, err := s.repo.CommentRepo.FindById(ctx, rid)
+	reply, err := s.repo.CommentRepo.FindById(ctx, rid)
 	if err != nil {
 		if !xsql.IsNotFound(err) {
 			logx.Errorf("reply del find by id err: %v, rid: %d", err, rid)
@@ -114,7 +145,12 @@ func (s *CommentSvc) ReplyDel(ctx context.Context, rid uint64) error {
 		return global.ErrReplyNotFound
 	}
 
-	err = s.repo.Bus.DelReply(ctx, rid)
+	// 检查用户是否有权限删除评论
+	if err := s.canYouDel(ctx, reply); err != nil {
+		return err
+	}
+
+	err = s.repo.Bus.DelReply(ctx, rid, reply)
 	if err != nil {
 		logx.Errorf("del reply to queue err: %v, rid: %d", err, rid)
 		return global.ErrInternal
@@ -168,7 +204,7 @@ func (s *CommentSvc) BizAddReply(ctx context.Context, data *queue.AddReplyData) 
 	)
 
 	noteExitsRes, err := external.GetNoter().IsNoteExist(ctx,
-		&sdk.IsNoteExistReq{
+		&notesdk.IsNoteExistReq{
 			NoteId: oid,
 		})
 	if err != nil {
@@ -192,7 +228,7 @@ func (s *CommentSvc) BizAddReply(ctx context.Context, data *queue.AddReplyData) 
 		// 新增的是评论的评论 插入前再次校验
 		// 检查被评论的平时是否存在
 		err := s.repo.DB().TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
-			err := s.checkAddSubReply(ctx, tx, rootId, parentId)
+			err := s.canAddSubReply(ctx, tx, rootId, parentId)
 			if err != nil {
 				return err
 			}
@@ -217,31 +253,92 @@ func (s *CommentSvc) BizAddReply(ctx context.Context, data *queue.AddReplyData) 
 	return nil
 }
 
+func (s *CommentSvc) findReplyForUpdate(ctx context.Context, tx sqlx.Session, rid uint64) (*comm.Model, error) {
+	m, err := s.repo.CommentRepo.FindByIdForUpdate(ctx, tx, rid)
+	if err != nil {
+		if !xsql.IsNotFound(err) {
+			logx.Errorf("repo find root by id for update err: %v, rid: %d", err, rid)
+			return nil, global.ErrInternal
+		}
+		return nil, global.ErrReplyNotFound
+	}
+
+	return m, nil
+}
+
 func (s *CommentSvc) BizDelReply(ctx context.Context, data *queue.DelReplyData) error {
+	var (
+		rid = data.ReplyId
+	)
+
+	// 是否是主评论 如果为主评论 需要一并删除所有子评论
+	if isRootReply(data.Reply.RootId, data.Reply.ParentId) {
+		s.repo.DB().TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
+			_, err := s.findReplyForUpdate(ctx, tx, rid)
+			if err != nil {
+				return err
+			}
+			// 删除主评论
+			err = s.repo.CommentRepo.DeleteByIdTx(ctx, tx, rid)
+			if err != nil {
+				logx.Errorf("repo delete by id tx err: %v, rid: %d", err, rid)
+				return global.ErrInternal
+			}
+			// 删除旗下子评论
+			err = s.repo.CommentRepo.DeleteByRootTx(ctx, tx, rid)
+			if err != nil {
+				logx.Errorf("repo delete by root tx err: %v, rid: %d", err, rid)
+				return global.ErrInternal
+			}
+
+			return nil
+		})
+
+	} else {
+		// 只需要删除评论本身
+		err := s.repo.CommentRepo.DeleteById(ctx, rid)
+		if err != nil {
+			logx.Errorf("repo delete by id err: %v, rid: %d", err, rid)
+			return global.ErrInternal
+		}
+	}
+	return nil
+}
+
+func (s *CommentSvc) userOwnsOid(ctx context.Context, uid, oid, rid uint64) error {
+	resp, err := external.GetNoter().IsUserOwnNote(ctx,
+		&notesdk.IsUserOwnNoteReq{
+			Uid:    uid,
+			NoteId: oid,
+		})
+	if err != nil {
+		logx.Errorf("check IsUserOwnNote err: %v, rid: %d, uid: %d, oid: %d", err, rid, uid, oid)
+		return global.ErrInternal
+	}
+
+	if !resp.GetResult() {
+		return global.ErrYouDontOwnThis
+	}
 
 	return nil
 }
 
-func (s *CommentSvc) checkAddSubReply(ctx context.Context, tx sqlx.Session, rootId, parentId uint64) error {
+func (s *CommentSvc) BizLikeOrDislikeReply(ctx context.Context, data *queue.LikeReplyData) error {
+	return nil
+}
+
+func (s *CommentSvc) canAddSubReply(ctx context.Context, tx sqlx.Session, rootId, parentId uint64) error {
 	if rootId != 0 {
-		_, err := s.repo.CommentRepo.FindByIdForUpdate(ctx, tx, rootId)
+		_, err := s.findReplyForUpdate(ctx, tx, rootId)
 		if err != nil {
-			if !xsql.IsNotFound(err) {
-				logx.Errorf("repo find root by id for update err: %v, id: %d", err, rootId)
-				return global.ErrInternal
-			}
-			return global.ErrReplyNotFound
+			return err
 		}
 	}
 
 	if parentId != 0 {
-		_, err := s.repo.CommentRepo.FindByIdForUpdate(ctx, tx, parentId)
+		_, err := s.findReplyForUpdate(ctx, tx, parentId)
 		if err != nil {
-			if !xsql.IsNotFound(err) {
-				logx.Errorf("repo find parent by id for update err: %v, id: %d", err, parentId)
-				return global.ErrInternal
-			}
-			return global.ErrReplyNotFound
+			return err
 		}
 	}
 

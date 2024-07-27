@@ -29,6 +29,7 @@ func (s *ReplyServer) AddReply(ctx context.Context, in *sdk.AddReplyReq) (*sdk.A
 		RootId:   in.GetRootId(),
 		ParentId: in.GetParentId(),
 		Content:  in.GetContent(),
+		ReplyUid: in.GetReplyUid(),
 	}
 
 	if err := req.Validate(); err != nil {
