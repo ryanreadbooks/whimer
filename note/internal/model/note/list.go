@@ -9,7 +9,7 @@ type ListResItem struct {
 	NoteId   string              `json:"note_id"`
 	Title    string              `json:"title"`
 	Desc     string              `json:"desc"`
-	Privacy  int8               `json:"privacy"`
+	Privacy  int8                `json:"privacy"`
 	CreateAt int64               `json:"create_at"`
 	UpdateAt int64               `json:"update_at"`
 	Images   []*ListResItemImage `json:"images"`

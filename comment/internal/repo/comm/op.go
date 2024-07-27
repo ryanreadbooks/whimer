@@ -11,8 +11,8 @@ import (
 
 // all sqls here
 const (
-	fields     = "id,oid,ctype,content,uid,root,parent,ruid,state,`like`,dislike,report,pin,cli,ctime,mtime"
-	fieldsNoId = "oid,ctype,content,uid,root,parent,ruid,state,like,dislike,report,pin,cli,ctime,mtime"
+	fields     = "id,oid,ctype,content,uid,root,parent,ruid,state,`like`,dislike,report,pin,ip,ctime,mtime"
+	fieldsNoId = "oid,ctype,content,uid,root,parent,ruid,state,like,dislike,report,pin,ip,ctime,mtime"
 
 	sqlUdState    = "UPDATE comment SET state=? WHERE id=?"
 	sqlIncLike    = "UPDATE comment SET `like`=`like`+1 WHERE id=?"
@@ -33,10 +33,21 @@ const (
 
 var (
 	sqlSel       = fmt.Sprintf("SELECT %s FROM comment WHERE id=?", fields)
+	sqlSel4Ud    = fmt.Sprintf("SELECT %s FROM comment WHERE id=? FOR UPDATE", fields)
 	sqlSelByO    = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? %%s", fields)
 	sqlSelByRoot = fmt.Sprintf("SELECT %s FROM comment WHERE root=? %%s", fields)
-	sqlInsert    = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fieldsNoId)
+	sqlInsert    = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fields)
 )
+
+func (r *Repo) FindByIdForUpdate(ctx context.Context, tx sqlx.Session, id uint64) (*Model, error) {
+	var res Model
+	err := tx.QueryRowCtx(ctx, &res, sqlSel4Ud, id)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return &res, nil
+}
 
 func (r *Repo) FindById(ctx context.Context, id uint64) (*Model, error) {
 	var res Model
@@ -58,6 +69,7 @@ func (r *Repo) insert(ctx context.Context, sess sqlx.Session, model *Model) (uin
 	}
 
 	res, err := sess.ExecCtx(ctx, sqlInsert,
+		model.Id,
 		model.Oid,
 		model.CType,
 		model.Content,

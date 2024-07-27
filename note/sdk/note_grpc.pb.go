@@ -24,6 +24,10 @@ const _ = grpc.SupportPackageIsVersion7
 type NoteClient interface {
 	// 检查用户是否拥有指定的笔记
 	IsUserOwnNote(ctx context.Context, in *IsUserOwnNoteReq, opts ...grpc.CallOption) (*IsUserOwnNoteRes, error)
+	// 获取笔记的信息
+	GetNote(ctx context.Context, in *GetNoteReq, opts ...grpc.CallOption) (*GetNoteRes, error)
+	// 判断笔记是否存在
+	IsNoteExist(ctx context.Context, in *IsNoteExistReq, opts ...grpc.CallOption) (*IsNoteExistRes, error)
 }
 
 type noteClient struct {
@@ -43,12 +47,34 @@ func (c *noteClient) IsUserOwnNote(ctx context.Context, in *IsUserOwnNoteReq, op
 	return out, nil
 }
 
+func (c *noteClient) GetNote(ctx context.Context, in *GetNoteReq, opts ...grpc.CallOption) (*GetNoteRes, error) {
+	out := new(GetNoteRes)
+	err := c.cc.Invoke(ctx, "/note.v1.Note/GetNote", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *noteClient) IsNoteExist(ctx context.Context, in *IsNoteExistReq, opts ...grpc.CallOption) (*IsNoteExistRes, error) {
+	out := new(IsNoteExistRes)
+	err := c.cc.Invoke(ctx, "/note.v1.Note/IsNoteExist", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NoteServer is the server API for Note service.
 // All implementations must embed UnimplementedNoteServer
 // for forward compatibility
 type NoteServer interface {
 	// 检查用户是否拥有指定的笔记
 	IsUserOwnNote(context.Context, *IsUserOwnNoteReq) (*IsUserOwnNoteRes, error)
+	// 获取笔记的信息
+	GetNote(context.Context, *GetNoteReq) (*GetNoteRes, error)
+	// 判断笔记是否存在
+	IsNoteExist(context.Context, *IsNoteExistReq) (*IsNoteExistRes, error)
 	mustEmbedUnimplementedNoteServer()
 }
 
@@ -58,6 +84,12 @@ type UnimplementedNoteServer struct {
 
 func (UnimplementedNoteServer) IsUserOwnNote(context.Context, *IsUserOwnNoteReq) (*IsUserOwnNoteRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IsUserOwnNote not implemented")
+}
+func (UnimplementedNoteServer) GetNote(context.Context, *GetNoteReq) (*GetNoteRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNote not implemented")
+}
+func (UnimplementedNoteServer) IsNoteExist(context.Context, *IsNoteExistReq) (*IsNoteExistRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsNoteExist not implemented")
 }
 func (UnimplementedNoteServer) mustEmbedUnimplementedNoteServer() {}
 
@@ -90,6 +122,42 @@ func _Note_IsUserOwnNote_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Note_GetNote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNoteReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteServer).GetNote(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/note.v1.Note/GetNote",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteServer).GetNote(ctx, req.(*GetNoteReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Note_IsNoteExist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsNoteExistReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteServer).IsNoteExist(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/note.v1.Note/IsNoteExist",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteServer).IsNoteExist(ctx, req.(*IsNoteExistReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Note_ServiceDesc is the grpc.ServiceDesc for Note service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -100,6 +168,14 @@ var Note_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "IsUserOwnNote",
 			Handler:    _Note_IsUserOwnNote_Handler,
+		},
+		{
+			MethodName: "GetNote",
+			Handler:    _Note_GetNote_Handler,
+		},
+		{
+			MethodName: "IsNoteExist",
+			Handler:    _Note_IsNoteExist_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

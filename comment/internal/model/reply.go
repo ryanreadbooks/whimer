@@ -49,14 +49,17 @@ func (r *ReplyReq) Validate() error {
 		return global.ErrNilReq
 	}
 
+	// 评论类型校验
 	if r.Type != ReplyText && r.Type != ReplyImageText {
 		return global.ErrUnsupportedType
 	}
 
+	// 平陵对象id不能为空
 	if r.Oid <= 0 {
 		return global.ErrObjectIdEmpty
 	}
 
+	// 评论长度不能太长或者太短
 	cLen := utf8.RuneCountInString(r.Content)
 	if r.Type == ReplyText {
 		if cLen < minContentLen {
@@ -65,6 +68,12 @@ func (r *ReplyReq) Validate() error {
 		if cLen > maxContentLen {
 			return global.ErrContentTooLong
 		}
+	}
+
+	// 评论的关系
+	// 子评论一定要附着在主评论下
+	if r.ParentId != 0 && r.RootId == 0 {
+		return global.ErrReplyWrongRelation
 	}
 
 	return nil

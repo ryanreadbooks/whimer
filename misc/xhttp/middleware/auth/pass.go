@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/misc/errorx"
+	"github.com/ryanreadbooks/whimer/misc/xconf"
 	ppac "github.com/ryanreadbooks/whimer/passport/sdk/access"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -26,6 +27,18 @@ func New(c *Config) (*Auth, error) {
 	a := &Auth{ppac.NewAccess(cli)}
 
 	return a, nil
+}
+
+func NewFromConn(conn zrpc.Client) *Auth {
+	return &Auth{ppac.NewAccess(conn)}
+}
+
+func MustAuther(c xconf.Discovery) *Auth {
+	authCli, err := zrpc.NewClient(c.AsZrpcClientConf())
+	if err != nil {
+		panic(err)
+	}
+	return NewFromConn(authCli)
 }
 
 func rawSignInReq(sessId, platform string) *ppac.CheckSignInReq {

@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
+	"github.com/ryanreadbooks/whimer/comment/internal/job"
 	"github.com/ryanreadbooks/whimer/comment/internal/rpc"
 	"github.com/ryanreadbooks/whimer/comment/internal/svc"
 	"github.com/ryanreadbooks/whimer/comment/sdk"
@@ -11,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
+	"github.com/zeromicro/go-queue/kq"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/service"
@@ -33,9 +35,18 @@ func main() {
 			reflection.Register(s)
 		}
 	})
-	server.AddUnaryInterceptors(interceptor.ErrorHandle)
-	defer server.Stop()
+	server.AddUnaryInterceptors(
+		interceptor.ServerMetadataHandle,
+		interceptor.ServerErrorHandle,
+	)
 
-	logx.Info("note is serving...")
-	server.Start()
+	mq := kq.MustNewQueue(c.Kafka.AsKqConf(), job.New(ctx))
+
+	logx.Info("comment is serving...")
+	group := service.NewServiceGroup()
+	defer group.Stop()
+
+	group.Add(server)
+	group.Add(mq)
+	group.Start()
 }

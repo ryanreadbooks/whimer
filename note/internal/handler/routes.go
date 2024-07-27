@@ -27,11 +27,11 @@ func regCreatorRoutes(group *xhttp.RouterGroup, ctx *svc.ServiceContext) {
 	{
 		v1Group := creatorGroup.Group("/v1/note")
 		{
-			v1Group.Post("/create", CreatorCreateHandler(ctx))
-			v1Group.Post("/update", CreatorUpdateHandler(ctx))
-			v1Group.Post("/delete", CreatorDeleteHandler(ctx))
-			v1Group.Get("/list", CreatorListHandler(ctx))
-			v1Group.Get("/get/:note_id", CreatorGetNoteHandler(ctx))
+			v1Group.Post("/create", NoteCreateHandler(ctx))
+			v1Group.Post("/update", NoteUpdateHandler(ctx))
+			v1Group.Post("/delete", NoteDeleteHandler(ctx))
+			v1Group.Get("/list", NotListHandler(ctx))
+			v1Group.Get("/get/:note_id", NoteGetNoteHandler(ctx))
 			v1Group.Get("/upload/auth", UploadAuthHandler(ctx))
 		}
 

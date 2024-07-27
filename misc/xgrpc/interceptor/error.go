@@ -10,7 +10,7 @@ import (
 )
 
 // 处理grpc server返回的interceptor
-func ErrorHandle(ctx context.Context,
+func ServerErrorHandle(ctx context.Context,
 	req any,
 	info *grpc.UnaryServerInfo,
 	handler grpc.UnaryHandler) (resp any, err error) {
@@ -20,7 +20,7 @@ func ErrorHandle(ctx context.Context,
 		// 错误转换 自动转换成grpc error
 		resp, err = handler(ctx, req)
 		// 处理err
-		_, ok := status.FromError(err)	// 已经是grpc error
+		_, ok := status.FromError(err) // 已经是grpc error
 		if ok {
 			return resp, err // err == nil is handled here
 		}
@@ -32,7 +32,7 @@ func ErrorHandle(ctx context.Context,
 
 		errx, ok := err.(*errorx.Error)
 		if ok {
-			code = errorx.GrpcCodeFromHttpStatus(errx.Code)
+			code = errorx.GrpcCodeFromHttpStatus(errx.StatusCode)
 			msg = errx.Message
 		}
 

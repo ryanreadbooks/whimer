@@ -5,16 +5,28 @@ package note.v1;
 option go_package = "./sdk";
 
 message IsUserOwnNoteReq {
-  uint64 uid = 1;               // 用户id
-  repeated uint64 note_ids = 2; // 笔记id
+  uint64 uid = 1;     // 用户id
+  uint64 note_id = 2; // 笔记id
 }
 
 message IsUserOwnNoteRes {
   uint64 uid = 1;
-  repeated bool result = 2; // 结果
+  bool result = 2; // 结果
 }
+
+message GetNoteReq { uint64 note_id = 1; }
+
+message GetNoteRes {}
+
+message IsNoteExistReq { uint64 note_id = 1; }
+
+message IsNoteExistRes { bool exist = 1; }
 
 service Note {
   // 检查用户是否拥有指定的笔记
   rpc IsUserOwnNote(IsUserOwnNoteReq) returns (IsUserOwnNoteRes);
+  // 获取笔记的信息
+  rpc GetNote(GetNoteReq) returns (GetNoteRes);
+  // 判断笔记是否存在
+  rpc IsNoteExist(IsNoteExistReq) returns (IsNoteExistRes);
 }

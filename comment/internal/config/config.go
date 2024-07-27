@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
@@ -16,9 +17,15 @@ type Config struct {
 
 	External struct {
 		Grpc struct {
-			Passport string `json:"passport"`
-			Seqer    string `json:"seqer"`
-			Note string `json:"note"`
+			Passport xconf.Discovery `json:"passport"`
+			Note     xconf.Discovery `json:"note"`
 		} `json:"grpc"`
 	} `json:"external"`
+
+	Seqer Seqer         `json:"seqer"`
+	Kafka xconf.KfkConf `json:"kafka"`
+}
+
+type Seqer struct {
+	Addr string `json:"addr"`
 }

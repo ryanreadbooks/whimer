@@ -12,6 +12,10 @@ grpc:
   listenon: 0.0.0.0:7778
   log:
     level: debug
+  etcd:
+    hosts:
+      - 127.0.0.1:2379
+    key: whimer.passport.rpc
 
 mysql:
   user: ${ENV_DB_USER}

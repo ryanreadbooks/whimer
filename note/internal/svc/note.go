@@ -12,7 +12,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/safety"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
-	crtp "github.com/ryanreadbooks/whimer/note/internal/model/creator"
+	crtp "github.com/ryanreadbooks/whimer/note/internal/model/note"
 	"github.com/ryanreadbooks/whimer/note/internal/repo"
 	noterepo "github.com/ryanreadbooks/whimer/note/internal/repo/note"
 	noteassetrepo "github.com/ryanreadbooks/whimer/note/internal/repo/noteasset"
@@ -21,7 +21,7 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-type CreatorSvc struct {
+type NoteSvc struct {
 	repo *repo.Repo
 
 	Ctx            *ServiceContext
@@ -29,8 +29,8 @@ type CreatorSvc struct {
 	OssSigner      *signer.Signer
 }
 
-func NewCreatorSvc(ctx *ServiceContext, repo *repo.Repo) *CreatorSvc {
-	return &CreatorSvc{
+func NewNoteSvc(ctx *ServiceContext, repo *repo.Repo) *NoteSvc {
+	return &NoteSvc{
 		repo:           repo,
 		Ctx:            ctx,
 		NoteIdConfuser: mnote.NewConfuser(),
@@ -44,12 +44,12 @@ func NewCreatorSvc(ctx *ServiceContext, repo *repo.Repo) *CreatorSvc {
 	}
 }
 
-func (s *CreatorSvc) Get(ctx context.Context, noteId string) error {
+func (s *NoteSvc) Get(ctx context.Context, noteId string) error {
 
 	return nil
 }
 
-func (s *CreatorSvc) Create(ctx context.Context, req *crtp.CreateReq) (string, error) {
+func (s *NoteSvc) Create(ctx context.Context, req *crtp.CreateReq) (string, error) {
 	var (
 		uid    uint64 = metadata.Uid(ctx)
 		noteId uint64
@@ -97,7 +97,7 @@ func (s *CreatorSvc) Create(ctx context.Context, req *crtp.CreateReq) (string, e
 	return s.NoteIdConfuser.ConfuseU(noteId), nil
 }
 
-func (s *CreatorSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
+func (s *NoteSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
 	var (
 		uid uint64 = metadata.Uid(ctx)
 	)
@@ -195,7 +195,7 @@ func (s *CreatorSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
 	return nil
 }
 
-func (s *CreatorSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*crtp.UploadAuthRes, error) {
+func (s *NoteSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*crtp.UploadAuthRes, error) {
 	var (
 		uid uint64 = metadata.Uid(ctx)
 	)
@@ -229,7 +229,7 @@ func (s *CreatorSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*
 	return &res, nil
 }
 
-func (s *CreatorSvc) Delete(ctx context.Context, req *crtp.DeleteReq) error {
+func (s *NoteSvc) Delete(ctx context.Context, req *crtp.DeleteReq) error {
 	var (
 		uid uint64 = metadata.Uid(ctx)
 	)
@@ -279,7 +279,7 @@ func (s *CreatorSvc) Delete(ctx context.Context, req *crtp.DeleteReq) error {
 	return nil
 }
 
-func (s *CreatorSvc) List(ctx context.Context) (*crtp.ListRes, error) {
+func (s *NoteSvc) List(ctx context.Context) (*crtp.ListRes, error) {
 	var (
 		uid uint64 = metadata.Uid(ctx)
 	)
@@ -336,7 +336,7 @@ func (s *CreatorSvc) List(ctx context.Context) (*crtp.ListRes, error) {
 	return &res, nil
 }
 
-func (s *CreatorSvc) GetNote(ctx context.Context, noteId string) (*crtp.ListResItem, error) {
+func (s *NoteSvc) GetNote(ctx context.Context, noteId string) (*crtp.ListResItem, error) {
 	var (
 		uid uint64 = metadata.Uid(ctx)
 	)
@@ -387,4 +387,40 @@ func (s *CreatorSvc) GetNote(ctx context.Context, noteId string) (*crtp.ListResI
 	}
 
 	return &res, nil
+}
+
+func (s *NoteSvc) IsNoteExist(ctx context.Context, noteId string) (bool, error) {
+	nid := s.NoteIdConfuser.DeConfuseU(noteId)
+	if nid <= 0 {
+		return false, global.ErrNoteNotFound
+	}
+
+	_, err := s.repo.NoteRepo.FindOne(ctx, nid)
+	if err != nil {
+		if !xsql.IsNotFound(err) {
+			logx.Errorf("note repo find one err: %v, nid: %d", err, nid)
+			return false, global.ErrInternal
+		}
+		return false, global.ErrNoteNotFound
+	}
+
+	return true, nil
+}
+
+func (s *NoteSvc) GetNoteOwner(ctx context.Context, noteId string) (uint64, error) {
+	nid := s.NoteIdConfuser.DeConfuseU(noteId)
+	if nid <= 0 {
+		return 0, global.ErrNoteNotFound
+	}
+
+	n, err := s.repo.NoteRepo.FindOne(ctx, nid)
+	if err != nil {
+		if !xsql.IsNotFound(err) {
+			logx.Errorf("note repo find one err: %v, nid: %d", err, nid)
+			return 0, global.ErrInternal
+		}
+		return 0, global.ErrNoteNotFound
+	}
+
+	return n.Owner, nil
 }

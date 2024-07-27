@@ -5,6 +5,7 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/comm"
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/queue"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
+	
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -39,4 +40,8 @@ func New(c *config.Config) *Repo {
 	}
 
 	return r
+}
+
+func (d *Repo) DB() sqlx.SqlConn {
+	return d.db
 }

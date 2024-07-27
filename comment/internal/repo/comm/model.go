@@ -25,9 +25,9 @@ type Model struct {
 	State    int8   `json:"state" db:"state"`
 	Like     int    `json:"like" db:"like"`
 	Dislike  int    `json:"dislike" db:"dislike"`
-	Report   int    `json:"-" db:"report"`
+	Report   int    `json:"repot" db:"report"`
 	IsPin    int8   `json:"pin" db:"pin"`
-	Ip       int64  `json:"-" db:"ip"`
+	Ip       int64  `json:"ip" db:"ip"`
 	Ctime    int64  `json:"ctime" db:"ctime"`
-	Mtime    int64  `json:"-" db:"mtime"`
+	Mtime    int64  `json:"mtime" db:"mtime"`
 }

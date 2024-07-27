@@ -1,11 +1,14 @@
 package config
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/zeromicro/go-zero/rest"
+	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type Config struct {
-	Http rest.RestConf `json:"http"`
+	Http rest.RestConf      `json:"http"`
+	Grpc zrpc.RpcServerConf `json:"grpc"`
 
 	MySql struct {
 		User   string `json:"user"`
@@ -26,7 +29,7 @@ type Config struct {
 
 	External struct {
 		Grpc struct {
-			Passport string `json:"passport"`
+			Passport xconf.Discovery `json:"passport"`
 		} `json:"grpc"`
-	} `json:"3rd"`
+	} `json:"external"`
 }

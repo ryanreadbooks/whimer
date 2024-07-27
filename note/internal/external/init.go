@@ -11,10 +11,7 @@ var (
 )
 
 func Init(c *config.Config) {
-	auther, err = auth.New(&auth.Config{Addr: c.External.Grpc.Passport})
-	if err != nil || auther == nil {
-		panic(err)
-	}
+	auther = auth.MustAuther(c.External.Grpc.Passport)
 }
 
 func GetAuther() *auth.Auth {
