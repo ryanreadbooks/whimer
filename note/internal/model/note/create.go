@@ -15,15 +15,18 @@ const (
 	PrivacyPrivate = global.PrivacyPrivate
 )
 
+type CreateReqBasic struct {
+	Title   string `json:"title"`
+	Desc    string `json:"desc"`
+	Privacy int    `json:"privacy"`
+}
+type CreateReqImage struct {
+	FileId string `json:"file_id"`
+}
+
 type CreateReq struct {
-	Basic struct {
-		Title   string `json:"title"`
-		Desc    string `json:"desc"`
-		Privacy int    `json:"privacy"`
-	} `json:"basic"`
-	Images []struct {
-		FileId string `json:"file_id"`
-	} `json:"images"`
+	Basic  CreateReqBasic   `json:"basic"`
+	Images []CreateReqImage `json:"images"`
 }
 
 func (r *CreateReq) Validate() error {

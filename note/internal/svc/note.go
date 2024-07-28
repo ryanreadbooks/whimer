@@ -38,18 +38,13 @@ func NewNoteSvc(ctx *ServiceContext, repo *repo.Repo) *NoteSvc {
 			ctx.Config.Oss.User,
 			ctx.Config.Oss.Pass,
 			signer.Config{
-				Endpoint: ctx.Config.Oss.Endpoint,
+				Endpoint: ctx.Config.Oss.DisplayEndpoint,
 				Location: ctx.Config.Oss.Location,
 			}),
 	}
 }
 
-func (s *NoteSvc) Get(ctx context.Context, noteId string) error {
-
-	return nil
-}
-
-func (s *NoteSvc) Create(ctx context.Context, req *crtp.CreateReq) (string, error) {
+func (s *NoteSvc) Create(ctx context.Context, req *crtp.CreateReq) (uint64, error) {
 	var (
 		uid    uint64 = metadata.Uid(ctx)
 		noteId uint64
@@ -91,10 +86,10 @@ func (s *NoteSvc) Create(ctx context.Context, req *crtp.CreateReq) (string, erro
 
 	if err != nil {
 		logx.Errorf("repo transact insert note err: %v, req: %+v, uid: %d", err, req, uid)
-		return "", global.ErrInsertNoteFail
+		return 0, global.ErrInsertNoteFail
 	}
 
-	return s.NoteIdConfuser.ConfuseU(noteId), nil
+	return noteId, nil
 }
 
 func (s *NoteSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
@@ -103,7 +98,7 @@ func (s *NoteSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
 	)
 
 	now := time.Now().Unix()
-	noteId := s.NoteIdConfuser.DeConfuseU(req.NoteId)
+	noteId := req.NoteId
 	logx.Debugf("creator updating noteid: %d", noteId)
 	queried, err := s.repo.NoteRepo.FindOne(ctx, noteId)
 	if errors.Is(xsql.ErrNoRecord, err) {
@@ -214,10 +209,10 @@ func (s *NoteSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*crt
 	}
 
 	res := crtp.UploadAuthRes{
-		FildIds:     fileId,
+		FildId:      fileId,
 		CurrentTime: currentTime,
 		ExpireTime:  info.ExpireAt.Unix(),
-		UploadAddr:  s.Ctx.Config.Oss.Endpoint,
+		UploadAddr:  s.Ctx.Config.Oss.DisplayEndpoint,
 		Headers: crtp.UploadAuthResHeaders{
 			Auth:   info.Auth,
 			Date:   info.Date,
@@ -234,7 +229,7 @@ func (s *NoteSvc) Delete(ctx context.Context, req *crtp.DeleteReq) error {
 		uid uint64 = metadata.Uid(ctx)
 	)
 
-	noteId := s.NoteIdConfuser.DeConfuseU(req.NoteId)
+	noteId := req.NoteId
 	if noteId <= 0 {
 		return global.ErrNoteNotFound
 	}
@@ -310,7 +305,7 @@ func (s *NoteSvc) List(ctx context.Context) (*crtp.ListRes, error) {
 	var res crtp.ListRes
 	for _, note := range notes {
 		item := &crtp.ListResItem{
-			NoteId:   s.NoteIdConfuser.ConfuseU(note.Id),
+			NoteId:   note.Id,
 			Title:    note.Title,
 			Desc:     note.Desc,
 			Privacy:  note.Privacy,
@@ -336,12 +331,12 @@ func (s *NoteSvc) List(ctx context.Context) (*crtp.ListRes, error) {
 	return &res, nil
 }
 
-func (s *NoteSvc) GetNote(ctx context.Context, noteId string) (*crtp.ListResItem, error) {
+func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*crtp.ListResItem, error) {
 	var (
 		uid uint64 = metadata.Uid(ctx)
+		nid        = noteId
 	)
 
-	nid := s.NoteIdConfuser.DeConfuseU(noteId)
 	if nid <= 0 {
 		return nil, global.ErrNoteNotFound
 	}

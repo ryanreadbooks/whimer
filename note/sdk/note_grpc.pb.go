@@ -24,10 +24,20 @@ const _ = grpc.SupportPackageIsVersion7
 type NoteClient interface {
 	// 检查用户是否拥有指定的笔记
 	IsUserOwnNote(ctx context.Context, in *IsUserOwnNoteReq, opts ...grpc.CallOption) (*IsUserOwnNoteRes, error)
-	// 获取笔记的信息
-	GetNote(ctx context.Context, in *GetNoteReq, opts ...grpc.CallOption) (*GetNoteRes, error)
 	// 判断笔记是否存在
 	IsNoteExist(ctx context.Context, in *IsNoteExistReq, opts ...grpc.CallOption) (*IsNoteExistRes, error)
+	// 创建笔记
+	CreateNote(ctx context.Context, in *CreateNoteReq, opts ...grpc.CallOption) (*CreateNoteRes, error)
+	// 更新笔记
+	UpdateNote(ctx context.Context, in *UpdateNoteReq, opts ...grpc.CallOption) (*UpdateNoteRes, error)
+	// 删除笔记
+	DeleteNote(ctx context.Context, in *DeleteNoteReq, opts ...grpc.CallOption) (*DeleteNoteRes, error)
+	// 获取笔记的信息
+	GetNote(ctx context.Context, in *GetNoteReq, opts ...grpc.CallOption) (*NoteItem, error)
+	// 列出笔记
+	ListNote(ctx context.Context, in *ListNoteReq, opts ...grpc.CallOption) (*ListNoteRes, error)
+	// 获取上传凭证
+	GetUploadAuth(ctx context.Context, in *GetUploadAuthReq, opts ...grpc.CallOption) (*GetUploadAuthRes, error)
 }
 
 type noteClient struct {
@@ -47,8 +57,44 @@ func (c *noteClient) IsUserOwnNote(ctx context.Context, in *IsUserOwnNoteReq, op
 	return out, nil
 }
 
-func (c *noteClient) GetNote(ctx context.Context, in *GetNoteReq, opts ...grpc.CallOption) (*GetNoteRes, error) {
-	out := new(GetNoteRes)
+func (c *noteClient) IsNoteExist(ctx context.Context, in *IsNoteExistReq, opts ...grpc.CallOption) (*IsNoteExistRes, error) {
+	out := new(IsNoteExistRes)
+	err := c.cc.Invoke(ctx, "/note.v1.Note/IsNoteExist", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *noteClient) CreateNote(ctx context.Context, in *CreateNoteReq, opts ...grpc.CallOption) (*CreateNoteRes, error) {
+	out := new(CreateNoteRes)
+	err := c.cc.Invoke(ctx, "/note.v1.Note/CreateNote", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *noteClient) UpdateNote(ctx context.Context, in *UpdateNoteReq, opts ...grpc.CallOption) (*UpdateNoteRes, error) {
+	out := new(UpdateNoteRes)
+	err := c.cc.Invoke(ctx, "/note.v1.Note/UpdateNote", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *noteClient) DeleteNote(ctx context.Context, in *DeleteNoteReq, opts ...grpc.CallOption) (*DeleteNoteRes, error) {
+	out := new(DeleteNoteRes)
+	err := c.cc.Invoke(ctx, "/note.v1.Note/DeleteNote", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *noteClient) GetNote(ctx context.Context, in *GetNoteReq, opts ...grpc.CallOption) (*NoteItem, error) {
+	out := new(NoteItem)
 	err := c.cc.Invoke(ctx, "/note.v1.Note/GetNote", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -56,9 +102,18 @@ func (c *noteClient) GetNote(ctx context.Context, in *GetNoteReq, opts ...grpc.C
 	return out, nil
 }
 
-func (c *noteClient) IsNoteExist(ctx context.Context, in *IsNoteExistReq, opts ...grpc.CallOption) (*IsNoteExistRes, error) {
-	out := new(IsNoteExistRes)
-	err := c.cc.Invoke(ctx, "/note.v1.Note/IsNoteExist", in, out, opts...)
+func (c *noteClient) ListNote(ctx context.Context, in *ListNoteReq, opts ...grpc.CallOption) (*ListNoteRes, error) {
+	out := new(ListNoteRes)
+	err := c.cc.Invoke(ctx, "/note.v1.Note/ListNote", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *noteClient) GetUploadAuth(ctx context.Context, in *GetUploadAuthReq, opts ...grpc.CallOption) (*GetUploadAuthRes, error) {
+	out := new(GetUploadAuthRes)
+	err := c.cc.Invoke(ctx, "/note.v1.Note/GetUploadAuth", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -71,10 +126,20 @@ func (c *noteClient) IsNoteExist(ctx context.Context, in *IsNoteExistReq, opts .
 type NoteServer interface {
 	// 检查用户是否拥有指定的笔记
 	IsUserOwnNote(context.Context, *IsUserOwnNoteReq) (*IsUserOwnNoteRes, error)
-	// 获取笔记的信息
-	GetNote(context.Context, *GetNoteReq) (*GetNoteRes, error)
 	// 判断笔记是否存在
 	IsNoteExist(context.Context, *IsNoteExistReq) (*IsNoteExistRes, error)
+	// 创建笔记
+	CreateNote(context.Context, *CreateNoteReq) (*CreateNoteRes, error)
+	// 更新笔记
+	UpdateNote(context.Context, *UpdateNoteReq) (*UpdateNoteRes, error)
+	// 删除笔记
+	DeleteNote(context.Context, *DeleteNoteReq) (*DeleteNoteRes, error)
+	// 获取笔记的信息
+	GetNote(context.Context, *GetNoteReq) (*NoteItem, error)
+	// 列出笔记
+	ListNote(context.Context, *ListNoteReq) (*ListNoteRes, error)
+	// 获取上传凭证
+	GetUploadAuth(context.Context, *GetUploadAuthReq) (*GetUploadAuthRes, error)
 	mustEmbedUnimplementedNoteServer()
 }
 
@@ -85,11 +150,26 @@ type UnimplementedNoteServer struct {
 func (UnimplementedNoteServer) IsUserOwnNote(context.Context, *IsUserOwnNoteReq) (*IsUserOwnNoteRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IsUserOwnNote not implemented")
 }
-func (UnimplementedNoteServer) GetNote(context.Context, *GetNoteReq) (*GetNoteRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetNote not implemented")
-}
 func (UnimplementedNoteServer) IsNoteExist(context.Context, *IsNoteExistReq) (*IsNoteExistRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IsNoteExist not implemented")
+}
+func (UnimplementedNoteServer) CreateNote(context.Context, *CreateNoteReq) (*CreateNoteRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateNote not implemented")
+}
+func (UnimplementedNoteServer) UpdateNote(context.Context, *UpdateNoteReq) (*UpdateNoteRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateNote not implemented")
+}
+func (UnimplementedNoteServer) DeleteNote(context.Context, *DeleteNoteReq) (*DeleteNoteRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteNote not implemented")
+}
+func (UnimplementedNoteServer) GetNote(context.Context, *GetNoteReq) (*NoteItem, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNote not implemented")
+}
+func (UnimplementedNoteServer) ListNote(context.Context, *ListNoteReq) (*ListNoteRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListNote not implemented")
+}
+func (UnimplementedNoteServer) GetUploadAuth(context.Context, *GetUploadAuthReq) (*GetUploadAuthRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUploadAuth not implemented")
 }
 func (UnimplementedNoteServer) mustEmbedUnimplementedNoteServer() {}
 
@@ -122,24 +202,6 @@ func _Note_IsUserOwnNote_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Note_GetNote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetNoteReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NoteServer).GetNote(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/note.v1.Note/GetNote",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NoteServer).GetNote(ctx, req.(*GetNoteReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Note_IsNoteExist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IsNoteExistReq)
 	if err := dec(in); err != nil {
@@ -158,6 +220,114 @@ func _Note_IsNoteExist_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Note_CreateNote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateNoteReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteServer).CreateNote(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/note.v1.Note/CreateNote",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteServer).CreateNote(ctx, req.(*CreateNoteReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Note_UpdateNote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateNoteReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteServer).UpdateNote(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/note.v1.Note/UpdateNote",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteServer).UpdateNote(ctx, req.(*UpdateNoteReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Note_DeleteNote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteNoteReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteServer).DeleteNote(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/note.v1.Note/DeleteNote",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteServer).DeleteNote(ctx, req.(*DeleteNoteReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Note_GetNote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNoteReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteServer).GetNote(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/note.v1.Note/GetNote",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteServer).GetNote(ctx, req.(*GetNoteReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Note_ListNote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListNoteReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteServer).ListNote(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/note.v1.Note/ListNote",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteServer).ListNote(ctx, req.(*ListNoteReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Note_GetUploadAuth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUploadAuthReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteServer).GetUploadAuth(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/note.v1.Note/GetUploadAuth",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteServer).GetUploadAuth(ctx, req.(*GetUploadAuthReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Note_ServiceDesc is the grpc.ServiceDesc for Note service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -170,12 +340,32 @@ var Note_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Note_IsUserOwnNote_Handler,
 		},
 		{
+			MethodName: "IsNoteExist",
+			Handler:    _Note_IsNoteExist_Handler,
+		},
+		{
+			MethodName: "CreateNote",
+			Handler:    _Note_CreateNote_Handler,
+		},
+		{
+			MethodName: "UpdateNote",
+			Handler:    _Note_UpdateNote_Handler,
+		},
+		{
+			MethodName: "DeleteNote",
+			Handler:    _Note_DeleteNote_Handler,
+		},
+		{
 			MethodName: "GetNote",
 			Handler:    _Note_GetNote_Handler,
 		},
 		{
-			MethodName: "IsNoteExist",
-			Handler:    _Note_IsNoteExist_Handler,
+			MethodName: "ListNote",
+			Handler:    _Note_ListNote_Handler,
+		},
+		{
+			MethodName: "GetUploadAuth",
+			Handler:    _Note_GetUploadAuth_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

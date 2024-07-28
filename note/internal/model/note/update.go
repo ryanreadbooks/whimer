@@ -5,7 +5,7 @@ import (
 )
 
 type UpdateReq struct {
-	NoteId string `json:"note_id"`
+	NoteId uint64 `json:"note_id"`
 	CreateReq
 }
 
@@ -14,7 +14,7 @@ func (r *UpdateReq) Validate() error {
 		return global.ErrNilReq
 	}
 
-	if len(r.NoteId) == 0 {
+	if r.NoteId == 0 {
 		return global.ErrArgs.Msg("笔记id错误")
 	}
 

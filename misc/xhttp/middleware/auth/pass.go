@@ -7,11 +7,12 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	ppac "github.com/ryanreadbooks/whimer/passport/sdk/access"
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type Auth struct {
-	ppac.Access
+	ppac.AccessClient
 }
 
 type Config struct {
@@ -24,13 +25,13 @@ func New(c *Config) (*Auth, error) {
 		return nil, err
 	}
 
-	a := &Auth{ppac.NewAccess(cli)}
+	a := &Auth{ppac.NewAccessClient(cli.Conn())}
 
 	return a, nil
 }
 
 func NewFromConn(conn zrpc.Client) *Auth {
-	return &Auth{ppac.NewAccess(conn)}
+	return &Auth{ppac.NewAccessClient(conn.Conn())}
 }
 
 func MustAuther(c xconf.Discovery) *Auth {
@@ -65,6 +66,7 @@ func (a *Auth) getCookie(r *http.Request) (sessId string, err error) {
 
 	if a == nil {
 		err = errorx.ErrInternal
+		logx.Errorf("getCookie auth instance is nil")
 		return
 	}
 
