@@ -1,0 +1,37 @@
+grpc:
+  mode: dev
+  name: comment-grpc
+  listenon: 0.0.0.0:6667
+  log:
+    level: debug
+  etcd:
+    hosts:
+      - 127.0.0.1:2379
+    key: whimer.comment.rpc
+
+mysql:
+  user: ${ENV_DB_USER}
+  pass: ${ENV_DB_PASS}
+  addr: ${ENV_DB_ADDR}
+  db_name: ${ENV_DB_NAME}
+
+# 外部依赖
+external:
+  grpc:
+    passport:
+      hosts: [127.0.0.1:2379]
+      key: whimer.passport.rpc
+    note:
+      hosts: [127.0.0.1:2379]
+      key: whimer.note.rpc
+
+seqer: 
+  addr: 127.0.0.1:9528
+
+kafka:
+  brokers:
+    - 127.0.0.1:9094
+  topic: reply-bus
+  consume_group: reply-job
+  num_consumers: 3
+  offset: first

@@ -1,13 +1,19 @@
 package external
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/xhttp/middleware/auth"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
-	"github.com/ryanreadbooks/whimer/note/internal/external/passport"
+)
+
+var (
+	auther *auth.Auth
+	err    error
 )
 
 func Init(c *config.Config) {
-	err := passport.New(c)
-	if err != nil {
-		panic(err)
-	}
+	auther = auth.MustAuther(c.External.Grpc.Passport)
+}
+
+func GetAuther() *auth.Auth {
+	return auther
 }

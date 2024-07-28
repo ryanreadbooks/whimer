@@ -11,10 +11,10 @@ type ServiceContext struct {
 	Config *config.Config
 
 	// utilities
-	KeyGen *keygen.Generator
+	OssKeyGen *keygen.Generator
 
 	// other service
-	CreatorSvc *CreatorSvc
+	NoteSvc *NoteSvc
 }
 
 // 初始化一个service
@@ -28,14 +28,14 @@ func NewServiceContext(c *config.Config) *ServiceContext {
 	external.Init(c)
 
 	// utilities
-	ctx.KeyGen = keygen.NewGenerator(
+	ctx.OssKeyGen = keygen.NewGenerator(
 		keygen.WithBucket(c.Oss.Bucket),
 		keygen.WithPrefix(c.Oss.Prefix),
 		keygen.WithPrependBucket(true),
 	)
 
 	// 各个子service初始化
-	ctx.CreatorSvc = NewCreatorSvc(ctx, dao)
+	ctx.NoteSvc = NewNoteSvc(ctx, dao)
 
 	return ctx
 }

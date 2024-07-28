@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package note.v1;
+
+option go_package = "./sdk";
+
+message IsUserOwnNoteReq {
+  uint64 uid = 1;     // 用户id
+  uint64 note_id = 2; // 笔记id
+}
+
+message IsUserOwnNoteRes {
+  uint64 uid = 1;
+  bool result = 2; // 结果
+}
+
+message IsNoteExistReq { uint64 note_id = 1; }
+
+message IsNoteExistRes { bool exist = 1; }
+
+message CreateReqBasic {
+  string title = 1;
+  string desc = 2;
+  int32 privacy = 3;
+}
+
+message CreateReqImage { string file_id = 1; }
+
+message CreateNoteReq {
+  CreateReqBasic basic = 1;
+  repeated CreateReqImage images = 2;
+}
+
+message CreateNoteRes { uint64 note_id = 1; }
+
+message DeleteNoteReq { uint64 note_id = 1; }
+
+message DeleteNoteRes {}
+
+message UpdateNoteReq {
+  uint64 note_id = 1;
+  CreateNoteReq note = 2;
+}
+
+message UpdateNoteRes { uint64 note_id = 1; }
+
+message GetNoteReq { uint64 note_id = 1; }
+
+message GetNoteResImage {
+  string url = 1;
+  int32 type = 2;
+}
+
+message NoteItem {
+  uint64 note_id = 1;
+  string title = 2;
+  string desc = 3;
+  int32 privacy = 4;
+  int64 create_at = 5;
+  int64 update_at = 6;
+  repeated GetNoteResImage images = 7;
+}
+
+message ListNoteReq {}
+
+message ListNoteRes { repeated NoteItem items = 1; }
+
+message GetUploadAuthReq {
+  string resource = 1;
+  string source = 2;
+  string mime_type = 3;
+}
+
+message UploadAuthResHeaders {
+  string auth = 1;
+  string sha256 = 2;
+  string date = 3;
+  string token = 4;
+}
+
+message GetUploadAuthRes {
+  string file_id = 1;
+  int64 current_time = 2;
+  int64 expire_time = 3;
+  string upload_addr = 4;
+  UploadAuthResHeaders headers = 5;
+}
+
+service Note {
+  // 检查用户是否拥有指定的笔记
+  rpc IsUserOwnNote(IsUserOwnNoteReq) returns (IsUserOwnNoteRes);
+  // 判断笔记是否存在
+  rpc IsNoteExist(IsNoteExistReq) returns (IsNoteExistRes);
+  // 创建笔记
+  rpc CreateNote(CreateNoteReq) returns (CreateNoteRes);
+  // 更新笔记
+  rpc UpdateNote(UpdateNoteReq) returns (UpdateNoteRes);
+  // 删除笔记
+  rpc DeleteNote(DeleteNoteReq) returns (DeleteNoteRes);
+  // 获取笔记的信息
+  rpc GetNote(GetNoteReq) returns (NoteItem);
+  // 列出笔记
+  rpc ListNote(ListNoteReq) returns (ListNoteRes);
+  // 获取上传凭证
+  rpc GetUploadAuth(GetUploadAuthReq) returns (GetUploadAuthRes);
+}

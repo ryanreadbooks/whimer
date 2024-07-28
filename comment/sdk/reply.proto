@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package comment.v1;
+
+option go_package = "./sdk";
+
+// 发布评论
+message AddReplyReq {
+  uint32 reply_type = 1; // 评论类型
+  uint64 oid = 2;        // 被评论对象id
+  string content = 3;    // 评论内容
+  uint64 root_id = 4;    // 根评论id
+  uint64 parent_id = 5;  // 被回复的评论id
+  uint64 reply_uid = 6;  // 被回复的用户id
+}
+
+message AddReplyRes {
+  uint64 reply_id = 1; // 评论id
+}
+
+// 删除评论
+message DelReplyReq {
+  uint64 reply_id = 1; // 评论id
+}
+
+message DelReplyRes {}
+
+// 点赞/取消点赞
+message LikeActionReq {}
+
+message LikeActionRes {}
+
+// 点踩/取消点踩
+message DislikeActionReq {}
+
+message DislikeActionRes {}
+
+// 举报
+message ReportReplyReq {}
+
+message ReportReplyRes {}
+
+// 置顶
+message PinReplyReq {}
+
+message PinReplyRes {}
+
+service Reply {
+  rpc AddReply(AddReplyReq) returns (AddReplyRes);
+  rpc DelReply(DelReplyReq) returns (DelReplyRes);
+  rpc LikeAction(LikeActionReq) returns (LikeActionRes);
+  rpc DislikeAction(DislikeActionReq) returns (DislikeActionRes);
+  rpc ReportReply(ReportReplyReq) returns (ReportReplyRes);
+  rpc PinReply(PinReplyReq) returns (PinReplyRes);
+}

@@ -7,15 +7,16 @@ import (
 )
 
 const (
-	PassportErrCode = 30000
+	PassportErrCode = errorx.BizPassport
 )
 
 var (
-	ErrArgs       = errorx.ErrInvalidArgs.ErrCode(PassportErrCode).Msg("参数错误")
-	ErrInternal   = errorx.ErrInternal.ErrCode(PassportErrCode).Msg("服务错误, 请稍后重试")
-	ErrUnAuth     = errorx.ErrNotLogin.ErrCode(PassportErrCode)
-	ErrPermDenied = errorx.ErrPermission.ErrCode(PassportErrCode).Msg("操作权限不足")
-	ErrRateLimit  = errorx.NewError(http.StatusTooManyRequests, PassportErrCode, "你的操作太频繁了")
+	ErrArgs             = errorx.ErrInvalidArgs.ErrCode(PassportErrCode).Msg("参数错误")
+	ErrInternal         = errorx.ErrInternal.ErrCode(PassportErrCode).Msg("服务错误, 请稍后重试")
+	ErrUnAuth           = errorx.ErrNotLogin.ErrCode(PassportErrCode)
+	ErrPermDenied       = errorx.ErrPermission.ErrCode(PassportErrCode).Msg("操作权限不足")
+	ErrRateLimit        = errorx.NewError(http.StatusTooManyRequests, PassportErrCode, "你的操作太频繁了")
+	ErrApiUnimplemented = errorx.NewError(http.StatusMethodNotAllowed, PassportErrCode, "接口未实现")
 
 	// sign-in related
 	ErrNotSignedIn             = ErrUnAuth

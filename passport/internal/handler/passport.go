@@ -80,7 +80,7 @@ func SignoutCurrent(ctx *svc.ServiceContext) http.HandlerFunc {
 // 全平台退登
 func SignoutAllPlatform(ctx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
+		httpx.Error(w, global.ErrApiUnimplemented)
 	}
 }
 
