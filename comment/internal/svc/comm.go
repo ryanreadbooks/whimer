@@ -159,6 +159,7 @@ func (s *CommentSvc) ReplyDel(ctx context.Context, rid uint64) error {
 	return nil
 }
 
+// 点赞
 func (s *CommentSvc) ReplyLike(ctx context.Context, rid uint64) error {
 	if err := s.repo.Bus.LikeReply(ctx, rid); err != nil {
 		logx.Errorf("like reply to queue err: %v, rid: %d", err, rid)
@@ -168,6 +169,7 @@ func (s *CommentSvc) ReplyLike(ctx context.Context, rid uint64) error {
 	return nil
 }
 
+// 取消点赞
 func (s *CommentSvc) ReplyUnlike(ctx context.Context, rid uint64) error {
 	if err := s.repo.Bus.UnLikeReply(ctx, rid); err != nil {
 		logx.Errorf("unlike reply to queue err: %v, rid: %d", err, rid)
@@ -177,6 +179,7 @@ func (s *CommentSvc) ReplyUnlike(ctx context.Context, rid uint64) error {
 	return nil
 }
 
+// 点踩
 func (s *CommentSvc) ReplyDislike(ctx context.Context, rid uint64) error {
 	if err := s.repo.Bus.DisLikeReply(ctx, rid); err != nil {
 		logx.Errorf("dislike reply to queue err: %v, rid: %d", err, rid)
@@ -186,8 +189,9 @@ func (s *CommentSvc) ReplyDislike(ctx context.Context, rid uint64) error {
 	return nil
 }
 
+// 取消点踩
 func (s *CommentSvc) ReplyUndislike(ctx context.Context, rid uint64) error {
-	if err := s.repo.Bus.LikeReply(ctx, rid); err != nil {
+	if err := s.repo.Bus.UndisLikeReply(ctx, rid); err != nil {
 		logx.Errorf("undislike reply to queue err: %v, rid: %d", err, rid)
 		return global.ErrInternal
 	}
@@ -195,8 +199,57 @@ func (s *CommentSvc) ReplyUndislike(ctx context.Context, rid uint64) error {
 	return nil
 }
 
+func (s *CommentSvc) userOwnsOid(ctx context.Context, uid, oid, rid uint64) error {
+	resp, err := external.GetNoter().IsUserOwnNote(ctx,
+		&notesdk.IsUserOwnNoteReq{
+			Uid:    uid,
+			NoteId: oid,
+		})
+	if err != nil {
+		logx.Errorf("check IsUserOwnNote err: %v, rid: %d, uid: %d, oid: %d", err, rid, uid, oid)
+		return global.ErrInternal
+	}
+
+	if !resp.GetResult() {
+		return global.ErrYouDontOwnThis
+	}
+
+	return nil
+}
+
+func (s *CommentSvc) findReplyForUpdate(ctx context.Context, tx sqlx.Session, rid uint64) (*comm.Model, error) {
+	m, err := s.repo.CommentRepo.FindByIdForUpdate(ctx, tx, rid)
+	if err != nil {
+		if !xsql.IsNotFound(err) {
+			logx.Errorf("repo find root by id for update err: %v, rid: %d", err, rid)
+			return nil, global.ErrInternal
+		}
+		return nil, global.ErrReplyNotFound
+	}
+
+	return m, nil
+}
+
+func (s *CommentSvc) canAddSubReply(ctx context.Context, tx sqlx.Session, rootId, parentId uint64) error {
+	if rootId != 0 {
+		_, err := s.findReplyForUpdate(ctx, tx, rootId)
+		if err != nil {
+			return err
+		}
+	}
+
+	if parentId != 0 {
+		_, err := s.findReplyForUpdate(ctx, tx, parentId)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // job related methods
-func (s *CommentSvc) BizAddReply(ctx context.Context, data *queue.AddReplyData) error {
+func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReplyData) error {
 	var (
 		oid      = data.Oid
 		rootId   = data.RootId
@@ -253,20 +306,7 @@ func (s *CommentSvc) BizAddReply(ctx context.Context, data *queue.AddReplyData) 
 	return nil
 }
 
-func (s *CommentSvc) findReplyForUpdate(ctx context.Context, tx sqlx.Session, rid uint64) (*comm.Model, error) {
-	m, err := s.repo.CommentRepo.FindByIdForUpdate(ctx, tx, rid)
-	if err != nil {
-		if !xsql.IsNotFound(err) {
-			logx.Errorf("repo find root by id for update err: %v, rid: %d", err, rid)
-			return nil, global.ErrInternal
-		}
-		return nil, global.ErrReplyNotFound
-	}
-
-	return m, nil
-}
-
-func (s *CommentSvc) BizDelReply(ctx context.Context, data *queue.DelReplyData) error {
+func (s *CommentSvc) ConsumeDelReplyEv(ctx context.Context, data *queue.DelReplyData) error {
 	var (
 		rid = data.ReplyId
 	)
@@ -305,42 +345,8 @@ func (s *CommentSvc) BizDelReply(ctx context.Context, data *queue.DelReplyData) 
 	return nil
 }
 
-func (s *CommentSvc) userOwnsOid(ctx context.Context, uid, oid, rid uint64) error {
-	resp, err := external.GetNoter().IsUserOwnNote(ctx,
-		&notesdk.IsUserOwnNoteReq{
-			Uid:    uid,
-			NoteId: oid,
-		})
-	if err != nil {
-		logx.Errorf("check IsUserOwnNote err: %v, rid: %d, uid: %d, oid: %d", err, rid, uid, oid)
-		return global.ErrInternal
-	}
-
-	if !resp.GetResult() {
-		return global.ErrYouDontOwnThis
-	}
-
-	return nil
-}
-
-func (s *CommentSvc) BizLikeOrDislikeReply(ctx context.Context, data *queue.LikeReplyData) error {
-	return nil
-}
-
-func (s *CommentSvc) canAddSubReply(ctx context.Context, tx sqlx.Session, rootId, parentId uint64) error {
-	if rootId != 0 {
-		_, err := s.findReplyForUpdate(ctx, tx, rootId)
-		if err != nil {
-			return err
-		}
-	}
-
-	if parentId != 0 {
-		_, err := s.findReplyForUpdate(ctx, tx, parentId)
-		if err != nil {
-			return err
-		}
-	}
-
+// 处理点赞或者点踩
+// TODO 对接点赞系统
+func (s *CommentSvc) ConsumeLikeDislikeEv(ctx context.Context, data *queue.LikeReplyData) error {
 	return nil
 }

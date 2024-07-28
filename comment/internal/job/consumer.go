@@ -34,11 +34,11 @@ func (j *Job) Consume(ctx context.Context, key, value string) error {
 
 	switch data.Action {
 	case queue.ActAddReply:
-		return j.Svc.CommentSvc.BizAddReply(ctx, data.AddReplyData)
+		return j.Svc.CommentSvc.ConsumeAddReplyEv(ctx, data.AddReplyData)
 	case queue.ActDelReply:
-		return j.Svc.CommentSvc.BizDelReply(ctx, data.DelReplyData)
+		return j.Svc.CommentSvc.ConsumeDelReplyEv(ctx, data.DelReplyData)
 	case queue.ActLikeReply, queue.ActDislikeReply:
-		return j.Svc.CommentSvc.BizLikeOrDislikeReply(ctx, data.LikeReplyData)
+		return j.Svc.CommentSvc.ConsumeLikeDislikeEv(ctx, data.LikeReplyData)
 	default:
 		logx.Errorf("job consumer got unsupported action type: %v", data.Action)
 		return global.ErrInternal

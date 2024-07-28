@@ -14,18 +14,18 @@ const (
 	fields     = "id,oid,ctype,content,uid,root,parent,ruid,state,`like`,dislike,report,pin,ip,ctime,mtime"
 	fieldsNoId = "oid,ctype,content,uid,root,parent,ruid,state,like,dislike,report,pin,ip,ctime,mtime"
 
-	sqlUdState    = "UPDATE comment SET state=? WHERE id=?"
-	sqlIncLike    = "UPDATE comment SET `like`=`like`+1 WHERE id=?"
-	sqlDecLike    = "UPDATE comment SET `like`=`like`-1 WHERE id=?"
-	sqlIncDislike = "UPDATE comment SET dislike=dislike+1 WHERE id=?"
-	sqlDecDislike = "UPDATE comment SET dislike=dislike-1 WHERE id=?"
-	sqlIncReport  = "UPDATE comment SET report=report+1 WHERE id=?"
-	sqlDecReport  = "UPDATE comment SET report=report-1 WHERE id=?"
-	sqlPin        = "UPDATE comment SET pin=1 WHERE id=?"
-	sqlUnpin      = "UPDATE comment SET pin=0 WHERE id=?"
-	sqlSetLike    = "UPDATE comment SET `like`=? WHERE id=?"
-	sqlSetDisLike = "UPDATE comment SET dislike=? WHERE id=?"
-	sqlSetReport  = "UPDATE comment SET report=? WHERE id=?"
+	sqlUdState    = "UPDATE comment SET state=?, mtime=? WHERE id=?"
+	sqlIncLike    = "UPDATE comment SET `like`=`like`+1, mtime=? WHERE id=?"
+	sqlDecLike    = "UPDATE comment SET `like`=`like`-1, mtime=? WHERE id=?"
+	sqlIncDislike = "UPDATE comment SET dislike=dislike+1, mtime=? WHERE id=?"
+	sqlDecDislike = "UPDATE comment SET dislike=dislike-1, mtime=? WHERE id=?"
+	sqlIncReport  = "UPDATE comment SET report=report+1, mtime=? WHERE id=?"
+	sqlDecReport  = "UPDATE comment SET report=report-1, mtime=? WHERE id=?"
+	sqlPin        = "UPDATE comment SET pin=1, mtime=? WHERE id=?"
+	sqlUnpin      = "UPDATE comment SET pin=0, mtime=? WHERE id=?"
+	sqlSetLike    = "UPDATE comment SET `like`=?, mtime=? WHERE id=?"
+	sqlSetDisLike = "UPDATE comment SET dislike=?, mtime=? WHERE id=?"
+	sqlSetReport  = "UPDATE comment SET report=?, mtime=? WHERE id=?"
 	sqlDelById    = "DELETE FROM comment WHERE id=?"
 	sqlDelByRoot  = "DELETE FROM comment WHERE root=?"
 
@@ -171,7 +171,7 @@ func (r *Repo) FindByParentIdTx(ctx context.Context, tx sqlx.Session, rootId uin
 }
 
 func (r *Repo) updateCount(ctx context.Context, sess sqlx.Session, query string, id uint64) error {
-	_, err := sess.ExecCtx(ctx, query, id)
+	_, err := sess.ExecCtx(ctx, query, time.Now().Unix(), id)
 	return xsql.ConvertError(err)
 }
 
@@ -230,7 +230,7 @@ func (r *Repo) setPin(ctx context.Context, sess sqlx.Session, id uint64, pin boo
 	} else {
 		sql = sqlUnpin
 	}
-	_, err := sess.ExecCtx(ctx, sql, id)
+	_, err := sess.ExecCtx(ctx, sql, time.Now().Unix(), id)
 	return xsql.ConvertError(err)
 }
 
