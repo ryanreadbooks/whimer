@@ -26,6 +26,7 @@ func Init(c *config.Config) {
 		logx.Errorf("external init: can not init note")
 	} else {
 		noter = notesdk.NewNoteClient(noteCli.Conn())
+		available.Store(true)
 	}
 
 	initModel()
@@ -33,4 +34,8 @@ func Init(c *config.Config) {
 
 func GetNoter() notesdk.NoteClient {
 	return noter
+}
+
+func Available() bool {
+	return available.Load()
 }

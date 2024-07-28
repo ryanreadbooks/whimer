@@ -22,12 +22,22 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ReplyClient interface {
+	// 发表评论
 	AddReply(ctx context.Context, in *AddReplyReq, opts ...grpc.CallOption) (*AddReplyRes, error)
+	// 删除评论
 	DelReply(ctx context.Context, in *DelReplyReq, opts ...grpc.CallOption) (*DelReplyRes, error)
+	// 赞
 	LikeAction(ctx context.Context, in *LikeActionReq, opts ...grpc.CallOption) (*LikeActionRes, error)
+	// 踩
 	DislikeAction(ctx context.Context, in *DislikeActionReq, opts ...grpc.CallOption) (*DislikeActionRes, error)
+	// 举报
 	ReportReply(ctx context.Context, in *ReportReplyReq, opts ...grpc.CallOption) (*ReportReplyRes, error)
+	// 置顶评论
 	PinReply(ctx context.Context, in *PinReplyReq, opts ...grpc.CallOption) (*PinReplyRes, error)
+	// 获取主评论信息
+	PageGetReply(ctx context.Context, in *PageGetReplyReq, opts ...grpc.CallOption) (*PageGetReplyRes, error)
+	// 获取子评论信息
+	PageGetSubReply(ctx context.Context, in *PageGetSubReplyReq, opts ...grpc.CallOption) (*PageGetSubReplyRes, error)
 }
 
 type replyClient struct {
@@ -92,16 +102,44 @@ func (c *replyClient) PinReply(ctx context.Context, in *PinReplyReq, opts ...grp
 	return out, nil
 }
 
+func (c *replyClient) PageGetReply(ctx context.Context, in *PageGetReplyReq, opts ...grpc.CallOption) (*PageGetReplyRes, error) {
+	out := new(PageGetReplyRes)
+	err := c.cc.Invoke(ctx, "/comment.v1.Reply/PageGetReply", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *replyClient) PageGetSubReply(ctx context.Context, in *PageGetSubReplyReq, opts ...grpc.CallOption) (*PageGetSubReplyRes, error) {
+	out := new(PageGetSubReplyRes)
+	err := c.cc.Invoke(ctx, "/comment.v1.Reply/PageGetSubReply", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ReplyServer is the server API for Reply service.
 // All implementations must embed UnimplementedReplyServer
 // for forward compatibility
 type ReplyServer interface {
+	// 发表评论
 	AddReply(context.Context, *AddReplyReq) (*AddReplyRes, error)
+	// 删除评论
 	DelReply(context.Context, *DelReplyReq) (*DelReplyRes, error)
+	// 赞
 	LikeAction(context.Context, *LikeActionReq) (*LikeActionRes, error)
+	// 踩
 	DislikeAction(context.Context, *DislikeActionReq) (*DislikeActionRes, error)
+	// 举报
 	ReportReply(context.Context, *ReportReplyReq) (*ReportReplyRes, error)
+	// 置顶评论
 	PinReply(context.Context, *PinReplyReq) (*PinReplyRes, error)
+	// 获取主评论信息
+	PageGetReply(context.Context, *PageGetReplyReq) (*PageGetReplyRes, error)
+	// 获取子评论信息
+	PageGetSubReply(context.Context, *PageGetSubReplyReq) (*PageGetSubReplyRes, error)
 	mustEmbedUnimplementedReplyServer()
 }
 
@@ -126,6 +164,12 @@ func (UnimplementedReplyServer) ReportReply(context.Context, *ReportReplyReq) (*
 }
 func (UnimplementedReplyServer) PinReply(context.Context, *PinReplyReq) (*PinReplyRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PinReply not implemented")
+}
+func (UnimplementedReplyServer) PageGetReply(context.Context, *PageGetReplyReq) (*PageGetReplyRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PageGetReply not implemented")
+}
+func (UnimplementedReplyServer) PageGetSubReply(context.Context, *PageGetSubReplyReq) (*PageGetSubReplyRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PageGetSubReply not implemented")
 }
 func (UnimplementedReplyServer) mustEmbedUnimplementedReplyServer() {}
 
@@ -248,6 +292,42 @@ func _Reply_PinReply_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Reply_PageGetReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PageGetReplyReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReplyServer).PageGetReply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/comment.v1.Reply/PageGetReply",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReplyServer).PageGetReply(ctx, req.(*PageGetReplyReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Reply_PageGetSubReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PageGetSubReplyReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReplyServer).PageGetSubReply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/comment.v1.Reply/PageGetSubReply",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReplyServer).PageGetSubReply(ctx, req.(*PageGetSubReplyReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Reply_ServiceDesc is the grpc.ServiceDesc for Reply service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -278,6 +358,14 @@ var Reply_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PinReply",
 			Handler:    _Reply_PinReply_Handler,
+		},
+		{
+			MethodName: "PageGetReply",
+			Handler:    _Reply_PageGetReply_Handler,
+		},
+		{
+			MethodName: "PageGetSubReply",
+			Handler:    _Reply_PageGetSubReply_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

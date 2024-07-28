@@ -11,6 +11,7 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/repo"
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/comm"
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/queue"
+	"github.com/ryanreadbooks/whimer/comment/sdk"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
@@ -348,5 +349,15 @@ func (s *CommentSvc) ConsumeDelReplyEv(ctx context.Context, data *queue.DelReply
 // 处理点赞或者点踩
 // TODO 对接点赞系统
 func (s *CommentSvc) ConsumeLikeDislikeEv(ctx context.Context, data *queue.LikeReplyData) error {
+	return nil
+}
+
+func (s *CommentSvc) PageGetReply(ctx context.Context, in *sdk.PageGetReplyReq) error {
+	
+	return nil
+}
+
+func (s *CommentSvc) PageGetSubReply(ctx context.Context, in *sdk.PageGetSubReplyReq) error {
+	
 	return nil
 }
