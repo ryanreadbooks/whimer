@@ -38,6 +38,8 @@ var (
 	sqlSelByO    = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? %%s", fields)
 	sqlSelByRoot = fmt.Sprintf("SELECT %s FROM comment WHERE root=? %%s", fields)
 	sqlInsert    = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fields)
+
+	sqlSelRoots = fmt.Sprintf("SELECT %s FROM comment WHERE id>? AND oid=? AND root=0 ORDER BY ctime LIMIT 0,10", fields)
 )
 
 func (r *Repo) FindByIdForUpdate(ctx context.Context, tx sqlx.Session, id uint64) (*Model, error) {
@@ -248,4 +250,15 @@ func (r *Repo) SetUnPin(ctx context.Context, id uint64) error {
 
 func (r *Repo) SetUnPinTx(ctx context.Context, tx sqlx.Session, id uint64) error {
 	return r.setPin(ctx, tx, id, false)
+}
+
+// 获取主评论
+func (r *Repo) GetRootReplySortByCtime(ctx context.Context, oid, cursor uint64) ([]*Model, error) {
+	var res = make([]*Model, 0, 10)
+	err := r.db.QueryRowsCtx(ctx, &res, sqlSelRoots, cursor, oid)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return res, nil
 }

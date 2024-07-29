@@ -2,6 +2,7 @@ package svc
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
@@ -353,7 +354,17 @@ func (s *CommentSvc) ConsumeLikeDislikeEv(ctx context.Context, data *queue.LikeR
 }
 
 func (s *CommentSvc) PageGetReply(ctx context.Context, in *sdk.PageGetReplyReq) error {
-	
+	data, err := s.repo.CommentRepo.GetRootReplySortByCtime(ctx, in.Oid, in.Cursor)
+	if err != nil {
+		logx.Errorf("repo get root reply err: %v, oid: %d, cursor: %d", err, in.Oid, in.Cursor)
+		return global.ErrInternal
+	}
+
+	// 按照时间从大到小
+	sort.Slice(data, func(i, j int) bool {
+		return data[i].Ctime > data[j].Ctime
+	})
+
 	return nil
 }
 
