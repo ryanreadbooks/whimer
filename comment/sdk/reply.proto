@@ -74,6 +74,7 @@ message ReplyItem {
   int64 ctime = 11;       // 发布时间
   int64 mtime = 12;       // 修改时间
   string ip = 13;         // 发布时ip地址
+  bool is_pin = 14;       // 是否为置顶评论
 }
 
 message PageGetReplyRes {
@@ -83,10 +84,10 @@ message PageGetReplyRes {
 }
 
 message PageGetSubReplyReq {
-  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ];       // 被评论对象id
-  uint64 root_id = 2 [ (buf.validate.field).uint64.gt = 0 ];   // 主评论id
-  uint64 cursor = 3;    // 起始游标
-  SortType sort_by = 4; // 排序方式
+  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
+  uint64 root_id = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 主评论id
+  uint64 cursor = 3;                                         // 起始游标
+  SortType sort_by = 4;                                      // 排序方式
 }
 
 message PageGetSubReplyRes {

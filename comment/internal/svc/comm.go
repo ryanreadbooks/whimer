@@ -2,7 +2,6 @@ package svc
 
 import (
 	"context"
-	"sort"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
@@ -14,6 +13,7 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/queue"
 	"github.com/ryanreadbooks/whimer/comment/sdk"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	notesdk "github.com/ryanreadbooks/whimer/note/sdk"
@@ -353,22 +353,66 @@ func (s *CommentSvc) ConsumeLikeDislikeEv(ctx context.Context, data *queue.LikeR
 	return nil
 }
 
-func (s *CommentSvc) PageGetReply(ctx context.Context, in *sdk.PageGetReplyReq) error {
-	data, err := s.repo.CommentRepo.GetRootReplySortByCtime(ctx, in.Oid, in.Cursor)
+// 获取根评论
+func (s *CommentSvc) PageGetReply(ctx context.Context, in *sdk.PageGetReplyReq) (*sdk.PageGetReplyRes, error) {
+	const (
+		want = 10
+	)
+
+	data, err := s.repo.CommentRepo.GetRootReplySortByCtime(ctx, in.Oid, in.Cursor, want)
 	if err != nil {
-		logx.Errorf("repo get root reply err: %v, oid: %d, cursor: %d", err, in.Oid, in.Cursor)
-		return global.ErrInternal
+		logx.Errorw("repo get root reply err", xlog.Uid(ctx), xlog.Err(err),
+			logx.Field("oid", in.Oid), logx.Field("cursor", in.Cursor))
+		return nil, global.ErrInternal
 	}
 
-	// 按照时间从大到小
-	sort.Slice(data, func(i, j int) bool {
-		return data[i].Ctime > data[j].Ctime
-	})
+	dataLen := len(data)
+	var nextCursor uint64 = 0
+	hasNext := dataLen == want
+	if dataLen > 0 {
+		nextCursor = data[dataLen-1].Id
+	}
+
+	replies := make([]*sdk.ReplyItem, 0, dataLen)
+	for _, item := range data {
+		replies = append(replies, modelToReplyItem(item))
+	}
+
+	return &sdk.PageGetReplyRes{
+		Replies:    replies,
+		NextCursor: nextCursor,
+		HasNext:    hasNext,
+	}, nil
+}
+
+// 获取子评论
+func (s *CommentSvc) PageGetSubReply(ctx context.Context, in *sdk.PageGetSubReplyReq) error {
 
 	return nil
 }
 
-func (s *CommentSvc) PageGetSubReply(ctx context.Context, in *sdk.PageGetSubReplyReq) error {
-	
-	return nil
+func modelToReplyItem(model *comm.Model) *sdk.ReplyItem {
+	out := &sdk.ReplyItem{}
+	if model == nil {
+		return out
+	}
+
+	out.Id = model.Id
+	out.Oid = model.Oid
+	out.ReplyType = uint32(model.CType)
+	out.Content = model.Content
+	out.Uid = model.Uid
+	out.RootId = model.RootId
+	out.ParentId = model.ParentId
+	out.Ruid = model.ReplyUid
+	out.LikeCount = uint64(model.Like)
+	out.HateCount = uint64(model.Dislike)
+	out.Ctime = model.Ctime
+	out.Mtime = model.Mtime
+	out.Ip = xnet.IntAsIp(uint32(model.Ip))
+	if model.IsPin == 1 {
+		out.IsPin = true
+	}
+
+	return out
 }

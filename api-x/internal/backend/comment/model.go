@@ -25,3 +25,17 @@ func (r *PubReq) AsPb() *sdk.AddReplyReq {
 type PubRes struct {
 	ReplyId uint64 `json:"reply_id"`
 }
+
+type GetCommentsReq struct {
+	Oid    uint64 `form:"oid"`
+	Cursor uint64 `form:"cursor,optional"`
+	SortBy int    `form:"sort_by,optional"`
+}
+
+func (r *GetCommentsReq) AsPb() *sdk.PageGetReplyReq {
+	return &sdk.PageGetReplyReq{
+		Oid:    r.Oid,
+		Cursor: r.Cursor,
+		SortBy: sdk.SortType(r.SortBy),
+	}
+}

@@ -118,12 +118,12 @@ func (s *ReplyServer) PageGetReply(ctx context.Context, in *sdk.PageGetReplyReq)
 		return nil, global.ErrArgs.Msg(err.Error())
 	}
 
-	err := s.Svc.CommentSvc.PageGetReply(ctx, in)
+	resp, err := s.Svc.CommentSvc.PageGetReply(ctx, in)
 	if err != nil {
 		return nil, err
 	}
 
-	return &sdk.PageGetReplyRes{}, nil
+	return resp, nil
 }
 
 // 分页获取子评论

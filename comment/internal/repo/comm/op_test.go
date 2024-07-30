@@ -30,7 +30,13 @@ func TestMain(m *testing.M) {
 
 func TestRepo_GetRootReplySortByCtime(t *testing.T) {
 	Convey("GetRootReplySortByCtime", t, func() {
-		res, err := repo.GetRootReplySortByCtime(ctx, 13, 0)
+		res, err := repo.GetRootReplySortByCtime(ctx, 13, 0, 10)
+		So(err, ShouldBeNil)
+		So(res, ShouldNotBeNil)
+		for _, model := range res {
+			t.Logf("%+v\n", model)
+		}
+		res, err = repo.GetRootReplySortByCtime(ctx, 13, 10124,10)
 		So(err, ShouldBeNil)
 		So(res, ShouldNotBeNil)
 		for _, model := range res {
