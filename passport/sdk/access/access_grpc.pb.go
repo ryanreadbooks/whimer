@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v4.24.0
-// source: access/access.proto
+// source: access.proto
 
 package access
 
@@ -101,5 +101,5 @@ var Access_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "access/access.proto",
+	Metadata: "access.proto",
 }

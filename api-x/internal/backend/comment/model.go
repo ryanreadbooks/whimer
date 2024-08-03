@@ -1,6 +1,9 @@
 package comment
 
-import "github.com/ryanreadbooks/whimer/comment/sdk"
+import (
+	"github.com/ryanreadbooks/whimer/comment/sdk"
+	"github.com/ryanreadbooks/whimer/passport/sdk/user"
+)
 
 type PubReq struct {
 	ReplyType uint32 `json:"reply_type"`
@@ -38,4 +41,29 @@ func (r *GetCommentsReq) AsPb() *sdk.PageGetReplyReq {
 		Cursor: r.Cursor,
 		SortBy: sdk.SortType(r.SortBy),
 	}
+}
+
+type CommentRes struct {
+	Replies    []*ReplyItem `json:"replies"`
+	NextCursor uint64       `json:"next_cursor"`
+	HasNext    bool         `json:"has_next"`
+}
+
+type GetSubCommentsReq struct {
+	Oid    uint64 `form:"oid"`
+	RootId uint64 `form:"root"`
+	Cursor uint64 `form:"cursor,optional"`
+}
+
+func (r *GetSubCommentsReq) AsPb() *sdk.PageGetSubReplyReq {
+	return &sdk.PageGetSubReplyReq{
+		Oid:    r.Oid,
+		RootId: r.RootId,
+		Cursor: r.Cursor,
+	}
+}
+
+type ReplyItem struct {
+	*sdk.ReplyItem
+	User *user.UserInfo `json:"user"`
 }

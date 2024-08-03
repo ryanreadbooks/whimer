@@ -12,7 +12,9 @@ func regCommentRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 		v1g := g.Group("/v1")
 		{
 			v1g.Post("/pub", svc.PublishComment())
-			v1g.Get("/get", svc.PageGetComments())
+			v1g.Get("/roots", svc.PageGetRoots())
+			v1g.Get("/subs", svc.PageGetSubs())
+			v1g.Get("/replies", svc.PageGetReplies())
 		}
 	}
 }

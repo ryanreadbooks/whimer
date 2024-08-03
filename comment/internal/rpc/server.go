@@ -136,10 +136,22 @@ func (s *ReplyServer) PageGetSubReply(ctx context.Context, in *sdk.PageGetSubRep
 		return nil, global.ErrArgs.Msg(err.Error())
 	}
 
-	err := s.Svc.CommentSvc.PageGetSubReply(ctx, in)
+	resp, err := s.Svc.CommentSvc.PageGetSubReply(ctx, in)
 	if err != nil {
 		return nil, err
 	}
 
-	return &sdk.PageGetSubReplyRes{}, nil
+	return resp, nil
+}
+
+func (s *ReplyServer) PageGetDetailedReply(ctx context.Context, in *sdk.PageGetReplyReq) (*sdk.PageGetDetailedReplyRes, error) {
+	if in == nil {
+		return nil, global.ErrNilReq
+	}
+
+	if err := s.validator.Validate(in); err != nil {
+		return nil, global.ErrArgs.Msg(err.Error())
+	}
+
+	return s.Svc.CommentSvc.PageGetObjectComments(ctx, in)
 }

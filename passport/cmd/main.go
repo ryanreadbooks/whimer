@@ -7,8 +7,10 @@ import (
 	"github.com/ryanreadbooks/whimer/passport/internal/config"
 	"github.com/ryanreadbooks/whimer/passport/internal/handler"
 	accrpc "github.com/ryanreadbooks/whimer/passport/internal/rpc/access"
+	userrpc "github.com/ryanreadbooks/whimer/passport/internal/rpc/user"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
 	"github.com/ryanreadbooks/whimer/passport/sdk/access"
+	"github.com/ryanreadbooks/whimer/passport/sdk/user"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -32,7 +34,13 @@ func main() {
 	handler.RegisterHandlers(restServer, ctx)
 
 	grpcServer := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
+		// 访问认证
 		access.RegisterAccessServer(s, accrpc.NewAccessServer(ctx))
+
+		// 用户信息
+		user.RegisterUserServer(s, userrpc.NewUserServer(ctx))
+
+		// for debugging
 		if c.Grpc.Mode == service.DevMode || c.Grpc.Mode == service.TestMode {
 			reflection.Register(s)
 		}

@@ -21,6 +21,7 @@ import (
 	seqer "github.com/ryanreadbooks/folium/sdk"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -386,9 +387,34 @@ func (s *CommentSvc) PageGetReply(ctx context.Context, in *sdk.PageGetReplyReq) 
 }
 
 // 获取子评论
-func (s *CommentSvc) PageGetSubReply(ctx context.Context, in *sdk.PageGetSubReplyReq) error {
+func (s *CommentSvc) PageGetSubReply(ctx context.Context, in *sdk.PageGetSubReplyReq) (*sdk.PageGetSubReplyRes, error) {
+	const (
+		want = 5
+	)
 
-	return nil
+	data, err := s.repo.CommentRepo.GetSubReply(ctx, in.Oid, in.RootId, in.Cursor, want)
+	if err != nil {
+		logx.Errorw("repo get sub reply err", xlog.Uid(ctx), xlog.Err(err),
+			logx.Field("oid", in.Oid), logx.Field("cursor", in.Cursor))
+		return nil, global.ErrInternal
+	}
+
+	dataLen := len(data)
+	var nextCursor uint64 = 0
+	hasNext := dataLen == want
+	if dataLen > 0 {
+		nextCursor = data[dataLen-1].Id
+	}
+	replies := make([]*sdk.ReplyItem, 0, dataLen)
+	for _, item := range data {
+		replies = append(replies, modelToReplyItem(item))
+	}
+
+	return &sdk.PageGetSubReplyRes{
+		Replies:    replies,
+		NextCursor: nextCursor,
+		HasNext:    hasNext,
+	}, nil
 }
 
 func modelToReplyItem(model *comm.Model) *sdk.ReplyItem {
@@ -415,4 +441,62 @@ func modelToReplyItem(model *comm.Model) *sdk.ReplyItem {
 	}
 
 	return out
+}
+
+// 获取评论信息，包含主评论和子评论
+func (s *CommentSvc) PageGetObjectComments(ctx context.Context, in *sdk.PageGetReplyReq) (*sdk.PageGetDetailedReplyRes, error) {
+	const (
+		// 默认拿10条主评论 每条主评论又取其5条子评论
+		wantRoot = 10
+		wantSub  = 5
+	)
+
+	roots, err := s.PageGetReply(ctx, in)
+	if err != nil {
+		logx.Errorw("repo get object replies err", xlog.Uid(ctx), xlog.Err(err),
+			logx.Field("oid", in.Oid), logx.Field("cursor", in.Cursor))
+		return nil, global.ErrInternal
+	}
+
+	wg, ctx := errgroup.WithContext(ctx)
+	var subs = make([]*sdk.PageGetSubReplyRes, len(roots.Replies))
+	for i, root := range roots.Replies {
+		idx, rootTmp := i, root
+		wg.Go(func() error {
+			subItem, err := s.PageGetSubReply(ctx, &sdk.PageGetSubReplyReq{
+				Oid:    in.Oid,
+				RootId: rootTmp.Id,
+				Cursor: 0,
+			})
+			if err != nil {
+				return err
+			}
+			subs[idx] = subItem
+			return nil
+		})
+	}
+
+	err = wg.Wait()
+	if err != nil {
+		logx.Errorw("parallel repo get sub reply err", xlog.Uid(ctx), xlog.Err(err),
+			logx.Field("oid", in.Oid), logx.Field("cursor", in.Cursor))
+		return nil, global.ErrInternal
+	}
+
+	// 拼装结果
+	replies := make([]*sdk.DetailedReplyItem, 0, len(roots.Replies))
+	for i, root := range roots.Replies {
+		sub := subs[i]
+		replies = append(replies, &sdk.DetailedReplyItem{
+			Root:       root,
+			Subreplies: sub.Replies,
+		})
+
+	}
+
+	return &sdk.PageGetDetailedReplyRes{
+		Replies:    replies,
+		NextCursor: roots.NextCursor,
+		HasNext:    roots.HasNext,
+	}, nil
 }

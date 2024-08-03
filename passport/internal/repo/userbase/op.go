@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/utils/slices"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
@@ -17,6 +18,7 @@ const (
 	sqlUpdateCol       = `update user_base set %s=?,update_at=? where uid=?`
 	sqlFindPassSalt    = `select uid,pass,salt from user_base where uid=?`
 	sqlFindBasic       = `select uid,nickname,avatar,style_sign,gender,tel,email,create_at,update_at from user_base where %s=?`
+	sqlFindBasicIn     = `select uid,nickname,avatar,style_sign,gender,tel,email,create_at,update_at from user_base where uid IN (%s)`
 	sqlUpdateBasicCore = `update user_base set nickname=?,style_sign=?,gender=?,update_at=? where uid=?`
 )
 
@@ -28,6 +30,17 @@ func (r *Repo) find(ctx context.Context, cond string, val interface{}) (*Model, 
 
 func (r *Repo) Find(ctx context.Context, uid uint64) (*Model, error) {
 	return r.find(ctx, "uid", uid)
+}
+
+func (r *Repo) FindBasicByUids(ctx context.Context, uids []uint64) ([]*Basic, error) {
+	model := make([]*Basic, 0)
+	sql := fmt.Sprintf(sqlFindBasicIn, slices.JoinInts(uids))
+	err := r.db.QueryRowsCtx(ctx, &model, sql)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return model, nil
 }
 
 func (r *Repo) FindByTel(ctx context.Context, tel string) (*Model, error) {
