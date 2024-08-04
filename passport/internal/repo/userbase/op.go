@@ -12,14 +12,14 @@ import (
 
 // all sqls here
 const (
-	sqlFindAll         = `select uid,nickname,avatar,style_sign,gender,tel,email,pass,salt,create_at,update_at from user_base where %s=?`
-	sqlInsertAll       = `insert into user_base(uid,nickname,avatar,style_sign,gender,tel,email,pass,salt,create_at,update_at) values(?,?,?,?,?,?,?,?,?,?,?)`
-	sqlDel             = `delete from user_base where uid=?`
-	sqlUpdateCol       = `update user_base set %s=?,update_at=? where uid=?`
-	sqlFindPassSalt    = `select uid,pass,salt from user_base where uid=?`
-	sqlFindBasic       = `select uid,nickname,avatar,style_sign,gender,tel,email,create_at,update_at from user_base where %s=?`
-	sqlFindBasicIn     = `select uid,nickname,avatar,style_sign,gender,tel,email,create_at,update_at from user_base where uid IN (%s)`
-	sqlUpdateBasicCore = `update user_base set nickname=?,style_sign=?,gender=?,update_at=? where uid=?`
+	sqlFindAll         = `SELECT uid,nickname,avatar,style_sign,gender,tel,email,pass,salt,create_at,update_at FROM user_base WHERE %s=?`
+	sqlInsertAll       = `INSERT INTO user_base(uid,nickname,avatar,style_sign,gender,tel,email,pass,salt,create_at,update_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`
+	sqlDel             = `DELETE FROM user_base WHERE uid=?`
+	sqlUpdateCol       = `UPDATE user_base set %s=?,update_at=? WHERE uid=?`
+	sqlFindPassSalt    = `SELECT uid,pass,salt FROM user_base WHERE uid=?`
+	sqlFindBasic       = `SELECT uid,nickname,avatar,style_sign,gender,tel,email,create_at,update_at FROM user_base WHERE %s=?`
+	sqlFindBasicIn     = `SELECT uid,nickname,avatar,style_sign,gender,tel,email,create_at,update_at FROM user_base WHERE uid IN (%s)`
+	sqlUpdateBasicCore = `UPDATE user_base SET nickname=?,style_sign=?,gender=?,update_at=? WHERE uid=?`
 )
 
 func (r *Repo) find(ctx context.Context, cond string, val interface{}) (*Model, error) {
@@ -34,6 +34,10 @@ func (r *Repo) Find(ctx context.Context, uid uint64) (*Model, error) {
 
 func (r *Repo) FindBasicByUids(ctx context.Context, uids []uint64) ([]*Basic, error) {
 	model := make([]*Basic, 0)
+	if len(uids) == 0 {
+		return model, nil
+	}
+	
 	sql := fmt.Sprintf(sqlFindBasicIn, slices.JoinInts(uids))
 	err := r.db.QueryRowsCtx(ctx, &model, sql)
 	if err != nil {

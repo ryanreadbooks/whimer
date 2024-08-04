@@ -32,6 +32,10 @@ func (s *UserServer) BatchGetUser(ctx context.Context, in *user.BatchGetUserReq)
 		return nil, global.ErrArgs.Msg("数量太大")
 	}
 
+	if len(in.Uids) == 0 {
+		return &user.BatchGetUserRes{}, nil
+	}
+
 	resp, err := s.Svc.ProfileSvc.GetByUids(ctx, in.Uids)
 	if err != nil {
 		return nil, err

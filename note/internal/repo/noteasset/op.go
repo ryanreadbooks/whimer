@@ -140,6 +140,9 @@ func (r *Repo) BatchInsertTx(ctx context.Context, tx sqlx.Session, assets []*Mod
 }
 
 func (r *Repo) FindByNoteIds(ctx context.Context, noteIds []uint64) ([]*Model, error) {
+	if len(noteIds) == 0 {
+		return []*Model{}, nil
+	}
 	query := fmt.Sprintf(sqlFindByNoteIds, uslices.JoinInts(noteIds))
 	res := make([]*Model, 0)
 	err := r.db.QueryRowsCtx(ctx, &res, query)

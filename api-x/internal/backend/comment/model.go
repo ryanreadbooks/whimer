@@ -67,3 +67,15 @@ type ReplyItem struct {
 	*sdk.ReplyItem
 	User *user.UserInfo `json:"user"`
 }
+
+// 带有子评论的评论信息
+type DetailedReplyItem struct {
+	Root       *ReplyItem   `json:"root"`
+	SubReplies []*ReplyItem `json:"sub_replies"`
+}
+
+type DetailedCommentRes struct {
+	Replies    []*DetailedReplyItem `json:"replies"`
+	NextCursor uint64                `json:"next_cursor"`
+	HasNext    bool                  `json:"has_next"`
+}
