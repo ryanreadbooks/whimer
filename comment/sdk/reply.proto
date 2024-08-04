@@ -1,8 +1,15 @@
 syntax = "proto3";
 
+import "buf/validate/validate.proto";
+
 package comment.v1;
 
 option go_package = "./sdk";
+
+enum ReplyAction {
+  Undo = 0;
+  Do = 1;
+}
 
 // 发布评论
 message AddReplyReq {
@@ -41,15 +48,110 @@ message ReportReplyReq {}
 message ReportReplyRes {}
 
 // 置顶
-message PinReplyReq {}
+message PinReplyReq {
+  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
+  uint64 rid = 2;                                        // 评论id
+  ReplyAction action = 3;
+}
 
 message PinReplyRes {}
 
+enum SortType {
+  ByTime = 0;  // 按照发布时间排序
+  ByTrend = 1; // 按照热度排序
+}
+
+// 获取评论
+message PageGetReplyReq {
+  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ];
+  uint64 cursor = 2;    // 起始游标
+  SortType sort_by = 3; // 排序方式
+}
+
+// 评论实体
+message ReplyItem {
+  uint64 id = 1;          // 评论id
+  uint64 oid = 2;         // 被评论对象id
+  uint32 reply_type = 3;  // 评论类型
+  string content = 4;     // 评论内容
+  uint64 uid = 5;         // 评论发表用户uid
+  uint64 root_id = 6;     // 根评论id
+  uint64 parent_id = 7;   // 父评论id
+  uint64 ruid = 8;        // 被回复的用户id
+  uint64 like_count = 9;  // 点赞数
+  uint64 hate_count = 10; // 点踩数
+  int64 ctime = 11;       // 发布时间
+  int64 mtime = 12;       // 修改时间
+  string ip = 13;         // 发布时ip地址
+  bool is_pin = 14;       // 是否为置顶评论
+}
+
+message PageGetReplyRes {
+  repeated ReplyItem replies = 1; // 评论数据
+  uint64 next_cursor = 2;         // 分页获取下一次请求的游标
+  bool has_next = 3;              // 是否还有数据
+}
+
+// 获取子评论
+message PageGetSubReplyReq {
+  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
+  uint64 root_id = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 主评论id
+  uint64 cursor = 3;                                         // 起始游标
+}
+
+message PageGetSubReplyRes {
+  repeated ReplyItem replies = 1;
+  uint64 next_cursor = 2;
+  bool has_next = 3;
+}
+
+// 代表主评论的子评论信息
+message DetailedSubReply {
+  repeated ReplyItem items = 1; // 子评论的信息
+  uint64 next_cursor = 2;
+  bool has_next = 3;
+}
+
+// 详细的主评论的详细信息，会包含子评论
+message DetailedReplyItem {
+  ReplyItem root = 1;                // 主评论本身的信息
+  DetailedSubReply subreplies = 2; // 子评论的信息
+}
+
+message PageGetDetailedReplyRes {
+  repeated DetailedReplyItem replies = 1; // 主评论
+  uint64 next_cursor = 2;
+  bool has_next = 3;
+}
+
+// 获取置顶评论
+message GetPinnedReplyReq {
+  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
+}
+
+message GetPinnedReplyRes {
+  DetailedReplyItem reply = 1; // 置顶评论信息
+}
+
 service Reply {
+  // 发表评论
   rpc AddReply(AddReplyReq) returns (AddReplyRes);
+  // 删除评论
   rpc DelReply(DelReplyReq) returns (DelReplyRes);
+  // 赞
   rpc LikeAction(LikeActionReq) returns (LikeActionRes);
+  // 踩
   rpc DislikeAction(DislikeActionReq) returns (DislikeActionRes);
+  // 举报
   rpc ReportReply(ReportReplyReq) returns (ReportReplyRes);
+  // 置顶评论
   rpc PinReply(PinReplyReq) returns (PinReplyRes);
+  // 获取主评论信息
+  rpc PageGetReply(PageGetReplyReq) returns (PageGetReplyRes);
+  // 获取子评论信息
+  rpc PageGetSubReply(PageGetSubReplyReq) returns (PageGetSubReplyRes);
+  // 获取主评论详细信息
+  rpc PageGetDetailedReply(PageGetReplyReq) returns (PageGetDetailedReplyRes);
+  // 获取置顶评论
+  rpc GetPinnedReply(GetPinnedReplyReq) returns (GetPinnedReplyRes);
 }

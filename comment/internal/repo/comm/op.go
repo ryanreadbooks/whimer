@@ -21,28 +21,50 @@ const (
 	sqlDecDislike = "UPDATE comment SET dislike=dislike-1, mtime=? WHERE id=?"
 	sqlIncReport  = "UPDATE comment SET report=report+1, mtime=? WHERE id=?"
 	sqlDecReport  = "UPDATE comment SET report=report-1, mtime=? WHERE id=?"
-	sqlPin        = "UPDATE comment SET pin=1, mtime=? WHERE id=?"
-	sqlUnpin      = "UPDATE comment SET pin=0, mtime=? WHERE id=?"
+
+	sqlPin   = "UPDATE comment SET pin=1, mtime=? WHERE id=? AND root=0"
+	sqlUnpin = "UPDATE comment SET pin=0, mtime=? WHERE id=? AND root=0"
+	// 一次性将已有的pin改为0，将目标idpin改为1
+	sqlDoPin = `UPDATE comment SET pin=1-pin, mtime=? WHERE id=(
+								SELECT id FROM (SELECT id FROM comment WHERE id>0 AND oid=? AND root=0 AND pin=1) tmp
+							) OR id=?`
+
 	sqlSetLike    = "UPDATE comment SET `like`=?, mtime=? WHERE id=?"
 	sqlSetDisLike = "UPDATE comment SET dislike=?, mtime=? WHERE id=?"
 	sqlSetReport  = "UPDATE comment SET report=?, mtime=? WHERE id=?"
-	sqlDelById    = "DELETE FROM comment WHERE id=?"
-	sqlDelByRoot  = "DELETE FROM comment WHERE root=?"
+
+	sqlDelById   = "DELETE FROM comment WHERE id=?"
+	sqlDelByRoot = "DELETE FROM comment WHERE root=?"
 
 	forUpdate = "FOR UPDATE"
 )
 
 var (
-	sqlSel       = fmt.Sprintf("SELECT %s FROM comment WHERE id=?", fields)
-	sqlSel4Ud    = fmt.Sprintf("SELECT %s FROM comment WHERE id=? FOR UPDATE", fields)
-	sqlSelByO    = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? %%s", fields)
-	sqlSelByRoot = fmt.Sprintf("SELECT %s FROM comment WHERE root=? %%s", fields)
-	sqlInsert    = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fields)
+	sqlSelRooParent = "SELECT id,root,parent,oid,pin FROM comment WHERE id=?"
+	sqlSelPinned    = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? AND pin=1 LIMIT 1", fields)
+	sqlSel          = fmt.Sprintf("SELECT %s FROM comment WHERE id=?", fields)
+	sqlSel4Ud       = fmt.Sprintf("SELECT %s FROM comment WHERE id=? FOR UPDATE", fields)
+	sqlSelByO       = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? %%s", fields)
+	sqlSelByRoot    = fmt.Sprintf("SELECT %s FROM comment WHERE root=? %%s", fields)
+	sqlInsert       = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fields)
+
+	sqlSelRoots = fmt.Sprintf("SELECT %s FROM comment WHERE %%s oid=? AND root=0 AND pin=0 ORDER BY ctime DESC LIMIT ?", fields)
+	sqlSelSubs  = fmt.Sprintf("SELECT %s FROM comment WHERE id>? AND oid=? AND root=? ORDER BY ctime ASC LIMIT ?", fields)
 )
 
 func (r *Repo) FindByIdForUpdate(ctx context.Context, tx sqlx.Session, id uint64) (*Model, error) {
 	var res Model
 	err := tx.QueryRowCtx(ctx, &res, sqlSel4Ud, id)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return &res, nil
+}
+
+func (r *Repo) FindRootParent(ctx context.Context, id uint64) (*RootParent, error) {
+	var res RootParent
+	err := r.db.QueryRowCtx(ctx, &res, sqlSelRooParent, id)
 	if err != nil {
 		return nil, xsql.ConvertError(err)
 	}
@@ -248,4 +270,50 @@ func (r *Repo) SetUnPin(ctx context.Context, id uint64) error {
 
 func (r *Repo) SetUnPinTx(ctx context.Context, tx sqlx.Session, id uint64) error {
 	return r.setPin(ctx, tx, id, false)
+}
+
+// 获取主评论
+func (r *Repo) GetRootReplies(ctx context.Context, oid, cursor uint64, want int) ([]*Model, error) {
+	var res = make([]*Model, 0, want)
+	hasCursor := ""
+	var args []any
+	if cursor > 0 {
+		hasCursor = "id<? AND"
+		args = []any{cursor, oid, want}
+	} else {
+		args = []any{oid, want}
+	}
+	err := r.db.QueryRowsCtx(ctx, &res, fmt.Sprintf(sqlSelRoots, hasCursor), args...)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return res, nil
+}
+
+// 获取子评论
+func (r *Repo) GetSubReply(ctx context.Context, oid, root, cursor uint64, want int) ([]*Model, error) {
+	var res = make([]*Model, 0, want)
+	err := r.db.QueryRowsCtx(ctx, &res, sqlSelSubs, cursor, oid, root, want)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return res, nil
+}
+
+// 置顶
+func (r *Repo) DoPin(ctx context.Context, oid, rid uint64) error {
+	_, err := r.db.ExecCtx(ctx, sqlDoPin, time.Now().Unix(), oid, rid)
+	return xsql.ConvertError(err)
+}
+
+func (r *Repo) GetPinned(ctx context.Context, oid uint64) (*Model, error) {
+	var model = new(Model)
+	err := r.db.QueryRowCtx(ctx, model, sqlSelPinned, oid)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return model, nil
 }

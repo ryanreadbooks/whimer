@@ -3,16 +3,19 @@ package profile
 import (
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/concur"
 	"github.com/ryanreadbooks/whimer/misc/oss/uploader"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
 	"github.com/ryanreadbooks/whimer/passport/internal/model/profile"
 	ptp "github.com/ryanreadbooks/whimer/passport/internal/model/profile"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
+	userrpc "github.com/ryanreadbooks/whimer/passport/sdk/user"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -116,4 +119,31 @@ func (s *Service) UpdateAvatar(ctx context.Context, req *profile.AvatarInfoReq) 
 	visitUrl := s.avatarUploader.GetPublicVisitUrl(s.c.Oss.Bucket, objName, s.c.Oss.DisplayEndpoint)
 
 	return visitUrl, nil
+}
+
+// 批量获取uid的信息
+func (s *Service) GetByUids(ctx context.Context, uids []uint64) (map[string]*userrpc.UserInfo, error) {
+	basics, err := s.repo.UserBaseRepo.FindBasicByUids(ctx, uids)
+	if err != nil {
+		logx.Errorw("repo find basic by uids err", xlog.Uid(ctx), logx.Field("uids", uids))
+		return nil, global.ErrGetUserFail
+	}
+
+	resp := make(map[string]*userrpc.UserInfo, len(basics))
+	for _, info := range basics {
+		s.replaceAvatar(info)
+		resp[strconv.FormatUint(info.Uid, 10)] = basicToUserInfoPb(info)
+	}
+
+	return resp, nil
+}
+
+func basicToUserInfoPb(b *userbase.Basic) *userrpc.UserInfo {
+	return &userrpc.UserInfo{
+		Uid:       b.Uid,
+		Nickname:  b.Nickname,
+		StyleSign: b.StyleSign,
+		Avatar:    b.Avatar,
+		Gender:    profile.GenderMap[b.Gender],
+	}
 }

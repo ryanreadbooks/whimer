@@ -1,41 +1,35 @@
-package note
+package comment
 
 import (
 	"sync/atomic"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
-	notesdk "github.com/ryanreadbooks/whimer/note/sdk"
-
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
+
+	replysdk "github.com/ryanreadbooks/whimer/comment/sdk"
 )
 
 var (
 	// 笔记服务
-	noter notesdk.NoteClient
+	commenter replysdk.ReplyClient
 	// 是否可用
 	available atomic.Bool
 )
 
 func Init(c *config.Config) {
-	noteCli, err := zrpc.NewClient(
-		c.Backend.Note.AsZrpcClientConf(),
+	cli, err := zrpc.NewClient(
+		c.Backend.Comment.AsZrpcClientConf(),
 		zrpc.WithUnaryClientInterceptor(interceptor.ClientMetadataInject))
 	if err != nil {
-		logx.Errorf("external init: can not init note")
+		logx.Errorf("external init: can not init comment")
 	} else {
-		noter = notesdk.NewNoteClient(noteCli.Conn())
+		commenter = replysdk.NewReplyClient(cli.Conn())
 		available.Store(true)
 	}
-
-	initModel()
 }
 
-func GetNoter() notesdk.NoteClient {
-	return noter
-}
-
-func Available() bool {
-	return available.Load()
+func GetCommenter() replysdk.ReplyClient {
+	return commenter
 }

@@ -17,6 +17,7 @@ var (
 	ErrPermDenied       = errorx.ErrPermission.ErrCode(PassportErrCode).Msg("操作权限不足")
 	ErrRateLimit        = errorx.NewError(http.StatusTooManyRequests, PassportErrCode, "你的操作太频繁了")
 	ErrApiUnimplemented = errorx.NewError(http.StatusMethodNotAllowed, PassportErrCode, "接口未实现")
+	ErrNilReq           = ErrArgs.Msg("请求为空")
 
 	// sign-in related
 	ErrNotSignedIn             = ErrUnAuth
@@ -50,4 +51,7 @@ var (
 	ErrTelTaken      = ErrPermDenied.Msg("该手机号已经注册")
 	ErrEmailTaken    = ErrPermDenied.Msg("该邮箱已经使用")
 	ErrNicknameTaken = ErrPermDenied.Msg("该昵称已被占用")
+
+	// user profile
+	ErrGetUserFail = ErrInternal.Msg("获取用户信息失败")
 )

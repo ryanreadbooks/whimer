@@ -9,6 +9,7 @@ import (
 	"github.com/ryanreadbooks/whimer/passport/internal/model/profile"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
 	"github.com/ryanreadbooks/whimer/passport/sdk/access"
+	"github.com/ryanreadbooks/whimer/passport/sdk/user"
 	
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -20,9 +21,9 @@ type AccessServer struct {
 	Svc *svc.ServiceContext
 }
 
-func NewAccessServer(ctx *svc.ServiceContext) *AccessServer {
+func NewAccessServer(s *svc.ServiceContext) *AccessServer {
 	return &AccessServer{
-		Svc: ctx,
+		Svc: s,
 	}
 }
 
@@ -68,7 +69,7 @@ func (s *AccessServer) CheckSignIn(ctx context.Context, in *access.CheckSignInRe
 	}
 
 	if meInfo != nil {
-		res.User = &access.UserInfo{
+		res.User = &user.UserInfo{
 			Uid:       meInfo.Uid,
 			Nickname:  meInfo.Nickname,
 			Avatar:    meInfo.Avatar,

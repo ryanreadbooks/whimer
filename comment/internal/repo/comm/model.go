@@ -31,3 +31,16 @@ type Model struct {
 	Ctime    int64  `json:"ctime" db:"ctime"`
 	Mtime    int64  `json:"mtime" db:"mtime"`
 }
+
+type RootParent struct {
+	Id       uint64 `json:"id" db:"id"`
+	RootId   uint64 `json:"root" db:"root"`
+	ParentId uint64 `json:"parent" db:"parent"`
+	Oid      uint64 `json:"oid" db:"oid"`
+	IsPin    int8   `json:"is_pin" db:"pin"`
+}
+
+const (
+	AlreadyPinned = 1
+	NotPinned     = 0
+)

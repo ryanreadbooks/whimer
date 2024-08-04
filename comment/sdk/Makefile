@@ -1,6 +1,8 @@
+PROTO_PATH := $(shell echo $$PROTO_PATH)
+
 .PHONY: reply
 reply:
-	protoc reply.proto \
+	protoc -I ${PROTO_PATH} -I . reply.proto \
 		--go_out=. \
 		--go_opt=paths=source_relative \
 		--go-grpc_out=. \

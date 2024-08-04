@@ -11,7 +11,9 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/repo"
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/comm"
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/queue"
+	"github.com/ryanreadbooks/whimer/comment/sdk"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	notesdk "github.com/ryanreadbooks/whimer/note/sdk"
@@ -19,6 +21,7 @@ import (
 	seqer "github.com/ryanreadbooks/folium/sdk"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -127,7 +130,7 @@ func (s *CommentSvc) canYouDel(ctx context.Context, reply *comm.Model) error {
 		return nil
 	}
 
-	if err := s.userOwnsOid(ctx, uid, reply.Oid, reply.Id); err == nil {
+	if err := s.userOwnsOid(ctx, uid, reply.Oid); err == nil {
 		// 用户是评论对象的作者 可以删除
 		return nil
 	}
@@ -159,18 +162,16 @@ func (s *CommentSvc) ReplyDel(ctx context.Context, rid uint64) error {
 	return nil
 }
 
-// 点赞
-func (s *CommentSvc) ReplyLike(ctx context.Context, rid uint64) error {
-	if err := s.repo.Bus.LikeReply(ctx, rid); err != nil {
-		logx.Errorf("like reply to queue err: %v, rid: %d", err, rid)
-		return global.ErrInternal
+// TODO 点赞/取消点赞
+func (s *CommentSvc) ReplyLike(ctx context.Context, rid uint64, action int8) error {
+	if action == int8(sdk.ReplyAction_Do) {
+
+		if err := s.repo.Bus.LikeReply(ctx, rid); err != nil {
+			logx.Errorf("like reply to queue err: %v, rid: %d", err, rid)
+			return global.ErrInternal
+		}
 	}
 
-	return nil
-}
-
-// 取消点赞
-func (s *CommentSvc) ReplyUnlike(ctx context.Context, rid uint64) error {
 	if err := s.repo.Bus.UnLikeReply(ctx, rid); err != nil {
 		logx.Errorf("unlike reply to queue err: %v, rid: %d", err, rid)
 		return global.ErrInternal
@@ -179,18 +180,15 @@ func (s *CommentSvc) ReplyUnlike(ctx context.Context, rid uint64) error {
 	return nil
 }
 
-// 点踩
-func (s *CommentSvc) ReplyDislike(ctx context.Context, rid uint64) error {
-	if err := s.repo.Bus.DisLikeReply(ctx, rid); err != nil {
-		logx.Errorf("dislike reply to queue err: %v, rid: %d", err, rid)
-		return global.ErrInternal
+// TODO 点踩/取消点踩
+func (s *CommentSvc) ReplyDislike(ctx context.Context, rid uint64, action int8) error {
+	if action == int8(sdk.ReplyAction_Do) {
+		if err := s.repo.Bus.DisLikeReply(ctx, rid); err != nil {
+			logx.Errorf("dislike reply to queue err: %v, rid: %d", err, rid)
+			return global.ErrInternal
+		}
 	}
 
-	return nil
-}
-
-// 取消点踩
-func (s *CommentSvc) ReplyUndislike(ctx context.Context, rid uint64) error {
 	if err := s.repo.Bus.UndisLikeReply(ctx, rid); err != nil {
 		logx.Errorf("undislike reply to queue err: %v, rid: %d", err, rid)
 		return global.ErrInternal
@@ -199,14 +197,75 @@ func (s *CommentSvc) ReplyUndislike(ctx context.Context, rid uint64) error {
 	return nil
 }
 
-func (s *CommentSvc) userOwnsOid(ctx context.Context, uid, oid, rid uint64) error {
+// 置顶/取消置顶评论
+func (s *CommentSvc) ReplyPin(ctx context.Context, oid, rid uint64, action int8) error {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	// 检查rid 不能对非主评论进行操作
+	// 找到需要被操作置顶或非置顶的目标评论
+	r, err := s.repo.CommentRepo.FindRootParent(ctx, rid)
+	if err != nil {
+		if xsql.IsNotFound(err) {
+			return global.ErrReplyNotFound
+		}
+
+		logx.Errorw("repo find uid root parent err", xlog.Uid(ctx), xlog.Err(err),
+			logx.Field("rid", rid), logx.Field("action", action))
+		return global.ErrPinFailInternal
+	}
+	if r.Oid != oid {
+		return global.ErrOidNotMatch
+	}
+
+	// 检查操作权限 只有oid的作者才能置顶评论
+	err = s.userOwnsOid(ctx, uid, r.Oid)
+	if err != nil {
+		return global.ErrYouCantPinReply
+	}
+
+	if !isRootReply(r.RootId, r.ParentId) {
+		return global.ErrPinFailNotRoot
+	}
+
+	if action == int8(sdk.ReplyAction_Do) {
+		if r.IsPin == comm.AlreadyPinned {
+			return nil
+		}
+		// 置顶
+		err = s.repo.Bus.PinReply(ctx, r.Oid, rid)
+		if err != nil {
+			logx.Errorw("bus put pin reply err", xlog.Uid(ctx),
+				logx.Field("rid", rid), logx.Field("action", action))
+			return global.ErrPinFailInternal
+		}
+
+	} else {
+		// 取消置顶
+		if r.IsPin == comm.NotPinned {
+			return nil
+		}
+
+		err = s.repo.Bus.UnpinReply(ctx, r.Oid, rid)
+		if err != nil {
+			logx.Errorw("bus put unpin reply err", xlog.Uid(ctx), xlog.Err(err),
+				logx.Field("rid", rid), logx.Field("action", action))
+			return global.ErrUnPinFailInternal
+		}
+	}
+
+	return nil
+}
+
+func (s *CommentSvc) userOwnsOid(ctx context.Context, uid, oid uint64) error {
 	resp, err := external.GetNoter().IsUserOwnNote(ctx,
 		&notesdk.IsUserOwnNoteReq{
 			Uid:    uid,
 			NoteId: oid,
 		})
 	if err != nil {
-		logx.Errorf("check IsUserOwnNote err: %v, rid: %d, uid: %d, oid: %d", err, rid, uid, oid)
+		logx.Errorf("check IsUserOwnNote err: %v, uid: %d, oid: %d", err, uid, oid)
 		return global.ErrInternal
 	}
 
@@ -230,6 +289,7 @@ func (s *CommentSvc) findReplyForUpdate(ctx context.Context, tx sqlx.Session, ri
 	return m, nil
 }
 
+// 检查是否能够发布子评论
 func (s *CommentSvc) canAddSubReply(ctx context.Context, tx sqlx.Session, rootId, parentId uint64) error {
 	if rootId != 0 {
 		_, err := s.findReplyForUpdate(ctx, tx, rootId)
@@ -279,7 +339,7 @@ func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReply
 		}
 	} else {
 		// 新增的是评论的评论 插入前再次校验
-		// 检查被评论的平时是否存在
+		// 检查被评论的评论是否存在
 		err := s.repo.DB().TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
 			err := s.canAddSubReply(ctx, tx, rootId, parentId)
 			if err != nil {
@@ -347,6 +407,218 @@ func (s *CommentSvc) ConsumeDelReplyEv(ctx context.Context, data *queue.DelReply
 
 // 处理点赞或者点踩
 // TODO 对接点赞系统
-func (s *CommentSvc) ConsumeLikeDislikeEv(ctx context.Context, data *queue.LikeReplyData) error {
+func (s *CommentSvc) ConsumeLikeDislikeEv(ctx context.Context, data *queue.BinaryReplyData) error {
 	return nil
+}
+
+// 置顶或者取消置顶
+// 每个对象仅支持一条置顶评论，后置顶的评论会替代旧的置顶评论的置顶状态
+func (s *CommentSvc) ConsumePinEv(ctx context.Context, data *queue.PinReplyData) error {
+	rid := data.ReplyId
+	oid := data.Oid
+	if data.Action == queue.ActionDo {
+		err := s.repo.CommentRepo.DoPin(ctx, oid, rid)
+		if err != nil {
+			logx.Errorf("consume repo do pin err: %v, oid: %d, rid: %d", err, oid, rid)
+			return global.ErrPinFailInternal
+		}
+	} else {
+		// 取消置顶
+		err := s.repo.CommentRepo.SetUnPin(ctx, rid)
+		if err != nil {
+			logx.Errorf("consume repo set unpin err: %v, rid: %d", err, rid)
+			return global.ErrUnPinFailInternal
+		}
+	}
+
+	return nil
+}
+
+// 获取根评论
+func (s *CommentSvc) PageGetReply(ctx context.Context, in *sdk.PageGetReplyReq) (*sdk.PageGetReplyRes, error) {
+	const (
+		want = 10
+	)
+
+	data, err := s.repo.CommentRepo.GetRootReplies(ctx, in.Oid, in.Cursor, want)
+	if err != nil {
+		logx.Errorw("repo get root reply err", xlog.Uid(ctx), xlog.Err(err),
+			logx.Field("oid", in.Oid), logx.Field("cursor", in.Cursor))
+		return nil, global.ErrInternal
+	}
+
+	dataLen := len(data)
+	var nextCursor uint64 = 0
+	hasNext := dataLen == want
+	if dataLen > 0 {
+		nextCursor = data[dataLen-1].Id
+	}
+
+	replies := make([]*sdk.ReplyItem, 0, dataLen)
+	for _, item := range data {
+		replies = append(replies, modelToReplyItem(item))
+	}
+
+	return &sdk.PageGetReplyRes{
+		Replies:    replies,
+		NextCursor: nextCursor,
+		HasNext:    hasNext,
+	}, nil
+}
+
+// 获取子评论
+func (s *CommentSvc) PageGetSubReply(ctx context.Context, in *sdk.PageGetSubReplyReq) (*sdk.PageGetSubReplyRes, error) {
+	const (
+		want = 5
+	)
+
+	data, err := s.repo.CommentRepo.GetSubReply(ctx, in.Oid, in.RootId, in.Cursor, want)
+	if err != nil {
+		logx.Errorw("repo get sub reply err", xlog.Uid(ctx), xlog.Err(err),
+			logx.Field("oid", in.Oid), logx.Field("cursor", in.Cursor))
+		return nil, global.ErrInternal
+	}
+
+	dataLen := len(data)
+	var nextCursor uint64 = 0
+	hasNext := dataLen == want
+	if dataLen > 0 {
+		nextCursor = data[dataLen-1].Id
+	}
+	replies := make([]*sdk.ReplyItem, 0, dataLen)
+	for _, item := range data {
+		replies = append(replies, modelToReplyItem(item))
+	}
+
+	return &sdk.PageGetSubReplyRes{
+		Replies:    replies,
+		NextCursor: nextCursor,
+		HasNext:    hasNext,
+	}, nil
+}
+
+func modelToReplyItem(model *comm.Model) *sdk.ReplyItem {
+	out := &sdk.ReplyItem{}
+	if model == nil {
+		return out
+	}
+
+	out.Id = model.Id
+	out.Oid = model.Oid
+	out.ReplyType = uint32(model.CType)
+	out.Content = model.Content
+	out.Uid = model.Uid
+	out.RootId = model.RootId
+	out.ParentId = model.ParentId
+	out.Ruid = model.ReplyUid
+	out.LikeCount = uint64(model.Like)
+	out.HateCount = uint64(model.Dislike)
+	out.Ctime = model.Ctime
+	out.Mtime = model.Mtime
+	out.Ip = xnet.IntAsIp(uint32(model.Ip))
+	if model.IsPin == 1 {
+		out.IsPin = true
+	}
+
+	return out
+}
+
+// 获取评论信息，包含主评论和子评论
+func (s *CommentSvc) PageGetObjectReplies(ctx context.Context, in *sdk.PageGetReplyReq) (*sdk.PageGetDetailedReplyRes, error) {
+	const (
+		// 默认拿10条主评论 每条主评论又取其5条子评论
+		wantRoot = 10
+		wantSub  = 5
+	)
+
+	// 先获取主评论
+	roots, err := s.PageGetReply(ctx, in)
+	if err != nil {
+		logx.Errorw("repo get object replies err", xlog.Uid(ctx), xlog.Err(err),
+			logx.Field("oid", in.Oid), logx.Field("cursor", in.Cursor))
+		return nil, global.ErrInternal
+	}
+
+	replies, err := s.getSubrepliesForRoots(ctx, in.Oid, roots.Replies)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sdk.PageGetDetailedReplyRes{
+		Replies:    replies,
+		NextCursor: roots.NextCursor,
+		HasNext:    roots.HasNext,
+	}, nil
+}
+
+// 获取roots主评论的子评论
+// 并且将子评论和主评论拼接后返回
+func (s *CommentSvc) getSubrepliesForRoots(ctx context.Context,
+	oid uint64,
+	roots []*sdk.ReplyItem) ([]*sdk.DetailedReplyItem, error) {
+
+	// 起协程去拿每个主评论的子评论
+	wg, ctx := errgroup.WithContext(ctx)
+	var subs = make([]*sdk.PageGetSubReplyRes, len(roots))
+	for i, root := range roots {
+		idx, rootTmp := i, root
+		wg.Go(func() error {
+			// 按照oid和root获取子评论
+			subItem, err := s.PageGetSubReply(ctx, &sdk.PageGetSubReplyReq{
+				Oid:    oid,
+				RootId: rootTmp.Id,
+				Cursor: 0,
+			})
+			if err != nil {
+				return err
+			}
+			subs[idx] = subItem
+			return nil
+		})
+	}
+
+	err := wg.Wait()
+	if err != nil {
+		logx.Errorw("parallel repo get sub reply err", xlog.Uid(ctx), xlog.Err(err),
+			logx.Field("oid", oid))
+		return nil, global.ErrInternal
+	}
+
+	// 拼装结果
+	replies := make([]*sdk.DetailedReplyItem, 0, len(roots))
+	for i, root := range roots {
+		sub := subs[i]
+		replies = append(replies, &sdk.DetailedReplyItem{
+			Root: root,
+			Subreplies: &sdk.DetailedSubReply{
+				Items:      sub.Replies,
+				HasNext:    sub.HasNext,
+				NextCursor: sub.NextCursor,
+			},
+		})
+	}
+
+	return replies, nil
+}
+
+func (s *CommentSvc) GetPinnedReply(ctx context.Context, oid uint64) (*sdk.GetPinnedReplyRes, error) {
+	// 先找出置顶评论
+	root, err := s.repo.CommentRepo.GetPinned(ctx, oid)
+	if err != nil {
+		if xsql.IsNotFound(err) {
+			return &sdk.GetPinnedReplyRes{}, nil
+		}
+		logx.Errorw("repo get pinned err", xlog.Uid(ctx), xlog.Err(err), logx.Field("oid", oid))
+		return nil, global.ErrGetPinnedInternal
+	}
+
+	// 随后找出置顶评论的子评论
+	rootWithSubs, err := s.getSubrepliesForRoots(ctx, oid, []*sdk.ReplyItem{modelToReplyItem(root)})
+	if err != nil {
+		return nil, err
+	}
+
+	return &sdk.GetPinnedReplyRes{
+		Reply: rootWithSubs[0],
+	}, nil
 }
