@@ -38,6 +38,7 @@ func main() {
 	server.AddUnaryInterceptors(
 		interceptor.ServerErrorHandle,
 		interceptor.ServerMetadataExtract,
+		interceptor.ServerValidateHandle,
 	)
 
 	mq := kq.MustNewQueue(c.Kafka.AsKqConf(), job.New(ctx))

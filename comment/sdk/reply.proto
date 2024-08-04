@@ -105,16 +105,32 @@ message PageGetSubReplyRes {
   bool has_next = 3;
 }
 
+// 代表主评论的子评论信息
+message DetailedSubReply {
+  repeated ReplyItem items = 1; // 子评论的信息
+  uint64 next_cursor = 2;
+  bool has_next = 3;
+}
+
 // 详细的主评论的详细信息，会包含子评论
 message DetailedReplyItem {
   ReplyItem root = 1;                // 主评论本身的信息
-  repeated ReplyItem subreplies = 2; // 子评论的信息
+  DetailedSubReply subreplies = 2; // 子评论的信息
 }
 
 message PageGetDetailedReplyRes {
   repeated DetailedReplyItem replies = 1; // 主评论
   uint64 next_cursor = 2;
   bool has_next = 3;
+}
+
+// 获取置顶评论
+message GetPinnedReplyReq {
+  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
+}
+
+message GetPinnedReplyRes {
+  DetailedReplyItem reply = 1; // 置顶评论信息
 }
 
 service Reply {
@@ -130,11 +146,12 @@ service Reply {
   rpc ReportReply(ReportReplyReq) returns (ReportReplyRes);
   // 置顶评论
   rpc PinReply(PinReplyReq) returns (PinReplyRes);
-
   // 获取主评论信息
   rpc PageGetReply(PageGetReplyReq) returns (PageGetReplyRes);
   // 获取子评论信息
   rpc PageGetSubReply(PageGetSubReplyReq) returns (PageGetSubReplyRes);
   // 获取主评论详细信息
   rpc PageGetDetailedReply(PageGetReplyReq) returns (PageGetDetailedReplyRes);
+  // 获取置顶评论
+  rpc GetPinnedReply(GetPinnedReplyReq) returns (GetPinnedReplyRes);
 }

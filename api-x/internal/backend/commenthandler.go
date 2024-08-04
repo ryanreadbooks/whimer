@@ -4,14 +4,18 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/comment"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
 	"github.com/ryanreadbooks/whimer/comment/sdk"
+	"github.com/ryanreadbooks/whimer/misc/concur"
 	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/utils/maps"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/passport/sdk/user"
 
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
@@ -105,6 +109,19 @@ func (h *Handler) PageGetSubs() http.HandlerFunc {
 	}
 }
 
+func extractUidsMap(replies []*sdk.DetailedReplyItem) map[uint64]struct{} {
+	uidsMap := make(map[uint64]struct{})
+	// 提取出主评论和子评论的uid
+	for _, item := range replies {
+		uidsMap[item.Root.Uid] = struct{}{}
+		for _, sub := range item.Subreplies.Items {
+			uidsMap[sub.Uid] = struct{}{}
+		}
+	}
+
+	return uidsMap
+}
+
 // 获取主评论信息（包含其下子评论）
 func (h *Handler) PageGetReplies() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +131,42 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 			return
 		}
 
-		ctx := r.Context()
+		var (
+			pinnedReply     *sdk.DetailedReplyItem
+			pinnedReplyUser map[string]*user.UserInfo = nil
+			wg              sync.WaitGroup
+			ctx             = r.Context()
+		)
+
+		if req.Cursor == 0 {
+			wg.Add(1)
+			// 第一次请求时需要返回置顶评论
+			concur.SafeGo(func() {
+				defer wg.Done()
+				var err error
+				resp, err := comment.GetCommenter().
+					GetPinnedReply(ctx, &sdk.GetPinnedReplyReq{Oid: req.Oid})
+				if err != nil {
+					logx.Errorw("rpc get pin reply err", xlog.Uid(ctx), xlog.Err(err))
+					return
+				}
+				pinnedReply = resp.Reply
+
+				userResp, err := passport.GetUserer().
+					BatchGetUser(ctx,
+						&user.BatchGetUserReq{
+							Uids: maps.Keys(extractUidsMap([]*sdk.DetailedReplyItem{pinnedReply})),
+						},
+					)
+				if err != nil {
+					logx.Errorw("rpc get batch get user err", xlog.Uid(ctx), xlog.Err(err))
+					return
+				}
+				pinnedReplyUser = make(map[string]*user.UserInfo)
+				pinnedReplyUser = userResp.Users
+			})
+		}
+
 		resp, err := comment.GetCommenter().
 			PageGetDetailedReply(ctx, req.AsPb())
 		if err != nil {
@@ -122,16 +174,12 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 			return
 		}
 
-		var replies = []*comment.DetailedReplyItem{}
+		var (
+			replies = []*comment.DetailedReplyItem{}
+		)
+
 		if len(resp.Replies) > 0 {
-			uidsMap := make(map[uint64]struct{})
-			// 提取出主评论和子评论的uid
-			for _, item := range resp.Replies {
-				uidsMap[item.Root.Id] = struct{}{}
-				for _, sub := range item.Subreplies {
-					uidsMap[sub.Uid] = struct{}{}
-				}
-			}
+			uidsMap := extractUidsMap(resp.Replies)
 
 			// 发起请求获取uid的详细信息
 			userResp, err := passport.GetUserer().
@@ -141,27 +189,25 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 				return
 			}
 
+			logx.Debugf("userResp = %v, uidsMap = %v", userResp.Users, uidsMap)
 			// 拼接结果
 			replies = make([]*comment.DetailedReplyItem, 0, len(resp.Replies))
 			for _, item := range resp.Replies {
-				detail := &comment.DetailedReplyItem{}
-				detail.Root = &comment.ReplyItem{
-					ReplyItem: item.Root,
-					User:      userResp.Users[formatUid(item.Root.Uid)],
-				}
-				detail.SubReplies = []*comment.ReplyItem{}
-				for _, sub := range item.Subreplies {
-					detail.SubReplies = append(detail.SubReplies, &comment.ReplyItem{
-						ReplyItem: sub,
-						User:      userResp.Users[formatUid(sub.Uid)],
-					})
-				}
-				replies = append(replies, detail)
+				details := comment.NewDetailedReplyItemFromPb(item, userResp.Users)
+				replies = append(replies, details)
 			}
+		}
+
+		var pinned *comment.DetailedReplyItem
+		if req.Cursor == 0 {
+			wg.Wait()
+			// 置顶
+			pinned = comment.NewDetailedReplyItemFromPb(pinnedReply, pinnedReplyUser)
 		}
 
 		httpx.OkJson(w, &comment.DetailedCommentRes{
 			Replies:    replies,
+			PinReply:   pinned,
 			HasNext:    resp.HasNext,
 			NextCursor: resp.NextCursor,
 		})

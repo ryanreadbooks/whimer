@@ -3,6 +3,7 @@ package comment
 import (
 	"github.com/ryanreadbooks/whimer/comment/sdk"
 	"github.com/ryanreadbooks/whimer/misc/errorx"
+	"github.com/ryanreadbooks/whimer/misc/xconv"
 	"github.com/ryanreadbooks/whimer/passport/sdk/user"
 )
 
@@ -69,14 +70,49 @@ type ReplyItem struct {
 	User *user.UserInfo `json:"user"`
 }
 
+type DetailedSubReply struct {
+	Items      []*ReplyItem `json:"items"`
+	NextCursor uint64       `json:"next_cursor"`
+	HasNext    bool         `json:"has_next"`
+}
+
 // 带有子评论的评论信息
 type DetailedReplyItem struct {
-	Root       *ReplyItem   `json:"root"`
-	SubReplies []*ReplyItem `json:"sub_replies"`
+	Root       *ReplyItem        `json:"root"`
+	SubReplies *DetailedSubReply `json:"sub_replies"`
+}
+
+func NewDetailedReplyItemFromPb(item *sdk.DetailedReplyItem, userMap map[string]*user.UserInfo) *DetailedReplyItem {
+	details := &DetailedReplyItem{}
+	details.Root = &ReplyItem{
+		ReplyItem: item.Root,
+	}
+	if userMap != nil {
+		details.Root.User = userMap[xconv.FormatUint(item.Root.Uid)]
+	}
+
+	details.SubReplies = &DetailedSubReply{
+		Items:      make([]*ReplyItem, 0),
+		HasNext:    item.Subreplies.HasNext,
+		NextCursor: item.Subreplies.NextCursor,
+	}
+	for _, sub := range item.Subreplies.Items {
+		item := &ReplyItem{
+			ReplyItem: sub,
+		}
+		if userMap != nil {
+			item.User = userMap[xconv.FormatUint(sub.Uid)]
+		}
+
+		details.SubReplies.Items = append(details.SubReplies.Items, item)
+	}
+
+	return details
 }
 
 type DetailedCommentRes struct {
 	Replies    []*DetailedReplyItem `json:"replies"`
+	PinReply   *DetailedReplyItem   `json:"pin_reply,omitempty"` // 置顶评论
 	NextCursor uint64               `json:"next_cursor"`
 	HasNext    bool                 `json:"has_next"`
 }

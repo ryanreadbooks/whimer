@@ -40,6 +40,8 @@ type ReplyClient interface {
 	PageGetSubReply(ctx context.Context, in *PageGetSubReplyReq, opts ...grpc.CallOption) (*PageGetSubReplyRes, error)
 	// 获取主评论详细信息
 	PageGetDetailedReply(ctx context.Context, in *PageGetReplyReq, opts ...grpc.CallOption) (*PageGetDetailedReplyRes, error)
+	// 获取置顶评论
+	GetPinnedReply(ctx context.Context, in *GetPinnedReplyReq, opts ...grpc.CallOption) (*GetPinnedReplyRes, error)
 }
 
 type replyClient struct {
@@ -131,6 +133,15 @@ func (c *replyClient) PageGetDetailedReply(ctx context.Context, in *PageGetReply
 	return out, nil
 }
 
+func (c *replyClient) GetPinnedReply(ctx context.Context, in *GetPinnedReplyReq, opts ...grpc.CallOption) (*GetPinnedReplyRes, error) {
+	out := new(GetPinnedReplyRes)
+	err := c.cc.Invoke(ctx, "/comment.v1.Reply/GetPinnedReply", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ReplyServer is the server API for Reply service.
 // All implementations must embed UnimplementedReplyServer
 // for forward compatibility
@@ -153,6 +164,8 @@ type ReplyServer interface {
 	PageGetSubReply(context.Context, *PageGetSubReplyReq) (*PageGetSubReplyRes, error)
 	// 获取主评论详细信息
 	PageGetDetailedReply(context.Context, *PageGetReplyReq) (*PageGetDetailedReplyRes, error)
+	// 获取置顶评论
+	GetPinnedReply(context.Context, *GetPinnedReplyReq) (*GetPinnedReplyRes, error)
 	mustEmbedUnimplementedReplyServer()
 }
 
@@ -186,6 +199,9 @@ func (UnimplementedReplyServer) PageGetSubReply(context.Context, *PageGetSubRepl
 }
 func (UnimplementedReplyServer) PageGetDetailedReply(context.Context, *PageGetReplyReq) (*PageGetDetailedReplyRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PageGetDetailedReply not implemented")
+}
+func (UnimplementedReplyServer) GetPinnedReply(context.Context, *GetPinnedReplyReq) (*GetPinnedReplyRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPinnedReply not implemented")
 }
 func (UnimplementedReplyServer) mustEmbedUnimplementedReplyServer() {}
 
@@ -362,6 +378,24 @@ func _Reply_PageGetDetailedReply_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Reply_GetPinnedReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPinnedReplyReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReplyServer).GetPinnedReply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/comment.v1.Reply/GetPinnedReply",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReplyServer).GetPinnedReply(ctx, req.(*GetPinnedReplyReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Reply_ServiceDesc is the grpc.ServiceDesc for Reply service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -404,6 +438,10 @@ var Reply_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PageGetDetailedReply",
 			Handler:    _Reply_PageGetDetailedReply_Handler,
+		},
+		{
+			MethodName: "GetPinnedReply",
+			Handler:    _Reply_GetPinnedReply_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

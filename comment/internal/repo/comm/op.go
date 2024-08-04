@@ -41,13 +41,14 @@ const (
 
 var (
 	sqlSelRooParent = "SELECT id,root,parent,oid,pin FROM comment WHERE id=?"
+	sqlSelPinned    = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? AND pin=1 LIMIT 1", fields)
 	sqlSel          = fmt.Sprintf("SELECT %s FROM comment WHERE id=?", fields)
 	sqlSel4Ud       = fmt.Sprintf("SELECT %s FROM comment WHERE id=? FOR UPDATE", fields)
 	sqlSelByO       = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? %%s", fields)
 	sqlSelByRoot    = fmt.Sprintf("SELECT %s FROM comment WHERE root=? %%s", fields)
 	sqlInsert       = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fields)
 
-	sqlSelRoots = fmt.Sprintf("SELECT %s FROM comment WHERE %%s oid=? AND root=0 ORDER BY ctime DESC LIMIT ?", fields)
+	sqlSelRoots = fmt.Sprintf("SELECT %s FROM comment WHERE %%s oid=? AND root=0 AND pin=0 ORDER BY ctime DESC LIMIT ?", fields)
 	sqlSelSubs  = fmt.Sprintf("SELECT %s FROM comment WHERE id>? AND oid=? AND root=? ORDER BY ctime ASC LIMIT ?", fields)
 )
 
@@ -272,7 +273,7 @@ func (r *Repo) SetUnPinTx(ctx context.Context, tx sqlx.Session, id uint64) error
 }
 
 // 获取主评论
-func (r *Repo) GetRootReplySortByCtime(ctx context.Context, oid, cursor uint64, want int) ([]*Model, error) {
+func (r *Repo) GetRootReplies(ctx context.Context, oid, cursor uint64, want int) ([]*Model, error) {
 	var res = make([]*Model, 0, want)
 	hasCursor := ""
 	var args []any
@@ -305,4 +306,14 @@ func (r *Repo) GetSubReply(ctx context.Context, oid, root, cursor uint64, want i
 func (r *Repo) DoPin(ctx context.Context, oid, rid uint64) error {
 	_, err := r.db.ExecCtx(ctx, sqlDoPin, time.Now().Unix(), oid, rid)
 	return xsql.ConvertError(err)
+}
+
+func (r *Repo) GetPinned(ctx context.Context, oid uint64) (*Model, error) {
+	var model = new(Model)
+	err := r.db.QueryRowCtx(ctx, model, sqlSelPinned, oid)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return model, nil
 }

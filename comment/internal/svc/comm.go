@@ -230,7 +230,7 @@ func (s *CommentSvc) ReplyPin(ctx context.Context, oid, rid uint64, action int8)
 	}
 
 	if action == int8(sdk.ReplyAction_Do) {
-		if r.IsPin ==  comm.AlreadyPinned {
+		if r.IsPin == comm.AlreadyPinned {
 			return nil
 		}
 		// 置顶
@@ -440,7 +440,7 @@ func (s *CommentSvc) PageGetReply(ctx context.Context, in *sdk.PageGetReplyReq) 
 		want = 10
 	)
 
-	data, err := s.repo.CommentRepo.GetRootReplySortByCtime(ctx, in.Oid, in.Cursor, want)
+	data, err := s.repo.CommentRepo.GetRootReplies(ctx, in.Oid, in.Cursor, want)
 	if err != nil {
 		logx.Errorw("repo get root reply err", xlog.Uid(ctx), xlog.Err(err),
 			logx.Field("oid", in.Oid), logx.Field("cursor", in.Cursor))
@@ -524,13 +524,14 @@ func modelToReplyItem(model *comm.Model) *sdk.ReplyItem {
 }
 
 // 获取评论信息，包含主评论和子评论
-func (s *CommentSvc) PageGetObjectComments(ctx context.Context, in *sdk.PageGetReplyReq) (*sdk.PageGetDetailedReplyRes, error) {
+func (s *CommentSvc) PageGetObjectReplies(ctx context.Context, in *sdk.PageGetReplyReq) (*sdk.PageGetDetailedReplyRes, error) {
 	const (
 		// 默认拿10条主评论 每条主评论又取其5条子评论
 		wantRoot = 10
 		wantSub  = 5
 	)
 
+	// 先获取主评论
 	roots, err := s.PageGetReply(ctx, in)
 	if err != nil {
 		logx.Errorw("repo get object replies err", xlog.Uid(ctx), xlog.Err(err),
@@ -538,13 +539,33 @@ func (s *CommentSvc) PageGetObjectComments(ctx context.Context, in *sdk.PageGetR
 		return nil, global.ErrInternal
 	}
 
+	replies, err := s.getSubrepliesForRoots(ctx, in.Oid, roots.Replies)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sdk.PageGetDetailedReplyRes{
+		Replies:    replies,
+		NextCursor: roots.NextCursor,
+		HasNext:    roots.HasNext,
+	}, nil
+}
+
+// 获取roots主评论的子评论
+// 并且将子评论和主评论拼接后返回
+func (s *CommentSvc) getSubrepliesForRoots(ctx context.Context,
+	oid uint64,
+	roots []*sdk.ReplyItem) ([]*sdk.DetailedReplyItem, error) {
+
+	// 起协程去拿每个主评论的子评论
 	wg, ctx := errgroup.WithContext(ctx)
-	var subs = make([]*sdk.PageGetSubReplyRes, len(roots.Replies))
-	for i, root := range roots.Replies {
+	var subs = make([]*sdk.PageGetSubReplyRes, len(roots))
+	for i, root := range roots {
 		idx, rootTmp := i, root
 		wg.Go(func() error {
+			// 按照oid和root获取子评论
 			subItem, err := s.PageGetSubReply(ctx, &sdk.PageGetSubReplyReq{
-				Oid:    in.Oid,
+				Oid:    oid,
 				RootId: rootTmp.Id,
 				Cursor: 0,
 			})
@@ -556,27 +577,48 @@ func (s *CommentSvc) PageGetObjectComments(ctx context.Context, in *sdk.PageGetR
 		})
 	}
 
-	err = wg.Wait()
+	err := wg.Wait()
 	if err != nil {
 		logx.Errorw("parallel repo get sub reply err", xlog.Uid(ctx), xlog.Err(err),
-			logx.Field("oid", in.Oid), logx.Field("cursor", in.Cursor))
+			logx.Field("oid", oid))
 		return nil, global.ErrInternal
 	}
 
 	// 拼装结果
-	replies := make([]*sdk.DetailedReplyItem, 0, len(roots.Replies))
-	for i, root := range roots.Replies {
+	replies := make([]*sdk.DetailedReplyItem, 0, len(roots))
+	for i, root := range roots {
 		sub := subs[i]
 		replies = append(replies, &sdk.DetailedReplyItem{
-			Root:       root,
-			Subreplies: sub.Replies,
+			Root: root,
+			Subreplies: &sdk.DetailedSubReply{
+				Items:      sub.Replies,
+				HasNext:    sub.HasNext,
+				NextCursor: sub.NextCursor,
+			},
 		})
-
 	}
 
-	return &sdk.PageGetDetailedReplyRes{
-		Replies:    replies,
-		NextCursor: roots.NextCursor,
-		HasNext:    roots.HasNext,
+	return replies, nil
+}
+
+func (s *CommentSvc) GetPinnedReply(ctx context.Context, oid uint64) (*sdk.GetPinnedReplyRes, error) {
+	// 先找出置顶评论
+	root, err := s.repo.CommentRepo.GetPinned(ctx, oid)
+	if err != nil {
+		if xsql.IsNotFound(err) {
+			return &sdk.GetPinnedReplyRes{}, nil
+		}
+		logx.Errorw("repo get pinned err", xlog.Uid(ctx), xlog.Err(err), logx.Field("oid", oid))
+		return nil, global.ErrGetPinnedInternal
+	}
+
+	// 随后找出置顶评论的子评论
+	rootWithSubs, err := s.getSubrepliesForRoots(ctx, oid, []*sdk.ReplyItem{modelToReplyItem(root)})
+	if err != nil {
+		return nil, err
+	}
+
+	return &sdk.GetPinnedReplyRes{
+		Reply: rootWithSubs[0],
 	}, nil
 }

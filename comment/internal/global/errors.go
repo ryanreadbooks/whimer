@@ -30,6 +30,7 @@ var (
 
 	ErrPinFailInternal   = ErrInternal.Msg("置顶操作失败，请稍后重试")
 	ErrUnPinFailInternal = ErrInternal.Msg("取消置顶操作失败，请稍后重试")
+	ErrGetPinnedInternal = ErrInternal.Msg("获取置顶评论失败")
 	ErrPinFailNotRoot    = ErrArgs.Msg("不能操作非主评论")
 	ErrOidNotMatch       = ErrArgs.Msg("评论对象id不匹配")
 	ErrYouCantPinReply   = ErrPermDenied.Msg("你无权置顶评论")
