@@ -105,6 +105,16 @@ func (s *ReplyServer) PinReply(ctx context.Context, in *sdk.PinReplyReq) (*sdk.P
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
+
+	if err := s.validator.Validate(in); err != nil {
+		return nil, global.ErrArgs.Msg(err.Error())
+	}
+
+	err := s.Svc.CommentSvc.ReplyPin(ctx, in.Oid, in.Rid, int8(in.Action))
+	if err != nil {
+		return nil, err
+	}
+
 	return &sdk.PinReplyRes{}, nil
 }
 

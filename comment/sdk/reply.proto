@@ -6,6 +6,11 @@ package comment.v1;
 
 option go_package = "./sdk";
 
+enum ReplyAction {
+  Undo = 0;
+  Do = 1;
+}
+
 // 发布评论
 message AddReplyReq {
   uint32 reply_type = 1; // 评论类型
@@ -43,7 +48,11 @@ message ReportReplyReq {}
 message ReportReplyRes {}
 
 // 置顶
-message PinReplyReq {}
+message PinReplyReq {
+  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
+  uint64 rid = 2;                                        // 评论id
+  ReplyAction action = 3;
+}
 
 message PinReplyRes {}
 

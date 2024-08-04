@@ -2,6 +2,7 @@ package comment
 
 import (
 	"github.com/ryanreadbooks/whimer/comment/sdk"
+	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/passport/sdk/user"
 )
 
@@ -76,6 +77,33 @@ type DetailedReplyItem struct {
 
 type DetailedCommentRes struct {
 	Replies    []*DetailedReplyItem `json:"replies"`
-	NextCursor uint64                `json:"next_cursor"`
-	HasNext    bool                  `json:"has_next"`
+	NextCursor uint64               `json:"next_cursor"`
+	HasNext    bool                 `json:"has_next"`
+}
+
+// 删除评论
+type DelReq struct {
+	ReplyId uint64 `json:"reply_id"`
+}
+
+type PinAction int8
+
+const (
+	PinActionUnpin = 0
+	PinActionPin   = 1
+)
+
+// 置顶评论
+type PinReq struct {
+	Oid     uint64    `json:"oid"`
+	ReplyId uint64    `json:"reply_id"`
+	Action  PinAction `json:"action"`
+}
+
+func (r *PinReq) Validate() error {
+	if r.Action != PinActionUnpin && r.Action != PinActionPin {
+		return errorx.ErrArgs.Msg("不支持的置顶操作")
+	}
+
+	return nil
 }

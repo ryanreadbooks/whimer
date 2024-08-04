@@ -195,3 +195,48 @@ func attachReplyUsers(ctx context.Context, replies []*sdk.ReplyItem) ([]*comment
 func formatUid(uid uint64) string {
 	return strconv.FormatUint(uid, 10)
 }
+
+func (h *Handler) DelComment() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req comment.DelReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+			return
+		}
+
+		_, err := comment.GetCommenter().DelReply(r.Context(), &sdk.DelReplyReq{ReplyId: req.ReplyId})
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		httpx.OkJson(w, nil)
+	}
+}
+
+func (h *Handler) PinComment() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req comment.PinReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+			return
+		}
+
+		if err := req.Validate(); err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		_, err := comment.GetCommenter().PinReply(r.Context(), &sdk.PinReplyReq{
+			Oid:    req.Oid,
+			Rid:    req.ReplyId,
+			Action: sdk.ReplyAction(req.Action),
+		})
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		httpx.OkJson(w, nil)
+	}
+}

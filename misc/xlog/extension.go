@@ -12,5 +12,5 @@ func Uid(ctx context.Context) logx.LogField {
 }
 
 func Err(err error) logx.LogField {
-	return logx.LogField{Key: "err", Value: err}
+	return logx.LogField{Key: "err", Value: err.Error()}
 }
