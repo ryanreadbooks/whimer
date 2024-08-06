@@ -7,10 +7,10 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-func Uid(ctx context.Context) logx.LogField {
+func WithUid(ctx context.Context) logx.LogField {
 	return logx.LogField{Key: "uid", Value: metadata.Uid(ctx)}
 }
 
-func Err(err error) logx.LogField {
+func WithErr(err error) logx.LogField {
 	return logx.LogField{Key: "err", Value: err.Error()}
 }

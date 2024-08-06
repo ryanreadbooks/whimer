@@ -7,7 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/global"
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/queue"
 	"github.com/ryanreadbooks/whimer/comment/internal/svc"
-	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 )
 
 type Job struct {
@@ -24,11 +24,11 @@ func New(svc *svc.ServiceContext) *Job {
 
 // Job需要实现kq.ConsumerHandler接口
 func (j *Job) Consume(ctx context.Context, key, value string) error {
-	logx.Infof("job Consume key: %s, value: %s", key, value)
+	xlog.Info("job Consume err").Extra("key", key).Extra("value", value).Do()
 	var data queue.Data
 	err := json.Unmarshal([]byte(value), &data)
 	if err != nil {
-		logx.Errorf("job consumer json.Unmarshal err: %v", err)
+		xlog.Error("job Consume json.Unmarshal err").Err(err)
 		return err
 	}
 
@@ -42,7 +42,7 @@ func (j *Job) Consume(ctx context.Context, key, value string) error {
 	case queue.ActPinReply:
 		return j.Svc.CommentSvc.ConsumePinEv(ctx, data.PinReplyData)
 	default:
-		logx.Errorf("job consumer got unsupported action type: %v", data.Action)
+		xlog.Error("job Consumer got unsupported action type").Extra("type", data.Action).Do()
 		return global.ErrInternal
 	}
 }

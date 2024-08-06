@@ -3,6 +3,7 @@ package svc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
@@ -10,6 +11,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/oss"
 	"github.com/ryanreadbooks/whimer/misc/oss/signer"
 	"github.com/ryanreadbooks/whimer/misc/safety"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	crtp "github.com/ryanreadbooks/whimer/note/internal/model/note"
@@ -85,7 +87,7 @@ func (s *NoteSvc) Create(ctx context.Context, req *crtp.CreateReq) (uint64, erro
 	})
 
 	if err != nil {
-		logx.Errorf("repo transact insert note err: %v, req: %+v, uid: %d", err, req, uid)
+		xlog.Errorx(ctx, "repo transact insert note err").Err(err).Extra("req", req).Do()
 		return 0, global.ErrInsertNoteFail
 	}
 
@@ -99,13 +101,13 @@ func (s *NoteSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
 
 	now := time.Now().Unix()
 	noteId := req.NoteId
-	logx.Debugf("creator updating noteid: %d", noteId)
+	xlog.Debugx(ctx, fmt.Sprintf("creator updating noteid: %d", noteId)).Do()
 	queried, err := s.repo.NoteRepo.FindOne(ctx, noteId)
 	if errors.Is(xsql.ErrNoRecord, err) {
 		return global.ErrNoteNotFound
 	}
 	if err != nil {
-		logx.Errorf("repo find one note err: %v, req: %+v, uid: %d", err, req, uid)
+		xlog.Errorx(ctx, "repo find one note err").Err(err).Extra("req", req).Do()
 		return global.ErrUpdateNoteFail
 	}
 

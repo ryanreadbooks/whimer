@@ -125,7 +125,7 @@ func (s *Service) UpdateAvatar(ctx context.Context, req *profile.AvatarInfoReq) 
 func (s *Service) GetByUids(ctx context.Context, uids []uint64) (map[string]*userrpc.UserInfo, error) {
 	basics, err := s.repo.UserBaseRepo.FindBasicByUids(ctx, uids)
 	if err != nil {
-		logx.Errorw("repo find basic by uids err", xlog.Uid(ctx), logx.Field("uids", uids))
+		logx.Errorw("repo find basic by uids err", xlog.WithUid(ctx), logx.Field("uids", uids))
 		return nil, global.ErrGetUserFail
 	}
 
