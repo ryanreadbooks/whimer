@@ -147,7 +147,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 				resp, err := comment.GetCommenter().
 					GetPinnedReply(ctx, &sdk.GetPinnedReplyReq{Oid: req.Oid})
 				if err != nil {
-					logx.Errorw("rpc get pin reply err", xlog.Uid(ctx), xlog.Err(err))
+					logx.Errorw("rpc get pin reply err", xlog.WithUid(ctx), xlog.WithErr(err))
 					return
 				}
 				pinnedReply = resp.Reply
@@ -159,7 +159,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 						},
 					)
 				if err != nil {
-					logx.Errorw("rpc get batch get user err", xlog.Uid(ctx), xlog.Err(err))
+					logx.Errorw("rpc get batch get user err", xlog.WithUid(ctx), xlog.WithErr(err))
 					return
 				}
 				pinnedReplyUser = make(map[string]*user.UserInfo)

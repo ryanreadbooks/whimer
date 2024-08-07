@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
 
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
 const (
@@ -35,14 +35,14 @@ func (s *Service) SignUpTel(ctx context.Context, tel string) (*userbase.Model, e
 	// 1. 初始化密码
 	pass, salt, err := makeInitPass()
 	if err != nil {
-		logx.Errorf("gen init pass when register tel err: %v", err)
+		xlog.Msg("gen init pass when register tel err").Err(err).Error()
 		return nil, global.ErrRegisterTel
 	}
 
 	// 2. 生成uid
 	uid, err := s.regTakeUid(ctx)
 	if err != nil {
-		logx.Errorf("reg take uid err: %v", err)
+		xlog.Msg("reg take uid err").Err(err).Error()
 		return nil, global.ErrRegisterTel
 	}
 
@@ -64,7 +64,7 @@ func (s *Service) SignUpTel(ctx context.Context, tel string) (*userbase.Model, e
 
 	err = s.repo.UserBaseRepo.Insert(ctx, &user)
 	if err != nil {
-		logx.Errorf("register tel insert user err: %v", err)
+		xlog.Msg("register tel insert user err").Err(err).Error()
 		if errors.Is(xsql.ErrDuplicate, err) {
 			// 手机号重复
 			return nil, global.ErrTelTaken

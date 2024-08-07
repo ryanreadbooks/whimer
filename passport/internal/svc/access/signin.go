@@ -3,8 +3,10 @@ package access
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/ryanreadbooks/whimer/misc/concur"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
@@ -12,7 +14,6 @@ import (
 	"github.com/ryanreadbooks/whimer/passport/internal/model/profile"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
 
-	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -48,7 +49,7 @@ func (s *Service) RequestSms(ctx context.Context, tel string) error {
 	lock.SetExpire(minute) // 同一个电话号码60s只能获取一次手机验证码
 	acquired, err := lock.AcquireCtx(ctx)
 	if err != nil {
-		logx.Errorf("redis lock fail when request sms, err: %v, tel: %s", err, tel)
+		xlog.Msg("redis lock fail when request sms err").Err(err).Errorx(ctx)
 		return global.ErrRequestSms
 	}
 
@@ -60,11 +61,11 @@ func (s *Service) RequestSms(ctx context.Context, tel string) error {
 	key := getSmsCodeTelKey(tel)
 	err = s.cache.SetexCtx(ctx, key, smsCode, fiveMinutes)
 	if err != nil {
-		logx.Errorf("request sms redix setex err: %v, tel: %s", err, tel)
+		xlog.Msg("request sms redix setex err").Err(err).Errorx(ctx)
 		return global.ErrRequestSms
 	}
 
-	logx.Debugf("request sms, code = %s", smsCode)
+	xlog.Msg(fmt.Sprintf("request sms, code = %s", smsCode))
 
 	return nil
 }
@@ -80,7 +81,7 @@ func (s *Service) SignInWithSms(ctx context.Context, req *tp.SignInSmdReq) (*use
 	lock := redis.NewRedisLock(s.cache, getLockSignInTel(tel))
 	acquired, err := lock.AcquireCtx(ctx)
 	if err != nil {
-		logx.Errorf("redis lock fail when sign in with sms, err: %v, tel: %s", err, tel)
+		xlog.Msg("redis lock fail when request sms err").Err(err).Errorx(ctx)
 		return nil, nil, global.ErrSignIn
 	}
 	if !acquired {
@@ -88,13 +89,13 @@ func (s *Service) SignInWithSms(ctx context.Context, req *tp.SignInSmdReq) (*use
 	}
 	defer func() {
 		if _, err := lock.Release(); err != nil {
-			logx.Errorf("redis lock release err: %v", err)
+			xlog.Msg("redis lock release err").Err(err).Errorx(ctx)
 		}
 	}()
 
 	smsCode, err := s.cache.GetCtx(ctx, getSmsCodeTelKey(tel))
 	if err != nil {
-		logx.Errorf("redis get err: %v, tel: %s", err, tel)
+		xlog.Msg("redis get err").Err(err).Errorx(ctx)
 		return nil, nil, global.ErrSignIn
 	}
 
@@ -106,14 +107,14 @@ func (s *Service) SignInWithSms(ctx context.Context, req *tp.SignInSmdReq) (*use
 	// 验证码正确 允许登录
 	user, sess, err := s.signIn(ctx, tel, platform)
 	if err != nil {
-		logx.Errorf("sign in err: %v, tel: %s", err, tel)
+		xlog.Msg("sign in err").Err(err).Errorx(ctx)
 		return nil, nil, err
 	}
 
 	// 删除验证码
 	concur.SafeGo(func() {
 		if _, err := s.cache.DelCtx(context.Background(), getSmsCodeTelKey(tel)); err != nil {
-			logx.Errorf("cache del sms code err: %v", err)
+			xlog.Msg("cache del sms code err").Err(err).Errorx(ctx)
 		}
 	})
 
@@ -130,14 +131,14 @@ func (s *Service) signIn(ctx context.Context, tel string, platform string) (*use
 	user, err = s.repo.UserBaseRepo.FindByTel(ctx, tel)
 	if err != nil {
 		if !errors.Is(xsql.ErrNoRecord, err) {
-			logx.Errorf("user base find basic by tel err: %v, tel: %s", err, tel)
+			xlog.Msg("user base find basic by tel err").Err(err).Errorx(ctx)
 			return nil, nil, global.ErrSignIn
 		}
 
 		// 用户未注册 自动注册
 		user, err = s.SignUpTel(ctx, tel)
 		if err != nil {
-			logx.Errorf("auto register tel err: %v, tel: %s", err, tel)
+			xlog.Msg("auto register tel err").Err(err).Errorx(ctx)
 			return nil, nil, global.ErrSignIn
 		}
 	}
@@ -157,7 +158,7 @@ func (s *Service) signIn(ctx context.Context, tel string, platform string) (*use
 	// 为user登录
 	sess, err := s.userSignIn(ctx, userBasic, platform)
 	if err != nil {
-		logx.Errorf("user sign in err: %v", err)
+		xlog.Msg("user sign in err").Err(err).Errorx(ctx)
 		return nil, nil, err
 	}
 
@@ -167,7 +168,7 @@ func (s *Service) signIn(ctx context.Context, tel string, platform string) (*use
 func (s *Service) userSignIn(ctx context.Context, user *userbase.Basic, platform string) (*model.Session, error) {
 	sess, err := s.sessMgr.NewSession(ctx, user, platform)
 	if err != nil {
-		logx.Errorf("new session err: %v, uid: %d", err, user.Uid)
+		xlog.Msg("new session err").Err(err).Uid(user.Uid).Error()
 		return nil, err
 	}
 
@@ -178,7 +179,7 @@ func (s *Service) userSignIn(ctx context.Context, user *userbase.Basic, platform
 func (s *Service) CheckSignedIn(ctx context.Context, sessId string) (*profile.MeInfo, error) {
 	sess, err := s.sessMgr.GetSession(ctx, sessId)
 	if err != nil {
-		logx.Errorf("check signed in get session err: %v, sessId: %s", err, sessId)
+		xlog.Msg("check signed in get session err").Err(err).Extra("sessId", sessId).Error()
 		return nil, err
 	}
 
@@ -190,7 +191,7 @@ func (s *Service) CheckSignedIn(ctx context.Context, sessId string) (*profile.Me
 func (s *Service) CheckPlatformSignedIn(ctx context.Context, sessId string, platform string) (*profile.MeInfo, error) {
 	sess, err := s.sessMgr.GetSession(ctx, sessId)
 	if err != nil {
-		logx.Errorf("check signed in get session err: %v, sessId: %s", err, sessId)
+		xlog.Msg("check signed in get session err").Err(err).Extra("sessId", sessId).Error()
 		return nil, err
 	}
 
@@ -204,7 +205,7 @@ func (s *Service) CheckPlatformSignedIn(ctx context.Context, sessId string, plat
 func (s *Service) ExtractMeInfo(detail string) (*profile.MeInfo, error) {
 	user, err := s.sessMgr.UnmarshalUserBasic(detail)
 	if err != nil {
-		logx.Errorf("unmarshal user basic err: %v", err)
+		xlog.Msg("unmarshal user basic err").Err(err).Error()
 		return nil, global.ErrInternal.Msg(err.Error())
 	}
 
@@ -214,7 +215,7 @@ func (s *Service) ExtractMeInfo(detail string) (*profile.MeInfo, error) {
 func (s *Service) SignOutCurrent(ctx context.Context, sessId string) error {
 	err := s.sessMgr.InvalidateSession(ctx, sessId)
 	if err != nil {
-		logx.Errorf("signout single invalidate session err: %v, sessId: %s", err, sessId)
+		xlog.Msg("signout single invalidate session err").Err(err).Extra("sessId", sessId).Error()
 		return global.ErrInternal
 	}
 
