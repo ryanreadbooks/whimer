@@ -9,9 +9,9 @@ import (
 	"math/rand"
 
 	"github.com/ryanreadbooks/whimer/misc/utils"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
-	"github.com/zeromicro/go-zero/core/logx"
 
 	"github.com/google/uuid"
 )
@@ -70,7 +70,7 @@ func (s *Service) verifyPass(ctx context.Context, uid uint64, pass string) error
 	passSalt, err := s.repo.UserBaseRepo.FindPassSalt(ctx, uid)
 	if err != nil {
 		if !errors.Is(err, xsql.ErrNoRecord) {
-			logx.Errorf("pass verify err: %v", err)
+			xlog.Msg("pass verification err").Err(err).Errorx(ctx)
 			return global.ErrInternal
 		}
 		// 用户未注册

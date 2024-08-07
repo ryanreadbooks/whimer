@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/passport/internal/config"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc/session"
 
 	"github.com/ryanreadbooks/folium/sdk"
-	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -38,7 +38,7 @@ func New(c *config.Config, repo *repo.Repo, cache *redis.Redis) *Service {
 	defer cancel()
 	err = s.idgen.Ping(ctx)
 	if err != nil {
-		logx.Errorf("new passport svc, can not ping idgen(folium): %v", err)
+		xlog.Msg("new passport svc, can not ping idgen(folium)").Err(err).Error()
 	}
 
 	s.sessMgr = session.NewManager(s.cache)

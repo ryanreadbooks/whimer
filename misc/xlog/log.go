@@ -35,8 +35,18 @@ type LogItem struct {
 	extra  map[string]any
 }
 
+func (l *LogItem) Msg(s string) *LogItem {
+	l.msg = s
+	return l
+}
+
 func (l *LogItem) Err(err error) *LogItem {
 	l.err = err
+	return l
+}
+
+func (l *LogItem) Uid(id uint64) *LogItem {
+	l.fields["uid"] = id
 	return l
 }
 
@@ -166,20 +176,38 @@ func Severef(f string, v ...any) {
 	logx.Severef(f, v...)
 }
 
+func newLogItem() *LogItem {
+	return &LogItem{fields: make(map[string]any), extra: make(map[string]any)}
+}
+
 func Msg(s string) *LogItem {
-	return &LogItem{msg: s, fields: make(map[string]any), extra: make(map[string]any)}
+	l := newLogItem()
+	l.msg = s
+	return l
 }
 
 func Err(err error) *LogItem {
-	return &LogItem{err: err, fields: make(map[string]any), extra: make(map[string]any)}
+	l := newLogItem()
+	l.err = err
+	return l
 }
 
 func Field(key string, val string) *LogItem {
-	return &LogItem{fields: map[string]any{key: val}, extra: make(map[string]any)}
+	l := newLogItem()
+	l.fields[key] = val
+	return l
 }
 
 func Extra(key string, val string) *LogItem {
-	return &LogItem{extra: map[string]any{key: val}, fields: make(map[string]any)}
+	l := newLogItem()
+	l.extra[key] = val
+	return l
+}
+
+func Uid(uid uint64) *LogItem {
+	l := newLogItem()
+	l.fields["uid"] = uid
+	return l
 }
 
 func (l *LogItem) Debugx(ctx context.Context) {

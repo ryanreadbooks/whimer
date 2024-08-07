@@ -31,7 +31,7 @@ func (s *Service) replaceAvatar(u *userbase.Basic) {
 func (s *Service) GetMe(ctx context.Context, uid uint64) (*profile.MeInfo, error) {
 	basic, err := s.repo.UserBaseRepo.FindBasic(ctx, uid)
 	if err != nil {
-		logx.Errorf("repo find basic err: %v, uid: %d", err, uid)
+		xlog.Msg("repo find basic err").Err(err).Extra("target_uid", uid).Errorx(ctx)
 		if !errors.Is(err, xsql.ErrNoRecord) {
 			return nil, global.ErrInternal
 		}
@@ -55,7 +55,7 @@ func (s *Service) UpdateMe(ctx context.Context, newMe *ptp.UpdateMeReq) (*profil
 
 	if err != nil {
 		if xsql.IsCriticalErr(err) {
-			logx.Errorf("update me err: %v, uid: %d", err, newMe.Uid)
+			xlog.Msg("update me err").Err(err).Extra("target_uid", newMe.Uid).Errorx(ctx)
 			return nil, global.ErrInternal
 		}
 		if xsql.IsDuplicate(err) {
@@ -98,17 +98,21 @@ func (s *Service) UpdateAvatar(ctx context.Context, req *profile.AvatarInfoReq) 
 		ContentType: req.ContentType,
 	})
 	if err != nil {
-		logx.Errorf("avatar upload err: %v, uid: %d", err, user.Uid)
+		xlog.Msg("avatar upload err").Err(err).Extra("target_uid", user.Uid).Errorx(ctx)
 		return "", global.ErrUploadAvatar
 	}
 
 	// avatar数据落库
 	err = s.repo.UserBaseRepo.UpdateAvatar(ctx, objName, user.Uid)
 	if err != nil {
-		logx.Errorf("repo update avatar err: %v, uid: %d", err, user.Uid)
+		xlog.Msg("repo update avatar err").Err(err).Extra("target_uid", user.Uid).Errorx(ctx)
+		// 异步
 		concur.DoneIn(time.Second*10, func(ctx context.Context) {
 			if err := s.avatarUploader.Remove(ctx, s.c.Oss.Bucket, objName); err != nil {
-				logx.Errorf("repo update then remove oss err: %v, obj: %s", err, objName)
+				xlog.Msg("goroutine repo update then remove oss err").Err(err).
+					Extra("target_uid", user.Uid).
+					Extra("obj", objName).
+					Errorx(ctx)
 			}
 		})
 

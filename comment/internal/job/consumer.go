@@ -24,11 +24,11 @@ func New(svc *svc.ServiceContext) *Job {
 
 // Job需要实现kq.ConsumerHandler接口
 func (j *Job) Consume(ctx context.Context, key, value string) error {
-	xlog.Info("job Consume err").Extra("key", key).Extra("value", value).Do()
+	xlog.Msg("job Consume err").Extra("key", key).Extra("value", value).Debugx(ctx)
 	var data queue.Data
 	err := json.Unmarshal([]byte(value), &data)
 	if err != nil {
-		xlog.Error("job Consume json.Unmarshal err").Err(err)
+		xlog.Error("job Consume json.Unmarshal err").Err(err).Errorx(ctx)
 		return err
 	}
 
@@ -42,7 +42,7 @@ func (j *Job) Consume(ctx context.Context, key, value string) error {
 	case queue.ActPinReply:
 		return j.Svc.CommentSvc.ConsumePinEv(ctx, data.PinReplyData)
 	default:
-		xlog.Error("job Consumer got unsupported action type").Extra("type", data.Action).Do()
+		xlog.Msg("job Consumer got unsupported action type").Extra("type", data.Action).Debugx(ctx)
 		return global.ErrInternal
 	}
 }

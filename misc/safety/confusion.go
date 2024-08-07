@@ -3,8 +3,8 @@ package safety
 import (
 	"strconv"
 
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/speps/go-hashids/v2"
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
 const (
@@ -78,12 +78,12 @@ func (c *Confuser) DeConfuseU(s string) uint64 {
 	h, _ := hashids.NewWithData(c.hd)
 	res, err := h.DecodeHex(s)
 	if err != nil || len(res) <= 0 {
-		logx.Errorf("confuder DecodeHex err: %v", err)
+		xlog.Msg("confuser DecodeHex err").Err(err).Error()
 		return 0
 	}
 	number, err := strconv.ParseUint(res, 10, 64)
 	if err != nil {
-		logx.Errorf("confuser ParseUint err: %v", err)
+		xlog.Msg("confuser ParseUint err").Err(err).Error()
 	}
 
 	return number

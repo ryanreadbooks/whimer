@@ -67,7 +67,7 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 	// 取一个号
 	replyId, err := s.seqer.GetId(ctx, seqerReplyKey, 10000)
 	if err != nil {
-		xlog.Errorx(ctx, "reply add GetId err").Err(err).Do()
+		xlog.Msg("reply add GetId err").Err(err).Errorx(ctx)
 		return nil, global.ErrInternal
 	}
 
@@ -90,7 +90,7 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 	if isRootReply(rootId, parentId) {
 		err = s.repo.Bus.AddReply(ctx, &reply)
 		if err != nil {
-			xlog.Errorx(ctx, "push reply to queue err").Err(err).Extra("replyId", replyId).Do()
+			xlog.Msg("push reply to queue err").Err(err).Extra("replyId", replyId).Errorx(ctx)
 			return nil, global.ErrInternal
 		}
 	} else {
@@ -102,7 +102,7 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 			// 可以插入
 			err = s.repo.Bus.AddReply(ctx, &reply)
 			if err != nil {
-				xlog.Errorx(ctx, "push subreply to queue err").Err(err).Extra("replyId", replyId).Do()
+				xlog.Msg("push subreply to queue err").Err(err).Extra("replyId", replyId).Errorx(ctx)
 				return global.ErrInternal
 			}
 			return nil
@@ -141,7 +141,7 @@ func (s *CommentSvc) ReplyDel(ctx context.Context, rid uint64) error {
 	reply, err := s.repo.CommentRepo.FindById(ctx, rid)
 	if err != nil {
 		if !xsql.IsNotFound(err) {
-			xlog.Errorx(ctx, "reply del find by id err").Err(err).Extra("rid", rid).Do()
+			xlog.Msg("reply del find by id err").Err(err).Extra("rid", rid).Errorx(ctx)
 			return global.ErrInternal
 		}
 		return global.ErrReplyNotFound
@@ -154,7 +154,7 @@ func (s *CommentSvc) ReplyDel(ctx context.Context, rid uint64) error {
 
 	err = s.repo.Bus.DelReply(ctx, rid, reply)
 	if err != nil {
-		xlog.Errorx(ctx, "del reply to queue err").Err(err).Extra("rid", rid).Do()
+		xlog.Msg("del reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
 		return global.ErrInternal
 	}
 
@@ -166,13 +166,13 @@ func (s *CommentSvc) ReplyLike(ctx context.Context, rid uint64, action int8) err
 	if action == int8(sdk.ReplyAction_Do) {
 
 		if err := s.repo.Bus.LikeReply(ctx, rid); err != nil {
-			xlog.Errorx(ctx, "like reply to queue err").Err(err).Extra("rid", rid).Do()
+			xlog.Msg("like reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
 			return global.ErrInternal
 		}
 	}
 
 	if err := s.repo.Bus.UnLikeReply(ctx, rid); err != nil {
-		xlog.Errorx(ctx, "unlike reply to queue err").Err(err).Extra("rid", rid).Do()
+		xlog.Msg("unlike reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
 		return global.ErrInternal
 	}
 
@@ -183,13 +183,13 @@ func (s *CommentSvc) ReplyLike(ctx context.Context, rid uint64, action int8) err
 func (s *CommentSvc) ReplyDislike(ctx context.Context, rid uint64, action int8) error {
 	if action == int8(sdk.ReplyAction_Do) {
 		if err := s.repo.Bus.DisLikeReply(ctx, rid); err != nil {
-			xlog.Errorx(ctx, "dislike reply to queue err").Err(err).Extra("rid", rid).Do()
+			xlog.Msg("dislike reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
 			return global.ErrInternal
 		}
 	}
 
 	if err := s.repo.Bus.UndisLikeReply(ctx, rid); err != nil {
-		xlog.Errorx(ctx, "undislike reply to queue err").Err(err).Extra("rid", rid).Do()
+		xlog.Msg("undislike reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
 		return global.ErrInternal
 	}
 
@@ -209,8 +209,8 @@ func (s *CommentSvc) ReplyPin(ctx context.Context, oid, rid uint64, action int8)
 		if xsql.IsNotFound(err) {
 			return global.ErrReplyNotFound
 		}
-		xlog.Errorx(ctx, "repo find uid root parent err").Err(err).
-			Extra("rid", rid).Extra("action", action).Do()
+		xlog.Msg("repo find uid root parent err").Err(err).
+			Extra("rid", rid).Extra("action", action).Errorx(ctx)
 		return global.ErrPinFailInternal
 	}
 	if r.Oid != oid {
@@ -234,8 +234,8 @@ func (s *CommentSvc) ReplyPin(ctx context.Context, oid, rid uint64, action int8)
 		// 置顶
 		err = s.repo.Bus.PinReply(ctx, r.Oid, rid)
 		if err != nil {
-			xlog.Errorx(ctx, "bus put pin reply err").Err(err).
-				Extra("rid", rid).Extra("action", action).Do()
+			xlog.Msg("bus put pin reply err").Err(err).
+				Extra("rid", rid).Extra("action", action).Errorx(ctx)
 			return global.ErrPinFailInternal
 		}
 
@@ -247,8 +247,8 @@ func (s *CommentSvc) ReplyPin(ctx context.Context, oid, rid uint64, action int8)
 
 		err = s.repo.Bus.UnpinReply(ctx, r.Oid, rid)
 		if err != nil {
-			xlog.Errorx(ctx, "bus put unpin reply err").Err(err).
-				Extra("rid", rid).Extra("action", action).Do()
+			xlog.Msg("bus put unpin reply err").Err(err).
+				Extra("rid", rid).Extra("action", action).Errorx(ctx)
 			return global.ErrUnPinFailInternal
 		}
 	}
@@ -263,7 +263,7 @@ func (s *CommentSvc) userOwnsOid(ctx context.Context, uid, oid uint64) error {
 			NoteId: oid,
 		})
 	if err != nil {
-		xlog.Errorx(ctx, "check IsUserOwnNote err").Err(err).Extra("oid", oid).Do()
+		xlog.Msg("check IsUserOwnNote err").Err(err).Extra("oid", oid).Errorx(ctx)
 		return global.ErrInternal
 	}
 
@@ -278,7 +278,7 @@ func (s *CommentSvc) findReplyForUpdate(ctx context.Context, tx sqlx.Session, ri
 	m, err := s.repo.CommentRepo.FindByIdForUpdate(ctx, tx, rid)
 	if err != nil {
 		if !xsql.IsNotFound(err) {
-			xlog.Errorx(ctx, "repo find root by id for update err").Err(err).Extra("rid", rid).Do()
+			xlog.Msg("repo find root by id for update err").Err(err).Extra("rid", rid).Errorx(ctx)
 			return nil, global.ErrInternal
 		}
 		return nil, global.ErrReplyNotFound
@@ -319,7 +319,7 @@ func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReply
 			NoteId: oid,
 		})
 	if err != nil {
-		xlog.Errorx(ctx, "noter check note exists err").Err(err).Extra("oid", oid).Do()
+		xlog.Msg("noter check note exists err").Err(err).Extra("oid", oid).Errorx(ctx)
 		return err
 	}
 
@@ -332,7 +332,7 @@ func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReply
 	if isRootReply(rootId, parentId) {
 		_, err := s.repo.CommentRepo.Insert(ctx, (*comm.Model)(data))
 		if err != nil {
-			xlog.Errorx(ctx, "repo insert err").Err(err).Extra("rid", data.Id).Do()
+			xlog.Msg("repo insert err").Err(err).Extra("rid", data.Id).Errorx(ctx)
 			return err
 		}
 	} else {
@@ -348,7 +348,7 @@ func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReply
 			// 可以添加该评论
 			_, err = s.repo.CommentRepo.Insert(ctx, (*comm.Model)(data))
 			if err != nil {
-				xlog.Errorx(ctx, "repo insert err").Err(err).Extra("rid", data.Id).Do()
+				xlog.Msg("repo insert err").Err(err).Extra("rid", data.Id).Errorx(ctx)
 				return err
 			}
 
@@ -356,7 +356,7 @@ func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReply
 		})
 
 		if err != nil {
-			xlog.Errorx(ctx, "repo tx all reply err").Err(err).Do()
+			xlog.Msg("repo tx all reply err").Err(err).Errorx(ctx)
 			return err
 		}
 	}
@@ -379,13 +379,13 @@ func (s *CommentSvc) ConsumeDelReplyEv(ctx context.Context, data *queue.DelReply
 			// 删除主评论
 			err = s.repo.CommentRepo.DeleteByIdTx(ctx, tx, rid)
 			if err != nil {
-				xlog.Errorx(ctx, "repo delete by id tx err").Err(err).Extra("rid", rid).Do()
+				xlog.Msg("repo delete by id tx err").Err(err).Extra("rid", rid).Errorx(ctx)
 				return global.ErrInternal
 			}
 			// 删除旗下子评论
 			err = s.repo.CommentRepo.DeleteByRootTx(ctx, tx, rid)
 			if err != nil {
-				xlog.Errorx(ctx, "repo delete by root tx err").Err(err).Extra("rid", rid).Do()
+				xlog.Msg("repo delete by root tx err").Err(err).Extra("rid", rid).Errorx(ctx)
 				return global.ErrInternal
 			}
 
@@ -396,7 +396,7 @@ func (s *CommentSvc) ConsumeDelReplyEv(ctx context.Context, data *queue.DelReply
 		// 只需要删除评论本身
 		err := s.repo.CommentRepo.DeleteById(ctx, rid)
 		if err != nil {
-			xlog.Errorx(ctx, "repo delete by id err").Err(err).Extra("rid", rid).Do()
+			xlog.Msg("repo delete by id err").Err(err).Extra("rid", rid).Errorx(ctx)
 			return global.ErrInternal
 		}
 	}
@@ -417,14 +417,14 @@ func (s *CommentSvc) ConsumePinEv(ctx context.Context, data *queue.PinReplyData)
 	if data.Action == queue.ActionDo {
 		err := s.repo.CommentRepo.DoPin(ctx, oid, rid)
 		if err != nil {
-			xlog.Errorx(ctx, "consume repo do pin err").Err(err).Extra("rid", rid).Extra("oid", oid).Do()
+			xlog.Msg("consume repo do pin err").Err(err).Extra("rid", rid).Extra("oid", oid).Errorx(ctx)
 			return global.ErrPinFailInternal
 		}
 	} else {
 		// 取消置顶
 		err := s.repo.CommentRepo.SetUnPin(ctx, rid)
 		if err != nil {
-			xlog.Errorx(ctx, "consume repo set unpin err").Err(err).Extra("rid", rid).Extra("oid", oid).Do()
+			xlog.Msg("consume repo set unpin err").Err(err).Extra("rid", rid).Extra("oid", oid).Errorx(ctx)
 			return global.ErrUnPinFailInternal
 		}
 	}
@@ -440,8 +440,8 @@ func (s *CommentSvc) PageGetReply(ctx context.Context, in *sdk.PageGetReplyReq) 
 
 	data, err := s.repo.CommentRepo.GetRootReplies(ctx, in.Oid, in.Cursor, want)
 	if err != nil {
-		xlog.Errorx(ctx, "repo get root reply err").Err(err).
-			Extra("cursor", in.Cursor).Extra("oid", in.Oid).Do()
+		xlog.Msg("repo get root reply err").Err(err).
+			Extra("cursor", in.Cursor).Extra("oid", in.Oid).Errorx(ctx)
 		return nil, global.ErrInternal
 	}
 
@@ -472,8 +472,8 @@ func (s *CommentSvc) PageGetSubReply(ctx context.Context, in *sdk.PageGetSubRepl
 
 	data, err := s.repo.CommentRepo.GetSubReply(ctx, in.Oid, in.RootId, in.Cursor, want)
 	if err != nil {
-		xlog.Errorx(ctx, "repo get sub reply err").Err(err).
-			Extra("cursor", in.Cursor).Extra("oid", in.Oid).Do()
+		xlog.Msg("repo get sub reply err").Err(err).
+			Extra("cursor", in.Cursor).Extra("oid", in.Oid).Errorx(ctx)
 		return nil, global.ErrInternal
 	}
 
@@ -532,8 +532,8 @@ func (s *CommentSvc) PageGetObjectReplies(ctx context.Context, in *sdk.PageGetRe
 	// 先获取主评论
 	roots, err := s.PageGetReply(ctx, in)
 	if err != nil {
-		xlog.Errorx(ctx, "repo get object replies err").Err(err).
-			Extra("cursor", in.Cursor).Extra("oid", in.Oid).Do()
+		xlog.Msg("repo get object replies err").Err(err).
+			Extra("cursor", in.Cursor).Extra("oid", in.Oid).Errorx(ctx)
 		return nil, global.ErrInternal
 	}
 
@@ -577,7 +577,7 @@ func (s *CommentSvc) getSubrepliesForRoots(ctx context.Context,
 
 	err := wg.Wait()
 	if err != nil {
-		xlog.Errorx(ctx, "parallel repo get sub reply err").Err(err).Extra("oid", oid).Do()
+		xlog.Msg("parallel repo get sub reply err").Err(err).Extra("oid", oid).Errorx(ctx)
 		return nil, global.ErrInternal
 	}
 
@@ -605,7 +605,7 @@ func (s *CommentSvc) GetPinnedReply(ctx context.Context, oid uint64) (*sdk.GetPi
 		if xsql.IsNotFound(err) {
 			return &sdk.GetPinnedReplyRes{}, nil
 		}
-		xlog.Errorx(ctx, "repo get pinned err").Err(err).Extra("oid", oid).Do()
+		xlog.Msg("repo get pinned err").Err(err).Extra("oid", oid).Errorx(ctx)
 		return nil, global.ErrGetPinnedInternal
 	}
 

@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/utils"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
-	"github.com/zeromicro/go-zero/core/logx"
+
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -71,7 +72,7 @@ func (m *Manager) UnmarshalUserBasic(data string) (*userbase.Basic, error) {
 func (m *Manager) GetSession(ctx context.Context, sessId string) (*model.Session, error) {
 	sess, found, err := m.store.Get(ctx, sessId)
 	if err != nil {
-		logx.Errorf("store get session err: %v, sessId: %s", err, sessId)
+		xlog.Msg("store get session err").Err(err).Extra("sessId", sessId).Errorx(ctx)
 		return nil, global.ErrInternal
 	}
 
@@ -87,7 +88,7 @@ func (m *Manager) GetSession(ctx context.Context, sessId string) (*model.Session
 func (m *Manager) NewSession(ctx context.Context, user *userbase.Basic, platform string) (*model.Session, error) {
 	sessId, err := getToken()
 	if err != nil {
-		logx.Errorf("getToken err: %v", err)
+		xlog.Msg("newSession getToken err").Err(err).Errorx(ctx)
 		return nil, global.ErrSignIn
 	}
 
@@ -97,14 +98,14 @@ func (m *Manager) NewSession(ctx context.Context, user *userbase.Basic, platform
 	session.Platform = platform
 	detail, err := m.MarshalUserBasic(user)
 	if err != nil {
-		logx.Errorf("marshalUserBasic err: %v", err)
+		xlog.Msg("marshalUserBasic err").Err(err).Errorx(ctx)
 		return nil, global.ErrSignIn
 	}
 	session.Detail = detail
 
 	err = m.store.Set(ctx, sessId, session)
 	if err != nil {
-		logx.Errorf("store set sessiong err: %v, sessId: %s", err, sessId)
+		xlog.Msg("store get session err").Err(err).Extra("sessId", sessId).Errorx(ctx)
 		return nil, global.ErrSignIn
 	}
 
@@ -128,7 +129,7 @@ func (m *Manager) RenewSession(ctx context.Context, sessId string) error {
 
 	sess, found, err := m.store.Get(ctx, sessId)
 	if err != nil {
-		logx.Errorf("store get session err: %v, sessId: %s", err, sessId)
+		xlog.Msg("store get session err").Err(err).Extra("sessId", sessId).Errorx(ctx)
 		return global.ErrSessRenewal
 	}
 
@@ -140,7 +141,7 @@ func (m *Manager) RenewSession(ctx context.Context, sessId string) error {
 	sess.Meta.ExpireAt = time.Now().Add(defaultSessionTTL).Unix()
 	err = m.store.Set(ctx, sessId, sess)
 	if err != nil {
-		logx.Errorf("store set session err: %v, sessId: %s", err, sessId)
+		xlog.Msg("store get session err").Err(err).Extra("sessId", sessId).Errorx(ctx)
 		return global.ErrSessRenewal
 	}
 
