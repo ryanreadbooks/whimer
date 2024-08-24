@@ -35,3 +35,7 @@ kafka:
   consume_group: reply-job
   num_consumers: 3
   offset: first
+
+redis:
+  host: 127.0.0.1:7542
+  

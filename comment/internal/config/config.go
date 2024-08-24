@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/xconf"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
@@ -22,8 +23,9 @@ type Config struct {
 		} `json:"grpc"`
 	} `json:"external"`
 
-	Seqer Seqer         `json:"seqer"`
-	Kafka xconf.KfkConf `json:"kafka"`
+	Seqer Seqer           `json:"seqer"`
+	Kafka xconf.KfkConf   `json:"kafka"`
+	Redis redis.RedisConf `json:"redis"`
 }
 
 type Seqer struct {

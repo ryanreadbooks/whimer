@@ -12,6 +12,7 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/comm"
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/queue"
 	"github.com/ryanreadbooks/whimer/comment/sdk"
+	"github.com/ryanreadbooks/whimer/misc/concur"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
@@ -19,6 +20,7 @@ import (
 	notesdk "github.com/ryanreadbooks/whimer/note/sdk"
 
 	seqer "github.com/ryanreadbooks/folium/sdk"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"golang.org/x/sync/errgroup"
 )
@@ -32,13 +34,15 @@ type CommentSvc struct {
 	root  *ServiceContext
 	repo  *repo.Repo
 	seqer *seqer.Client
+	cache *Cache
 }
 
-func NewCommentSvc(ctx *ServiceContext, repo *repo.Repo) *CommentSvc {
+func NewCommentSvc(ctx *ServiceContext, repo *repo.Repo, cache *redis.Redis) *CommentSvc {
 	s := &CommentSvc{
-		c:    ctx.Config,
-		repo: repo,
-		root: ctx,
+		c:     ctx.Config,
+		repo:  repo,
+		cache: NewCache(cache),
+		root:  ctx,
 	}
 
 	var err error
@@ -414,6 +418,14 @@ func (s *CommentSvc) ConsumeLikeDislikeEv(ctx context.Context, data *queue.Binar
 func (s *CommentSvc) ConsumePinEv(ctx context.Context, data *queue.PinReplyData) error {
 	rid := data.ReplyId
 	oid := data.Oid
+
+	defer func() {
+		// 删除缓存
+		if err := s.cache.DelPinned(ctx, oid); err != nil {
+			xlog.Msg("del pinned failed").Err(err).Extra("oid", oid).Errorx(ctx)
+		}
+	}()
+
 	if data.Action == queue.ActionDo {
 		err := s.repo.CommentRepo.DoPin(ctx, oid, rid)
 		if err != nil {
@@ -600,13 +612,25 @@ func (s *CommentSvc) getSubrepliesForRoots(ctx context.Context,
 
 func (s *CommentSvc) GetPinnedReply(ctx context.Context, oid uint64) (*sdk.GetPinnedReplyRes, error) {
 	// 先找出置顶评论
-	root, err := s.repo.CommentRepo.GetPinned(ctx, oid)
+	root, err := s.cache.GetPinned(ctx, oid)
 	if err != nil {
-		if xsql.IsNotFound(err) {
-			return &sdk.GetPinnedReplyRes{}, nil
+		xlog.Msg("cache get pinned failed").Err(err).Extra("oid", oid).Errorx(ctx)
+		root, err = s.repo.CommentRepo.GetPinned(ctx, oid)
+		if err != nil {
+			if xsql.IsNotFound(err) {
+				return &sdk.GetPinnedReplyRes{}, nil
+			}
+			xlog.Msg("repo get pinned err").Err(err).Extra("oid", oid).Errorx(ctx)
+			return nil, global.ErrGetPinnedInternal
 		}
-		xlog.Msg("repo get pinned err").Err(err).Extra("oid", oid).Errorx(ctx)
-		return nil, global.ErrGetPinnedInternal
+
+		// set cache
+		concur.SafeGo(func() {
+			err = s.cache.SetPinned(ctx, root)
+			if err != nil {
+				xlog.Msg("cache set pinned failed").Err(err).Extra("oid", oid).Errorx(ctx)
+			}
+		})
 	}
 
 	// 随后找出置顶评论的子评论
