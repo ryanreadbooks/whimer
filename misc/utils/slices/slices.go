@@ -28,3 +28,15 @@ func JoinInts[T generics.Integer](ints []T) string {
 func JoinStrings(strs []string) string {
 	return strings.Join(strs, ",")
 }
+
+func Uniq[T comparable](v []T) []T {
+	u := make([]T, 0, len(v))
+	e := make(map[T]struct{})
+	for _, ele := range v {
+		if _, ok := e[ele]; !ok {
+			u = append(u, ele)
+			e[ele] = struct{}{}
+		}
+	}
+	return u
+}

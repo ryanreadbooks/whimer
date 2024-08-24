@@ -19,3 +19,9 @@ func Values[T comparable, P any](m map[T]P) []P {
 	}
 	return vals
 }
+
+func Func[T comparable, P any](m map[T]P, f func (k T, v P)) {
+	for key, value := range m {
+		f(key, value)
+	}
+}
