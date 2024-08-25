@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/xconf"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -16,6 +17,8 @@ type Config struct {
 		Addr   string `json:"addr"`
 		DbName string `json:"db_name"`
 	} `json:"mysql"`
+
+	Redis redis.RedisConf `json:"redis"`
 
 	Oss struct {
 		User            string `json:"user"`

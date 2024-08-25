@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/concur"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	mnote "github.com/ryanreadbooks/whimer/misc/note"
 	"github.com/ryanreadbooks/whimer/misc/oss"
@@ -13,25 +14,27 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
-	crtp "github.com/ryanreadbooks/whimer/note/internal/model/note"
+	notemodel "github.com/ryanreadbooks/whimer/note/internal/model/note"
 	"github.com/ryanreadbooks/whimer/note/internal/repo"
 	noterepo "github.com/ryanreadbooks/whimer/note/internal/repo/note"
 	noteassetrepo "github.com/ryanreadbooks/whimer/note/internal/repo/noteasset"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 type NoteSvc struct {
-	repo *repo.Repo
-
+	repo           *repo.Repo
+	cache          *NoteCache
 	Ctx            *ServiceContext
 	NoteIdConfuser *safety.Confuser
 	OssSigner      *signer.Signer
 }
 
-func NewNoteSvc(ctx *ServiceContext, repo *repo.Repo) *NoteSvc {
+func NewNoteSvc(ctx *ServiceContext, repo *repo.Repo, cache *redis.Redis) *NoteSvc {
 	return &NoteSvc{
 		repo:           repo,
+		cache:          NewNoteCache(cache),
 		Ctx:            ctx,
 		NoteIdConfuser: mnote.NewConfuser(),
 		OssSigner: signer.NewSigner(
@@ -44,7 +47,7 @@ func NewNoteSvc(ctx *ServiceContext, repo *repo.Repo) *NoteSvc {
 	}
 }
 
-func (s *NoteSvc) Create(ctx context.Context, req *crtp.CreateReq) (uint64, error) {
+func (s *NoteSvc) Create(ctx context.Context, req *notemodel.CreateReq) (uint64, error) {
 	var (
 		uid    uint64 = metadata.Uid(ctx)
 		noteId uint64
@@ -92,7 +95,7 @@ func (s *NoteSvc) Create(ctx context.Context, req *crtp.CreateReq) (uint64, erro
 	return noteId, nil
 }
 
-func (s *NoteSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
+func (s *NoteSvc) Update(ctx context.Context, req *notemodel.UpdateReq) error {
 	var (
 		uid uint64 = metadata.Uid(ctx)
 	)
@@ -123,6 +126,13 @@ func (s *NoteSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
 		CreateAt: queried.CreateAt,
 		UpdateAt: now,
 	}
+
+	defer func() {
+		// 删除缓存
+		if err := s.cache.DelNote(ctx, noteId); err != nil {
+			xlog.Msg("cache del note failed").Err(err).Extra("noteId", noteId).Errorx(ctx)
+		}
+	}()
 
 	// 开启事务执行
 	err = s.repo.DB().TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
@@ -190,7 +200,7 @@ func (s *NoteSvc) Update(ctx context.Context, req *crtp.UpdateReq) error {
 	return nil
 }
 
-func (s *NoteSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*crtp.UploadAuthRes, error) {
+func (s *NoteSvc) UploadAuth(ctx context.Context, req *notemodel.UploadAuthReq) (*notemodel.UploadAuthRes, error) {
 	// 生成count个上传凭证
 	fileId := s.Ctx.OssKeyGen.Gen()
 
@@ -204,12 +214,12 @@ func (s *NoteSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*crt
 		return nil, global.ErrPermDenied.Msg("服务器签名失败")
 	}
 
-	res := crtp.UploadAuthRes{
+	res := notemodel.UploadAuthRes{
 		FildId:      fileId,
 		CurrentTime: currentTime,
 		ExpireTime:  info.ExpireAt.Unix(),
 		UploadAddr:  s.Ctx.Config.Oss.DisplayEndpoint,
-		Headers: crtp.UploadAuthResHeaders{
+		Headers: notemodel.UploadAuthResHeaders{
 			Auth:   info.Auth,
 			Date:   info.Date,
 			Sha256: info.Sha256,
@@ -220,7 +230,7 @@ func (s *NoteSvc) UploadAuth(ctx context.Context, req *crtp.UploadAuthReq) (*crt
 	return &res, nil
 }
 
-func (s *NoteSvc) Delete(ctx context.Context, req *crtp.DeleteReq) error {
+func (s *NoteSvc) Delete(ctx context.Context, req *notemodel.DeleteReq) error {
 	var (
 		uid uint64 = metadata.Uid(ctx)
 	)
@@ -243,6 +253,12 @@ func (s *NoteSvc) Delete(ctx context.Context, req *crtp.DeleteReq) error {
 	if uid != queried.Owner {
 		return global.ErrPermDenied.Msg("你不拥有该笔记")
 	}
+
+	defer func() {
+		if err := s.cache.DelNote(ctx, noteId); err != nil {
+			xlog.Msg("cache del note failed").Err(err).Extra("noteId", noteId).Errorx(ctx)
+		}
+	}()
 
 	// 开始删除
 	err = s.repo.DB().TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
@@ -270,14 +286,14 @@ func (s *NoteSvc) Delete(ctx context.Context, req *crtp.DeleteReq) error {
 	return nil
 }
 
-func (s *NoteSvc) List(ctx context.Context) (*crtp.ListRes, error) {
+func (s *NoteSvc) List(ctx context.Context) (*notemodel.ListRes, error) {
 	var (
 		uid uint64 = metadata.Uid(ctx)
 	)
 
 	notes, err := s.repo.NoteRepo.ListByOwner(ctx, uid)
 	if errors.Is(xsql.ErrNoRecord, err) {
-		return &crtp.ListRes{}, nil
+		return &notemodel.ListRes{}, nil
 	}
 
 	if err != nil {
@@ -298,9 +314,9 @@ func (s *NoteSvc) List(ctx context.Context) (*crtp.ListRes, error) {
 	}
 
 	// 组合notes和noteAssets
-	var res crtp.ListRes
+	var res notemodel.ListRes
 	for _, note := range notes {
-		item := &crtp.ListResItem{
+		item := &notemodel.ListResItem{
 			NoteId:   note.Id,
 			Title:    note.Title,
 			Desc:     note.Desc,
@@ -310,7 +326,7 @@ func (s *NoteSvc) List(ctx context.Context) (*crtp.ListRes, error) {
 		}
 		for _, asset := range noteAssets {
 			if note.Id == asset.NoteId {
-				item.Images = append(item.Images, &crtp.ListResItemImage{
+				item.Images = append(item.Images, &notemodel.ListResItemImage{
 					Url: oss.GetPublicVisitUrl(
 						s.Ctx.Config.Oss.Bucket,
 						asset.AssetKey,
@@ -327,7 +343,7 @@ func (s *NoteSvc) List(ctx context.Context) (*crtp.ListRes, error) {
 	return &res, nil
 }
 
-func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*crtp.ListResItem, error) {
+func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*notemodel.ListResItem, error) {
 	var (
 		uid uint64 = metadata.Uid(ctx)
 		nid        = noteId
@@ -337,14 +353,24 @@ func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*crtp.ListResItem
 		return nil, global.ErrNoteNotFound
 	}
 
-	note, err := s.repo.NoteRepo.FindOne(ctx, nid)
-	if errors.Is(err, xsql.ErrNoRecord) {
-		return nil, global.ErrNoteNotFound
-	}
-
+	note, err := s.cache.GetNote(ctx, nid)
 	if err != nil {
-		xlog.Msg("repo note find one err").Err(err).Errorx(ctx)
-		return nil, global.ErrGetNoteFail
+		xlog.Msg("cache get note failed").Err(err).Extra("noteId", nid).Errorx(ctx)
+		note, err = s.repo.NoteRepo.FindOne(ctx, nid)
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return nil, global.ErrNoteNotFound
+		}
+
+		if err != nil {
+			xlog.Msg("repo note find one err").Err(err).Errorx(ctx)
+			return nil, global.ErrGetNoteFail
+		}
+
+		concur.SafeGo(func() {
+			if errg := s.cache.SetNote(ctx, note); errg != nil {
+				xlog.Msg("cache set note failed").Err(err).Extra("note", note).Errorx(ctx)
+			}
+		})
 	}
 
 	if note.Owner != uid {
@@ -357,7 +383,7 @@ func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*crtp.ListResItem
 		return nil, global.ErrGetNoteFail
 	}
 
-	var res = crtp.ListResItem{
+	var res = notemodel.ListResItem{
 		NoteId:   noteId,
 		Title:    note.Title,
 		Desc:     note.Desc,
@@ -367,7 +393,7 @@ func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*crtp.ListResItem
 	}
 
 	for _, asset := range assets {
-		res.Images = append(res.Images, &crtp.ListResItemImage{
+		res.Images = append(res.Images, &notemodel.ListResItemImage{
 			Url: oss.GetPublicVisitUrl(
 				s.Ctx.Config.Oss.Bucket,
 				asset.AssetKey,

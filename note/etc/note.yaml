@@ -23,6 +23,9 @@ mysql:
   addr: ${ENV_DB_ADDR}
   db_name: ${ENV_DB_NAME}
 
+redis:
+  host: 127.0.0.1:7542
+
 oss:
   user: ${ENV_OSS_USER}
   pass: ${ENV_OSS_PASS}

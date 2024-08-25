@@ -1,4 +1,4 @@
-package utils
+package xtime
 
 import (
 	"time"
@@ -25,3 +25,9 @@ func (t *Duration) UnmarshalYAML(value *yaml.Node) error {
 
 	return nil
 }
+
+var (
+	Hour = time.Hour
+	Day  = 24 * Hour
+	Week = 7 * Day
+)

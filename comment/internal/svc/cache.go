@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/comm"
 	"github.com/ryanreadbooks/whimer/misc/utils"
+	"github.com/ryanreadbooks/whimer/misc/xtime"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -21,7 +21,7 @@ const (
 // cache key templates
 const (
 	// 置顶评论
-	pinnedCmtKey = "cmt:pinned:%d"
+	pinnedCmtKey = "comment:pinned:%d"
 )
 
 func getPinnedCmtKey(oid uint64) string {
@@ -67,13 +67,8 @@ func (c *Cache) SetPinned(ctx context.Context, model *comm.Model) error {
 
 	// err = c.rd.SetCtx(ctx, getPinnedCmtKey(model.Oid), utils.Bytes2String(s))
 	// 默认过期时间设为7天 随机前后一个小时过期
-	err = c.rd.SetexCtx(ctx, getPinnedCmtKey(model.Oid), utils.Bytes2String(s), int(jitter(hour)))
+	ttl := week + xtime.JitterDuration(2*hour)
+	err = c.rd.SetexCtx(ctx, getPinnedCmtKey(model.Oid), utils.Bytes2String(s), int(ttl))
 
 	return err
-}
-
-// 返回随机过期时间
-func jitter(d time.Duration) int64 {
-	sec := time.Duration(rand.Int63n(int64(d.Seconds())))
-	return int64(sec)
 }

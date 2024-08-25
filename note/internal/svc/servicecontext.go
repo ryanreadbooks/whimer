@@ -5,6 +5,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/external"
 	"github.com/ryanreadbooks/whimer/note/internal/repo"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
 type ServiceContext struct {
@@ -34,8 +35,10 @@ func NewServiceContext(c *config.Config) *ServiceContext {
 		keygen.WithPrependBucket(true),
 	)
 
+	cache := redis.MustNewRedis(c.Redis)
+
 	// 各个子service初始化
-	ctx.NoteSvc = NewNoteSvc(ctx, dao)
+	ctx.NoteSvc = NewNoteSvc(ctx, dao, cache)
 
 	return ctx
 }
