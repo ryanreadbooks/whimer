@@ -2,6 +2,7 @@ package svc
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
@@ -13,6 +14,7 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/queue"
 	sdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/concur"
+	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
@@ -67,6 +69,17 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 		parentId = req.ParentId
 		ip       = xnet.IpAsInt(metadata.ClientIp(ctx))
 	)
+
+	_, err := external.GetNoter().IsNoteExist(ctx,
+		&notesdk.IsNoteExistReq{
+			NoteId: oid,
+		})
+	if err != nil {
+		if errorx.ShouldLog(err) {
+			xlog.Msg("noter check note exists err").Err(err).Extra("oid", oid).Errorx(ctx)
+		}
+		return nil, err
+	}
 
 	// 取一个号
 	replyId, err := s.seqer.GetId(ctx, seqerReplyKey, 10000)
@@ -142,6 +155,7 @@ func (s *CommentSvc) canYouDel(ctx context.Context, reply *comm.Model) error {
 }
 
 func (s *CommentSvc) ReplyDel(ctx context.Context, rid uint64) error {
+	// 检查评论是否存在
 	reply, err := s.repo.CommentRepo.FindById(ctx, rid)
 	if err != nil {
 		if !xsql.IsNotFound(err) {
@@ -322,8 +336,11 @@ func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReply
 		&notesdk.IsNoteExistReq{
 			NoteId: oid,
 		})
+
 	if err != nil {
-		xlog.Msg("noter check note exists err").Err(err).Extra("oid", oid).Errorx(ctx)
+		if errorx.ShouldLog(err) {
+			xlog.Msg("noter check note exists err").Err(err).Extra("oid", oid).Errorx(ctx)
+		}
 		return err
 	}
 
@@ -365,6 +382,12 @@ func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReply
 		}
 	}
 
+	// 更新评论数量
+	err = s.cache.IncrReplyCountWhenExist(ctx, oid, 1)
+	if err != nil && err != redis.Nil {
+		xlog.Msg("cache incr reply count failed").Err(err).Errorx(ctx)
+	}
+
 	return nil
 }
 
@@ -404,6 +427,13 @@ func (s *CommentSvc) ConsumeDelReplyEv(ctx context.Context, data *queue.DelReply
 			return global.ErrInternal
 		}
 	}
+
+	// 更新评论数量
+	err := s.cache.DecrReplyCountWhenExist(ctx, data.Reply.Oid, 1)
+	if err != nil && errors.Is(err, redis.Nil) {
+		xlog.Msg("cache incr reply count failed").Err(err).Errorx(ctx)
+	}
+
 	return nil
 }
 
@@ -626,9 +656,10 @@ func (s *CommentSvc) GetPinnedReply(ctx context.Context, oid uint64) (*sdk.GetPi
 
 		// set cache
 		concur.SafeGo(func() {
-			err = s.cache.SetPinned(ctx, root)
+			ctxc := context.WithoutCancel(ctx)
+			err = s.cache.SetPinned(ctxc, root)
 			if err != nil {
-				xlog.Msg("cache set pinned failed").Err(err).Extra("oid", oid).Errorx(ctx)
+				xlog.Msg("cache set pinned failed").Err(err).Extra("oid", oid).Errorx(ctxc)
 			}
 		})
 	}
@@ -642,4 +673,33 @@ func (s *CommentSvc) GetPinnedReply(ctx context.Context, oid uint64) (*sdk.GetPi
 	return &sdk.GetPinnedReplyRes{
 		Reply: rootWithSubs[0],
 	}, nil
+}
+
+// 获取被评论对象oid的评论数量
+func (s *CommentSvc) CountReply(ctx context.Context, oid uint64) (uint64, error) {
+	// fetch from cache
+	count, err := s.cache.GetReplyCount(ctx, oid)
+	if err != nil {
+		xlog.Msg("cache get count failed").Err(err).Extra("oid", oid).Errorx(ctx)
+		// fetch from db instead
+		count, err = s.repo.CommentRepo.CountByOid(ctx, oid)
+		if err != nil {
+			xlog.Msg("repo get count failed").Err(err).Extra("oid", oid).Errorx(ctx)
+			return 0, global.ErrCountReplyInternal
+		}
+		err = s.cache.SetReplyCount(ctx, oid, count)
+		if err != nil {
+			xlog.Msg("cache set reply count failed").Err(err).
+				Extra("oid", oid).
+				Extra("count", count).
+				Errorx(ctx)
+		}
+	}
+
+	return count, nil
+}
+
+func (s *CommentSvc) SetReplyCountCache(oid []uint64) error {
+
+	return nil
 }

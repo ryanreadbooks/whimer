@@ -41,6 +41,7 @@ const (
 
 var (
 	sqlSelRooParent = "SELECT id,root,parent,oid,pin FROM comment WHERE id=?"
+	sqlCountByO     = "SELECT COUNT(1) FROM comment WHERE oid=?"
 	sqlSelPinned    = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? AND pin=1 LIMIT 1", fields)
 	sqlSel          = fmt.Sprintf("SELECT %s FROM comment WHERE id=?", fields)
 	sqlSel4Ud       = fmt.Sprintf("SELECT %s FROM comment WHERE id=? FOR UPDATE", fields)
@@ -316,4 +317,15 @@ func (r *Repo) GetPinned(ctx context.Context, oid uint64) (*Model, error) {
 	}
 
 	return model, nil
+}
+
+// 查出oid评论总量
+func (r *Repo) CountByOid(ctx context.Context, oid uint64) (uint64, error) {
+	var cnt uint64
+	err := r.db.QueryRowCtx(ctx, &cnt, sqlCountByO, oid)
+	if err != nil {
+		return 0, xsql.ConvertError(err)
+	}
+
+	return cnt, nil
 }

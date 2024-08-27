@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/misc/utils"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Error struct {
@@ -71,4 +73,35 @@ func IsInternal(err error) bool {
 	}
 
 	return true
+}
+
+// 判断给定的err是否应该打印日志
+func ShouldLog(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// 判断是否为Error对象
+	commErr, ok := err.(*Error)
+	if ok {
+		return commErr.StatusCode >= http.StatusInternalServerError
+	}
+
+	// 判断是否为grpc.Status
+	grpcerr, ok := status.FromError(err)
+	if ok {
+		switch grpcerr.Code() {
+		case codes.OK,
+			codes.NotFound,
+			codes.InvalidArgument,
+			codes.AlreadyExists,
+			codes.PermissionDenied,
+			codes.Unauthenticated:
+			return false
+		default:
+			return true
+		}
+	}
+
+	return false
 }

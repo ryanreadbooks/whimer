@@ -45,3 +45,12 @@ func TestRepo_GetRootReplySortByCtime(t *testing.T) {
 	})
 
 }
+
+func TestRepo_CountByOid(t *testing.T) {
+	Convey("CountByOid", t, func() {
+		cnt, err := repo.CountByOid(ctx, 13)
+		So(err, ShouldBeNil)
+		So(cnt, ShouldNotBeZeroValue)
+		t.Logf("cnt = %d\n", cnt)
+	})
+}

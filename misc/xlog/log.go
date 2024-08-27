@@ -18,11 +18,13 @@ const (
 )
 
 var (
+	logger logx.Logger = logx.WithCallerSkip(2)
+
 	fns = map[logFnType]logFn{
-		debugFn: logx.Debugw,
-		infoFn:  logx.Infow,
-		slowFn:  logx.Sloww,
-		errorFn: logx.Errorw,
+		debugFn: logger.Debugw,
+		infoFn:  logger.Infow,
+		slowFn:  logger.Sloww,
+		errorFn: logger.Errorw,
 	}
 )
 
