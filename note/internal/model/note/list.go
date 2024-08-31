@@ -1,6 +1,8 @@
 package creator
 
-import "github.com/ryanreadbooks/whimer/note/sdk"
+import (
+	sdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
+)
 
 type ListResItemImage struct {
 	Url  string `json:"url"`

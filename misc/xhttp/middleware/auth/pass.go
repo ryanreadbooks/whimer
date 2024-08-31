@@ -6,7 +6,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
-	ppac "github.com/ryanreadbooks/whimer/passport/sdk/access"
+	ppac "github.com/ryanreadbooks/whimer/passport/sdk/access/v1" //TODO do not use this is misc package
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
 )

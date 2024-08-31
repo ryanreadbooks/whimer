@@ -11,13 +11,13 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/repo"
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/comm"
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/queue"
-	"github.com/ryanreadbooks/whimer/comment/sdk"
+	sdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/concur"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	notesdk "github.com/ryanreadbooks/whimer/note/sdk"
+	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 
 	seqer "github.com/ryanreadbooks/folium/sdk"
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -167,7 +167,7 @@ func (s *CommentSvc) ReplyDel(ctx context.Context, rid uint64) error {
 
 // TODO 点赞/取消点赞
 func (s *CommentSvc) ReplyLike(ctx context.Context, rid uint64, action int8) error {
-	if action == int8(sdk.ReplyAction_Do) {
+	if action == int8(sdk.ReplyAction_REPLY_ACTION_DO) {
 
 		if err := s.repo.Bus.LikeReply(ctx, rid); err != nil {
 			xlog.Msg("like reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
@@ -185,7 +185,7 @@ func (s *CommentSvc) ReplyLike(ctx context.Context, rid uint64, action int8) err
 
 // TODO 点踩/取消点踩
 func (s *CommentSvc) ReplyDislike(ctx context.Context, rid uint64, action int8) error {
-	if action == int8(sdk.ReplyAction_Do) {
+	if action == int8(sdk.ReplyAction_REPLY_ACTION_DO) {
 		if err := s.repo.Bus.DisLikeReply(ctx, rid); err != nil {
 			xlog.Msg("dislike reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
 			return global.ErrInternal
@@ -231,7 +231,7 @@ func (s *CommentSvc) ReplyPin(ctx context.Context, oid, rid uint64, action int8)
 		return global.ErrPinFailNotRoot
 	}
 
-	if action == int8(sdk.ReplyAction_Do) {
+	if action == int8(sdk.ReplyAction_REPLY_ACTION_DO) {
 		if r.IsPin == comm.AlreadyPinned {
 			return nil
 		}

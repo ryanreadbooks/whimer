@@ -3,8 +3,7 @@ package note
 import (
 	mnote "github.com/ryanreadbooks/whimer/misc/note"
 	"github.com/ryanreadbooks/whimer/misc/safety"
-	"github.com/ryanreadbooks/whimer/note/sdk"
-	notesdk "github.com/ryanreadbooks/whimer/note/sdk"
+	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
 var (
@@ -137,8 +136,8 @@ type UploadAuthReq struct {
 	MimeType string `json:"mime" form:"mime"`
 }
 
-func (r *UploadAuthReq) AsPb() *sdk.GetUploadAuthReq {
-	return &sdk.GetUploadAuthReq{
+func (r *UploadAuthReq) AsPb() *notesdk.GetUploadAuthReq {
+	return &notesdk.GetUploadAuthReq{
 		Resource: r.Resource,
 		Source:   r.Source,
 		MimeType: r.MimeType,

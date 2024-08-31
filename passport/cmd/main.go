@@ -9,8 +9,8 @@ import (
 	accrpc "github.com/ryanreadbooks/whimer/passport/internal/rpc/access"
 	userrpc "github.com/ryanreadbooks/whimer/passport/internal/rpc/user"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
-	"github.com/ryanreadbooks/whimer/passport/sdk/access"
-	"github.com/ryanreadbooks/whimer/passport/sdk/user"
+	access "github.com/ryanreadbooks/whimer/passport/sdk/access/v1"
+	user "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"

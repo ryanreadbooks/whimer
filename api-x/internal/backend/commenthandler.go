@@ -8,12 +8,12 @@ import (
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/comment"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
-	"github.com/ryanreadbooks/whimer/comment/sdk"
+	sdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/concur"
 	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/utils/maps"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	"github.com/ryanreadbooks/whimer/passport/sdk/user"
+	user "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest/httpx"

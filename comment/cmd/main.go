@@ -7,7 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/job"
 	"github.com/ryanreadbooks/whimer/comment/internal/rpc"
 	"github.com/ryanreadbooks/whimer/comment/internal/svc"
-	"github.com/ryanreadbooks/whimer/comment/sdk"
+	sdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"

@@ -2,7 +2,7 @@ package creator
 
 import (
 	"github.com/ryanreadbooks/whimer/note/internal/global"
-	"github.com/ryanreadbooks/whimer/note/sdk"
+	sdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
 var (

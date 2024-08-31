@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package passport.user.v1;
+package passport.sdk.user.v1;
 
-option go_package = "github.com/ryanreadbooks/whimer/passport/sdk/user";
+option go_package = "github.com/ryanreadbooks/whimer/passport/sdk/user/v1";
 
 message UserInfo {
   uint64 uid = 1;

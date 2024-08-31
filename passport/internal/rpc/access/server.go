@@ -8,8 +8,8 @@ import (
 	"github.com/ryanreadbooks/whimer/passport/internal/model/platform"
 	"github.com/ryanreadbooks/whimer/passport/internal/model/profile"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
-	"github.com/ryanreadbooks/whimer/passport/sdk/access"
-	"github.com/ryanreadbooks/whimer/passport/sdk/user"
+	access "github.com/ryanreadbooks/whimer/passport/sdk/access/v1"
+	user "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 	
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

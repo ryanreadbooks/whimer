@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package note.v1;
+package note.sdk.v1;
 
-option go_package = "./sdk";
+option go_package = "github.com/ryanreadbooks/whimer/note/sdk/v1";
 
 message IsUserOwnNoteReq {
   uint64 uid = 1;     // 用户id

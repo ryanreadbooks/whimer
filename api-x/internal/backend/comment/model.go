@@ -1,10 +1,10 @@
 package comment
 
 import (
-	"github.com/ryanreadbooks/whimer/comment/sdk"
+	comment "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/xconv"
-	"github.com/ryanreadbooks/whimer/passport/sdk/user"
+	user "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 )
 
 type PubReq struct {
@@ -16,8 +16,8 @@ type PubReq struct {
 	ReplyUid  uint64 `json:"reply_uid"`
 }
 
-func (r *PubReq) AsPb() *sdk.AddReplyReq {
-	return &sdk.AddReplyReq{
+func (r *PubReq) AsPb() *comment.AddReplyReq {
+	return &comment.AddReplyReq{
 		ReplyType: r.ReplyType,
 		Oid:       r.Oid,
 		Content:   r.Content,
@@ -37,11 +37,11 @@ type GetCommentsReq struct {
 	SortBy int    `form:"sort_by,optional"`
 }
 
-func (r *GetCommentsReq) AsPb() *sdk.PageGetReplyReq {
-	return &sdk.PageGetReplyReq{
+func (r *GetCommentsReq) AsPb() *comment.PageGetReplyReq {
+	return &comment.PageGetReplyReq{
 		Oid:    r.Oid,
 		Cursor: r.Cursor,
-		SortBy: sdk.SortType(r.SortBy),
+		SortBy: comment.SortType(r.SortBy),
 	}
 }
 
@@ -57,8 +57,8 @@ type GetSubCommentsReq struct {
 	Cursor uint64 `form:"cursor,optional"`
 }
 
-func (r *GetSubCommentsReq) AsPb() *sdk.PageGetSubReplyReq {
-	return &sdk.PageGetSubReplyReq{
+func (r *GetSubCommentsReq) AsPb() *comment.PageGetSubReplyReq {
+	return &comment.PageGetSubReplyReq{
 		Oid:    r.Oid,
 		RootId: r.RootId,
 		Cursor: r.Cursor,
@@ -66,7 +66,7 @@ func (r *GetSubCommentsReq) AsPb() *sdk.PageGetSubReplyReq {
 }
 
 type ReplyItem struct {
-	*sdk.ReplyItem
+	*comment.ReplyItem
 	User *user.UserInfo `json:"user"`
 }
 
@@ -82,7 +82,7 @@ type DetailedReplyItem struct {
 	SubReplies *DetailedSubReply `json:"sub_replies"`
 }
 
-func NewDetailedReplyItemFromPb(item *sdk.DetailedReplyItem, userMap map[string]*user.UserInfo) *DetailedReplyItem {
+func NewDetailedReplyItemFromPb(item *comment.DetailedReplyItem, userMap map[string]*user.UserInfo) *DetailedReplyItem {
 	details := &DetailedReplyItem{}
 	details.Root = &ReplyItem{
 		ReplyItem: item.Root,

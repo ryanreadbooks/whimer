@@ -2,13 +2,13 @@ syntax = "proto3";
 
 import "buf/validate/validate.proto";
 
-package comment.v1;
+package comment.sdk.v1;
 
-option go_package = "./sdk";
+option go_package = "github.com/ryanreadbooks/whimer/comment/sdk/v1";
 
 enum ReplyAction {
-  Undo = 0;
-  Do = 1;
+  REPLY_ACTION_UNDO = 0;
+  REPLY_ACTION_DO = 1;
 }
 
 // 发布评论
@@ -114,7 +114,7 @@ message DetailedSubReply {
 
 // 详细的主评论的详细信息，会包含子评论
 message DetailedReplyItem {
-  ReplyItem root = 1;                // 主评论本身的信息
+  ReplyItem root = 1;              // 主评论本身的信息
   DetailedSubReply subreplies = 2; // 子评论的信息
 }
 
@@ -131,6 +131,15 @@ message GetPinnedReplyReq {
 
 message GetPinnedReplyRes {
   DetailedReplyItem reply = 1; // 置顶评论信息
+}
+
+// 获取被评论对象的评论数量
+message CountReplyReq {
+  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
+}
+
+message CountReplyRes {
+  uint64 num_reply = 1; // 评论数量
 }
 
 service Reply {
@@ -154,4 +163,6 @@ service Reply {
   rpc PageGetDetailedReply(PageGetReplyReq) returns (PageGetDetailedReplyRes);
   // 获取置顶评论
   rpc GetPinnedReply(GetPinnedReplyReq) returns (GetPinnedReplyRes);
+  // 获取某个被评对象的评论数
+  rpc CountReply(CountReplyReq) returns (CountReplyRes);
 }
