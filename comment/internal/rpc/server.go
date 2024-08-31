@@ -111,3 +111,13 @@ func (s *ReplyServer) PageGetDetailedReply(ctx context.Context, in *sdk.PageGetR
 func (s *ReplyServer) GetPinnedReply(ctx context.Context, in *sdk.GetPinnedReplyReq) (*sdk.GetPinnedReplyRes, error) {
 	return s.Svc.CommentSvc.GetPinnedReply(ctx, in.Oid)
 }
+
+// 获取评论数量
+func (s *ReplyServer) CountReply(ctx context.Context, in *sdk.CountReplyReq) (*sdk.CountReplyRes, error) {
+	count, err := s.Svc.CommentSvc.CountReply(ctx, in.Oid)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sdk.CountReplyRes{NumReply: count}, nil
+}

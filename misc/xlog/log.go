@@ -2,6 +2,7 @@ package xlog
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,11 +19,13 @@ const (
 )
 
 var (
+	logger logx.Logger = logx.WithCallerSkip(2)
+
 	fns = map[logFnType]logFn{
-		debugFn: logx.Debugw,
-		infoFn:  logx.Infow,
-		slowFn:  logx.Sloww,
-		errorFn: logx.Errorw,
+		debugFn: logger.Debugw,
+		infoFn:  logger.Infow,
+		slowFn:  logger.Sloww,
+		errorFn: logger.Errorw,
 	}
 )
 
@@ -52,6 +55,15 @@ func (l *LogItem) Uid(id uint64) *LogItem {
 
 func (l *LogItem) Field(key string, val any) *LogItem {
 	l.fields[key] = val
+	return l
+}
+
+func (l *LogItem) Fields(kvs ...interface{}) *LogItem {
+	if len(kvs)%2 == 0 {
+		for i := range kvs {
+			l.fields[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
+		}
+	}
 	return l
 }
 
@@ -183,6 +195,16 @@ func newLogItem() *LogItem {
 func Msg(s string) *LogItem {
 	l := newLogItem()
 	l.msg = s
+	return l
+}
+
+func Fields(kvs ...interface{}) *LogItem {
+	l := newLogItem()
+	if len(kvs)%2 == 0 {
+		for i := range kvs {
+			l.fields[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
+		}
+	}
 	return l
 }
 

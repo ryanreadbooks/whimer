@@ -45,3 +45,30 @@ func TestRepo_GetRootReplySortByCtime(t *testing.T) {
 	})
 
 }
+
+func TestRepo_CountByOid(t *testing.T) {
+	Convey("CountByOid", t, func() {
+		cnt, err := repo.CountByOid(ctx, 13)
+		So(err, ShouldBeNil)
+		So(cnt, ShouldNotBeZeroValue)
+		t.Logf("cnt = %d\n", cnt)
+	})
+}
+
+func TestRepo_CountGroupByOid(t *testing.T) {
+	Convey("CountGroupByOid", t, func() {
+		res, err := repo.CountGroupByOid(ctx)
+		So(err, ShouldBeNil)
+		So(res, ShouldNotBeNil)
+		t.Logf("res = %v\n", res)
+	})
+}
+
+func TestRepo_CountGroupByOidLimit(t *testing.T) {
+	Convey("CountGroupByOidLimit", t, func() {
+		res, err := repo.CountGroupByOidLimit(ctx, 1, 2)
+		So(err, ShouldBeNil)
+		So(res, ShouldNotBeNil)
+		t.Logf("res = %v\n", res)
+	})
+}

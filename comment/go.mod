@@ -5,6 +5,7 @@ go 1.22
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.2-20240717164558-a6c49f84cc0f.2
 	github.com/bufbuild/protovalidate-go v0.6.3
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/ryanreadbooks/folium v0.1.1
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/note v0.0.0-00010101000000-000000000000

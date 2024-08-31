@@ -113,8 +113,9 @@ func (s *Service) SignInWithSms(ctx context.Context, req *tp.SignInSmdReq) (*use
 
 	// 删除验证码
 	concur.SafeGo(func() {
-		if _, err := s.cache.DelCtx(context.Background(), getSmsCodeTelKey(tel)); err != nil {
-			xlog.Msg("cache del sms code err").Err(err).Errorx(ctx)
+		ctxc := context.WithoutCancel(ctx)
+		if _, err := s.cache.DelCtx(ctxc, getSmsCodeTelKey(tel)); err != nil {
+			xlog.Msg("cache del sms code err").Err(err).Errorx(ctxc)
 		}
 	})
 

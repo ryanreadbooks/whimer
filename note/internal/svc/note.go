@@ -367,8 +367,9 @@ func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*notemodel.ListRe
 		}
 
 		concur.SafeGo(func() {
-			if errg := s.cache.SetNote(ctx, note); errg != nil {
-				xlog.Msg("cache set note failed").Err(err).Extra("note", note).Errorx(ctx)
+			ctxc := context.WithoutCancel(ctx)
+			if errg := s.cache.SetNote(ctxc, note); errg != nil {
+				xlog.Msg("cache set note failed").Err(err).Extra("note", note).Errorx(ctxc)
 			}
 		})
 	}

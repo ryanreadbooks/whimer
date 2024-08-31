@@ -26,6 +26,10 @@ type Config struct {
 	Seqer Seqer           `json:"seqer"`
 	Kafka xconf.KfkConf   `json:"kafka"`
 	Redis redis.RedisConf `json:"redis"`
+
+	Cron struct {
+		SyncReplySpec string `json:"sync_reply_spec"`
+	} `json:"cron"`
 }
 
 type Seqer struct {
