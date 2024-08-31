@@ -699,7 +699,35 @@ func (s *CommentSvc) CountReply(ctx context.Context, oid uint64) (uint64, error)
 	return count, nil
 }
 
-func (s *CommentSvc) SetReplyCountCache(oid []uint64) error {
+// 全量同步评论数量
+func (s *CommentSvc) FullSyncReplyCountCache(ctx context.Context) error {
+	res, err := s.repo.CommentRepo.CountGroupByOid(ctx)
+	if err != nil {
+		xlog.Msg("full sync count repo failed").Err(err).Errorx(ctx)
+		return err
+	}
+
+	err = s.cache.BatchSetReplyCount(ctx, res)
+	if err != nil {
+		xlog.Msg("full sync set cache failed").Err(err).Errorx(ctx)
+		return err
+	}
+
+	return nil
+}
+
+func (s *CommentSvc) PartialSyncReplyCountCache(ctx context.Context, offset, limit int64) error {
+	res, err := s.repo.CommentRepo.CountGroupByOidLimit(ctx, offset, limit)
+	if err != nil {
+		xlog.Msg("full sync count repo limit failed").Err(err).Errorx(ctx)
+		return err
+	}
+
+	err = s.cache.BatchSetReplyCount(ctx, res)
+	if err != nil {
+		xlog.Msg("full sync set cache failed").Err(err).Errorx(ctx)
+		return err
+	}
 
 	return nil
 }

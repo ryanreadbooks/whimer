@@ -102,6 +102,16 @@ func (c *Cache) SetReplyCount(ctx context.Context, oid, count uint64) error {
 	return c.rd.SetCtx(ctx, getCountCmtKey(oid), strconv.FormatUint(count, 10))
 }
 
+func (c *Cache) BatchSetReplyCount(ctx context.Context, batch map[uint64]uint64) error {
+	err := c.rd.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
+		for oid, cnt := range batch {
+			p.Set(ctx, getCountCmtKey(oid), strconv.FormatUint(cnt, 10), 0)
+		}
+		return nil
+	})
+	return err
+}
+
 func (c *Cache) IncrReplyCount(ctx context.Context, oid uint64, increment int64) error {
 	_, err := c.rd.IncrbyCtx(ctx, getCountCmtKey(oid), increment)
 	return err

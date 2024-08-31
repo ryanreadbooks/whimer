@@ -54,3 +54,21 @@ func TestRepo_CountByOid(t *testing.T) {
 		t.Logf("cnt = %d\n", cnt)
 	})
 }
+
+func TestRepo_CountGroupByOid(t *testing.T) {
+	Convey("CountGroupByOid", t, func() {
+		res, err := repo.CountGroupByOid(ctx)
+		So(err, ShouldBeNil)
+		So(res, ShouldNotBeNil)
+		t.Logf("res = %v\n", res)
+	})
+}
+
+func TestRepo_CountGroupByOidLimit(t *testing.T) {
+	Convey("CountGroupByOidLimit", t, func() {
+		res, err := repo.CountGroupByOidLimit(ctx, 1, 2)
+		So(err, ShouldBeNil)
+		So(res, ShouldNotBeNil)
+		t.Logf("res = %v\n", res)
+	})
+}

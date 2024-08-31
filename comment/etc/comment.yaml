@@ -38,4 +38,6 @@ kafka:
 
 redis:
   host: 127.0.0.1:7542
-  
+
+cron:
+  sync_reply_spec: "0 3 * * *"

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
 	"github.com/ryanreadbooks/whimer/comment/internal/job"
+	"github.com/ryanreadbooks/whimer/comment/internal/job/cron"
 	"github.com/ryanreadbooks/whimer/comment/internal/rpc"
 	"github.com/ryanreadbooks/whimer/comment/internal/svc"
 	sdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
@@ -42,11 +43,13 @@ func main() {
 	)
 
 	mq := kq.MustNewQueue(c.Kafka.AsKqConf(), job.New(ctx))
+	csyncer := cron.MustNewCacheSyncer(c.Cron.SyncReplySpec, ctx)
 
 	logx.Info("comment is serving...")
 	group := service.NewServiceGroup()
 	defer group.Stop()
 
+	group.Add(csyncer)
 	group.Add(server)
 	group.Add(mq)
 	group.Start()

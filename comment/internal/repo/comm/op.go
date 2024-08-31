@@ -40,14 +40,16 @@ const (
 )
 
 var (
-	sqlSelRooParent = "SELECT id,root,parent,oid,pin FROM comment WHERE id=?"
-	sqlCountByO     = "SELECT COUNT(1) FROM comment WHERE oid=?"
-	sqlSelPinned    = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? AND pin=1 LIMIT 1", fields)
-	sqlSel          = fmt.Sprintf("SELECT %s FROM comment WHERE id=?", fields)
-	sqlSel4Ud       = fmt.Sprintf("SELECT %s FROM comment WHERE id=? FOR UPDATE", fields)
-	sqlSelByO       = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? %%s", fields)
-	sqlSelByRoot    = fmt.Sprintf("SELECT %s FROM comment WHERE root=? %%s", fields)
-	sqlInsert       = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fields)
+	sqlSelRooParent  = "SELECT id,root,parent,oid,pin FROM comment WHERE id=?"
+	sqlCountByO      = "SELECT COUNT(*) FROM comment WHERE oid=?"
+	sqlCountGbO      = "SELECT oid, COUNT(*) AS cnt FROM comment GROUP BY oid"
+	sqlCountGbOLimit = "SELECT oid, COUNT(*) AS cnt FROM comment GROUP BY oid LIMIT ?,?"
+	sqlSelPinned     = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? AND pin=1 LIMIT 1", fields)
+	sqlSel           = fmt.Sprintf("SELECT %s FROM comment WHERE id=?", fields)
+	sqlSel4Ud        = fmt.Sprintf("SELECT %s FROM comment WHERE id=? FOR UPDATE", fields)
+	sqlSelByO        = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? %%s", fields)
+	sqlSelByRoot     = fmt.Sprintf("SELECT %s FROM comment WHERE root=? %%s", fields)
+	sqlInsert        = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fields)
 
 	sqlSelRoots = fmt.Sprintf("SELECT %s FROM comment WHERE %%s oid=? AND root=0 AND pin=0 ORDER BY ctime DESC LIMIT ?", fields)
 	sqlSelSubs  = fmt.Sprintf("SELECT %s FROM comment WHERE id>? AND oid=? AND root=? ORDER BY ctime ASC LIMIT ?", fields)
@@ -328,4 +330,40 @@ func (r *Repo) CountByOid(ctx context.Context, oid uint64) (uint64, error) {
 	}
 
 	return cnt, nil
+}
+
+func (r *Repo) CountGroupByOid(ctx context.Context) (map[uint64]uint64, error) {
+	var res []struct {
+		Oid uint64 `db:"oid"`
+		Cnt uint64 `db:"cnt"`
+	}
+	err := r.db.QueryRowsCtx(ctx, &res, sqlCountGbO)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	ret := make(map[uint64]uint64, len(res))
+	for _, item := range res {
+		ret[item.Oid] = item.Cnt
+	}
+
+	return ret, nil
+}
+
+func (r *Repo) CountGroupByOidLimit(ctx context.Context, offset, limit int64) (map[uint64]uint64, error) {
+	var res []struct {
+		Oid uint64 `db:"oid"`
+		Cnt uint64 `db:"cnt"`
+	}
+	err := r.db.QueryRowsCtx(ctx, &res, sqlCountGbOLimit, offset, limit)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	ret := make(map[uint64]uint64, len(res))
+	for _, item := range res {
+		ret[item.Oid] = item.Cnt
+	}
+
+	return ret, nil
 }
