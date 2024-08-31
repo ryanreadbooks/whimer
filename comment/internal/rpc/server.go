@@ -6,7 +6,7 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/global"
 	"github.com/ryanreadbooks/whimer/comment/internal/model"
 	"github.com/ryanreadbooks/whimer/comment/internal/svc"
-	"github.com/ryanreadbooks/whimer/comment/sdk"
+	sdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 
 	"github.com/bufbuild/protovalidate-go"
 )

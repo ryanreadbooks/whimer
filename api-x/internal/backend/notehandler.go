@@ -6,7 +6,7 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/note"
 	"github.com/ryanreadbooks/whimer/misc/errorx"
 
-	notesdk "github.com/ryanreadbooks/whimer/note/sdk"
+	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )

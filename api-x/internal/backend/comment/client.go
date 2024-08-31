@@ -8,7 +8,7 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
 
-	replysdk "github.com/ryanreadbooks/whimer/comment/sdk"
+	replysdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 )
 
 var (

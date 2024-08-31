@@ -5,7 +5,7 @@ import (
 
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
-	"github.com/ryanreadbooks/whimer/passport/sdk/user"
+	user "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 	"github.com/ryanreadbooks/whimer/misc/xhttp/middleware/auth"
-	"github.com/ryanreadbooks/whimer/passport/sdk/user"
+	user "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
 )

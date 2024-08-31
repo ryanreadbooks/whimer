@@ -7,7 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/rpc"
 	"github.com/ryanreadbooks/whimer/note/internal/svc"
-	"github.com/ryanreadbooks/whimer/note/sdk"
+	sdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 

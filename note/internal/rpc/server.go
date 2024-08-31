@@ -6,7 +6,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	mgtp "github.com/ryanreadbooks/whimer/note/internal/model/note"
 	"github.com/ryanreadbooks/whimer/note/internal/svc"
-	"github.com/ryanreadbooks/whimer/note/sdk"
+	sdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
 type NoteServer struct {

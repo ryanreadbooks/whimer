@@ -1,0 +1,14 @@
+version: v2
+managed:
+  enabled: true
+plugins:
+  - remote: buf.build/protocolbuffers/go
+    out: .
+    opt: module=github.com/ryanreadbooks/whimer
+  - remote: buf.build/grpc/go
+    out: .
+    opt: module=github.com/ryanreadbooks/whimer
+inputs:
+  - directory: comment/sdk
+  - directory: note/sdk
+  - directory: passport/sdk

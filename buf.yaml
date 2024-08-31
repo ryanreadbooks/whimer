@@ -1,0 +1,15 @@
+# For details on buf.yaml configuration, visit https://buf.build/docs/configuration/v2/buf-yaml
+version: v2
+modules:
+  - path: comment/sdk
+  - path: note/sdk
+  - path: passport/sdk
+lint:
+  use:
+    - DEFAULT
+breaking:
+  use:
+    - FILE
+
+deps:
+  - buf.build/bufbuild/protovalidate

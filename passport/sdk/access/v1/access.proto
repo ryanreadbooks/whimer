@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-import "user.proto";
+import "user/v1/user.proto";
 
-package passport.access.v1;
+package passport.sdk.access.v1;
 
-option go_package = "github.com/ryanreadbooks/whimer/passport/sdk/access";
+option go_package = "github.com/ryanreadbooks/whimer/passport/sdk/access/v1";
 
 message CheckSignInReq {
   string sess_id = 1;
@@ -13,7 +13,7 @@ message CheckSignInReq {
 
 message CheckSignInRes {
   bool signed = 1;
-  optional passport.user.v1.UserInfo user = 2;
+  optional passport.sdk.user.v1.UserInfo user = 2;
   string msg = 3;
 }
 

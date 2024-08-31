@@ -15,7 +15,7 @@ import (
 	"github.com/ryanreadbooks/whimer/passport/internal/model/profile"
 	ptp "github.com/ryanreadbooks/whimer/passport/internal/model/profile"
 	"github.com/ryanreadbooks/whimer/passport/internal/repo/userbase"
-	userrpc "github.com/ryanreadbooks/whimer/passport/sdk/user"
+	userrpc "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
