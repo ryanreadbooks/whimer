@@ -398,7 +398,7 @@ func (s *CommentSvc) ConsumeDelReplyEv(ctx context.Context, data *queue.DelReply
 
 	// 是否是主评论 如果为主评论 需要一并删除所有子评论
 	if isRootReply(data.Reply.RootId, data.Reply.ParentId) {
-		s.repo.DB().TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
+		err := s.repo.DB().TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
 			_, err := s.findReplyForUpdate(ctx, tx, rid)
 			if err != nil {
 				return err
@@ -418,7 +418,9 @@ func (s *CommentSvc) ConsumeDelReplyEv(ctx context.Context, data *queue.DelReply
 
 			return nil
 		})
-
+		if err != nil {
+			xlog.Msg("repo transact del root failed").Err(err).Extra("rid", rid).Errorx(ctx)
+		}
 	} else {
 		// 只需要删除评论本身
 		err := s.repo.CommentRepo.DeleteById(ctx, rid)
