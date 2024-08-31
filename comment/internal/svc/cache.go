@@ -150,13 +150,13 @@ func (c *Cache) DecrReplyCountWhenExist(ctx context.Context, oid uint64, decreme
 	var err error
 	c.decrOnce.Do(func() {
 		c.decrSha, err = c.rd.ScriptLoadCtx(ctx, script)
-		xlog.Msg(fmt.Sprintf("decrSha = %s", c.incrSha)).Info()
+		xlog.Msg(fmt.Sprintf("decrSha = %s", c.decrSha)).Info()
 	})
 
 	if err != nil {
 		return err
 	}
 
-	_, err = c.rd.EvalShaCtx(ctx, c.incrSha, []string{getCountCmtKey(oid)})
+	_, err = c.rd.EvalShaCtx(ctx, c.decrSha, []string{getCountCmtKey(oid)})
 	return err
 }
