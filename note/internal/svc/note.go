@@ -7,7 +7,6 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/concur"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
-	mnote "github.com/ryanreadbooks/whimer/misc/note"
 	"github.com/ryanreadbooks/whimer/misc/oss"
 	"github.com/ryanreadbooks/whimer/misc/oss/signer"
 	"github.com/ryanreadbooks/whimer/misc/safety"
@@ -36,7 +35,7 @@ func NewNoteSvc(ctx *ServiceContext, repo *repo.Repo, cache *redis.Redis) *NoteS
 		repo:           repo,
 		cache:          NewNoteCache(cache),
 		Ctx:            ctx,
-		NoteIdConfuser: mnote.NewConfuser(),
+		NoteIdConfuser: safety.NewConfuser(ctx.Config.Salt, 24),
 		OssSigner: signer.NewSigner(
 			ctx.Config.Oss.User,
 			ctx.Config.Oss.Pass,

@@ -41,3 +41,5 @@ external:
     passport:
       hosts: [127.0.0.1:2379]
       key: whimer.passport.rpc
+
+salt: ${ENV_NOTE_SALT}

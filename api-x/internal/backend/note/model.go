@@ -1,7 +1,7 @@
 package note
 
 import (
-	mnote "github.com/ryanreadbooks/whimer/misc/note"
+	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/safety"
 	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
@@ -10,8 +10,8 @@ var (
 	IdConfuser *safety.Confuser
 )
 
-func initModel() {
-	IdConfuser = mnote.NewConfuser()
+func initModel(c *config.Config) {
+	IdConfuser = safety.NewConfuser(c.Metadata.Note.Salt, 24)
 }
 
 type CreateReqBasic struct {

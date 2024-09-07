@@ -3,7 +3,7 @@ package external
 import (
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
-	"github.com/ryanreadbooks/whimer/misc/xhttp/middleware/auth"
+	"github.com/ryanreadbooks/whimer/passport/sdk/middleware/auth"
 	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 
 	"github.com/zeromicro/go-zero/core/logx"

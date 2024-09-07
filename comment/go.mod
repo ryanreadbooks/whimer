@@ -8,6 +8,7 @@ require (
 	github.com/ryanreadbooks/folium v0.1.1
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/note v0.0.0-00010101000000-000000000000
+	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/zeromicro/go-queue v1.2.2
 	github.com/zeromicro/go-zero v1.7.0
@@ -76,7 +77,6 @@ require (
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/redis/go-redis/v9 v9.6.1 // indirect
-	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000 // indirect
 	github.com/segmentio/kafka-go v0.4.47 // indirect
 	github.com/smarty/assertions v1.15.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
