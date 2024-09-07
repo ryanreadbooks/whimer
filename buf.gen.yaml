@@ -12,3 +12,4 @@ inputs:
   - directory: comment/sdk
   - directory: note/sdk
   - directory: passport/sdk
+  - directory: counter/sdk

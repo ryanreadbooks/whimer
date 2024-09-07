@@ -1,7 +1,6 @@
 package config
 
 import (
-	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -15,12 +14,6 @@ type Config struct {
 		Addr   string `json:"addr"`
 		DbName string `json:"db_name"`
 	} `json:"mysql"`
-
-	External struct {
-		Grpc struct {
-			Passport xconf.Discovery `json:"passport"`
-		} `json:"grpc"`
-	} `json:"external"`
 
 	Redis redis.RedisConf `json:"redis"`
 }

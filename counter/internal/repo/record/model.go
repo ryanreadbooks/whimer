@@ -12,6 +12,12 @@ func New(db sqlx.SqlConn) *Repo {
 	}
 }
 
+const (
+	ActUnspecified = 0
+	ActDo          = 1
+	ActUndo        = 2
+)
+
 type Model struct {
 	BizCode int    `db:"biz_code"`
 	Uid     uint64 `db:"uid"`

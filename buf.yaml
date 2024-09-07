@@ -4,6 +4,7 @@ modules:
   - path: comment/sdk
   - path: note/sdk
   - path: passport/sdk
+  - path: counter/sdk
 lint:
   use:
     - DEFAULT

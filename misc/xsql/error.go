@@ -31,10 +31,17 @@ func ConvertError(err error) error {
 }
 
 func IsMildErr(err error) bool {
+	if err == nil {
+		return true
+	}
 	return errors.Is(err, ErrNoRecord) || errors.Is(err, ErrDuplicate)
 }
 
 func IsCriticalErr(err error) bool {
+	if err == nil {
+		return false
+	}
+
 	return !IsMildErr(err)
 }
 

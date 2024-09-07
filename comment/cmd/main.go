@@ -8,9 +8,9 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/rpc"
 	"github.com/ryanreadbooks/whimer/comment/internal/svc"
 	sdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 
 	"github.com/zeromicro/go-queue/kq"
 	"github.com/zeromicro/go-zero/core/conf"
@@ -31,15 +31,9 @@ func main() {
 
 	server := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
 		sdk.RegisterReplyServer(s, rpc.NewReplyServer(ctx))
-		if c.Grpc.Mode == service.DevMode || c.Grpc.Mode == service.TestMode {
-			reflection.Register(s)
-		}
+		xgrpc.EnableReflection(c.Grpc, s)
 	})
-	server.AddUnaryInterceptors(
-		interceptor.ServerErrorHandle,
-		interceptor.ServerMetadataExtract,
-		interceptor.ServerValidateHandle,
-	)
+	interceptor.InstallServerInterceptors(server)
 
 	mq := kq.MustNewQueue(c.Kafka.AsKqConf(), job.New(ctx))
 

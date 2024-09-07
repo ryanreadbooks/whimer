@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 
+	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 	"github.com/ryanreadbooks/whimer/passport/internal/config"
 	"github.com/ryanreadbooks/whimer/passport/internal/handler"
@@ -18,7 +19,6 @@ import (
 	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 )
 
 var configFile = flag.String("f", "etc/passport.yaml", "the config file")
@@ -36,16 +36,13 @@ func main() {
 	grpcServer := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
 		// 访问认证
 		access.RegisterAccessServer(s, accrpc.NewAccessServer(ctx))
-
 		// 用户信息
 		user.RegisterUserServer(s, userrpc.NewUserServer(ctx))
 
 		// for debugging
-		if c.Grpc.Mode == service.DevMode || c.Grpc.Mode == service.TestMode {
-			reflection.Register(s)
-		}
+		xgrpc.EnableReflection(c.Grpc, s)
 	})
-	grpcServer.AddUnaryInterceptors(interceptor.ServerErrorHandle)
+	interceptor.InstallServerInterceptors(grpcServer)
 
 	group := service.NewServiceGroup()
 	defer group.Stop()
