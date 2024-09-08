@@ -1,7 +1,7 @@
 package external
 
 import (
-	"github.com/ryanreadbooks/whimer/misc/xhttp/middleware/auth"
+	"github.com/ryanreadbooks/whimer/passport/sdk/middleware/auth"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 )
 

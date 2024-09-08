@@ -3,13 +3,13 @@ package main
 import (
 	"flag"
 
+	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/rpc"
 	"github.com/ryanreadbooks/whimer/note/internal/svc"
 	sdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -29,14 +29,10 @@ func main() {
 
 	grpcServer := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
 		sdk.RegisterNoteServer(s, rpc.NewNoteServer(ctx))
-		if c.Grpc.Mode == service.DevMode || c.Grpc.Mode == service.TestMode {
-			reflection.Register(s)
-		}
+		xgrpc.EnableReflection(c.Grpc, s)
 	})
-	grpcServer.AddUnaryInterceptors(
-		interceptor.ServerErrorHandle,
-		interceptor.ServerMetadataExtract,
-	)
+	interceptor.InstallServerInterceptors(grpcServer)
+
 	group := service.NewServiceGroup()
 	defer group.Stop()
 

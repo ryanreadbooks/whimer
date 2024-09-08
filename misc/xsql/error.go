@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	ErrNoRecord  = sqlx.ErrNotFound
-	ErrDuplicate = fmt.Errorf("duplicate entry")
+	ErrNoRecord   = sqlx.ErrNotFound
+	ErrDuplicate  = fmt.Errorf("duplicate entry")
+	ErrOutOfRange = fmt.Errorf("out of range")
 )
 
 // 转换not found和duplicate entry两种错误
@@ -31,10 +32,17 @@ func ConvertError(err error) error {
 }
 
 func IsMildErr(err error) bool {
+	if err == nil {
+		return true
+	}
 	return errors.Is(err, ErrNoRecord) || errors.Is(err, ErrDuplicate)
 }
 
 func IsCriticalErr(err error) bool {
+	if err == nil {
+		return false
+	}
+
 	return !IsMildErr(err)
 }
 

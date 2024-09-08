@@ -29,7 +29,7 @@ func Init(c *config.Config) {
 		available.Store(true)
 	}
 
-	initModel()
+	initModel(c)
 }
 
 func GetNoter() notesdk.NoteClient {

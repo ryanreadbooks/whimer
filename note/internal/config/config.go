@@ -35,4 +35,6 @@ type Config struct {
 			Passport xconf.Discovery `json:"passport"`
 		} `json:"grpc"`
 	} `json:"external"`
+
+	Salt string `json:"salt"`
 }

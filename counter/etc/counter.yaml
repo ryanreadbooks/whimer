@@ -1,0 +1,20 @@
+grpc:
+  mode: dev
+  name: counter-grpc
+  listenon: 0.0.0.0:5556
+  log:
+    level: debug
+  etcd:
+    hosts:
+      - 127.0.0.1:2379
+    key: whimer.counter.rpc
+
+mysql:
+  user: ${ENV_DB_USER}
+  pass: ${ENV_DB_PASS}
+  addr: ${ENV_DB_ADDR}
+  db_name: ${ENV_DB_NAME}
+
+redis:
+  host: 127.0.0.1:7542
+  

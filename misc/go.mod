@@ -10,7 +10,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0
 	github.com/minio/minio-go/v7 v7.0.72
-	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000
 	github.com/speps/go-hashids/v2 v2.0.1
 	github.com/zeromicro/go-queue v1.2.2
 	github.com/zeromicro/go-zero v1.7.0
