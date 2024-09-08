@@ -22,6 +22,7 @@ const (
 	CounterService_AddRecord_FullMethodName    = "/counter.sdk.v1.CounterService/AddRecord"
 	CounterService_CancelRecord_FullMethodName = "/counter.sdk.v1.CounterService/CancelRecord"
 	CounterService_GetRecord_FullMethodName    = "/counter.sdk.v1.CounterService/GetRecord"
+	CounterService_GetSummary_FullMethodName   = "/counter.sdk.v1.CounterService/GetSummary"
 )
 
 // CounterServiceClient is the client API for CounterService service.
@@ -31,6 +32,7 @@ type CounterServiceClient interface {
 	AddRecord(ctx context.Context, in *AddRecordRequest, opts ...grpc.CallOption) (*AddRecordResponse, error)
 	CancelRecord(ctx context.Context, in *CancelRecordRequest, opts ...grpc.CallOption) (*CancelRecordResponse, error)
 	GetRecord(ctx context.Context, in *GetRecordRequest, opts ...grpc.CallOption) (*GetRecordResponse, error)
+	GetSummary(ctx context.Context, in *GetSummaryRequest, opts ...grpc.CallOption) (*GetSummaryResponse, error)
 }
 
 type counterServiceClient struct {
@@ -71,6 +73,16 @@ func (c *counterServiceClient) GetRecord(ctx context.Context, in *GetRecordReque
 	return out, nil
 }
 
+func (c *counterServiceClient) GetSummary(ctx context.Context, in *GetSummaryRequest, opts ...grpc.CallOption) (*GetSummaryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSummaryResponse)
+	err := c.cc.Invoke(ctx, CounterService_GetSummary_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CounterServiceServer is the server API for CounterService service.
 // All implementations must embed UnimplementedCounterServiceServer
 // for forward compatibility.
@@ -78,6 +90,7 @@ type CounterServiceServer interface {
 	AddRecord(context.Context, *AddRecordRequest) (*AddRecordResponse, error)
 	CancelRecord(context.Context, *CancelRecordRequest) (*CancelRecordResponse, error)
 	GetRecord(context.Context, *GetRecordRequest) (*GetRecordResponse, error)
+	GetSummary(context.Context, *GetSummaryRequest) (*GetSummaryResponse, error)
 	mustEmbedUnimplementedCounterServiceServer()
 }
 
@@ -96,6 +109,9 @@ func (UnimplementedCounterServiceServer) CancelRecord(context.Context, *CancelRe
 }
 func (UnimplementedCounterServiceServer) GetRecord(context.Context, *GetRecordRequest) (*GetRecordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRecord not implemented")
+}
+func (UnimplementedCounterServiceServer) GetSummary(context.Context, *GetSummaryRequest) (*GetSummaryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSummary not implemented")
 }
 func (UnimplementedCounterServiceServer) mustEmbedUnimplementedCounterServiceServer() {}
 func (UnimplementedCounterServiceServer) testEmbeddedByValue()                        {}
@@ -172,6 +188,24 @@ func _CounterService_GetRecord_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CounterService_GetSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSummaryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CounterServiceServer).GetSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CounterService_GetSummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CounterServiceServer).GetSummary(ctx, req.(*GetSummaryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CounterService_ServiceDesc is the grpc.ServiceDesc for CounterService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +224,10 @@ var CounterService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRecord",
 			Handler:    _CounterService_GetRecord_Handler,
+		},
+		{
+			MethodName: "GetSummary",
+			Handler:    _CounterService_GetSummary_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

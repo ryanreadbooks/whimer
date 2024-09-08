@@ -16,7 +16,7 @@ var (
 	ErrArgs       = ErrBizArgs.Msg("参数错误")
 	ErrInternal   = ErrBizInternal.Msg("服务错误, 请稍后重试")
 	ErrPermDenied = ErrBizDenied.Msg("操作权限不足")
-
-	ErrNilReq   = ErrArgs.Msg("请求参数为空")
-	ErrNoRecord = ErrNotFound.Msg("找不到记录")
+	ErrNilReq     = ErrArgs.Msg("请求参数为空")
+	ErrNoRecord   = ErrNotFound.Msg("找不到记录")
+	ErrAlreadyDo  = ErrArgs.Msg("不能重复操作")
 )

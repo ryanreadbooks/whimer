@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	ErrNoRecord  = sqlx.ErrNotFound
-	ErrDuplicate = fmt.Errorf("duplicate entry")
+	ErrNoRecord   = sqlx.ErrNotFound
+	ErrDuplicate  = fmt.Errorf("duplicate entry")
+	ErrOutOfRange = fmt.Errorf("out of range")
 )
 
 // 转换not found和duplicate entry两种错误

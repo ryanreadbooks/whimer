@@ -38,3 +38,7 @@ func (s *CounterServer) CancelRecord(ctx context.Context, req *v1.CancelRecordRe
 func (s *CounterServer) GetRecord(ctx context.Context, req *v1.GetRecordRequest) (*v1.GetRecordResponse, error) {
 	return s.Svc.RecordSvc.GetRecord(ctx, req)
 }
+
+func (s *CounterServer) GetSummary(ctx context.Context, req *v1.GetSummaryRequest) (*v1.GetSummaryResponse, error) {
+	return s.Svc.RecordSvc.GetSummary(ctx, req)
+}

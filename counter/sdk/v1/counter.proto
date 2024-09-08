@@ -51,12 +51,22 @@ message GetRecordRequest {
   uint64 oid = 3 [ (buf.validate.field).uint64.gt = 0 ];
 }
 
-message GetRecordResponse {
-  Record record = 2;
+message GetRecordResponse { Record record = 2; }
+
+message GetSummaryRequest {
+  int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
+  uint64 oid = 2 [ (buf.validate.field).uint64.gt = 0 ];
+}
+
+message GetSummaryResponse {
+  int32 biz_code = 1;
+  uint64 oid = 2;
+  uint64 count = 3;
 }
 
 service CounterService {
   rpc AddRecord(AddRecordRequest) returns (AddRecordResponse);
   rpc CancelRecord(CancelRecordRequest) returns (CancelRecordResponse);
   rpc GetRecord(GetRecordRequest) returns (GetRecordResponse);
+  rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
 }

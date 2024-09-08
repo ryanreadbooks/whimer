@@ -13,7 +13,7 @@ const (
 	fields = "biz_code,uid,oid,act,ctime,mtime"
 
 	sqlUpdate = "UPDATE counter_record SET act=?, mtime=? WHERE uid=? AND oid=? AND biz_code=?"
-	sqlCount  = "SELECT COUNT(*) FROM counter_record WHERE oid=? AND biz_code=?"
+	sqlCount  = "SELECT COUNT(*) FROM counter_record WHERE oid=? AND biz_code=? AND act=?"
 )
 
 var (
@@ -94,7 +94,7 @@ func (r *Repo) Find(ctx context.Context, uid, oid uint64, biz int) (*Model, erro
 
 func (r *Repo) Count(ctx context.Context, oid uint64, biz int) (uint64, error) {
 	var cnt uint64
-	err := r.db.QueryRowCtx(ctx, &cnt, sqlCount, oid, biz)
+	err := r.db.QueryRowCtx(ctx, &cnt, sqlCount, oid, biz, ActDo)
 	if err != nil {
 		return 0, xsql.ConvertError(err)
 	}
