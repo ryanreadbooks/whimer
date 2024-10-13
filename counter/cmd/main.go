@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/ryanreadbooks/whimer/counter/internal/config"
+	"github.com/ryanreadbooks/whimer/counter/internal/job"
 	"github.com/ryanreadbooks/whimer/counter/internal/rpc"
 	"github.com/ryanreadbooks/whimer/counter/internal/svc"
 	v1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
@@ -32,10 +33,13 @@ func main() {
 	})
 	interceptor.InstallServerInterceptors(server)
 
+	syncer := job.MustNewSyncer(c.Cron.SyncerSpec, ctx)
+
 	logx.Infof("counter is serving on %s", c.Grpc.ListenOn)
 	group := service.NewServiceGroup()
 	defer group.Stop()
 
 	group.Add(server)
+	group.Add(syncer)
 	group.Start()
 }
