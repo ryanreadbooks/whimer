@@ -5,7 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
 	"github.com/ryanreadbooks/whimer/comment/internal/job"
-	"github.com/ryanreadbooks/whimer/comment/internal/job/cron"
+	cronjob "github.com/ryanreadbooks/whimer/comment/internal/job/cron"
 	"github.com/ryanreadbooks/whimer/comment/internal/rpc"
 	"github.com/ryanreadbooks/whimer/comment/internal/svc"
 	sdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
@@ -37,7 +37,7 @@ func main() {
 	interceptor.InstallServerInterceptors(server)
 
 	mq := kq.MustNewQueue(c.Kafka.AsKqConf(), job.New(ctx))
-	csyncer := cron.MustNewCacheSyncer(c.Cron.SyncReplySpec, ctx)
+	csyncer := cronjob.MustNewCacheSyncer(c.Cron.SyncReplySpec, ctx)
 
 	logx.Info("comment is serving...")
 	group := service.NewServiceGroup()

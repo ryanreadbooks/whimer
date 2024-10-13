@@ -233,7 +233,7 @@ func (s *CounterSvc) GetSummary(ctx context.Context, req *v1.GetSummaryRequest) 
 }
 
 // 同步增量数据到数据库
-func (s *CounterSvc) SyncCacheSummary(ctx context.Context) {
+func (s *CounterSvc) SyncCacheSummary(ctx context.Context) error {
 	var (
 		batchsize = 500
 	)
@@ -269,7 +269,7 @@ func (s *CounterSvc) SyncCacheSummary(ctx context.Context) {
 		})
 	}
 
-	slices.BatchExec(deltas, batchsize, func(start, end int) error {
+	err := slices.BatchExec(deltas, batchsize, func(start, end int) error {
 		tmps := deltas[start:end]
 		keys := make(summary.PrimaryKeyList, 0, len(tmps))
 		deltaMaps := make(map[summary.PrimaryKey]int64)
@@ -330,4 +330,6 @@ func (s *CounterSvc) SyncCacheSummary(ctx context.Context) {
 
 		return nil
 	})
+	
+	return err
 }

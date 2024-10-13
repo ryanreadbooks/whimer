@@ -14,19 +14,9 @@ type CacheSyncer struct {
 	srv *svc.ServiceContext
 }
 
-type logger struct{}
-
-func (l *logger) Info(msg string, keysAndValues ...interface{}) {
-	xlog.Msg(msg).Fields(keysAndValues...).Info()
-}
-
-func (l *logger) Error(err error, msg string, keysAndValues ...interface{}) {
-	xlog.Msg(msg).Err(err).Fields(keysAndValues...).Error()
-}
-
 func NewCacheSyncer(spec string, srv *svc.ServiceContext) (*CacheSyncer, error) {
 	c := cronv3.New(cronv3.WithChain(
-		cronv3.Recover(&logger{}),
+		cronv3.Recover(&xlog.CronLogger{}),
 	))
 
 	syncer := &CacheSyncer{

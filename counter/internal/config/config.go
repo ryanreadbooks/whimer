@@ -16,4 +16,8 @@ type Config struct {
 	} `json:"mysql"`
 
 	Redis redis.RedisConf `json:"redis"`
+
+	Cron struct {
+		SyncerSpec string `json:"syncer_spec"`
+	} `json:"cron"`
 }
