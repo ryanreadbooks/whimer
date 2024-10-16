@@ -4,9 +4,10 @@ go 1.22
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.2-20240717164558-a6c49f84cc0f.2
-	github.com/bufbuild/protovalidate-go v0.6.3
+	github.com/bufbuild/protovalidate-go v0.6.5
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/ryanreadbooks/folium v0.1.1
+	github.com/ryanreadbooks/whimer/counter v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/note v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000
@@ -51,7 +52,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/cel-go v0.20.1 // indirect
+	github.com/google/cel-go v0.21.0 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
@@ -132,3 +133,5 @@ replace github.com/ryanreadbooks/whimer/misc => ../misc
 replace github.com/ryanreadbooks/whimer/passport => ../passport
 
 replace github.com/ryanreadbooks/whimer/note => ../note
+
+replace github.com/ryanreadbooks/whimer/counter => ../counter

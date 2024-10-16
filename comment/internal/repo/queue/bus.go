@@ -40,6 +40,7 @@ type (
 	}
 
 	BinaryReplyData struct {
+		Uid     uint64 `json:"uid"`
 		ReplyId uint64 `json:"reply_id"`
 		Action  int    `json:"action"` // do or undo
 		Type    int    `json:"type"`   // like or dislike
@@ -113,10 +114,11 @@ func (b *Bus) DelReply(ctx context.Context, rid uint64, reply *comm.Model) error
 	})
 }
 
-func (b *Bus) LikeReply(ctx context.Context, rid uint64) error {
+func (b *Bus) LikeReply(ctx context.Context, rid, uid uint64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActLikeReply,
 		LikeReplyData: &BinaryReplyData{
+			Uid:     uid,
 			ReplyId: rid,
 			Action:  ActionDo,
 			Type:    LikeType,
@@ -124,10 +126,11 @@ func (b *Bus) LikeReply(ctx context.Context, rid uint64) error {
 	})
 }
 
-func (b *Bus) UnLikeReply(ctx context.Context, rid uint64) error {
+func (b *Bus) UnLikeReply(ctx context.Context, rid, uid uint64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActLikeReply,
 		LikeReplyData: &BinaryReplyData{
+			Uid:     uid,
 			ReplyId: rid,
 			Action:  ActionUndo,
 			Type:    LikeType,
@@ -135,10 +138,11 @@ func (b *Bus) UnLikeReply(ctx context.Context, rid uint64) error {
 	})
 }
 
-func (b *Bus) DisLikeReply(ctx context.Context, rid uint64) error {
+func (b *Bus) DisLikeReply(ctx context.Context, rid, uid uint64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActDislikeReply,
 		LikeReplyData: &BinaryReplyData{
+			Uid:     uid,
 			ReplyId: rid,
 			Action:  ActionDo,
 			Type:    DisLikeType,
@@ -146,10 +150,11 @@ func (b *Bus) DisLikeReply(ctx context.Context, rid uint64) error {
 	})
 }
 
-func (b *Bus) UndisLikeReply(ctx context.Context, rid uint64) error {
+func (b *Bus) UndisLikeReply(ctx context.Context, rid, uid uint64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActDislikeReply,
 		LikeReplyData: &BinaryReplyData{
+			Uid:     uid,
 			ReplyId: rid,
 			Action:  ActionUndo,
 			Type:    DisLikeType,

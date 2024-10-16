@@ -86,7 +86,7 @@ message GetUploadAuthRes {
   UploadAuthResHeaders headers = 5;
 }
 
-service Note {
+service NoteService {
   // 检查用户是否拥有指定的笔记
   rpc IsUserOwnNote(IsUserOwnNoteReq) returns (IsUserOwnNoteRes);
   // 判断笔记是否存在

@@ -27,18 +27,24 @@ message AddReplyRes {
 
 // 删除评论
 message DelReplyReq {
-  uint64 reply_id = 1; // 评论id
+  uint64 reply_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 评论id
 }
 
 message DelReplyRes {}
 
 // 点赞/取消点赞
-message LikeActionReq {}
+message LikeActionReq {
+  uint64 reply_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 评论id
+  ReplyAction action = 2; // 取消点赞还是点赞
+}
 
 message LikeActionRes {}
 
 // 点踩/取消点踩
-message DislikeActionReq {}
+message DislikeActionReq {
+  uint64 reply_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 评论id
+  ReplyAction action = 2; // 取消点踩还是点踩
+}
 
 message DislikeActionRes {}
 
@@ -50,7 +56,7 @@ message ReportReplyRes {}
 // 置顶
 message PinReplyReq {
   uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
-  uint64 rid = 2;                                        // 评论id
+  uint64 rid = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 评论id
   ReplyAction action = 3;
 }
 

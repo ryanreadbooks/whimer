@@ -28,7 +28,7 @@ func main() {
 	ctx := svc.NewServiceContext(&c)
 
 	grpcServer := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
-		sdk.RegisterNoteServer(s, rpc.NewNoteServer(ctx))
+		sdk.RegisterNoteServiceServer(s, rpc.NewNoteServer(ctx))
 		xgrpc.EnableReflection(c.Grpc, s)
 	})
 	interceptor.InstallServerInterceptors(grpcServer)

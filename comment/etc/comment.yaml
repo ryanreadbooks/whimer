@@ -24,6 +24,9 @@ external:
     note:
       hosts: [127.0.0.1:2379]
       key: whimer.note.rpc
+    counter:
+      hosts: [127.0.0.1:2379]
+      key: whimer.counter.rpc
 
 seqer: 
   addr: 127.0.0.1:9528

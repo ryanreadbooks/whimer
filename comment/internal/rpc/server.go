@@ -68,17 +68,33 @@ func (s *ReplyServer) DelReply(ctx context.Context, in *sdk.DelReplyReq) (*sdk.D
 	return &sdk.DelReplyRes{}, nil
 }
 
-// 点赞评论
 func (s *ReplyServer) LikeAction(ctx context.Context, in *sdk.LikeActionReq) (*sdk.LikeActionRes, error) {
+	if in.ReplyId <= 0 {
+		return nil, global.ErrInvalidReplyId
+	}
+
+	err := s.Svc.CommentSvc.ReplyLike(ctx, in.ReplyId, int8(in.Action))
+	if err != nil {
+		return nil, err
+	}
+
 	return &sdk.LikeActionRes{}, nil
 }
 
-// 点踩
 func (s *ReplyServer) DislikeAction(ctx context.Context, in *sdk.DislikeActionReq) (*sdk.DislikeActionRes, error) {
+	if in.ReplyId <= 0 {
+		return nil, global.ErrInvalidReplyId
+	}
+
+	err := s.Svc.CommentSvc.ReplyDislike(ctx, in.ReplyId, int8(in.Action))
+	if err != nil {
+		return nil, err
+	}
+
 	return &sdk.DislikeActionRes{}, nil
 }
 
-// 举报
+// TODO 举报
 func (s *ReplyServer) ReportReply(ctx context.Context, in *sdk.ReportReplyReq) (*sdk.ReportReplyRes, error) {
 	return &sdk.ReportReplyRes{}, nil
 }

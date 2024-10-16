@@ -19,4 +19,4 @@ redis:
   host: 127.0.0.1:7542
   
 cron:
-  syncer_spec: "*/5 * * * * ?"
+  syncer_spec: "*/5 * * * *"

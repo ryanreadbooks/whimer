@@ -35,7 +35,7 @@ message CancelRecordRequest {
   uint64 oid = 3 [ (buf.validate.field).uint64.gt = 0 ];
 }
 
-message CancelRecordResponse { Record data = 1; }
+message CancelRecordResponse {}
 
 message DelRecordRequest {
   int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];

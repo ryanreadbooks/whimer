@@ -3,6 +3,7 @@ package interceptor
 import (
 	"context"
 
+	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 
 	"google.golang.org/grpc"
@@ -40,4 +41,32 @@ func ClientMetadataInject(ctx context.Context,
 	}
 
 	return invoker(ctx, method, req, reply, cc, opts...)
+}
+
+type ServerMetadateChecker func(ctx context.Context) error
+
+// 提前对metadata中的内容进行检查
+func ServerMetadateCheck(checkers ...ServerMetadateChecker) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context,
+		req any,
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler) (resp any, err error) {
+
+		for _, checker := range checkers {
+			if err := checker(ctx); err != nil {
+				return nil, err
+			}
+		}
+
+		return handler(ctx, req)
+	}
+}
+
+func UidExistenceChecker(ctx context.Context) error {
+	uid := metadata.Uid(ctx)
+	if uid <= 0 {
+		return errorx.ErrNotLogin
+	}
+
+	return nil
 }
