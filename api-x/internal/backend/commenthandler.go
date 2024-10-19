@@ -10,8 +10,8 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
 	sdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/concur"
-	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/utils/maps"
+	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	user "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 
@@ -22,9 +22,9 @@ import (
 // 发表评论
 func (h *Handler) PublishComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req comment.PubReq
-		if err := httpx.ParseJsonBody(r, &req); err != nil {
-			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+		req, err := xhttp.ParseValidate[comment.PubReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			httpx.Error(w, err)
 			return
 		}
 
@@ -42,9 +42,9 @@ func (h *Handler) PublishComment() http.HandlerFunc {
 // 只获取主评论
 func (h *Handler) PageGetRoots() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req comment.GetCommentsReq
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+		req, err := xhttp.ParseValidate[comment.GetCommentsReq](httpx.Parse, r)
+		if err != nil {
+			httpx.Error(w, err)
 			return
 		}
 
@@ -77,9 +77,9 @@ func (h *Handler) PageGetRoots() http.HandlerFunc {
 // 只获取子评论
 func (h *Handler) PageGetSubs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req comment.GetSubCommentsReq
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+		req, err := xhttp.ParseValidate[comment.GetSubCommentsReq](httpx.Parse, r)
+		if err != nil {
+			httpx.Error(w, err)
 			return
 		}
 
@@ -125,9 +125,9 @@ func extractUidsMap(replies []*sdk.DetailedReplyItem) map[uint64]struct{} {
 // 获取主评论信息（包含其下子评论）
 func (h *Handler) PageGetReplies() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req comment.GetCommentsReq
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+		req, err := xhttp.ParseValidate[comment.GetCommentsReq](httpx.Parse, r)
+		if err != nil {
+			httpx.Error(w, err)
 			return
 		}
 
@@ -244,13 +244,13 @@ func formatUid(uid uint64) string {
 
 func (h *Handler) DelComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req comment.DelReq
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+		req, err := xhttp.ParseValidate[comment.DelReq](httpx.Parse, r)
+		if err != nil {
+			httpx.Error(w, err)
 			return
 		}
 
-		_, err := comment.GetCommenter().DelReply(r.Context(), &sdk.DelReplyReq{ReplyId: req.ReplyId})
+		_, err = comment.GetCommenter().DelReply(r.Context(), &sdk.DelReplyReq{ReplyId: req.ReplyId})
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -262,21 +262,58 @@ func (h *Handler) DelComment() http.HandlerFunc {
 
 func (h *Handler) PinComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req comment.PinReq
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
-			return
-		}
-
-		if err := req.Validate(); err != nil {
+		req, err := xhttp.ParseValidate[comment.PinReq](httpx.Parse, r)
+		if err != nil {
 			httpx.Error(w, err)
 			return
 		}
 
-		_, err := comment.GetCommenter().PinReply(r.Context(), &sdk.PinReplyReq{
+		_, err = comment.GetCommenter().PinReply(r.Context(), &sdk.PinReplyReq{
 			Oid:    req.Oid,
 			Rid:    req.ReplyId,
 			Action: sdk.ReplyAction(req.Action),
+		})
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		httpx.OkJson(w, nil)
+	}
+}
+
+func (h *Handler) LikeComment() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[comment.ThumbUpReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		_, err = comment.GetCommenter().LikeAction(r.Context(), &sdk.LikeActionReq{
+			ReplyId: req.ReplyId,
+			Action:  sdk.ReplyAction(req.Action),
+		})
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		httpx.OkJson(w, nil)
+	}
+}
+
+func (h *Handler) DislikeComment() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[comment.ThumbDownReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		_, err = comment.GetCommenter().DislikeAction(r.Context(), &sdk.DislikeActionReq{
+			ReplyId: req.ReplyId,
+			Action:  sdk.ReplyAction(req.Action),
 		})
 		if err != nil {
 			httpx.Error(w, err)

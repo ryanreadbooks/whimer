@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/ryanreadbooks/whimer/comment/internal/global"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -31,8 +32,14 @@ type Config struct {
 	Cron struct {
 		SyncReplySpec string `json:"sync_reply_spec"`
 	} `json:"cron"`
+
+	DataProxyMode global.ProxyMode `json:"data_proxy_mode"`
 }
 
 type Seqer struct {
 	Addr string `json:"addr"`
+}
+
+func (c *Config) GetDataProxyMode() global.ProxyMode {
+	return c.DataProxyMode
 }

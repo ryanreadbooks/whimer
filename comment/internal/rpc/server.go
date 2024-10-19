@@ -12,7 +12,7 @@ import (
 )
 
 type ReplyServer struct {
-	sdk.UnimplementedReplyServer
+	sdk.UnimplementedReplyServiceServer
 	validator *protovalidate.Validator
 
 	Svc *svc.ServiceContext

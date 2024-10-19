@@ -31,7 +31,8 @@ func main() {
 		v1.RegisterCounterServiceServer(s, rpc.NewCounterServer(ctx))
 		xgrpc.EnableReflection(c.Grpc, s)
 	})
-	interceptor.InstallServerInterceptors(server)
+	interceptor.InstallServerUnaryInterceptors(server,
+		interceptor.WithChecker(interceptor.UidExistenceChecker))
 
 	syncer := job.MustNewSyncer(c.Cron.SyncerSpec, ctx)
 

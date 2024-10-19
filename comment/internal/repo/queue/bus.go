@@ -150,7 +150,7 @@ func (b *Bus) DisLikeReply(ctx context.Context, rid, uid uint64) error {
 	})
 }
 
-func (b *Bus) UndisLikeReply(ctx context.Context, rid, uid uint64) error {
+func (b *Bus) UnDisLikeReply(ctx context.Context, rid, uid uint64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActDislikeReply,
 		LikeReplyData: &BinaryReplyData{
@@ -175,7 +175,7 @@ func (b *Bus) PinReply(ctx context.Context, oid, rid uint64) error {
 }
 
 // 取消置顶
-func (b *Bus) UnpinReply(ctx context.Context, oid, rid uint64) error {
+func (b *Bus) UnPinReply(ctx context.Context, oid, rid uint64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActPinReply,
 		PinReplyData: &PinReplyData{

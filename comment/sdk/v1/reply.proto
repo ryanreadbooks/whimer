@@ -148,7 +148,7 @@ message CountReplyRes {
   uint64 num_reply = 1; // 评论数量
 }
 
-service Reply {
+service ReplyService {
   // 发表评论
   rpc AddReply(AddReplyReq) returns (AddReplyRes);
   // 删除评论

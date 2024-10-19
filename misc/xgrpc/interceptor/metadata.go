@@ -46,7 +46,7 @@ func ClientMetadataInject(ctx context.Context,
 type ServerMetadateChecker func(ctx context.Context) error
 
 // 提前对metadata中的内容进行检查
-func ServerMetadateCheck(checkers ...ServerMetadateChecker) grpc.UnaryServerInterceptor {
+func ServerMetadataCheck(checkers ...ServerMetadateChecker) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context,
 		req any,
 		info *grpc.UnaryServerInfo,

@@ -31,10 +31,11 @@ func main() {
 	ctx := svc.NewServiceContext(&c)
 
 	server := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
-		sdk.RegisterReplyServer(s, rpc.NewReplyServer(ctx))
+		sdk.RegisterReplyServiceServer(s, rpc.NewReplyServer(ctx))
 		xgrpc.EnableReflection(c.Grpc, s)
 	})
-	interceptor.InstallServerInterceptors(server)
+	interceptor.InstallServerUnaryInterceptors(server,
+		interceptor.WithChecker(interceptor.UidExistenceChecker))
 
 	mq := kq.MustNewQueue(c.Kafka.AsKqConf(), job.New(ctx))
 	csyncer := cronjob.MustNewCacheSyncer(c.Cron.SyncReplySpec, ctx)

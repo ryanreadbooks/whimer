@@ -38,27 +38,38 @@ type CommentSvc struct {
 	repo  *repo.Repo
 	seqer *seqer.Client
 	cache *Cache
+
+	// 同步或者异步处理写入数据
+	directProxy *commentSvcProxy
+	dataProxy   IDataProxy
 }
 
 func NewCommentSvc(ctx *ServiceContext, repo *repo.Repo, cache *redis.Redis) *CommentSvc {
-	s := &CommentSvc{
-		c:     ctx.Config,
-		repo:  repo,
-		cache: NewCache(cache),
-		root:  ctx,
-	}
-
-	var err error
-	s.seqer, err = seqer.NewClient(seqer.WithGrpc(s.c.Seqer.Addr))
+	seqer, err := seqer.NewClient(seqer.WithGrpc(ctx.Config.Seqer.Addr))
 	if err != nil {
 		panic(err)
 	}
 
+	s := &CommentSvc{
+		c:         ctx.Config,
+		root:      ctx,
+		repo:      repo,
+		seqer:     seqer,
+		cache:     NewCache(cache),
+	}
+
+	s.directProxy = &commentSvcProxy{proxy: s}
+	s.dataProxy = s.directProxy
+
 	return s
 }
 
-func isRootReply(root, parent uint64) bool {
-	return root == 0 && parent == 0
+func (s *CommentSvc) DataProxy() IDataProxy {
+	if s.c.GetDataProxyMode() == global.ProxyModeBus {
+		return s.repo.Bus
+	}
+
+	return s.directProxy
 }
 
 // 发表评论
@@ -106,10 +117,10 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 	}
 
 	if isRootReply(rootId, parentId) {
-		err = s.repo.Bus.AddReply(ctx, &reply)
+		err = s.dataProxy.AddReply(ctx, &reply)
 		if err != nil {
 			xlog.Msg("push reply to queue err").Err(err).Extra("replyId", replyId).Errorx(ctx)
-			return nil, global.ErrInternal
+			return nil, err
 		}
 	} else {
 		err := s.repo.DB().TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
@@ -118,10 +129,10 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 				return err
 			}
 			// 可以插入
-			err = s.repo.Bus.AddReply(ctx, &reply)
+			err = s.dataProxy.AddReply(ctx, &reply)
 			if err != nil {
 				xlog.Msg("push subreply to queue err").Err(err).Extra("replyId", replyId).Errorx(ctx)
-				return global.ErrInternal
+				return err
 			}
 			return nil
 		})
@@ -171,10 +182,10 @@ func (s *CommentSvc) ReplyDel(ctx context.Context, rid uint64) error {
 		return err
 	}
 
-	err = s.repo.Bus.DelReply(ctx, rid, reply)
+	err = s.dataProxy.DelReply(ctx, rid, reply)
 	if err != nil {
 		xlog.Msg("del reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
-		return global.ErrInternal
+		return err
 	}
 
 	return nil
@@ -187,16 +198,16 @@ func (s *CommentSvc) ReplyLike(ctx context.Context, rid uint64, action int8) err
 	)
 
 	if action == int8(commentv1.ReplyAction_REPLY_ACTION_DO) {
-		if err := s.repo.Bus.LikeReply(ctx, rid, uid); err != nil {
+		if err := s.dataProxy.LikeReply(ctx, rid, uid); err != nil {
 			xlog.Msg("like reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
-			return global.ErrInternal
+			return err
 		}
 		return nil
 	}
 
-	if err := s.repo.Bus.UnLikeReply(ctx, rid, uid); err != nil {
+	if err := s.dataProxy.UnLikeReply(ctx, rid, uid); err != nil {
 		xlog.Msg("unlike reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
-		return global.ErrInternal
+		return err
 	}
 
 	return nil
@@ -209,15 +220,15 @@ func (s *CommentSvc) ReplyDislike(ctx context.Context, rid uint64, action int8) 
 	)
 
 	if action == int8(commentv1.ReplyAction_REPLY_ACTION_DO) {
-		if err := s.repo.Bus.DisLikeReply(ctx, rid, uid); err != nil {
+		if err := s.dataProxy.DisLikeReply(ctx, rid, uid); err != nil {
 			xlog.Msg("dislike reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
-			return global.ErrInternal
+			return err
 		}
 	}
 
-	if err := s.repo.Bus.UndisLikeReply(ctx, rid, uid); err != nil {
+	if err := s.dataProxy.UnDisLikeReply(ctx, rid, uid); err != nil {
 		xlog.Msg("undislike reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
-		return global.ErrInternal
+		return err
 	}
 
 	return nil
@@ -259,7 +270,7 @@ func (s *CommentSvc) ReplyPin(ctx context.Context, oid, rid uint64, action int8)
 			return nil
 		}
 		// 置顶
-		err = s.repo.Bus.PinReply(ctx, r.Oid, rid)
+		err = s.dataProxy.PinReply(ctx, r.Oid, rid)
 		if err != nil {
 			xlog.Msg("bus put pin reply err").Err(err).
 				Extra("rid", rid).Extra("action", action).Errorx(ctx)
@@ -272,7 +283,7 @@ func (s *CommentSvc) ReplyPin(ctx context.Context, oid, rid uint64, action int8)
 			return nil
 		}
 
-		err = s.repo.Bus.UnpinReply(ctx, r.Oid, rid)
+		err = s.dataProxy.UnPinReply(ctx, r.Oid, rid)
 		if err != nil {
 			xlog.Msg("bus put unpin reply err").Err(err).
 				Extra("rid", rid).Extra("action", action).Errorx(ctx)
@@ -616,6 +627,10 @@ func modelToReplyItem(model *comm.Model) *commentv1.ReplyItem {
 	}
 
 	return out
+}
+
+func isRootReply(root, parent uint64) bool {
+	return root == 0 && parent == 0
 }
 
 // 获取评论信息，包含主评论和子评论

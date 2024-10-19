@@ -31,7 +31,8 @@ func main() {
 		sdk.RegisterNoteServiceServer(s, rpc.NewNoteServer(ctx))
 		xgrpc.EnableReflection(c.Grpc, s)
 	})
-	interceptor.InstallServerInterceptors(grpcServer)
+	interceptor.InstallServerUnaryInterceptors(grpcServer,
+		interceptor.WithChecker(interceptor.UidExistenceChecker))
 
 	group := service.NewServiceGroup()
 	defer group.Stop()

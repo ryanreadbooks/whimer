@@ -42,7 +42,7 @@ func main() {
 		// for debugging
 		xgrpc.EnableReflection(c.Grpc, s)
 	})
-	interceptor.InstallServerInterceptors(grpcServer)
+	interceptor.InstallServerUnaryInterceptors(grpcServer)
 
 	group := service.NewServiceGroup()
 	defer group.Stop()

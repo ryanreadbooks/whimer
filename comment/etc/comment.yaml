@@ -44,3 +44,5 @@ redis:
 
 cron:
   sync_reply_spec: "0 3 * * *"
+
+data_proxy_mode: direct
