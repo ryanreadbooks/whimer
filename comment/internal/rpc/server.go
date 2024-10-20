@@ -6,13 +6,13 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/global"
 	"github.com/ryanreadbooks/whimer/comment/internal/model"
 	"github.com/ryanreadbooks/whimer/comment/internal/svc"
-	sdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
+	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 
 	"github.com/bufbuild/protovalidate-go"
 )
 
 type ReplyServer struct {
-	sdk.UnimplementedReplyServiceServer
+	commentv1.UnimplementedReplyServiceServer
 	validator *protovalidate.Validator
 
 	Svc *svc.ServiceContext
@@ -30,7 +30,7 @@ func NewReplyServer(ctx *svc.ServiceContext) *ReplyServer {
 }
 
 // 发布评论
-func (s *ReplyServer) AddReply(ctx context.Context, in *sdk.AddReplyReq) (*sdk.AddReplyRes, error) {
+func (s *ReplyServer) AddReply(ctx context.Context, in *commentv1.AddReplyReq) (*commentv1.AddReplyRes, error) {
 	req := &model.ReplyReq{
 		Type:     model.ReplyType(in.GetReplyType()),
 		Oid:      in.GetOid(),
@@ -49,13 +49,13 @@ func (s *ReplyServer) AddReply(ctx context.Context, in *sdk.AddReplyReq) (*sdk.A
 		return nil, err
 	}
 
-	return &sdk.AddReplyRes{
+	return &commentv1.AddReplyRes{
 		ReplyId: res.ReplyId,
 	}, nil
 }
 
 // 删除评论
-func (s *ReplyServer) DelReply(ctx context.Context, in *sdk.DelReplyReq) (*sdk.DelReplyRes, error) {
+func (s *ReplyServer) DelReply(ctx context.Context, in *commentv1.DelReplyReq) (*commentv1.DelReplyRes, error) {
 	if in.ReplyId <= 0 {
 		return nil, global.ErrInvalidReplyId
 	}
@@ -65,10 +65,10 @@ func (s *ReplyServer) DelReply(ctx context.Context, in *sdk.DelReplyReq) (*sdk.D
 		return nil, err
 	}
 
-	return &sdk.DelReplyRes{}, nil
+	return &commentv1.DelReplyRes{}, nil
 }
 
-func (s *ReplyServer) LikeAction(ctx context.Context, in *sdk.LikeActionReq) (*sdk.LikeActionRes, error) {
+func (s *ReplyServer) LikeAction(ctx context.Context, in *commentv1.LikeActionReq) (*commentv1.LikeActionRes, error) {
 	if in.ReplyId <= 0 {
 		return nil, global.ErrInvalidReplyId
 	}
@@ -78,10 +78,10 @@ func (s *ReplyServer) LikeAction(ctx context.Context, in *sdk.LikeActionReq) (*s
 		return nil, err
 	}
 
-	return &sdk.LikeActionRes{}, nil
+	return &commentv1.LikeActionRes{}, nil
 }
 
-func (s *ReplyServer) DislikeAction(ctx context.Context, in *sdk.DislikeActionReq) (*sdk.DislikeActionRes, error) {
+func (s *ReplyServer) DislikeAction(ctx context.Context, in *commentv1.DislikeActionReq) (*commentv1.DislikeActionRes, error) {
 	if in.ReplyId <= 0 {
 		return nil, global.ErrInvalidReplyId
 	}
@@ -91,49 +91,63 @@ func (s *ReplyServer) DislikeAction(ctx context.Context, in *sdk.DislikeActionRe
 		return nil, err
 	}
 
-	return &sdk.DislikeActionRes{}, nil
+	return &commentv1.DislikeActionRes{}, nil
 }
 
 // TODO 举报
-func (s *ReplyServer) ReportReply(ctx context.Context, in *sdk.ReportReplyReq) (*sdk.ReportReplyRes, error) {
-	return &sdk.ReportReplyRes{}, nil
+func (s *ReplyServer) ReportReply(ctx context.Context,
+	in *commentv1.ReportReplyReq) (*commentv1.ReportReplyRes, error) {
+	return &commentv1.ReportReplyRes{}, nil
 }
 
 // 置顶
-func (s *ReplyServer) PinReply(ctx context.Context, in *sdk.PinReplyReq) (*sdk.PinReplyRes, error) {
+func (s *ReplyServer) PinReply(ctx context.Context,
+	in *commentv1.PinReplyReq) (*commentv1.PinReplyRes, error) {
 	err := s.Svc.CommentSvc.ReplyPin(ctx, in.Oid, in.Rid, int8(in.Action))
 	if err != nil {
 		return nil, err
 	}
 
-	return &sdk.PinReplyRes{}, nil
+	return &commentv1.PinReplyRes{}, nil
 }
 
 // 分页获取主评论
-func (s *ReplyServer) PageGetReply(ctx context.Context, in *sdk.PageGetReplyReq) (*sdk.PageGetReplyRes, error) {
+func (s *ReplyServer) PageGetReply(ctx context.Context,
+	in *commentv1.PageGetReplyReq) (*commentv1.PageGetReplyRes, error) {
 	return s.Svc.CommentSvc.PageGetReply(ctx, in)
 }
 
 // 分页获取子评论
-func (s *ReplyServer) PageGetSubReply(ctx context.Context, in *sdk.PageGetSubReplyReq) (*sdk.PageGetSubReplyRes, error) {
+func (s *ReplyServer) PageGetSubReply(ctx context.Context,
+	in *commentv1.PageGetSubReplyReq) (*commentv1.PageGetSubReplyRes, error) {
 	return s.Svc.CommentSvc.PageGetSubReply(ctx, in)
 }
 
-func (s *ReplyServer) PageGetDetailedReply(ctx context.Context, in *sdk.PageGetReplyReq) (*sdk.PageGetDetailedReplyRes, error) {
+func (s *ReplyServer) PageGetDetailedReply(ctx context.Context,
+	in *commentv1.PageGetReplyReq) (*commentv1.PageGetDetailedReplyRes, error) {
 	return s.Svc.CommentSvc.PageGetObjectReplies(ctx, in)
 }
 
 // 获取置顶评论
-func (s *ReplyServer) GetPinnedReply(ctx context.Context, in *sdk.GetPinnedReplyReq) (*sdk.GetPinnedReplyRes, error) {
+func (s *ReplyServer) GetPinnedReply(ctx context.Context,
+	in *commentv1.GetPinnedReplyReq) (*commentv1.GetPinnedReplyRes, error) {
 	return s.Svc.CommentSvc.GetPinnedReply(ctx, in.Oid)
 }
 
 // 获取评论数量
-func (s *ReplyServer) CountReply(ctx context.Context, in *sdk.CountReplyReq) (*sdk.CountReplyRes, error) {
+func (s *ReplyServer) CountReply(ctx context.Context,
+	in *commentv1.CountReplyReq) (*commentv1.CountReplyRes, error) {
 	count, err := s.Svc.CommentSvc.CountReply(ctx, in.Oid)
 	if err != nil {
 		return nil, err
 	}
 
-	return &sdk.CountReplyRes{NumReply: count}, nil
+	return &commentv1.CountReplyRes{NumReply: count}, nil
+}
+
+// 获取评论的点赞数量
+func (s *ReplyServer) GetReplyLikeCount(ctx context.Context,
+	in *commentv1.GetReplyLikeCountReq) (*commentv1.GetReplyLikeCountRes, error) {
+	s.Svc.CommentSvc.GetReplyLikesCount(ctx, in.ReplyId)
+	return &commentv1.GetReplyLikeCountRes{}, nil
 }

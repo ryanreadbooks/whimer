@@ -65,8 +65,12 @@ message GetSummaryResponse {
 }
 
 service CounterService {
+  // 添加一条计数记录
   rpc AddRecord(AddRecordRequest) returns (AddRecordResponse);
+  // 取消计数记录
   rpc CancelRecord(CancelRecordRequest) returns (CancelRecordResponse);
+  // 获取一条计数记录
   rpc GetRecord(GetRecordRequest) returns (GetRecordResponse);
+  // 获取oid计数总数
   rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
 }

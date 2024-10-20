@@ -30,6 +30,7 @@ const (
 	ReplyService_PageGetDetailedReply_FullMethodName = "/comment.sdk.v1.ReplyService/PageGetDetailedReply"
 	ReplyService_GetPinnedReply_FullMethodName       = "/comment.sdk.v1.ReplyService/GetPinnedReply"
 	ReplyService_CountReply_FullMethodName           = "/comment.sdk.v1.ReplyService/CountReply"
+	ReplyService_GetReplyLikeCount_FullMethodName    = "/comment.sdk.v1.ReplyService/GetReplyLikeCount"
 )
 
 // ReplyServiceClient is the client API for ReplyService service.
@@ -58,6 +59,8 @@ type ReplyServiceClient interface {
 	GetPinnedReply(ctx context.Context, in *GetPinnedReplyReq, opts ...grpc.CallOption) (*GetPinnedReplyRes, error)
 	// 获取某个被评对象的评论数
 	CountReply(ctx context.Context, in *CountReplyReq, opts ...grpc.CallOption) (*CountReplyRes, error)
+	// 获取某条评论的点赞数
+	GetReplyLikeCount(ctx context.Context, in *GetReplyLikeCountReq, opts ...grpc.CallOption) (*GetReplyLikeCountRes, error)
 }
 
 type replyServiceClient struct {
@@ -178,6 +181,16 @@ func (c *replyServiceClient) CountReply(ctx context.Context, in *CountReplyReq, 
 	return out, nil
 }
 
+func (c *replyServiceClient) GetReplyLikeCount(ctx context.Context, in *GetReplyLikeCountReq, opts ...grpc.CallOption) (*GetReplyLikeCountRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetReplyLikeCountRes)
+	err := c.cc.Invoke(ctx, ReplyService_GetReplyLikeCount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ReplyServiceServer is the server API for ReplyService service.
 // All implementations must embed UnimplementedReplyServiceServer
 // for forward compatibility.
@@ -204,6 +217,8 @@ type ReplyServiceServer interface {
 	GetPinnedReply(context.Context, *GetPinnedReplyReq) (*GetPinnedReplyRes, error)
 	// 获取某个被评对象的评论数
 	CountReply(context.Context, *CountReplyReq) (*CountReplyRes, error)
+	// 获取某条评论的点赞数
+	GetReplyLikeCount(context.Context, *GetReplyLikeCountReq) (*GetReplyLikeCountRes, error)
 	mustEmbedUnimplementedReplyServiceServer()
 }
 
@@ -246,6 +261,9 @@ func (UnimplementedReplyServiceServer) GetPinnedReply(context.Context, *GetPinne
 }
 func (UnimplementedReplyServiceServer) CountReply(context.Context, *CountReplyReq) (*CountReplyRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CountReply not implemented")
+}
+func (UnimplementedReplyServiceServer) GetReplyLikeCount(context.Context, *GetReplyLikeCountReq) (*GetReplyLikeCountRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetReplyLikeCount not implemented")
 }
 func (UnimplementedReplyServiceServer) mustEmbedUnimplementedReplyServiceServer() {}
 func (UnimplementedReplyServiceServer) testEmbeddedByValue()                      {}
@@ -466,6 +484,24 @@ func _ReplyService_CountReply_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ReplyService_GetReplyLikeCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetReplyLikeCountReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReplyServiceServer).GetReplyLikeCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReplyService_GetReplyLikeCount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReplyServiceServer).GetReplyLikeCount(ctx, req.(*GetReplyLikeCountReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ReplyService_ServiceDesc is the grpc.ServiceDesc for ReplyService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -516,6 +552,10 @@ var ReplyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CountReply",
 			Handler:    _ReplyService_CountReply_Handler,
+		},
+		{
+			MethodName: "GetReplyLikeCount",
+			Handler:    _ReplyService_GetReplyLikeCount_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -38,7 +38,7 @@ func MustNewSyncer(spec string, srv *svc.ServiceContext) *Syncer {
 }
 
 func (s *Syncer) Run() {
-	xlog.Msg("counter syncer starts running...").Debug()
+	xlog.Msg("counter syncer starts running...").Info()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 	err := s.srv.RecordSvc.SyncCacheSummary(ctx)
@@ -54,4 +54,5 @@ func (c *Syncer) Start() {
 
 func (c *Syncer) Stop() {
 	c.c.Stop()
+	xlog.Msg("counter syncer stopped.").Info()
 }

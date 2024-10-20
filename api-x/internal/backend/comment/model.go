@@ -183,3 +183,20 @@ type ThumbDownReq struct {
 func (r *ThumbDownReq) Validate() error {
 	return r.check(r.Action)
 }
+
+type GetLikeCountReq struct {
+	ReplyId uint64 `form:"reply_id"`
+}
+
+func (r *GetLikeCountReq) Validate() error {
+	if r.ReplyId <= 0 {
+		return errorx.ErrArgs.Msg("评论不存在")
+	}
+
+	return nil
+}
+
+type GetLikeCountRes struct {
+	ReplyId uint64 `json:"rid"`
+	Likes   uint64 `json:"likes"`
+}

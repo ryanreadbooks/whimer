@@ -10,17 +10,21 @@ import (
 
 // all sqls here
 const (
-	fields = "biz_code,uid,oid,act,ctime,mtime"
+	fields    = "biz_code,uid,oid,act,ctime,mtime"
+	allFields = "id,biz_code,uid,oid,act,ctime,mtime"
 
-	sqlUpdate = "UPDATE counter_record SET act=?, mtime=? WHERE uid=? AND oid=? AND biz_code=?"
-	sqlCount  = "SELECT COUNT(*) FROM counter_record WHERE oid=? AND biz_code=? AND act=?"
+	sqlUpdate     = "UPDATE counter_record SET act=?, mtime=? WHERE uid=? AND oid=? AND biz_code=?"
+	sqlCount      = "SELECT COUNT(*) FROM counter_record WHERE oid=? AND biz_code=? AND act=?"
+	sqlCountAll   = "SELECT COUNT(*) FROM counter_record WHERE act=?"
+	sqlPageGet    = "SELECT %s FROM counter_record WHERE id>=? AND act=? LIMIT ?"
+	sqlGetSummary = "SELECT biz_code,oid,count(1) cnt FROM counter_record WHERE act=? GROUP BY biz_code,oid"
 )
 
 var (
 	sqlInsert = fmt.Sprintf("INSERT INTO counter_record(%s) VALUES(?,?,?,?,?,?)", fields)
 	sqlInUpd  = fmt.Sprintf("INSERT INTO counter_record(%s) VALUES(?,?,?,?,?,?) AS val "+
 		"ON DUPLICATE KEY UPDATE act=val.act, mtime=val.mtime", fields)
-	sqlFind = fmt.Sprintf("SELECT %s FROM counter_record WHERE uid=? AND oid=? AND biz_code=?", fields)
+	sqlFind = fmt.Sprintf("SELECT %s FROM counter_record WHERE uid=? AND oid=? AND biz_code=?", allFields)
 )
 
 func (r *Repo) InsertUpdate(ctx context.Context, data *Model) error {
@@ -100,4 +104,34 @@ func (r *Repo) Count(ctx context.Context, oid uint64, biz int) (uint64, error) {
 	}
 
 	return cnt, nil
+}
+
+func (r *Repo) PageGet(ctx context.Context, id uint64, act int, limit uint64) ([]*Model, error) {
+	var res = make([]*Model, 0)
+	err := r.db.QueryRowsCtx(ctx, &res, fmt.Sprintf(sqlPageGet, allFields), id, act, limit)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return res, nil
+}
+
+func (r *Repo) CountAll(ctx context.Context) (uint64, error) {
+	var cnt uint64
+	err := r.db.QueryRowCtx(ctx, &cnt, sqlCountAll, ActDo)
+	if err != nil {
+		return 0, xsql.ConvertError(err)
+	}
+
+	return cnt, nil
+}
+
+func (r *Repo) GetSummary(ctx context.Context, act int) ([]*Summary, error) {
+	var summaries []*Summary
+	err := r.db.QueryRowsCtx(ctx, &summaries, sqlGetSummary, act)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return summaries, nil
 }

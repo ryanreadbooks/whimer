@@ -51,11 +51,11 @@ func NewCommentSvc(ctx *ServiceContext, repo *repo.Repo, cache *redis.Redis) *Co
 	}
 
 	s := &CommentSvc{
-		c:         ctx.Config,
-		root:      ctx,
-		repo:      repo,
-		seqer:     seqer,
-		cache:     NewCache(cache),
+		c:     ctx.Config,
+		root:  ctx,
+		repo:  repo,
+		seqer: seqer,
+		cache: NewCache(cache),
 	}
 
 	s.directProxy = &commentSvcProxy{proxy: s}
@@ -767,6 +767,33 @@ func (s *CommentSvc) CountReply(ctx context.Context, oid uint64) (uint64, error)
 	}
 
 	return count, nil
+}
+
+// 获取评论点赞数量
+func (s *CommentSvc) GetReplyLikesCount(ctx context.Context, rid uint64) (uint64, error) {
+	return s.counterGetCount(ctx, rid, global.CounterLikeBizcode)
+}
+
+// 获取评论点踩数
+func (s *CommentSvc) GetReplyDislikesCount(ctx context.Context, rid uint64) (uint64, error) {
+	return s.counterGetCount(ctx, rid, global.CounterDislikeBizcode)
+}
+
+// 从counter获取评论点赞/点踩计数
+func (s *CommentSvc) counterGetCount(ctx context.Context, rid uint64, biz int32) (uint64, error) {
+	summary, err := external.GetCounter().GetSummary(ctx, &counterv1.GetSummaryRequest{
+		BizCode: biz,
+		Oid:     rid,
+	})
+	if err != nil {
+		xlog.Msg("counter get count failed").Err(err).Errorx(ctx)
+		if biz == global.CounterLikeBizcode {
+			return 0, global.ErrGetReplyLikeCount
+		}
+		return 0, global.ErrGetReplyDislikeCount
+	}
+
+	return summary.Count, nil
 }
 
 // 全量同步评论数量
