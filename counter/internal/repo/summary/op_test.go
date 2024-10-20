@@ -117,14 +117,14 @@ func TestSummaryRepo_BatchInsert(t *testing.T) {
 
 func TestSummaryRepo_Incr(t *testing.T) {
 	Convey("Incr", t, func() {
-		err := repo.Incr(ctx, 1000, 112)
+		err := repo.InsertOrIncr(ctx, 1000, 112)
 		So(err, ShouldBeNil)
 	})
 }
 
 func TestSummaryRepo_Decr(t *testing.T) {
 	Convey("Incr", t, func() {
-		err := repo.Decr(ctx, 1000, 112)
+		err := repo.InsertOrDecr(ctx, 1000, 112)
 		So(err, ShouldBeNil)
 	})
 }

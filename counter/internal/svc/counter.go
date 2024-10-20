@@ -3,9 +3,11 @@ package svc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/bits"
 	"strconv"
 	"strings"
+	"sync"
 
 	gcache "github.com/patrickmn/go-cache"
 	"github.com/ryanreadbooks/whimer/counter/internal/config"
@@ -137,24 +139,28 @@ func (s *CounterSvc) CancelRecord(ctx context.Context,
 
 func (s *CounterSvc) updateSummary(ctx context.Context, oid uint64, biz int32, positive bool) {
 	// TODO determine to use updateSummaryNow or cacheSummary based on database overload
-	s.cacheSummary(ctx, oid, biz, positive)
+	// s.cacheSummary(ctx, oid, biz, positive)
+	s.updateSummaryNow(ctx, oid, biz, positive)
 }
 
-func (s *CounterSvc) updateSummaryNow(ctx context.Context, oid uint64, biz int32, positive bool) {
+func (s *CounterSvc) updateSummaryNow(ctx context.Context, oid uint64, biz int32, positive bool) error {
 	var err error
 	if positive {
-		err = s.repo.SummaryRepo.Incr(ctx, int(biz), oid)
+		err = s.repo.SummaryRepo.InsertOrIncr(ctx, int(biz), oid)
 	} else {
-		err = s.repo.SummaryRepo.Decr(ctx, int(biz), oid)
+		err = s.repo.SummaryRepo.InsertOrDecr(ctx, int(biz), oid)
 	}
 	if !errors.Is(err, xsql.ErrOutOfRange) && !xsql.IsMildErr(err) {
 		xlog.Msg("update summary repo failed").
 			Err(err).
 			Extra("oid", oid).
+			Extra("positive", positive).
 			Extra("biz", biz).
 			Errorx(ctx)
-		return
+		return err
 	}
+
+	return err
 }
 
 func (s *CounterSvc) cacheSummary(ctx context.Context, oid uint64, biz int32, positive bool) {
@@ -222,6 +228,8 @@ func (s *CounterSvc) GetSummary(ctx context.Context, req *v1.GetSummaryRequest) 
 			Extra("oid", oid).
 			Extra("biz", biz).
 			Errorx(ctx)
+		// TODO 可以尝试直接查record表
+
 		return nil, global.ErrInternal
 	}
 
@@ -232,8 +240,65 @@ func (s *CounterSvc) GetSummary(ctx context.Context, req *v1.GetSummaryRequest) 
 	}, nil
 }
 
+// 批量获取某个oid的计数
+func (s *CounterSvc) BatchGetSummary(ctx context.Context, req *v1.BatchGetSummaryRequest) (
+	*v1.BatchGetSummaryResponse, error) {
+	const batchsize = 200
+
+	var (
+		summaryRes = make([]map[summary.PrimaryKey]uint64, 0)
+		wg         sync.WaitGroup
+		mu         sync.Mutex
+	)
+
+	err := slices.BatchAsyncExec(&wg, req.Requests, batchsize, func(start, end int) error {
+		reqs := req.Requests[start:end]
+		conds := make(summary.PrimaryKeyList, 0, len(reqs))
+		for _, req := range reqs {
+			conds = append(conds, &summary.PrimaryKey{
+				BizCode: req.BizCode,
+				Oid:     req.Oid,
+			})
+		}
+		res, err := s.repo.SummaryRepo.Gets(ctx, conds)
+		if err != nil {
+			return global.ErrCountSummary
+		}
+
+		mu.Lock()
+		defer mu.Unlock()
+		summaryRes = append(summaryRes, res)
+
+		return nil
+	})
+
+	if err != nil {
+		xlog.Msg("batch get summary failed").Err(err).Errorx(ctx)
+		return nil, global.ErrCountSummary
+	}
+
+	// 整理结果
+	merged := make(map[summary.PrimaryKey]uint64, len(summaryRes))
+	for _, sumRes := range summaryRes {
+		for k, v := range sumRes {
+			merged[k] = v
+		}
+	}
+
+	responses := make([]*v1.GetSummaryResponse, 0, len(summaryRes))
+	for k, v := range merged {
+		responses = append(responses, &v1.GetSummaryResponse{
+			BizCode: k.BizCode,
+			Oid:     k.Oid,
+			Count:   v,
+		})
+	}
+
+	return &v1.BatchGetSummaryResponse{Responses: responses}, nil
+}
+
 // 同步增量数据到数据库
-func (s *CounterSvc) SyncCacheSummary(ctx context.Context) {
+func (s *CounterSvc) SyncCacheSummary(ctx context.Context) error {
 	var (
 		batchsize = 500
 	)
@@ -241,7 +306,7 @@ func (s *CounterSvc) SyncCacheSummary(ctx context.Context) {
 	items := s.sumcounter.Items()
 	s.sumcounter.Flush() // 重新开始计数
 	type delta struct {
-		Biz   int
+		Biz   int32
 		Oid   uint64
 		Delta int64
 	}
@@ -263,13 +328,13 @@ func (s *CounterSvc) SyncCacheSummary(ctx context.Context) {
 		}
 
 		deltas = append(deltas, &delta{
-			Biz:   biz,
+			Biz:   int32(biz),
 			Oid:   oid,
 			Delta: num,
 		})
 	}
 
-	slices.BatchExec(deltas, batchsize, func(start, end int) error {
+	err := slices.BatchExec(deltas, batchsize, func(start, end int) error {
 		tmps := deltas[start:end]
 		keys := make(summary.PrimaryKeyList, 0, len(tmps))
 		deltaMaps := make(map[summary.PrimaryKey]int64)
@@ -330,4 +395,103 @@ func (s *CounterSvc) SyncCacheSummary(ctx context.Context) {
 
 		return nil
 	})
+
+	return err
+}
+
+// 全表扫描 从record表更新summary的数据
+func (s *CounterSvc) SyncSummaryFromRecords(ctx context.Context) error {
+	total, err := s.repo.RecordRepo.CountAll(ctx)
+	if err != nil {
+		xlog.Msg("record repo count all failed").Err(err).Errorx(ctx)
+		return err
+	}
+
+	xlog.Msg(fmt.Sprintf("record repo count all result: total = %d", total)).Info()
+	// 点赞的数量
+	actDoSum, err := s.repo.RecordRepo.GetSummary(ctx, record.ActDo)
+	if err != nil {
+		xlog.Msg("record repo get actdo summary failed").Err(err).Errorx(ctx)
+		return err
+	}
+
+	// 取消点赞的数量
+	actUndoSum, err := s.repo.RecordRepo.GetSummary(ctx, record.ActUndo)
+	if err != nil {
+		xlog.Msg("record repo get act undo summary failed").Err(err).Errorx(ctx)
+		return err
+	}
+
+	if len(actDoSum) == 0 {
+		return nil
+	}
+
+	keyFn := func(r *record.Summary) string {
+		return fmt.Sprintf("%d-%d", r.BizCode, r.Oid)
+	}
+
+	// 结合点赞和取消点赞修正最终的点赞数
+	actUndoSumMap := make(map[string]*record.Summary, len(actUndoSum))
+	for _, undoSum := range actUndoSum {
+		actUndoSumMap[keyFn(undoSum)] = undoSum
+	}
+	actDoSumMap := make(map[string]*record.Summary, len(actDoSum))
+	for _, doSum := range actDoSum {
+		actDoSumMap[keyFn(doSum)] = doSum
+	}
+
+	datas := make([]*record.Summary, 0, len(actDoSum))
+
+	// 存在一种情况为: 被全部取消点赞，cnt需要为0
+	for k, undoSum := range actUndoSumMap {
+		if _, ok := actDoSumMap[k]; !ok {
+			// 全部都是取消点赞数据，那么数据取值为0
+			actDoSumMap[k] = &record.Summary{
+				BizCode: undoSum.BizCode,
+				Oid:     undoSum.Oid,
+				Cnt:     0,
+			}
+		}
+	}
+	for _, v := range actDoSumMap {
+		datas = append(datas, &record.Summary{
+			BizCode: v.BizCode,
+			Oid:     v.Oid,
+			Cnt:     v.Cnt,
+		})
+	}
+
+	batchsize := 5000
+
+	err = slices.BatchExec(datas, batchsize, func(start, end int) error {
+		data := datas[start:end]
+		if len(data) == 0 {
+			return nil
+		}
+
+		summaryModels := make([]*summary.Model, 0, len(data))
+		for _, sub := range data {
+			summaryModels = append(summaryModels, &summary.Model{
+				BizCode: sub.BizCode,
+				Oid:     sub.Oid,
+				Cnt:     sub.Cnt,
+			})
+		}
+		if err := s.repo.SummaryRepo.BatchInsert(ctx, summaryModels); err != nil {
+			xlog.Msg("sync summary from records repo batch insert failed").
+				Err(err).
+				Errorx(ctx)
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		xlog.Msg("batch exec update summary failed").
+			Err(err).
+			Extra("len", len(actDoSum)).
+			Errorx(ctx)
+	}
+
+	return err
 }

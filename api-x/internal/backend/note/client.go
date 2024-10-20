@@ -13,7 +13,7 @@ import (
 
 var (
 	// 笔记服务
-	noter notesdk.NoteClient
+	noter notesdk.NoteServiceClient
 	// 是否可用
 	available atomic.Bool
 )
@@ -25,14 +25,14 @@ func Init(c *config.Config) {
 	if err != nil {
 		logx.Errorf("external init: can not init note")
 	} else {
-		noter = notesdk.NewNoteClient(noteCli.Conn())
+		noter = notesdk.NewNoteServiceClient(noteCli.Conn())
 		available.Store(true)
 	}
 
 	initModel(c)
 }
 
-func GetNoter() notesdk.NoteClient {
+func GetNoter() notesdk.NoteServiceClient {
 	return noter
 }
 

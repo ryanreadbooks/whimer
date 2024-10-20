@@ -2,31 +2,38 @@ package external
 
 import (
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
-	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
-	"github.com/ryanreadbooks/whimer/passport/sdk/middleware/auth"
+	countersdk "github.com/ryanreadbooks/whimer/counter/sdk/v1"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
+	"github.com/ryanreadbooks/whimer/passport/sdk/middleware/auth"
 
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/zrpc"
 )
 
 var (
 	// 身份认证
 	auther *auth.Auth
 	// 笔记服务
-	noter notesdk.NoteClient
+	noter notesdk.NoteServiceClient
+	// 计数服务
+	counter countersdk.CounterServiceClient
 )
 
 func Init(c *config.Config) {
 	auther = auth.MustAuther(c.External.Grpc.Passport)
 
-	noteCli, err := zrpc.NewClient(
-		c.External.Grpc.Note.AsZrpcClientConf(),
-		zrpc.WithUnaryClientInterceptor(interceptor.ClientMetadataInject))
+	var err error
+
+	noter, err = xgrpc.NewClient(c.External.Grpc.Note,
+		notesdk.NewNoteServiceClient)
 	if err != nil {
-		logx.Errorf("external init: can not init note")
-	} else {
-		noter = notesdk.NewNoteClient(noteCli.Conn())
+		logx.Errorf("external init: can not init noter: %v", err)
+	}
+
+	counter, err = xgrpc.NewClient(c.External.Grpc.Counter,
+		countersdk.NewCounterServiceClient)
+	if err != nil {
+		logx.Errorf("external init: can not init counter: %v", err)
 	}
 }
 
@@ -34,6 +41,10 @@ func GetAuther() *auth.Auth {
 	return auther
 }
 
-func GetNoter() notesdk.NoteClient {
+func GetNoter() notesdk.NoteServiceClient {
 	return noter
+}
+
+func GetCounter() countersdk.CounterServiceClient {
+	return counter
 }

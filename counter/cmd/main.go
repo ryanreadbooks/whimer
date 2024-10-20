@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/ryanreadbooks/whimer/counter/internal/config"
+	"github.com/ryanreadbooks/whimer/counter/internal/job"
 	"github.com/ryanreadbooks/whimer/counter/internal/rpc"
 	"github.com/ryanreadbooks/whimer/counter/internal/svc"
 	v1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
@@ -30,12 +31,16 @@ func main() {
 		v1.RegisterCounterServiceServer(s, rpc.NewCounterServer(ctx))
 		xgrpc.EnableReflection(c.Grpc, s)
 	})
-	interceptor.InstallServerInterceptors(server)
+	interceptor.InstallServerUnaryInterceptors(server,
+		interceptor.WithChecker(interceptor.UidExistenceChecker))
+
+	syncer := job.MustNewSyncer(&c, ctx)
 
 	logx.Infof("counter is serving on %s", c.Grpc.ListenOn)
 	group := service.NewServiceGroup()
 	defer group.Stop()
 
 	group.Add(server)
+	group.Add(syncer)
 	group.Start()
 }

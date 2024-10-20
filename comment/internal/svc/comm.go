@@ -12,14 +12,15 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/repo"
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/comm"
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/queue"
-	sdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
+	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
+	counterv1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/concur"
 	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 
 	seqer "github.com/ryanreadbooks/folium/sdk"
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -37,27 +38,38 @@ type CommentSvc struct {
 	repo  *repo.Repo
 	seqer *seqer.Client
 	cache *Cache
+
+	// 同步或者异步处理写入数据
+	directProxy *commentSvcProxy
+	dataProxy   IDataProxy
 }
 
 func NewCommentSvc(ctx *ServiceContext, repo *repo.Repo, cache *redis.Redis) *CommentSvc {
-	s := &CommentSvc{
-		c:     ctx.Config,
-		repo:  repo,
-		cache: NewCache(cache),
-		root:  ctx,
-	}
-
-	var err error
-	s.seqer, err = seqer.NewClient(seqer.WithGrpc(s.c.Seqer.Addr))
+	seqer, err := seqer.NewClient(seqer.WithGrpc(ctx.Config.Seqer.Addr))
 	if err != nil {
 		panic(err)
 	}
 
+	s := &CommentSvc{
+		c:     ctx.Config,
+		root:  ctx,
+		repo:  repo,
+		seqer: seqer,
+		cache: NewCache(cache),
+	}
+
+	s.directProxy = &commentSvcProxy{proxy: s}
+	s.dataProxy = s.directProxy
+
 	return s
 }
 
-func isRootReply(root, parent uint64) bool {
-	return root == 0 && parent == 0
+func (s *CommentSvc) DataProxy() IDataProxy {
+	if s.c.GetDataProxyMode() == global.ProxyModeBus {
+		return s.repo.Bus
+	}
+
+	return s.directProxy
 }
 
 // 发表评论
@@ -71,7 +83,7 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 	)
 
 	_, err := external.GetNoter().IsNoteExist(ctx,
-		&notesdk.IsNoteExistReq{
+		&notev1.IsNoteExistReq{
 			NoteId: oid,
 		})
 	if err != nil {
@@ -105,10 +117,10 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 	}
 
 	if isRootReply(rootId, parentId) {
-		err = s.repo.Bus.AddReply(ctx, &reply)
+		err = s.dataProxy.AddReply(ctx, &reply)
 		if err != nil {
 			xlog.Msg("push reply to queue err").Err(err).Extra("replyId", replyId).Errorx(ctx)
-			return nil, global.ErrInternal
+			return nil, err
 		}
 	} else {
 		err := s.repo.DB().TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
@@ -117,10 +129,10 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 				return err
 			}
 			// 可以插入
-			err = s.repo.Bus.AddReply(ctx, &reply)
+			err = s.dataProxy.AddReply(ctx, &reply)
 			if err != nil {
 				xlog.Msg("push subreply to queue err").Err(err).Extra("replyId", replyId).Errorx(ctx)
-				return global.ErrInternal
+				return err
 			}
 			return nil
 		})
@@ -170,45 +182,53 @@ func (s *CommentSvc) ReplyDel(ctx context.Context, rid uint64) error {
 		return err
 	}
 
-	err = s.repo.Bus.DelReply(ctx, rid, reply)
+	err = s.dataProxy.DelReply(ctx, rid, reply)
 	if err != nil {
 		xlog.Msg("del reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
-		return global.ErrInternal
+		return err
 	}
 
 	return nil
 }
 
-// TODO 点赞/取消点赞
+// 点赞/取消点赞
 func (s *CommentSvc) ReplyLike(ctx context.Context, rid uint64, action int8) error {
-	if action == int8(sdk.ReplyAction_REPLY_ACTION_DO) {
+	var (
+		uid = metadata.Uid(ctx)
+	)
 
-		if err := s.repo.Bus.LikeReply(ctx, rid); err != nil {
+	if action == int8(commentv1.ReplyAction_REPLY_ACTION_DO) {
+		if err := s.dataProxy.LikeReply(ctx, rid, uid); err != nil {
 			xlog.Msg("like reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
-			return global.ErrInternal
+			return err
 		}
+		return nil
 	}
 
-	if err := s.repo.Bus.UnLikeReply(ctx, rid); err != nil {
+	if err := s.dataProxy.UnLikeReply(ctx, rid, uid); err != nil {
 		xlog.Msg("unlike reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
-		return global.ErrInternal
+		return err
 	}
 
 	return nil
 }
 
-// TODO 点踩/取消点踩
+// 点踩/取消点踩
 func (s *CommentSvc) ReplyDislike(ctx context.Context, rid uint64, action int8) error {
-	if action == int8(sdk.ReplyAction_REPLY_ACTION_DO) {
-		if err := s.repo.Bus.DisLikeReply(ctx, rid); err != nil {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	if action == int8(commentv1.ReplyAction_REPLY_ACTION_DO) {
+		if err := s.dataProxy.DisLikeReply(ctx, rid, uid); err != nil {
 			xlog.Msg("dislike reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
-			return global.ErrInternal
+			return err
 		}
 	}
 
-	if err := s.repo.Bus.UndisLikeReply(ctx, rid); err != nil {
+	if err := s.dataProxy.UnDisLikeReply(ctx, rid, uid); err != nil {
 		xlog.Msg("undislike reply to queue err").Err(err).Extra("rid", rid).Errorx(ctx)
-		return global.ErrInternal
+		return err
 	}
 
 	return nil
@@ -245,12 +265,12 @@ func (s *CommentSvc) ReplyPin(ctx context.Context, oid, rid uint64, action int8)
 		return global.ErrPinFailNotRoot
 	}
 
-	if action == int8(sdk.ReplyAction_REPLY_ACTION_DO) {
+	if action == int8(commentv1.ReplyAction_REPLY_ACTION_DO) {
 		if r.IsPin == comm.AlreadyPinned {
 			return nil
 		}
 		// 置顶
-		err = s.repo.Bus.PinReply(ctx, r.Oid, rid)
+		err = s.dataProxy.PinReply(ctx, r.Oid, rid)
 		if err != nil {
 			xlog.Msg("bus put pin reply err").Err(err).
 				Extra("rid", rid).Extra("action", action).Errorx(ctx)
@@ -263,7 +283,7 @@ func (s *CommentSvc) ReplyPin(ctx context.Context, oid, rid uint64, action int8)
 			return nil
 		}
 
-		err = s.repo.Bus.UnpinReply(ctx, r.Oid, rid)
+		err = s.dataProxy.UnPinReply(ctx, r.Oid, rid)
 		if err != nil {
 			xlog.Msg("bus put unpin reply err").Err(err).
 				Extra("rid", rid).Extra("action", action).Errorx(ctx)
@@ -276,7 +296,7 @@ func (s *CommentSvc) ReplyPin(ctx context.Context, oid, rid uint64, action int8)
 
 func (s *CommentSvc) userOwnsOid(ctx context.Context, uid, oid uint64) error {
 	resp, err := external.GetNoter().IsUserOwnNote(ctx,
-		&notesdk.IsUserOwnNoteReq{
+		&notev1.IsUserOwnNoteReq{
 			Uid:    uid,
 			NoteId: oid,
 		})
@@ -333,7 +353,7 @@ func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReply
 	)
 
 	noteExitsRes, err := external.GetNoter().IsNoteExist(ctx,
-		&notesdk.IsNoteExistReq{
+		&notev1.IsNoteExistReq{
 			NoteId: oid,
 		})
 
@@ -440,9 +460,53 @@ func (s *CommentSvc) ConsumeDelReplyEv(ctx context.Context, data *queue.DelReply
 }
 
 // 处理点赞或者点踩
-// TODO 对接点赞系统
 func (s *CommentSvc) ConsumeLikeDislikeEv(ctx context.Context, data *queue.BinaryReplyData) error {
-	return nil
+	var (
+		rid    = data.ReplyId
+		uid    = data.Uid
+		action = data.Action
+		typ    = data.Type
+	)
+	ctx = metadata.WithUid(ctx, uid)
+
+	var bizcode int32
+	if typ == queue.LikeType {
+		bizcode = global.CounterLikeBizcode
+	} else {
+		bizcode = global.CounterDislikeBizcode
+	}
+
+	var (
+		err error
+	)
+	if action == queue.ActionDo {
+		// add record
+		_, err = external.GetCounter().AddRecord(ctx, &counterv1.AddRecordRequest{
+			BizCode: bizcode,
+			Uid:     uid,
+			Oid:     rid,
+		})
+	} else {
+		// cancel record
+		_, err = external.GetCounter().CancelRecord(ctx, &counterv1.CancelRecordRequest{
+			BizCode: bizcode,
+			Uid:     uid,
+			Oid:     rid,
+		})
+	}
+
+	if err != nil {
+		xlog.Msg("counter operates record failed").
+			Extra("rid", rid).
+			Extra("uid", uid).
+			Extra("bizcode", bizcode).
+			Extra("action", data.Action).
+			Extra("type", data.Type).
+			Err(err).
+			Errorx(ctx)
+	}
+
+	return err
 }
 
 // 置顶或者取消置顶
@@ -477,7 +541,7 @@ func (s *CommentSvc) ConsumePinEv(ctx context.Context, data *queue.PinReplyData)
 }
 
 // 获取根评论
-func (s *CommentSvc) PageGetReply(ctx context.Context, in *sdk.PageGetReplyReq) (*sdk.PageGetReplyRes, error) {
+func (s *CommentSvc) PageGetReply(ctx context.Context, in *commentv1.PageGetReplyReq) (*commentv1.PageGetReplyRes, error) {
 	const (
 		want = 10
 	)
@@ -496,12 +560,17 @@ func (s *CommentSvc) PageGetReply(ctx context.Context, in *sdk.PageGetReplyReq) 
 		nextCursor = data[dataLen-1].Id
 	}
 
-	replies := make([]*sdk.ReplyItem, 0, dataLen)
+	replies := make([]*commentv1.ReplyItem, 0, dataLen)
 	for _, item := range data {
 		replies = append(replies, modelToReplyItem(item))
 	}
 
-	return &sdk.PageGetReplyRes{
+	if err := s.fillReplyLikes(ctx, replies); err != nil {
+		xlog.Msg("page get reply fill reply likes failed").
+			Err(err).Errorx(ctx)
+	}
+
+	return &commentv1.PageGetReplyRes{
 		Replies:    replies,
 		NextCursor: nextCursor,
 		HasNext:    hasNext,
@@ -509,7 +578,7 @@ func (s *CommentSvc) PageGetReply(ctx context.Context, in *sdk.PageGetReplyReq) 
 }
 
 // 获取子评论
-func (s *CommentSvc) PageGetSubReply(ctx context.Context, in *sdk.PageGetSubReplyReq) (*sdk.PageGetSubReplyRes, error) {
+func (s *CommentSvc) PageGetSubReply(ctx context.Context, in *commentv1.PageGetSubReplyReq) (*commentv1.PageGetSubReplyRes, error) {
 	const (
 		want = 5
 	)
@@ -527,20 +596,25 @@ func (s *CommentSvc) PageGetSubReply(ctx context.Context, in *sdk.PageGetSubRepl
 	if dataLen > 0 {
 		nextCursor = data[dataLen-1].Id
 	}
-	replies := make([]*sdk.ReplyItem, 0, dataLen)
+	replies := make([]*commentv1.ReplyItem, 0, dataLen)
 	for _, item := range data {
 		replies = append(replies, modelToReplyItem(item))
 	}
 
-	return &sdk.PageGetSubReplyRes{
+	if err := s.fillReplyLikes(ctx, replies); err != nil {
+		xlog.Msg("page get sub reply fill reply likes failed").
+			Err(err).Errorx(ctx)
+	}
+
+	return &commentv1.PageGetSubReplyRes{
 		Replies:    replies,
 		NextCursor: nextCursor,
 		HasNext:    hasNext,
 	}, nil
 }
 
-func modelToReplyItem(model *comm.Model) *sdk.ReplyItem {
-	out := &sdk.ReplyItem{}
+func modelToReplyItem(model *comm.Model) *commentv1.ReplyItem {
+	out := &commentv1.ReplyItem{}
 	if model == nil {
 		return out
 	}
@@ -565,8 +639,12 @@ func modelToReplyItem(model *comm.Model) *sdk.ReplyItem {
 	return out
 }
 
+func isRootReply(root, parent uint64) bool {
+	return root == 0 && parent == 0
+}
+
 // 获取评论信息，包含主评论和子评论
-func (s *CommentSvc) PageGetObjectReplies(ctx context.Context, in *sdk.PageGetReplyReq) (*sdk.PageGetDetailedReplyRes, error) {
+func (s *CommentSvc) PageGetObjectReplies(ctx context.Context, in *commentv1.PageGetReplyReq) (*commentv1.PageGetDetailedReplyRes, error) {
 	const (
 		// 默认拿10条主评论 每条主评论又取其5条子评论
 		wantRoot = 10
@@ -586,7 +664,19 @@ func (s *CommentSvc) PageGetObjectReplies(ctx context.Context, in *sdk.PageGetRe
 		return nil, err
 	}
 
-	return &sdk.PageGetDetailedReplyRes{
+	repliesItems := make([]*commentv1.ReplyItem, 0, len(replies))
+	for _, reply := range replies {
+		for _, sub := range reply.Subreplies.Items {
+			repliesItems = append(repliesItems, sub)
+		}
+	}
+
+	if err := s.fillReplyLikes(ctx, repliesItems); err != nil {
+		xlog.Msg("page get object replies fill reply likes failed").
+			Err(err).Errorx(ctx)
+	}
+
+	return &commentv1.PageGetDetailedReplyRes{
 		Replies:    replies,
 		NextCursor: roots.NextCursor,
 		HasNext:    roots.HasNext,
@@ -597,16 +687,16 @@ func (s *CommentSvc) PageGetObjectReplies(ctx context.Context, in *sdk.PageGetRe
 // 并且将子评论和主评论拼接后返回
 func (s *CommentSvc) getSubrepliesForRoots(ctx context.Context,
 	oid uint64,
-	roots []*sdk.ReplyItem) ([]*sdk.DetailedReplyItem, error) {
+	roots []*commentv1.ReplyItem) ([]*commentv1.DetailedReplyItem, error) {
 
 	// 起协程去拿每个主评论的子评论
 	wg, ctx := errgroup.WithContext(ctx)
-	var subs = make([]*sdk.PageGetSubReplyRes, len(roots))
+	var subs = make([]*commentv1.PageGetSubReplyRes, len(roots))
 	for i, root := range roots {
 		idx, rootTmp := i, root
 		wg.Go(func() error {
 			// 按照oid和root获取子评论
-			subItem, err := s.PageGetSubReply(ctx, &sdk.PageGetSubReplyReq{
+			subItem, err := s.PageGetSubReply(ctx, &commentv1.PageGetSubReplyReq{
 				Oid:    oid,
 				RootId: rootTmp.Id,
 				Cursor: 0,
@@ -626,12 +716,12 @@ func (s *CommentSvc) getSubrepliesForRoots(ctx context.Context,
 	}
 
 	// 拼装结果
-	replies := make([]*sdk.DetailedReplyItem, 0, len(roots))
+	replies := make([]*commentv1.DetailedReplyItem, 0, len(roots))
 	for i, root := range roots {
 		sub := subs[i]
-		replies = append(replies, &sdk.DetailedReplyItem{
+		replies = append(replies, &commentv1.DetailedReplyItem{
 			Root: root,
-			Subreplies: &sdk.DetailedSubReply{
+			Subreplies: &commentv1.DetailedSubReply{
 				Items:      sub.Replies,
 				HasNext:    sub.HasNext,
 				NextCursor: sub.NextCursor,
@@ -642,7 +732,7 @@ func (s *CommentSvc) getSubrepliesForRoots(ctx context.Context,
 	return replies, nil
 }
 
-func (s *CommentSvc) GetPinnedReply(ctx context.Context, oid uint64) (*sdk.GetPinnedReplyRes, error) {
+func (s *CommentSvc) GetPinnedReply(ctx context.Context, oid uint64) (*commentv1.GetPinnedReplyRes, error) {
 	// 先找出置顶评论
 	root, err := s.cache.GetPinned(ctx, oid)
 	if err != nil {
@@ -650,7 +740,7 @@ func (s *CommentSvc) GetPinnedReply(ctx context.Context, oid uint64) (*sdk.GetPi
 		root, err = s.repo.CommentRepo.GetPinned(ctx, oid)
 		if err != nil {
 			if xsql.IsNotFound(err) {
-				return &sdk.GetPinnedReplyRes{}, nil
+				return &commentv1.GetPinnedReplyRes{}, nil
 			}
 			xlog.Msg("repo get pinned err").Err(err).Extra("oid", oid).Errorx(ctx)
 			return nil, global.ErrGetPinnedInternal
@@ -667,12 +757,21 @@ func (s *CommentSvc) GetPinnedReply(ctx context.Context, oid uint64) (*sdk.GetPi
 	}
 
 	// 随后找出置顶评论的子评论
-	rootWithSubs, err := s.getSubrepliesForRoots(ctx, oid, []*sdk.ReplyItem{modelToReplyItem(root)})
+	rootWithSubs, err := s.getSubrepliesForRoots(ctx, oid, []*commentv1.ReplyItem{modelToReplyItem(root)})
 	if err != nil {
 		return nil, err
 	}
 
-	return &sdk.GetPinnedReplyRes{
+	replies := make([]*commentv1.ReplyItem, 0)
+	replies = append(replies, rootWithSubs[0].Root)
+	replies = append(replies, rootWithSubs[0].Subreplies.Items...)
+	if err := s.fillReplyLikes(ctx, replies); err != nil {
+		xlog.Msg("get pinned reply fill reply likes failed").
+			Err(err).
+			Errorx(ctx)
+	}
+
+	return &commentv1.GetPinnedReplyRes{
 		Reply: rootWithSubs[0],
 	}, nil
 }
@@ -699,6 +798,34 @@ func (s *CommentSvc) CountReply(ctx context.Context, oid uint64) (uint64, error)
 	}
 
 	return count, nil
+}
+
+// 获取评论点赞数量
+func (s *CommentSvc) GetReplyLikesCount(ctx context.Context, rid uint64) (uint64, error) {
+	return s.counterGetCount(ctx, rid, global.CounterLikeBizcode)
+}
+
+// 获取评论点踩数
+func (s *CommentSvc) GetReplyDislikesCount(ctx context.Context, rid uint64) (uint64, error) {
+	return s.counterGetCount(ctx, rid, global.CounterDislikeBizcode)
+}
+
+// 从counter获取评论点赞/点踩计数
+func (s *CommentSvc) counterGetCount(ctx context.Context, rid uint64, biz int32) (uint64, error) {
+	summary, err := external.GetCounter().
+		GetSummary(ctx, &counterv1.GetSummaryRequest{
+			BizCode: biz,
+			Oid:     rid,
+		})
+	if err != nil {
+		xlog.Msg("counter get count failed").Err(err).Errorx(ctx)
+		if biz == global.CounterLikeBizcode {
+			return 0, global.ErrGetReplyLikeCount
+		}
+		return 0, global.ErrGetReplyDislikeCount
+	}
+
+	return summary.Count, nil
 }
 
 // 全量同步评论数量

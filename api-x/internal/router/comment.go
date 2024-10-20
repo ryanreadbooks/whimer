@@ -13,6 +13,7 @@ func regCommentRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 		{
 			// 发布评论
 			v1g.Post("/pub", svc.PublishComment())
+			// 获取主评论
 			v1g.Get("/roots", svc.PageGetRoots())
 			// 获取子评论
 			v1g.Get("/subs", svc.PageGetSubs())
@@ -22,6 +23,12 @@ func regCommentRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 			v1g.Post("/del", svc.DelComment())
 			// 置顶评论
 			v1g.Post("/pin", svc.PinComment())
+			// 点赞评论
+			v1g.Post("/like", svc.LikeComment())
+			// 点踩评论
+			v1g.Post("/dislike", svc.DislikeComment())
+			// 获取评论点赞数
+			v1g.Get("/likes", svc.GetLikeCount())
 		}
 	}
 }

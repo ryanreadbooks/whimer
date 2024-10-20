@@ -122,3 +122,15 @@ func TestRepo_Find(t *testing.T) {
 		So(model.Oid, ShouldEqual, 2000)
 	})
 }
+
+func TestRepo_PageGet(t *testing.T) {
+	Convey("PageGet", t, func() {
+		models, err := repo.PageGet(ctx, 1, ActDo, 10)
+		So(err, ShouldBeNil)
+		So(models, ShouldNotBeNil)
+		So(len(models), ShouldEqual, 10)
+		for _, model := range models {
+			t.Logf("%+v\n", model)
+		}
+	})
+}

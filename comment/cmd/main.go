@@ -5,7 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
 	"github.com/ryanreadbooks/whimer/comment/internal/job"
-	"github.com/ryanreadbooks/whimer/comment/internal/job/cron"
+	cronjob "github.com/ryanreadbooks/whimer/comment/internal/job/cron"
 	"github.com/ryanreadbooks/whimer/comment/internal/rpc"
 	"github.com/ryanreadbooks/whimer/comment/internal/svc"
 	sdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
@@ -31,13 +31,14 @@ func main() {
 	ctx := svc.NewServiceContext(&c)
 
 	server := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
-		sdk.RegisterReplyServer(s, rpc.NewReplyServer(ctx))
+		sdk.RegisterReplyServiceServer(s, rpc.NewReplyServer(ctx))
 		xgrpc.EnableReflection(c.Grpc, s)
 	})
-	interceptor.InstallServerInterceptors(server)
+	interceptor.InstallServerUnaryInterceptors(server,
+		interceptor.WithChecker(interceptor.UidExistenceChecker))
 
 	mq := kq.MustNewQueue(c.Kafka.AsKqConf(), job.New(ctx))
-	csyncer := cron.MustNewCacheSyncer(c.Cron.SyncReplySpec, ctx)
+	csyncer := cronjob.MustNewCacheSyncer(c.Cron.SyncReplySpec, ctx)
 
 	logx.Info("comment is serving...")
 	group := service.NewServiceGroup()

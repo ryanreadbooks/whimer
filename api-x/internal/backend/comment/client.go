@@ -8,12 +8,12 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
 
-	replysdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
+	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 )
 
 var (
 	// 笔记服务
-	commenter replysdk.ReplyClient
+	commenter commentv1.ReplyServiceClient
 	// 是否可用
 	available atomic.Bool
 )
@@ -25,11 +25,11 @@ func Init(c *config.Config) {
 	if err != nil {
 		logx.Errorf("external init: can not init comment")
 	} else {
-		commenter = replysdk.NewReplyClient(cli.Conn())
+		commenter = commentv1.NewReplyServiceClient(cli.Conn())
 		available.Store(true)
 	}
 }
 
-func GetCommenter() replysdk.ReplyClient {
+func GetCommenter() commentv1.ReplyServiceClient {
 	return commenter
 }

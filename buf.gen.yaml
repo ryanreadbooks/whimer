@@ -2,10 +2,10 @@ version: v2
 managed:
   enabled: true
 plugins:
-  - remote: buf.build/protocolbuffers/go
+  - local: protoc-gen-go
     out: .
     opt: module=github.com/ryanreadbooks/whimer
-  - remote: buf.build/grpc/go
+  - local: protoc-gen-go-grpc
     out: .
     opt: module=github.com/ryanreadbooks/whimer
 inputs:

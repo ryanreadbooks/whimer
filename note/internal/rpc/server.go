@@ -10,7 +10,7 @@ import (
 )
 
 type NoteServer struct {
-	sdk.UnimplementedNoteServer
+	sdk.UnimplementedNoteServiceServer
 
 	Svc *svc.ServiceContext
 }

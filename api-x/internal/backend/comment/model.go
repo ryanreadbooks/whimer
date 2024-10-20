@@ -2,9 +2,10 @@ package comment
 
 import (
 	comment "github.com/ryanreadbooks/whimer/comment/sdk/v1"
+	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/xconv"
-	user "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
+	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 )
 
 type PubReq struct {
@@ -67,7 +68,7 @@ func (r *GetSubCommentsReq) AsPb() *comment.PageGetSubReplyReq {
 
 type ReplyItem struct {
 	*comment.ReplyItem
-	User *user.UserInfo `json:"user"`
+	User *userv1.UserInfo `json:"user"`
 }
 
 type DetailedSubReply struct {
@@ -82,7 +83,7 @@ type DetailedReplyItem struct {
 	SubReplies *DetailedSubReply `json:"sub_replies"`
 }
 
-func NewDetailedReplyItemFromPb(item *comment.DetailedReplyItem, userMap map[string]*user.UserInfo) *DetailedReplyItem {
+func NewDetailedReplyItemFromPb(item *comment.DetailedReplyItem, userMap map[string]*userv1.UserInfo) *DetailedReplyItem {
 	details := &DetailedReplyItem{}
 	details.Root = &ReplyItem{
 		ReplyItem: item.Root,
@@ -142,4 +143,60 @@ func (r *PinReq) Validate() error {
 	}
 
 	return nil
+}
+
+type ThumbAction uint8
+
+const (
+	ThumbActionUndo ThumbAction = ThumbAction(commentv1.ReplyAction_REPLY_ACTION_UNDO) // 取消
+	ThumbActionDo   ThumbAction = ThumbAction(commentv1.ReplyAction_REPLY_ACTION_DO)   // 执行
+)
+
+type thumbActionChecker struct{}
+
+func (c thumbActionChecker) check(action ThumbAction) error {
+	if action != ThumbActionUndo && action != ThumbActionDo {
+		return errorx.ErrArgs.Msg("不支持的操作")
+	}
+
+	return nil
+}
+
+// 点赞评论/取消点赞评论
+type ThumbUpReq struct {
+	thumbActionChecker
+	ReplyId uint64      `json:"reply_id"`
+	Action  ThumbAction `json:"action"`
+}
+
+func (r *ThumbUpReq) Validate() error {
+	return r.check(r.Action)
+}
+
+// 点踩评论/取消点踩评论
+type ThumbDownReq struct {
+	thumbActionChecker
+	ReplyId uint64      `json:"reply_id"`
+	Action  ThumbAction `json:"action"`
+}
+
+func (r *ThumbDownReq) Validate() error {
+	return r.check(r.Action)
+}
+
+type GetLikeCountReq struct {
+	ReplyId uint64 `form:"reply_id"`
+}
+
+func (r *GetLikeCountReq) Validate() error {
+	if r.ReplyId <= 0 {
+		return errorx.ErrArgs.Msg("评论不存在")
+	}
+
+	return nil
+}
+
+type GetLikeCountRes struct {
+	ReplyId uint64 `json:"rid"`
+	Likes   uint64 `json:"likes"`
 }

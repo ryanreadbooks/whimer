@@ -20,6 +20,11 @@ const (
 
 	sqlIncr = "UPDATE counter_summary SET cnt=cnt+1 WHERE oid=? and biz_code=?"
 	sqlDecr = "UPDATE counter_summary SET cnt=cnt-1 WHERE oid=? and biz_code=?"
+
+	sqlInsertIncr = "INSERT INTO counter_summary(%s) VALUES (?,?,?,?,?) AS val " +
+		"ON DUPLICATE KEY UPDATE counter_summary.cnt=counter_summary.cnt+1, mtime=val.mtime"
+	sqlInsertDecr = "INSERT INTO counter_summary(%s) VALUES (?,?,?,?,?) AS val " +
+		"ON DUPLICATE KEY UPDATE counter_summary.cnt=counter_summary.cnt-1, mtime=val.mtime"
 )
 
 var (
@@ -51,7 +56,7 @@ func (r *Repo) Insert(ctx context.Context, data *Model) error {
 
 func modelAsInsertSql(data *Model, builder *strings.Builder) {
 	builder.WriteByte('(')
-	builder.WriteString(strconv.Itoa(data.BizCode))
+	builder.WriteString(strconv.Itoa(int(data.BizCode)))
 	builder.WriteByte(',')
 	builder.WriteString(strconv.FormatUint(data.Oid, 10))
 	builder.WriteByte(',')
@@ -136,6 +141,41 @@ func (r *Repo) Incr(ctx context.Context, biz int, oid uint64) error {
 
 func (r *Repo) Decr(ctx context.Context, biz int, oid uint64) error {
 	_, err := r.db.ExecCtx(ctx, sqlDecr, oid, biz)
+	if mysqlerr, ok := err.(*mysql.MySQLError); ok {
+		if xsql.SQLStateEqual(mysqlerr.SQLState, xsql.SQLStateOutOfRange) {
+			return xsql.ErrOutOfRange
+		}
+	}
+	return xsql.ConvertError(err)
+}
+
+// "biz_code,oid,cnt,ctime,mtime"
+func (r *Repo) InsertOrIncr(ctx context.Context, biz int, oid uint64) error {
+	now := time.Now().Unix()
+	_, err := r.db.ExecCtx(ctx, fmt.Sprintf(sqlInsertIncr, fields),
+		biz,
+		oid,
+		1,
+		now,
+		now,
+	)
+	if mysqlerr, ok := err.(*mysql.MySQLError); ok {
+		if xsql.SQLStateEqual(mysqlerr.SQLState, xsql.SQLStateOutOfRange) {
+			return xsql.ErrOutOfRange
+		}
+	}
+	return xsql.ConvertError(err)
+}
+
+func (r *Repo) InsertOrDecr(ctx context.Context, biz int, oid uint64) error {
+	now := time.Now().Unix()
+	_, err := r.db.ExecCtx(ctx, fmt.Sprintf(sqlInsertDecr, fields),
+		biz,
+		oid,
+		1,
+		now,
+		now,
+	)
 	if mysqlerr, ok := err.(*mysql.MySQLError); ok {
 		if xsql.SQLStateEqual(mysqlerr.SQLState, xsql.SQLStateOutOfRange) {
 			return xsql.ErrOutOfRange

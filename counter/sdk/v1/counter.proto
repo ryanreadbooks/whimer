@@ -35,7 +35,7 @@ message CancelRecordRequest {
   uint64 oid = 3 [ (buf.validate.field).uint64.gt = 0 ];
 }
 
-message CancelRecordResponse { Record data = 1; }
+message CancelRecordResponse {}
 
 message DelRecordRequest {
   int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
@@ -64,9 +64,19 @@ message GetSummaryResponse {
   uint64 count = 3;
 }
 
+message BatchGetSummaryRequest { repeated GetSummaryRequest requests = 1; }
+
+message BatchGetSummaryResponse { repeated GetSummaryResponse responses = 1; }
+
 service CounterService {
+  // 添加一条计数记录
   rpc AddRecord(AddRecordRequest) returns (AddRecordResponse);
+  // 取消计数记录
   rpc CancelRecord(CancelRecordRequest) returns (CancelRecordResponse);
+  // 获取一条计数记录
   rpc GetRecord(GetRecordRequest) returns (GetRecordResponse);
+  // 获取oid计数总数
   rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
+  // 批量获取oid计数总数
+  rpc BatchGetSummary(BatchGetSummaryRequest) returns (BatchGetSummaryResponse);
 }
