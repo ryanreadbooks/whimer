@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/robfig/cron/v3"
+	"github.com/ryanreadbooks/whimer/counter/internal/config"
 	"github.com/ryanreadbooks/whimer/counter/internal/svc"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 )
@@ -14,7 +15,7 @@ type Syncer struct {
 	srv *svc.ServiceContext
 }
 
-func NewSyncer(spec string, srv *svc.ServiceContext) (*Syncer, error) {
+func NewSyncer(cfg *config.Config, srv *svc.ServiceContext) (*Syncer, error) {
 	c := cron.New(cron.WithChain(
 		cron.Recover(&xlog.CronLogger{}),
 	))
@@ -24,20 +25,27 @@ func NewSyncer(spec string, srv *svc.ServiceContext) (*Syncer, error) {
 		srv: srv,
 	}
 
-	_, err := c.AddJob(spec, s)
+	_, err := c.AddFunc(cfg.Cron.SyncerSpec, s.SyncSummaryCache)
+	if err != nil {
+		return nil, err
+	}
+	_, err = c.AddFunc(cfg.Cron.SummarySpec, s.SyncRecordSummary)
+	if err != nil {
+		return nil, err
+	}
 
 	return s, err
 }
 
-func MustNewSyncer(spec string, srv *svc.ServiceContext) *Syncer {
-	if s, err := NewSyncer(spec, srv); err != nil {
+func MustNewSyncer(cfg *config.Config, srv *svc.ServiceContext) *Syncer {
+	if s, err := NewSyncer(cfg, srv); err != nil {
 		panic(err)
 	} else {
 		return s
 	}
 }
 
-func (s *Syncer) Run() {
+func (s *Syncer) SyncSummaryCache() {
 	xlog.Msg("counter syncer starts running...").Info()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
@@ -46,6 +54,17 @@ func (s *Syncer) Run() {
 		xlog.Msg("syncer sync cache summary failed").Err(err).Error()
 	}
 	xlog.Msg("syncer sync cache summary done.").Info()
+}
+
+func (s *Syncer) SyncRecordSummary() {
+	xlog.Msg("counter record summary syncer starts running...").Info()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	err := s.srv.RecordSvc.SyncSummaryFromRecords(ctx)
+	if err != nil {
+		xlog.Msg("counter record summary syncer failed").Err(err).Error()
+	}
+	xlog.Msg("counter record summary syncer done.").Info()
 }
 
 func (c *Syncer) Start() {

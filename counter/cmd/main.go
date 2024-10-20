@@ -34,7 +34,7 @@ func main() {
 	interceptor.InstallServerUnaryInterceptors(server,
 		interceptor.WithChecker(interceptor.UidExistenceChecker))
 
-	syncer := job.MustNewSyncer(c.Cron.SyncerSpec, ctx)
+	syncer := job.MustNewSyncer(&c, ctx)
 
 	logx.Infof("counter is serving on %s", c.Grpc.ListenOn)
 	group := service.NewServiceGroup()

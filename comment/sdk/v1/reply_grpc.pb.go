@@ -31,6 +31,7 @@ const (
 	ReplyService_GetPinnedReply_FullMethodName       = "/comment.sdk.v1.ReplyService/GetPinnedReply"
 	ReplyService_CountReply_FullMethodName           = "/comment.sdk.v1.ReplyService/CountReply"
 	ReplyService_GetReplyLikeCount_FullMethodName    = "/comment.sdk.v1.ReplyService/GetReplyLikeCount"
+	ReplyService_GetReplyDislikeCount_FullMethodName = "/comment.sdk.v1.ReplyService/GetReplyDislikeCount"
 )
 
 // ReplyServiceClient is the client API for ReplyService service.
@@ -61,6 +62,8 @@ type ReplyServiceClient interface {
 	CountReply(ctx context.Context, in *CountReplyReq, opts ...grpc.CallOption) (*CountReplyRes, error)
 	// 获取某条评论的点赞数
 	GetReplyLikeCount(ctx context.Context, in *GetReplyLikeCountReq, opts ...grpc.CallOption) (*GetReplyLikeCountRes, error)
+	// 获取某条评论的点踩数
+	GetReplyDislikeCount(ctx context.Context, in *GetReplyDislikeCountReq, opts ...grpc.CallOption) (*GetReplyDislikeCountRes, error)
 }
 
 type replyServiceClient struct {
@@ -191,6 +194,16 @@ func (c *replyServiceClient) GetReplyLikeCount(ctx context.Context, in *GetReply
 	return out, nil
 }
 
+func (c *replyServiceClient) GetReplyDislikeCount(ctx context.Context, in *GetReplyDislikeCountReq, opts ...grpc.CallOption) (*GetReplyDislikeCountRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetReplyDislikeCountRes)
+	err := c.cc.Invoke(ctx, ReplyService_GetReplyDislikeCount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ReplyServiceServer is the server API for ReplyService service.
 // All implementations must embed UnimplementedReplyServiceServer
 // for forward compatibility.
@@ -219,6 +232,8 @@ type ReplyServiceServer interface {
 	CountReply(context.Context, *CountReplyReq) (*CountReplyRes, error)
 	// 获取某条评论的点赞数
 	GetReplyLikeCount(context.Context, *GetReplyLikeCountReq) (*GetReplyLikeCountRes, error)
+	// 获取某条评论的点踩数
+	GetReplyDislikeCount(context.Context, *GetReplyDislikeCountReq) (*GetReplyDislikeCountRes, error)
 	mustEmbedUnimplementedReplyServiceServer()
 }
 
@@ -264,6 +279,9 @@ func (UnimplementedReplyServiceServer) CountReply(context.Context, *CountReplyRe
 }
 func (UnimplementedReplyServiceServer) GetReplyLikeCount(context.Context, *GetReplyLikeCountReq) (*GetReplyLikeCountRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetReplyLikeCount not implemented")
+}
+func (UnimplementedReplyServiceServer) GetReplyDislikeCount(context.Context, *GetReplyDislikeCountReq) (*GetReplyDislikeCountRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetReplyDislikeCount not implemented")
 }
 func (UnimplementedReplyServiceServer) mustEmbedUnimplementedReplyServiceServer() {}
 func (UnimplementedReplyServiceServer) testEmbeddedByValue()                      {}
@@ -502,6 +520,24 @@ func _ReplyService_GetReplyLikeCount_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ReplyService_GetReplyDislikeCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetReplyDislikeCountReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReplyServiceServer).GetReplyDislikeCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReplyService_GetReplyDislikeCount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReplyServiceServer).GetReplyDislikeCount(ctx, req.(*GetReplyDislikeCountReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ReplyService_ServiceDesc is the grpc.ServiceDesc for ReplyService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -556,6 +592,10 @@ var ReplyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetReplyLikeCount",
 			Handler:    _ReplyService_GetReplyLikeCount_Handler,
+		},
+		{
+			MethodName: "GetReplyDislikeCount",
+			Handler:    _ReplyService_GetReplyDislikeCount_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

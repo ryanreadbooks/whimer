@@ -7,6 +7,7 @@ import (
 	"math/bits"
 	"strconv"
 	"strings"
+	"sync"
 
 	gcache "github.com/patrickmn/go-cache"
 	"github.com/ryanreadbooks/whimer/counter/internal/config"
@@ -239,6 +240,63 @@ func (s *CounterSvc) GetSummary(ctx context.Context, req *v1.GetSummaryRequest) 
 	}, nil
 }
 
+// 批量获取某个oid的计数
+func (s *CounterSvc) BatchGetSummary(ctx context.Context, req *v1.BatchGetSummaryRequest) (
+	*v1.BatchGetSummaryResponse, error) {
+	const batchsize = 200
+
+	var (
+		summaryRes = make([]map[summary.PrimaryKey]uint64, 0)
+		wg         sync.WaitGroup
+		mu         sync.Mutex
+	)
+
+	err := slices.BatchAsyncExec(&wg, req.Requests, batchsize, func(start, end int) error {
+		reqs := req.Requests[start:end]
+		conds := make(summary.PrimaryKeyList, 0, len(reqs))
+		for _, req := range reqs {
+			conds = append(conds, &summary.PrimaryKey{
+				BizCode: req.BizCode,
+				Oid:     req.Oid,
+			})
+		}
+		res, err := s.repo.SummaryRepo.Gets(ctx, conds)
+		if err != nil {
+			return global.ErrCountSummary
+		}
+
+		mu.Lock()
+		defer mu.Unlock()
+		summaryRes = append(summaryRes, res)
+
+		return nil
+	})
+
+	if err != nil {
+		xlog.Msg("batch get summary failed").Err(err).Errorx(ctx)
+		return nil, global.ErrCountSummary
+	}
+
+	// 整理结果
+	merged := make(map[summary.PrimaryKey]uint64, len(summaryRes))
+	for _, sumRes := range summaryRes {
+		for k, v := range sumRes {
+			merged[k] = v
+		}
+	}
+
+	responses := make([]*v1.GetSummaryResponse, 0, len(summaryRes))
+	for k, v := range merged {
+		responses = append(responses, &v1.GetSummaryResponse{
+			BizCode: k.BizCode,
+			Oid:     k.Oid,
+			Count:   v,
+		})
+	}
+
+	return &v1.BatchGetSummaryResponse{Responses: responses}, nil
+}
+
 // 同步增量数据到数据库
 func (s *CounterSvc) SyncCacheSummary(ctx context.Context) error {
 	var (
@@ -248,7 +306,7 @@ func (s *CounterSvc) SyncCacheSummary(ctx context.Context) error {
 	items := s.sumcounter.Items()
 	s.sumcounter.Flush() // 重新开始计数
 	type delta struct {
-		Biz   int
+		Biz   int32
 		Oid   uint64
 		Delta int64
 	}
@@ -270,7 +328,7 @@ func (s *CounterSvc) SyncCacheSummary(ctx context.Context) error {
 		}
 
 		deltas = append(deltas, &delta{
-			Biz:   biz,
+			Biz:   int32(biz),
 			Oid:   oid,
 			Delta: num,
 		})

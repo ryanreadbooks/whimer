@@ -565,6 +565,11 @@ func (s *CommentSvc) PageGetReply(ctx context.Context, in *commentv1.PageGetRepl
 		replies = append(replies, modelToReplyItem(item))
 	}
 
+	if err := s.fillReplyLikes(ctx, replies); err != nil {
+		xlog.Msg("page get reply fill reply likes failed").
+			Err(err).Errorx(ctx)
+	}
+
 	return &commentv1.PageGetReplyRes{
 		Replies:    replies,
 		NextCursor: nextCursor,
@@ -594,6 +599,11 @@ func (s *CommentSvc) PageGetSubReply(ctx context.Context, in *commentv1.PageGetS
 	replies := make([]*commentv1.ReplyItem, 0, dataLen)
 	for _, item := range data {
 		replies = append(replies, modelToReplyItem(item))
+	}
+
+	if err := s.fillReplyLikes(ctx, replies); err != nil {
+		xlog.Msg("page get sub reply fill reply likes failed").
+			Err(err).Errorx(ctx)
 	}
 
 	return &commentv1.PageGetSubReplyRes{
@@ -652,6 +662,18 @@ func (s *CommentSvc) PageGetObjectReplies(ctx context.Context, in *commentv1.Pag
 	replies, err := s.getSubrepliesForRoots(ctx, in.Oid, roots.Replies)
 	if err != nil {
 		return nil, err
+	}
+
+	repliesItems := make([]*commentv1.ReplyItem, 0, len(replies))
+	for _, reply := range replies {
+		for _, sub := range reply.Subreplies.Items {
+			repliesItems = append(repliesItems, sub)
+		}
+	}
+
+	if err := s.fillReplyLikes(ctx, repliesItems); err != nil {
+		xlog.Msg("page get object replies fill reply likes failed").
+			Err(err).Errorx(ctx)
 	}
 
 	return &commentv1.PageGetDetailedReplyRes{
@@ -740,6 +762,15 @@ func (s *CommentSvc) GetPinnedReply(ctx context.Context, oid uint64) (*commentv1
 		return nil, err
 	}
 
+	replies := make([]*commentv1.ReplyItem, 0)
+	replies = append(replies, rootWithSubs[0].Root)
+	replies = append(replies, rootWithSubs[0].Subreplies.Items...)
+	if err := s.fillReplyLikes(ctx, replies); err != nil {
+		xlog.Msg("get pinned reply fill reply likes failed").
+			Err(err).
+			Errorx(ctx)
+	}
+
 	return &commentv1.GetPinnedReplyRes{
 		Reply: rootWithSubs[0],
 	}, nil
@@ -781,10 +812,11 @@ func (s *CommentSvc) GetReplyDislikesCount(ctx context.Context, rid uint64) (uin
 
 // 从counter获取评论点赞/点踩计数
 func (s *CommentSvc) counterGetCount(ctx context.Context, rid uint64, biz int32) (uint64, error) {
-	summary, err := external.GetCounter().GetSummary(ctx, &counterv1.GetSummaryRequest{
-		BizCode: biz,
-		Oid:     rid,
-	})
+	summary, err := external.GetCounter().
+		GetSummary(ctx, &counterv1.GetSummaryRequest{
+			BizCode: biz,
+			Oid:     rid,
+		})
 	if err != nil {
 		xlog.Msg("counter get count failed").Err(err).Errorx(ctx)
 		if biz == global.CounterLikeBizcode {

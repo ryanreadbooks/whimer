@@ -56,7 +56,7 @@ func (r *Repo) Insert(ctx context.Context, data *Model) error {
 
 func modelAsInsertSql(data *Model, builder *strings.Builder) {
 	builder.WriteByte('(')
-	builder.WriteString(strconv.Itoa(data.BizCode))
+	builder.WriteString(strconv.Itoa(int(data.BizCode)))
 	builder.WriteByte(',')
 	builder.WriteString(strconv.FormatUint(data.Oid, 10))
 	builder.WriteByte(',')

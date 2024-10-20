@@ -173,6 +173,9 @@ service ReplyService {
   rpc CountReply(CountReplyReq) returns (CountReplyRes);
   // 获取某条评论的点赞数
   rpc GetReplyLikeCount(GetReplyLikeCountReq) returns (GetReplyLikeCountRes);
+  // 获取某条评论的点踩数
+  rpc GetReplyDislikeCount(GetReplyDislikeCountReq)
+      returns (GetReplyDislikeCountRes);
 }
 
 message GetReplyLikeCountReq {
@@ -180,6 +183,15 @@ message GetReplyLikeCountReq {
 }
 
 message GetReplyLikeCountRes {
+  uint64 reply_id = 1;
+  uint64 count = 2; // 点赞数量
+}
+
+message GetReplyDislikeCountReq {
+  uint64 reply_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 评论id
+}
+
+message GetReplyDislikeCountRes {
   uint64 reply_id = 1;
   uint64 count = 2; // 点赞数量
 }

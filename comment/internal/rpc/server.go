@@ -148,6 +148,25 @@ func (s *ReplyServer) CountReply(ctx context.Context,
 // 获取评论的点赞数量
 func (s *ReplyServer) GetReplyLikeCount(ctx context.Context,
 	in *commentv1.GetReplyLikeCountReq) (*commentv1.GetReplyLikeCountRes, error) {
-	s.Svc.CommentSvc.GetReplyLikesCount(ctx, in.ReplyId)
-	return &commentv1.GetReplyLikeCountRes{}, nil
+	res, err := s.Svc.CommentSvc.GetReplyLikesCount(ctx, in.ReplyId)
+	if err != nil {
+		return nil, err
+	}
+	return &commentv1.GetReplyLikeCountRes{
+		ReplyId: in.ReplyId,
+		Count:   res,
+	}, nil
+}
+
+// 获取评论的点踩数量
+func (s *ReplyServer) GetReplyDislikeCount(ctx context.Context,
+	in *commentv1.GetReplyDislikeCountReq) (*commentv1.GetReplyDislikeCountRes, error) {
+	res, err := s.Svc.CommentSvc.GetReplyDislikesCount(ctx, in.ReplyId)
+	if err != nil {
+		return nil, err
+	}
+	return &commentv1.GetReplyDislikeCountRes{
+		ReplyId: in.ReplyId,
+		Count:   res,
+	}, nil
 }

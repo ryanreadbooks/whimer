@@ -29,7 +29,7 @@ type Model struct {
 }
 
 type Summary struct {
-	BizCode int    `db:"biz_code"`
+	BizCode int32    `db:"biz_code"`
 	Oid     uint64 `db:"oid"`
 	Cnt     uint64 `db:"cnt"`
 }
