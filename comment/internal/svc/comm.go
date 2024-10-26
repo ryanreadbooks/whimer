@@ -471,9 +471,9 @@ func (s *CommentSvc) ConsumeLikeDislikeEv(ctx context.Context, data *queue.Binar
 
 	var bizcode int32
 	if typ == queue.LikeType {
-		bizcode = global.CounterLikeBizcode
+		bizcode = global.CommentLikeBizcode
 	} else {
-		bizcode = global.CounterDislikeBizcode
+		bizcode = global.CommentDislikeBizcode
 	}
 
 	var (
@@ -802,12 +802,12 @@ func (s *CommentSvc) CountReply(ctx context.Context, oid uint64) (uint64, error)
 
 // 获取评论点赞数量
 func (s *CommentSvc) GetReplyLikesCount(ctx context.Context, rid uint64) (uint64, error) {
-	return s.counterGetCount(ctx, rid, global.CounterLikeBizcode)
+	return s.counterGetCount(ctx, rid, global.CommentLikeBizcode)
 }
 
 // 获取评论点踩数
 func (s *CommentSvc) GetReplyDislikesCount(ctx context.Context, rid uint64) (uint64, error) {
-	return s.counterGetCount(ctx, rid, global.CounterDislikeBizcode)
+	return s.counterGetCount(ctx, rid, global.CommentDislikeBizcode)
 }
 
 // 从counter获取评论点赞/点踩计数
@@ -819,7 +819,7 @@ func (s *CommentSvc) counterGetCount(ctx context.Context, rid uint64, biz int32)
 		})
 	if err != nil {
 		xlog.Msg("counter get count failed").Err(err).Errorx(ctx)
-		if biz == global.CounterLikeBizcode {
+		if biz == global.CommentLikeBizcode {
 			return 0, global.ErrGetReplyLikeCount
 		}
 		return 0, global.ErrGetReplyDislikeCount

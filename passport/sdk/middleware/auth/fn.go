@@ -26,6 +26,7 @@ func User(a *Auth) rest.Middleware {
 	}
 }
 
+// http接口认证中间件 并且注入uid
 func UserWeb(a *Auth) rest.Middleware {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {

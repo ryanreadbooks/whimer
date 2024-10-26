@@ -324,17 +324,18 @@ func (h *Handler) DislikeComment() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) GetLikeCount() http.HandlerFunc {
+func (h *Handler) GetCommentLikeCount() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[comment.GetLikeCountReq](httpx.Parse, r)
+		req, err := xhttp.ParseValidate[comment.GetLikeCountReq](httpx.ParseForm, r)
 		if err != nil {
 			httpx.Error(w, err)
 			return
 		}
 
-		res, err := comment.GetCommenter().GetReplyLikeCount(r.Context(), &commentv1.GetReplyLikeCountReq{
-			ReplyId: req.ReplyId,
-		})
+		res, err := comment.GetCommenter().GetReplyLikeCount(r.Context(),
+			&commentv1.GetReplyLikeCountReq{
+				ReplyId: req.ReplyId,
+			})
 		if err != nil {
 			httpx.Error(w, err)
 			return

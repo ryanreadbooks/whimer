@@ -30,6 +30,7 @@ type ListResItem struct {
 	CreateAt int64                `json:"create_at"`
 	UpdateAt int64                `json:"update_at"`
 	Images   ListResItemImageList `json:"images"`
+	Likes    uint64               `json:"likes"`
 }
 
 func (i *ListResItem) AsPb() *sdk.NoteItem {
@@ -41,6 +42,7 @@ func (i *ListResItem) AsPb() *sdk.NoteItem {
 		CreateAt: i.CreateAt,
 		UpdateAt: i.UpdateAt,
 		Images:   i.Images.AsPb(),
+		Likes:    i.Likes,
 	}
 }
 

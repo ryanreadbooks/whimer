@@ -5,16 +5,18 @@ import (
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/note"
 	"github.com/ryanreadbooks/whimer/misc/errorx"
+	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xhttp"
 
-	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 func (h *Handler) CreateNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req note.CreateReq
-		if err := httpx.ParseJsonBody(r, &req); err != nil {
+		req, err := xhttp.ParseValidate[note.CreateReq](httpx.ParseJsonBody, r)
+		if err != nil {
 			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
 			return
 		}
@@ -32,17 +34,17 @@ func (h *Handler) CreateNote() http.HandlerFunc {
 
 func (h *Handler) UpdateNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req note.UpdateReq
-		if err := httpx.ParseJsonBody(r, &req); err != nil {
+		req, err := xhttp.ParseValidate[note.UpdateReq](httpx.ParseJsonBody, r)
+		if err != nil {
 			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
 			return
 		}
 
 		var noteId = note.IdConfuser.DeConfuseU(req.NoteId)
 
-		_, err := note.GetNoter().UpdateNote(r.Context(), &notesdk.UpdateNoteReq{
+		_, err = note.GetNoter().UpdateNote(r.Context(), &notev1.UpdateNoteReq{
 			NoteId: noteId,
-			Note: &notesdk.CreateNoteReq{
+			Note: &notev1.CreateNoteReq{
 				Basic:  req.Basic.AsPb(),
 				Images: req.Images.AsPb(),
 			},
@@ -59,13 +61,13 @@ func (h *Handler) UpdateNote() http.HandlerFunc {
 
 func (h *Handler) DeleteNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req note.NoteIdReq
-		if err := httpx.ParseJsonBody(r, &req); err != nil {
+		req, err := xhttp.ParseValidate[note.NoteIdReq](httpx.ParseJsonBody, r)
+		if err != nil {
 			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
 			return
 		}
 
-		_, err := note.GetNoter().DeleteNote(r.Context(), &notesdk.DeleteNoteReq{
+		_, err = note.GetNoter().DeleteNote(r.Context(), &notev1.DeleteNoteReq{
 			NoteId: note.IdConfuser.DeConfuseU(req.NoteId),
 		})
 
@@ -80,7 +82,7 @@ func (h *Handler) DeleteNote() http.HandlerFunc {
 
 func (h *Handler) ListNotes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		resp, err := note.GetNoter().ListNote(r.Context(), &notesdk.ListNoteReq{})
+		resp, err := note.GetNoter().ListNote(r.Context(), &notev1.ListNoteReq{})
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -92,18 +94,13 @@ func (h *Handler) ListNotes() http.HandlerFunc {
 
 func (h *Handler) GetNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req note.NoteIdReq
-		if err := httpx.ParsePath(r, &req); err != nil {
+		req, err := xhttp.ParseValidate[note.NoteIdReq](httpx.ParsePath, r)
+		if err != nil {
 			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
 			return
 		}
 
-		if len(req.NoteId) == 0 {
-			httpx.Error(w, errorx.ErrArgs.Msg("笔记id错误"))
-			return
-		}
-
-		resp, err := note.GetNoter().GetNote(r.Context(), &notesdk.GetNoteReq{
+		resp, err := note.GetNoter().GetNote(r.Context(), &notev1.GetNoteReq{
 			NoteId: note.IdConfuser.DeConfuseU(req.NoteId),
 		})
 		if err != nil {
@@ -117,8 +114,8 @@ func (h *Handler) GetNote() http.HandlerFunc {
 
 func (h *Handler) UploadNoteAuth() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req note.UploadAuthReq
-		if err := httpx.ParseForm(r, &req); err != nil {
+		req, err := xhttp.ParseValidate[note.UploadAuthReq](httpx.ParseForm, r)
+		if err != nil {
 			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
 			return
 		}
@@ -130,5 +127,55 @@ func (h *Handler) UploadNoteAuth() http.HandlerFunc {
 		}
 
 		httpx.OkJson(w, resp)
+	}
+}
+
+// 点赞/取消点赞笔记
+func (h *Handler) LikeNote() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var (
+			uid = metadata.Uid(r.Context())
+		)
+
+		req, err := xhttp.ParseValidate[note.LikeReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+			return
+		}
+
+		nid := note.IdConfuser.DeConfuseU(req.NoteId)
+		_, err = note.GetNoter().LikeNote(r.Context(), &notev1.LikeNoteReq{
+			NoteId:    nid,
+			Uid:       uid,
+			Operation: notev1.LikeNoteReq_Operation(req.Action),
+		})
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+		httpx.OkJson(w, nil)
+	}
+}
+
+// 获取笔记点赞数量
+func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[note.NoteIdReq](httpx.ParsePath, r)
+		if err != nil {
+			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+			return
+		}
+
+		nid := note.IdConfuser.DeConfuseU(req.NoteId)
+		resp, err := note.GetNoter().GetNoteLikes(r.Context(), &notev1.GetNoteLikesReq{NoteId: nid})
+		if err != nil {
+			httpx.Error(w, err)
+			return
+		}
+
+		httpx.OkJson(w, &note.GetLikesRes{
+			Count:  resp.Likes,
+			NoteId: note.IdConfuser.ConfuseU(resp.NoteId),
+		})
 	}
 }

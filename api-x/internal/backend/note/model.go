@@ -2,6 +2,7 @@ package note
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
+	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/safety"
 	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
@@ -72,6 +73,18 @@ type NoteIdReq struct {
 	NoteId string `json:"note_id" path:"note_id" form:"note_id"`
 }
 
+func (r *NoteIdReq) Validate() error {
+	if r == nil {
+		return errorx.ErrNilArg
+	}
+
+	if len(r.NoteId) <= 0 {
+		return errorx.ErrArgs.Msg("笔记id错误")
+	}
+
+	return nil
+}
+
 type NoteItemImage struct {
 	Url  string `json:"url"`
 	Type int    `json:"type"`
@@ -87,6 +100,7 @@ type NoteItem struct {
 	CreateAt int64             `json:"create_at"`
 	UpdateAt int64             `json:"update_at"`
 	Images   NoteItemImageList `json:"images"`
+	Likes    uint64            `json:"likes"`
 }
 
 func NewNoteItemFromPb(pb *notesdk.NoteItem) *NoteItem {
@@ -110,6 +124,7 @@ func NewNoteItemFromPb(pb *notesdk.NoteItem) *NoteItem {
 		CreateAt: pb.CreateAt,
 		UpdateAt: pb.UpdateAt,
 		Images:   images,
+		Likes:    pb.Likes,
 	}
 }
 
@@ -158,4 +173,36 @@ type UploadAuthRes struct {
 	ExpireTime  int64                `json:"expire_time"`
 	UploadAddr  string               `json:"upload_addr"`
 	Headers     UploadAuthResHeaders `json:"headers"`
+}
+
+// 点赞/取消点赞
+
+type LikeReqAction uint8
+
+const (
+	LikeReqActionUndo LikeReqAction = 0
+	LikeReqActionDo   LikeReqAction = 1
+)
+
+// 点赞/取消点赞
+type LikeReq struct {
+	NoteId string        `json:"note_id"`
+	Action LikeReqAction `json:"action"`
+}
+
+func (r *LikeReq) Validate() error {
+	if r == nil {
+		return errorx.ErrNilArg
+	}
+
+	if r.Action != 0 && r.Action != 1 {
+		return errorx.ErrInvalidArgs.Msg("不支持的点赞操作")
+	}
+
+	return nil
+}
+
+type GetLikesRes struct {
+	NoteId string `json:"note_id"`
+	Count  uint64 `json:"count"`
 }
