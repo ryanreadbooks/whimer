@@ -6,11 +6,11 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	mgtp "github.com/ryanreadbooks/whimer/note/internal/model/note"
 	"github.com/ryanreadbooks/whimer/note/internal/svc"
-	sdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
 type NoteServer struct {
-	sdk.UnimplementedNoteServiceServer
+	notev1.UnimplementedNoteServiceServer
 
 	Svc *svc.ServiceContext
 }
@@ -21,29 +21,27 @@ func NewNoteServer(svc *svc.ServiceContext) *NoteServer {
 	}
 }
 
-func (s *NoteServer) IsUserOwnNote(ctx context.Context, in *sdk.IsUserOwnNoteReq) (*sdk.IsUserOwnNoteRes, error) {
-	nid := s.Svc.NoteSvc.NoteIdConfuser.ConfuseU(in.NoteId)
-	owner, err := s.Svc.NoteSvc.GetNoteOwner(ctx, nid)
+func (s *NoteServer) IsUserOwnNote(ctx context.Context, in *notev1.IsUserOwnNoteReq) (*notev1.IsUserOwnNoteRes, error) {
+	owner, err := s.Svc.NoteSvc.GetNoteOwner(ctx, in.NoteId)
 	if err != nil {
 		return nil, err
 	}
 
-	return &sdk.IsUserOwnNoteRes{Uid: in.Uid, Result: owner == in.Uid}, nil
+	return &notev1.IsUserOwnNoteRes{Uid: in.Uid, Result: owner == in.Uid}, nil
 }
 
 // 判断笔记是否存在
-func (s *NoteServer) IsNoteExist(ctx context.Context, in *sdk.IsNoteExistReq) (*sdk.IsNoteExistRes, error) {
-	nid := s.Svc.NoteSvc.NoteIdConfuser.ConfuseU(in.NoteId)
-	ok, err := s.Svc.NoteSvc.IsNoteExist(ctx, nid)
+func (s *NoteServer) IsNoteExist(ctx context.Context, in *notev1.IsNoteExistReq) (*notev1.IsNoteExistRes, error) {
+	ok, err := s.Svc.NoteSvc.IsNoteExist(ctx, in.NoteId)
 	if err != nil {
 		return nil, err
 	}
 
-	return &sdk.IsNoteExistRes{Exist: ok}, nil
+	return &notev1.IsNoteExistRes{Exist: ok}, nil
 }
 
 // 创建笔记
-func (s *NoteServer) CreateNote(ctx context.Context, in *sdk.CreateNoteReq) (*sdk.CreateNoteRes, error) {
+func (s *NoteServer) CreateNote(ctx context.Context, in *notev1.CreateNoteReq) (*notev1.CreateNoteRes, error) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
@@ -74,11 +72,11 @@ func (s *NoteServer) CreateNote(ctx context.Context, in *sdk.CreateNoteReq) (*sd
 		return nil, err
 	}
 
-	return &sdk.CreateNoteRes{NoteId: noteId}, nil
+	return &notev1.CreateNoteRes{NoteId: noteId}, nil
 }
 
 // 更新笔记
-func (s *NoteServer) UpdateNote(ctx context.Context, in *sdk.UpdateNoteReq) (*sdk.UpdateNoteRes, error) {
+func (s *NoteServer) UpdateNote(ctx context.Context, in *notev1.UpdateNoteReq) (*notev1.UpdateNoteRes, error) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
@@ -111,11 +109,11 @@ func (s *NoteServer) UpdateNote(ctx context.Context, in *sdk.UpdateNoteReq) (*sd
 		return nil, err
 	}
 
-	return &sdk.UpdateNoteRes{NoteId: req.NoteId}, nil
+	return &notev1.UpdateNoteRes{NoteId: req.NoteId}, nil
 }
 
 // 删除笔记
-func (s *NoteServer) DeleteNote(ctx context.Context, in *sdk.DeleteNoteReq) (*sdk.DeleteNoteRes, error) {
+func (s *NoteServer) DeleteNote(ctx context.Context, in *notev1.DeleteNoteReq) (*notev1.DeleteNoteRes, error) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
@@ -133,11 +131,11 @@ func (s *NoteServer) DeleteNote(ctx context.Context, in *sdk.DeleteNoteReq) (*sd
 		return nil, err
 	}
 
-	return &sdk.DeleteNoteRes{}, nil
+	return &notev1.DeleteNoteRes{}, nil
 }
 
 // 获取笔记的信息
-func (s *NoteServer) GetNote(ctx context.Context, in *sdk.GetNoteReq) (*sdk.NoteItem, error) {
+func (s *NoteServer) GetNote(ctx context.Context, in *notev1.GetNoteReq) (*notev1.NoteItem, error) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
@@ -155,21 +153,21 @@ func (s *NoteServer) GetNote(ctx context.Context, in *sdk.GetNoteReq) (*sdk.Note
 }
 
 // 列出笔记
-func (s *NoteServer) ListNote(ctx context.Context, in *sdk.ListNoteReq) (*sdk.ListNoteRes, error) {
+func (s *NoteServer) ListNote(ctx context.Context, in *notev1.ListNoteReq) (*notev1.ListNoteRes, error) {
 	data, err := s.Svc.NoteSvc.List(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	items := make([]*sdk.NoteItem, 0, len(data.Items))
+	items := make([]*notev1.NoteItem, 0, len(data.Items))
 	for _, item := range data.Items {
 		items = append(items, item.AsPb())
 	}
 
-	return &sdk.ListNoteRes{Items: items}, nil
+	return &notev1.ListNoteRes{Items: items}, nil
 }
 
-func (s *NoteServer) GetUploadAuth(ctx context.Context, in *sdk.GetUploadAuthReq) (*sdk.GetUploadAuthRes, error) {
+func (s *NoteServer) GetUploadAuth(ctx context.Context, in *notev1.GetUploadAuthReq) (*notev1.GetUploadAuthRes, error) {
 	var req = mgtp.UploadAuthReq{
 		Resource: in.Resource,
 		Source:   in.Source,
@@ -186,4 +184,18 @@ func (s *NoteServer) GetUploadAuth(ctx context.Context, in *sdk.GetUploadAuthReq
 	}
 
 	return data.AsPb(), nil
+}
+
+func (s *NoteServer) LikeNote(ctx context.Context, in *notev1.LikeNoteReq) (*notev1.LikeNoteRes, error) {
+	return s.Svc.NoteSvc.LikeNote(ctx, in)
+}
+
+func (s *NoteServer) GetNoteLikes(ctx context.Context, in *notev1.GetNoteLikesReq) (
+	*notev1.GetNoteLikesRes, error) {
+	likes, err := s.Svc.NoteSvc.GetNoteLikes(ctx, in.NoteId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &notev1.GetNoteLikesRes{Likes: likes}, nil
 }

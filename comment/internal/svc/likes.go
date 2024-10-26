@@ -19,7 +19,7 @@ func (s *CommentSvc) fillReplyLikes(ctx context.Context, replies []*commentv1.Re
 	requests := make([]*counterv1.GetSummaryRequest, 0, 16)
 	for _, reply := range replies {
 		requests = append(requests, &counterv1.GetSummaryRequest{
-			BizCode: global.CounterLikeBizcode,
+			BizCode: global.CommentLikeBizcode,
 			Oid:     reply.Id,
 		})
 	}
@@ -44,7 +44,7 @@ func (s *CommentSvc) fillReplyLikes(ctx context.Context, replies []*commentv1.Re
 	}
 
 	for _, reply := range replies {
-		k := key{global.CounterLikeBizcode, reply.Id}
+		k := key{global.CommentLikeBizcode, reply.Id}
 		if cnt, ok := mapping[k]; ok {
 			reply.LikeCount = cnt
 		}

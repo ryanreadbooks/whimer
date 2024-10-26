@@ -28,7 +28,7 @@ func regCommentRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 			// 点踩评论
 			v1g.Post("/dislike", svc.DislikeComment())
 			// 获取评论点赞数
-			v1g.Get("/likes", svc.GetLikeCount())
+			v1g.Get("/likes", svc.GetCommentLikeCount())
 		}
 	}
 }

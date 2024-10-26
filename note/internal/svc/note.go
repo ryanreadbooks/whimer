@@ -5,20 +5,24 @@ import (
 	"errors"
 	"time"
 
+	counterv1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/concur"
+	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/oss"
 	"github.com/ryanreadbooks/whimer/misc/oss/signer"
 	"github.com/ryanreadbooks/whimer/misc/safety"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
+	"github.com/ryanreadbooks/whimer/note/internal/external"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	notemodel "github.com/ryanreadbooks/whimer/note/internal/model/note"
 	"github.com/ryanreadbooks/whimer/note/internal/repo"
 	noterepo "github.com/ryanreadbooks/whimer/note/internal/repo/note"
 	noteassetrepo "github.com/ryanreadbooks/whimer/note/internal/repo/noteasset"
-	"github.com/zeromicro/go-zero/core/stores/redis"
+	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -35,7 +39,7 @@ func NewNoteSvc(ctx *ServiceContext, repo *repo.Repo, cache *redis.Redis) *NoteS
 		repo:           repo,
 		cache:          NewNoteCache(cache),
 		Ctx:            ctx,
-		NoteIdConfuser: safety.NewConfuser(ctx.Config.Salt, 24),
+		NoteIdConfuser: safety.NewConfuser(ctx.Config.Salt, 24), // TODO can be removed
 		OssSigner: signer.NewSigner(
 			ctx.Config.Oss.User,
 			ctx.Config.Oss.Pass,
@@ -301,8 +305,13 @@ func (s *NoteSvc) List(ctx context.Context) (*notemodel.ListRes, error) {
 	}
 
 	var noteIds = make([]uint64, 0, len(notes))
+	likesReq := make([]*counterv1.GetSummaryRequest, 0, len(notes))
 	for _, note := range notes {
 		noteIds = append(noteIds, note.Id)
+		likesReq = append(likesReq, &counterv1.GetSummaryRequest{
+			BizCode: global.NoteLikeBizcode,
+			Oid:     note.Id,
+		})
 	}
 
 	// 获取资源信息
@@ -337,6 +346,28 @@ func (s *NoteSvc) List(ctx context.Context) (*notemodel.ListRes, error) {
 		}
 
 		res.Items = append(res.Items, item)
+	}
+
+	// 获取点赞数量
+	likesResp, err := external.GetCounter().BatchGetSummary(ctx, &counterv1.BatchGetSummaryRequest{
+		Requests: likesReq,
+	})
+	if err != nil {
+		xlog.Msg("counter failed to batch get summary").
+			Err(err).
+			Extra("note_ids", noteIds).
+			Infox(ctx)
+	}
+	if likesResp != nil {
+		m := make(map[uint64]uint64, len(likesResp.Responses))
+		for _, r := range likesResp.Responses {
+			m[r.Oid] = r.Count
+		}
+		for _, item := range res.Items {
+			if likeCnt, ok := m[item.NoteId]; ok {
+				item.Likes = likeCnt
+			}
+		}
 	}
 
 	return &res, nil
@@ -403,11 +434,17 @@ func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*notemodel.ListRe
 		})
 	}
 
+	// 获取点赞数
+	likes, err := s.GetNoteLikes(ctx, noteId)
+	if err != nil {
+		xlog.Msg("failed to get note likes count").Err(err).Extra("note_id", nid).Infox(ctx)
+	}
+	res.Likes = likes
+
 	return &res, nil
 }
 
-func (s *NoteSvc) IsNoteExist(ctx context.Context, noteId string) (bool, error) {
-	nid := s.NoteIdConfuser.DeConfuseU(noteId)
+func (s *NoteSvc) IsNoteExist(ctx context.Context, nid uint64) (bool, error) {
 	if nid <= 0 {
 		return false, global.ErrNoteNotFound
 	}
@@ -424,8 +461,7 @@ func (s *NoteSvc) IsNoteExist(ctx context.Context, noteId string) (bool, error) 
 	return true, nil
 }
 
-func (s *NoteSvc) GetNoteOwner(ctx context.Context, noteId string) (uint64, error) {
-	nid := s.NoteIdConfuser.DeConfuseU(noteId)
+func (s *NoteSvc) GetNoteOwner(ctx context.Context, nid uint64) (uint64, error) {
 	if nid <= 0 {
 		return 0, global.ErrNoteNotFound
 	}
@@ -440,4 +476,68 @@ func (s *NoteSvc) GetNoteOwner(ctx context.Context, noteId string) (uint64, erro
 	}
 
 	return n.Owner, nil
+}
+
+// 点赞笔记
+func (s *NoteSvc) LikeNote(ctx context.Context, in *notev1.LikeNoteReq) (*notev1.LikeNoteRes, error) {
+	var (
+		opUid = metadata.Uid(ctx)
+		err   error
+	)
+
+	if opUid != in.Uid {
+		return nil, errorx.ErrPermission
+	}
+
+	if ok, err := s.IsNoteExist(ctx, in.NoteId); err != nil || !ok {
+		return nil, err
+	}
+
+	if in.Operation == notev1.LikeNoteReq_OPERATION_UNDO_LIKE {
+		// 取消点赞
+		_, err = external.GetCounter().CancelRecord(ctx, &counterv1.CancelRecordRequest{
+			BizCode: global.NoteLikeBizcode,
+			Uid:     in.Uid,
+			Oid:     in.NoteId,
+		})
+	} else {
+		// 点赞
+		_, err = external.GetCounter().AddRecord(ctx, &counterv1.AddRecordRequest{
+			BizCode: global.NoteLikeBizcode,
+			Uid:     in.Uid,
+			Oid:     in.NoteId,
+		})
+	}
+
+	if err != nil {
+		xlog.Msg("call counter returned err").Err(err).
+			Extra("op", in.Operation).
+			Extra("uid", in.Uid).
+			Extra("note_id", in.NoteId).
+			Errorx(ctx)
+		return nil, err
+	}
+
+	return &notev1.LikeNoteRes{}, nil
+}
+
+// 获取笔记点赞数量
+func (s *NoteSvc) GetNoteLikes(ctx context.Context, nid uint64) (uint64, error) {
+	if ok, err := s.IsNoteExist(ctx, nid); err != nil || !ok {
+		return 0, err
+	}
+
+	resp, err := external.GetCounter().GetSummary(ctx, &counterv1.GetSummaryRequest{
+		BizCode: global.NoteLikeBizcode,
+		Oid:     nid,
+	})
+	if err != nil {
+		xlog.Msg("counter get summary failed").
+			Err(err).
+			Extra("note_id", nid).
+			Errorx(ctx)
+		return 0, global.ErrGetNoteLikesFail
+	}
+
+	return resp.Count, nil
 }

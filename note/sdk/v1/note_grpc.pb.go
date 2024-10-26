@@ -27,6 +27,8 @@ const (
 	NoteService_GetNote_FullMethodName       = "/note.sdk.v1.NoteService/GetNote"
 	NoteService_ListNote_FullMethodName      = "/note.sdk.v1.NoteService/ListNote"
 	NoteService_GetUploadAuth_FullMethodName = "/note.sdk.v1.NoteService/GetUploadAuth"
+	NoteService_LikeNote_FullMethodName      = "/note.sdk.v1.NoteService/LikeNote"
+	NoteService_GetNoteLikes_FullMethodName  = "/note.sdk.v1.NoteService/GetNoteLikes"
 )
 
 // NoteServiceClient is the client API for NoteService service.
@@ -49,6 +51,10 @@ type NoteServiceClient interface {
 	ListNote(ctx context.Context, in *ListNoteReq, opts ...grpc.CallOption) (*ListNoteRes, error)
 	// 获取上传凭证
 	GetUploadAuth(ctx context.Context, in *GetUploadAuthReq, opts ...grpc.CallOption) (*GetUploadAuthRes, error)
+	// 点赞笔记/取消点赞
+	LikeNote(ctx context.Context, in *LikeNoteReq, opts ...grpc.CallOption) (*LikeNoteRes, error)
+	// 获取笔记点赞数量
+	GetNoteLikes(ctx context.Context, in *GetNoteLikesReq, opts ...grpc.CallOption) (*GetNoteLikesRes, error)
 }
 
 type noteServiceClient struct {
@@ -139,6 +145,26 @@ func (c *noteServiceClient) GetUploadAuth(ctx context.Context, in *GetUploadAuth
 	return out, nil
 }
 
+func (c *noteServiceClient) LikeNote(ctx context.Context, in *LikeNoteReq, opts ...grpc.CallOption) (*LikeNoteRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LikeNoteRes)
+	err := c.cc.Invoke(ctx, NoteService_LikeNote_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *noteServiceClient) GetNoteLikes(ctx context.Context, in *GetNoteLikesReq, opts ...grpc.CallOption) (*GetNoteLikesRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetNoteLikesRes)
+	err := c.cc.Invoke(ctx, NoteService_GetNoteLikes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NoteServiceServer is the server API for NoteService service.
 // All implementations must embed UnimplementedNoteServiceServer
 // for forward compatibility.
@@ -159,6 +185,10 @@ type NoteServiceServer interface {
 	ListNote(context.Context, *ListNoteReq) (*ListNoteRes, error)
 	// 获取上传凭证
 	GetUploadAuth(context.Context, *GetUploadAuthReq) (*GetUploadAuthRes, error)
+	// 点赞笔记/取消点赞
+	LikeNote(context.Context, *LikeNoteReq) (*LikeNoteRes, error)
+	// 获取笔记点赞数量
+	GetNoteLikes(context.Context, *GetNoteLikesReq) (*GetNoteLikesRes, error)
 	mustEmbedUnimplementedNoteServiceServer()
 }
 
@@ -192,6 +222,12 @@ func (UnimplementedNoteServiceServer) ListNote(context.Context, *ListNoteReq) (*
 }
 func (UnimplementedNoteServiceServer) GetUploadAuth(context.Context, *GetUploadAuthReq) (*GetUploadAuthRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUploadAuth not implemented")
+}
+func (UnimplementedNoteServiceServer) LikeNote(context.Context, *LikeNoteReq) (*LikeNoteRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LikeNote not implemented")
+}
+func (UnimplementedNoteServiceServer) GetNoteLikes(context.Context, *GetNoteLikesReq) (*GetNoteLikesRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNoteLikes not implemented")
 }
 func (UnimplementedNoteServiceServer) mustEmbedUnimplementedNoteServiceServer() {}
 func (UnimplementedNoteServiceServer) testEmbeddedByValue()                     {}
@@ -358,6 +394,42 @@ func _NoteService_GetUploadAuth_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NoteService_LikeNote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LikeNoteReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteServiceServer).LikeNote(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteService_LikeNote_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteServiceServer).LikeNote(ctx, req.(*LikeNoteReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NoteService_GetNoteLikes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNoteLikesReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteServiceServer).GetNoteLikes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteService_GetNoteLikes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteServiceServer).GetNoteLikes(ctx, req.(*GetNoteLikesReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NoteService_ServiceDesc is the grpc.ServiceDesc for NoteService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -396,6 +468,14 @@ var NoteService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUploadAuth",
 			Handler:    _NoteService_GetUploadAuth_Handler,
+		},
+		{
+			MethodName: "LikeNote",
+			Handler:    _NoteService_LikeNote_Handler,
+		},
+		{
+			MethodName: "GetNoteLikes",
+			Handler:    _NoteService_GetNoteLikes_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
