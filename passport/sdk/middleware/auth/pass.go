@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	ppac "github.com/ryanreadbooks/whimer/passport/sdk/access/v1"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -60,12 +60,12 @@ func webReq(sessId string) *ppac.CheckSignInReq {
 func (a *Auth) getCookie(r *http.Request) (sessId string, err error) {
 	cookie, err := r.Cookie("WHIMERSESSID")
 	if err != nil || len(cookie.Value) == 0 {
-		err = errorx.ErrNotLogin
+		err = xerror.ErrNotLogin
 		return
 	}
 
 	if a == nil {
-		err = errorx.ErrInternal
+		err = xerror.ErrInternal
 		logx.Errorf("getCookie auth instance is nil")
 		return
 	}
@@ -86,7 +86,7 @@ func (a *Auth) User(ctx context.Context, r *http.Request) (uid uint64, sessId st
 	}
 
 	if !resp.Signed {
-		err = errorx.ErrNotLogin
+		err = xerror.ErrNotLogin
 		return
 	}
 
@@ -109,7 +109,7 @@ func (a *Auth) UserWeb(ctx context.Context, r *http.Request) (uid uint64, sessId
 	}
 
 	if !resp.Signed {
-		err = errorx.ErrNotLogin
+		err = xerror.ErrNotLogin
 		return
 	}
 

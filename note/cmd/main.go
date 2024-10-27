@@ -5,10 +5,11 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor/checker"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/rpc"
 	"github.com/ryanreadbooks/whimer/note/internal/svc"
-	sdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 	"google.golang.org/grpc"
 
 	"github.com/zeromicro/go-zero/core/conf"
@@ -28,11 +29,17 @@ func main() {
 	ctx := svc.NewServiceContext(&c)
 
 	grpcServer := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
-		sdk.RegisterNoteServiceServer(s, rpc.NewNoteServer(ctx))
-		xgrpc.EnableReflection(c.Grpc, s)
+		notev1.RegisterNoteServiceServer(s, rpc.NewNoteServiceServer(ctx))
+		notev1.RegisterNoteFeedServiceServer(s, rpc.NewNoteFeedServiceServer(ctx))
+		xgrpc.EnableReflectionIfNecessary(c.Grpc, s)
 	})
-	interceptor.InstallServerUnaryInterceptors(grpcServer,
-		interceptor.WithChecker(interceptor.UidExistenceChecker))
+	interceptor.InstallUnaryServerInterceptors(grpcServer,
+		interceptor.WithUnaryChecker(
+			checker.UidExistenceWithOpt(
+				checker.WithIgnore(rpc.NoteFeedServiceName),
+			),
+		),
+	)
 
 	group := service.NewServiceGroup()
 	defer group.Stop()

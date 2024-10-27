@@ -1,17 +1,17 @@
 package global
 
-import "github.com/ryanreadbooks/whimer/misc/errorx"
+import "github.com/ryanreadbooks/whimer/misc/xerror"
 
 const (
-	CounterErrCode = errorx.BizCounter
+	CounterErrCode = xerror.BizCounter
 )
 
 // 业务错误定义
 var (
-	ErrBizArgs     = errorx.ErrInvalidArgs.ErrCode(CounterErrCode)
-	ErrBizInternal = errorx.ErrInternal.ErrCode(CounterErrCode)
-	ErrBizDenied   = errorx.ErrPermission.ErrCode(CounterErrCode)
-	ErrNotFound    = errorx.ErrNotFound.ErrCode(CounterErrCode)
+	ErrBizArgs     = xerror.ErrInvalidArgs.ErrCode(CounterErrCode)
+	ErrBizInternal = xerror.ErrInternal.ErrCode(CounterErrCode)
+	ErrBizDenied   = xerror.ErrPermission.ErrCode(CounterErrCode)
+	ErrNotFound    = xerror.ErrNotFound.ErrCode(CounterErrCode)
 
 	ErrArgs         = ErrBizArgs.Msg("参数错误")
 	ErrInternal     = ErrBizInternal.Msg("服务错误, 请稍后重试")

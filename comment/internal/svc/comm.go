@@ -14,9 +14,9 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/queue"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	counterv1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
-	"github.com/ryanreadbooks/whimer/misc/concur"
-	"github.com/ryanreadbooks/whimer/misc/errorx"
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
@@ -87,7 +87,7 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 			NoteId: oid,
 		})
 	if err != nil {
-		if errorx.ShouldLog(err) {
+		if xerror.ShouldLog(err) {
 			xlog.Msg("noter check note exists err").Err(err).Extra("oid", oid).Errorx(ctx)
 		}
 		return nil, err
@@ -358,7 +358,7 @@ func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReply
 		})
 
 	if err != nil {
-		if errorx.ShouldLog(err) {
+		if xerror.ShouldLog(err) {
 			xlog.Msg("noter check note exists err").Err(err).Extra("oid", oid).Errorx(ctx)
 		}
 		return err
@@ -747,7 +747,7 @@ func (s *CommentSvc) GetPinnedReply(ctx context.Context, oid uint64) (*commentv1
 		}
 
 		// set cache
-		concur.SafeGo(func() {
+		concurrent.SafeGo(func() {
 			ctxc := context.WithoutCancel(ctx)
 			err = s.cache.SetPinned(ctxc, root)
 			if err != nil {

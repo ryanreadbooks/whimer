@@ -3,7 +3,7 @@ package xhttp
 import (
 	"net/http"
 
-	"github.com/ryanreadbooks/whimer/misc/errorx"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 )
 
 type Validator interface {
@@ -17,7 +17,7 @@ type ParserFunc func(*http.Request, any) error
 func ParseValidate[T any](parser ParserFunc, r *http.Request) (out *T, err error) {
 	t := new(T)
 	if err := parser(r, t); err != nil {
-		return nil, errorx.ErrArgs.Msg(err.Error())
+		return nil, xerror.ErrArgs.Msg(err.Error())
 	}
 
 	if validator, ok := interface{}(t).(Validator); ok && validator != nil {

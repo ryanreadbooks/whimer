@@ -1,4 +1,4 @@
-package errorx
+package xerror
 
 type Result struct {
 	Code int         `json:"code"` // 业务响应状态码

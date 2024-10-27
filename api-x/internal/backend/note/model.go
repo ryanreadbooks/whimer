@@ -2,8 +2,8 @@ package note
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
-	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/safety"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
@@ -75,11 +75,11 @@ type NoteIdReq struct {
 
 func (r *NoteIdReq) Validate() error {
 	if r == nil {
-		return errorx.ErrNilArg
+		return xerror.ErrNilArg
 	}
 
 	if len(r.NoteId) <= 0 {
-		return errorx.ErrArgs.Msg("笔记id错误")
+		return xerror.ErrArgs.Msg("笔记id错误")
 	}
 
 	return nil
@@ -192,11 +192,11 @@ type LikeReq struct {
 
 func (r *LikeReq) Validate() error {
 	if r == nil {
-		return errorx.ErrNilArg
+		return xerror.ErrNilArg
 	}
 
 	if r.Action != 0 && r.Action != 1 {
-		return errorx.ErrInvalidArgs.Msg("不支持的点赞操作")
+		return xerror.ErrInvalidArgs.Msg("不支持的点赞操作")
 	}
 
 	return nil

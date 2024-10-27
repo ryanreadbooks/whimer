@@ -3,8 +3,8 @@ package comment
 import (
 	comment "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
-	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/xconv"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 )
 
@@ -139,7 +139,7 @@ type PinReq struct {
 
 func (r *PinReq) Validate() error {
 	if r.Action != PinActionUnpin && r.Action != PinActionPin {
-		return errorx.ErrArgs.Msg("不支持的置顶操作")
+		return xerror.ErrArgs.Msg("不支持的置顶操作")
 	}
 
 	return nil
@@ -156,7 +156,7 @@ type thumbActionChecker struct{}
 
 func (c thumbActionChecker) check(action ThumbAction) error {
 	if action != ThumbActionUndo && action != ThumbActionDo {
-		return errorx.ErrArgs.Msg("不支持的操作")
+		return xerror.ErrArgs.Msg("不支持的操作")
 	}
 
 	return nil
@@ -190,7 +190,7 @@ type GetLikeCountReq struct {
 
 func (r *GetLikeCountReq) Validate() error {
 	if r.ReplyId <= 0 {
-		return errorx.ErrArgs.Msg("评论不存在")
+		return xerror.ErrArgs.Msg("评论不存在")
 	}
 
 	return nil

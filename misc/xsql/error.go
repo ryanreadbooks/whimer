@@ -23,8 +23,12 @@ func ConvertError(err error) error {
 		return ErrNoRecord
 	default:
 		mysqlErr, ok := err.(*mysql.MySQLError)
-		if ok && mysqlErr.Number == 1062 {
-			return ErrDuplicate
+		if ok {
+			if mysqlErr.Number == 1062 {
+				return ErrDuplicate
+			} else if SQLStateEqual(mysqlErr.SQLState, SQLStateOutOfRange) {
+				return ErrOutOfRange
+			}
 		}
 
 		return err

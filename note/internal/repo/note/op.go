@@ -5,21 +5,27 @@ import (
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xsql"
+	"github.com/ryanreadbooks/whimer/note/internal/global"
+
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 // all sqls here
 const (
-	sqlFindAll     = "select id,title,`desc`,privacy,owner,create_at,update_at from note where id=?"
-	sqlInsertAll   = "insert into note(title,`desc`,privacy,owner,create_at,update_at) values(?,?,?,?,?,?)"
-	sqlUpdateAll   = "update note set title=?,`desc`=?,privacy=?,owner=?,update_at=? where id=?"
-	sqlDeleteById  = "delete from note where id=?"
-	sqlListByOwner = "select id,title,`desc`,privacy,owner,create_at,update_at from note where owner=?"
+	sqlFind        = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE id=?"
+	sqlInsertAll   = "INSERT INTO note(title,`desc`,privacy,owner,create_at,update_at) VALUES(?,?,?,?,?,?)"
+	sqlUpdateAll   = "UPDATE note SET title=?,`desc`=?,privacy=?,owner=?,update_at=? WHERE id=?"
+	sqlDeleteById  = "DELETE FROM note WHERE id=?"
+	sqlListByOwner = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE owner=?"
+	sqlGetByCursor = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE id>=? AND privacy=? LIMIT ?"
+	sqlGetLastId   = "SELECT id FROM note WHERE privacy=? ORDER BY id DESC LIMIT 1"
+	sqlGetAll      = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE privacy=?"
+	sqlGetCount    = "SELECT COUNT(*) FROM note WHERE privacy=?"
 )
 
 func (r *Repo) FindOne(ctx context.Context, id uint64) (*Model, error) {
 	model := new(Model)
-	err := r.db.QueryRowCtx(ctx, model, sqlFindAll, id)
+	err := r.db.QueryRowCtx(ctx, model, sqlFind, id)
 	return model, xsql.ConvertError(err)
 }
 
@@ -92,4 +98,60 @@ func (r *Repo) Delete(ctx context.Context, id uint64) error {
 
 func (r *Repo) DeleteTx(ctx context.Context, tx sqlx.Session, id uint64) error {
 	return r.delete(ctx, tx, id)
+}
+
+func (r *Repo) GetPublicByCursor(ctx context.Context, id uint64, count int) ([]*Model, error) {
+	return r.getByCursor(ctx, id, count, global.PrivacyPublic)
+}
+
+func (r *Repo) GetPrivateByCursor(ctx context.Context, id uint64, count int) ([]*Model, error) {
+	return r.getByCursor(ctx, id, count, global.PrivacyPrivate)
+}
+
+func (r *Repo) getByCursor(ctx context.Context, id uint64, count, privacy int) ([]*Model, error) {
+	var res = make([]*Model, 0, count)
+	err := r.db.QueryRowsCtx(ctx, &res, sqlGetByCursor, id, privacy, count)
+	return res, xsql.ConvertError(err)
+}
+
+func (r *Repo) GetPublicLastId(ctx context.Context) (uint64, error) {
+	return r.getLastId(ctx, global.PrivacyPublic)
+}
+
+func (r *Repo) GetPrivateLastId(ctx context.Context) (uint64, error) {
+	return r.getLastId(ctx, global.PrivacyPrivate)
+}
+
+func (r *Repo) getLastId(ctx context.Context, privacy int) (uint64, error) {
+	var lastId uint64
+	err := r.db.QueryRowCtx(ctx, &lastId, sqlGetLastId, privacy)
+	return lastId, xsql.ConvertError(err)
+}
+
+func (r *Repo) getAll(ctx context.Context, privacy int) ([]*Model, error) {
+	var res = make([]*Model, 0, 16)
+	err := r.db.QueryRowsCtx(ctx, &res, sqlGetAll, privacy)
+	return res, xsql.ConvertError(err)
+}
+
+func (r *Repo) GetPublicAll(ctx context.Context) ([]*Model, error) {
+	return r.getAll(ctx, global.PrivacyPublic)
+}
+
+func (r *Repo) GetPrivateAll(ctx context.Context) ([]*Model, error) {
+	return r.getAll(ctx, global.PrivacyPrivate)
+}
+
+func (r *Repo) GetPublicCount(ctx context.Context) (uint64, error) {
+	return r.getCount(ctx, global.PrivacyPublic)
+}
+
+func (r *Repo) GetPrivateCount(ctx context.Context) (uint64, error) {
+	return r.getCount(ctx, global.PrivacyPrivate)
+}
+
+func (r *Repo) getCount(ctx context.Context, privacy int) (uint64, error) {
+	var cnt uint64
+	err := r.db.QueryRowCtx(ctx, &cnt, sqlGetCount, privacy)
+	return cnt, xsql.ConvertError(err)
 }

@@ -10,6 +10,7 @@ import (
 	v1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor/checker"
 	"google.golang.org/grpc"
 
 	"github.com/zeromicro/go-zero/core/conf"
@@ -29,10 +30,10 @@ func main() {
 
 	server := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
 		v1.RegisterCounterServiceServer(s, rpc.NewCounterServer(ctx))
-		xgrpc.EnableReflection(c.Grpc, s)
+		xgrpc.EnableReflectionIfNecessary(c.Grpc, s)
 	})
-	interceptor.InstallServerUnaryInterceptors(server,
-		interceptor.WithChecker(interceptor.UidExistenceChecker))
+	interceptor.InstallUnaryServerInterceptors(server,
+		interceptor.WithUnaryChecker(checker.UidExistence))
 
 	syncer := job.MustNewSyncer(&c, ctx)
 

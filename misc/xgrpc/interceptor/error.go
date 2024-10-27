@@ -3,14 +3,14 @@ package interceptor
 import (
 	"context"
 
-	"github.com/ryanreadbooks/whimer/misc/errorx"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 // 处理grpc server返回的interceptor
-func ServerErrorHandle(ctx context.Context,
+func UnaryServerErrorHandle(ctx context.Context,
 	req any,
 	info *grpc.UnaryServerInfo,
 	handler grpc.UnaryHandler) (resp any, err error) {
@@ -30,9 +30,9 @@ func ServerErrorHandle(ctx context.Context,
 			msg  string     = err.Error()
 		)
 
-		errx, ok := err.(*errorx.Error)
+		errx, ok := err.(*xerror.Error)
 		if ok {
-			code = errorx.GrpcCodeFromHttpStatus(errx.StatusCode)
+			code = xerror.GrpcCodeFromHttpStatus(errx.StatusCode)
 			msg = errx.Message
 		}
 

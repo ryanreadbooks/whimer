@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ryanreadbooks/whimer/misc/concur"
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	global "github.com/ryanreadbooks/whimer/passport/internal/gloabl"
@@ -112,7 +112,7 @@ func (s *Service) SignInWithSms(ctx context.Context, req *tp.SignInSmdReq) (*use
 	}
 
 	// 删除验证码
-	concur.SafeGo(func() {
+	concurrent.SafeGo(func() {
 		ctxc := context.WithoutCancel(ctx)
 		if _, err := s.cache.DelCtx(ctxc, getSmsCodeTelKey(tel)); err != nil {
 			xlog.Msg("cache del sms code err").Err(err).Errorx(ctxc)

@@ -21,7 +21,7 @@ var (
 func Init(c *config.Config) {
 	noteCli, err := zrpc.NewClient(
 		c.Backend.Note.AsZrpcClientConf(),
-		zrpc.WithUnaryClientInterceptor(interceptor.ClientMetadataInject))
+		zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientMetadataInject))
 	if err != nil {
 		logx.Errorf("external init: can not init note")
 	} else {

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"github.com/ryanreadbooks/whimer/misc/utils/slices"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
@@ -131,21 +130,11 @@ func (r *Repo) Gets(ctx context.Context, keys PrimaryKeyList) (map[PrimaryKey]ui
 
 func (r *Repo) Incr(ctx context.Context, biz int, oid uint64) error {
 	_, err := r.db.ExecCtx(ctx, sqlIncr, oid, biz)
-	if mysqlerr, ok := err.(*mysql.MySQLError); ok {
-		if xsql.SQLStateEqual(mysqlerr.SQLState, xsql.SQLStateOutOfRange) {
-			return xsql.ErrOutOfRange
-		}
-	}
 	return xsql.ConvertError(err)
 }
 
 func (r *Repo) Decr(ctx context.Context, biz int, oid uint64) error {
 	_, err := r.db.ExecCtx(ctx, sqlDecr, oid, biz)
-	if mysqlerr, ok := err.(*mysql.MySQLError); ok {
-		if xsql.SQLStateEqual(mysqlerr.SQLState, xsql.SQLStateOutOfRange) {
-			return xsql.ErrOutOfRange
-		}
-	}
 	return xsql.ConvertError(err)
 }
 
@@ -159,11 +148,6 @@ func (r *Repo) InsertOrIncr(ctx context.Context, biz int, oid uint64) error {
 		now,
 		now,
 	)
-	if mysqlerr, ok := err.(*mysql.MySQLError); ok {
-		if xsql.SQLStateEqual(mysqlerr.SQLState, xsql.SQLStateOutOfRange) {
-			return xsql.ErrOutOfRange
-		}
-	}
 	return xsql.ConvertError(err)
 }
 
@@ -176,10 +160,5 @@ func (r *Repo) InsertOrDecr(ctx context.Context, biz int, oid uint64) error {
 		now,
 		now,
 	)
-	if mysqlerr, ok := err.(*mysql.MySQLError); ok {
-		if xsql.SQLStateEqual(mysqlerr.SQLState, xsql.SQLStateOutOfRange) {
-			return xsql.ErrOutOfRange
-		}
-	}
 	return xsql.ConvertError(err)
 }

@@ -3,20 +3,20 @@ package global
 import (
 	"net/http"
 
-	"github.com/ryanreadbooks/whimer/misc/errorx"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 )
 
 const (
-	PassportErrCode = errorx.BizPassport
+	PassportErrCode = xerror.BizPassport
 )
 
 var (
-	ErrArgs             = errorx.ErrInvalidArgs.ErrCode(PassportErrCode).Msg("参数错误")
-	ErrInternal         = errorx.ErrInternal.ErrCode(PassportErrCode).Msg("服务错误, 请稍后重试")
-	ErrUnAuth           = errorx.ErrNotLogin.ErrCode(PassportErrCode)
-	ErrPermDenied       = errorx.ErrPermission.ErrCode(PassportErrCode).Msg("操作权限不足")
-	ErrRateLimit        = errorx.NewError(http.StatusTooManyRequests, PassportErrCode, "你的操作太频繁了")
-	ErrApiUnimplemented = errorx.NewError(http.StatusMethodNotAllowed, PassportErrCode, "接口未实现")
+	ErrArgs             = xerror.ErrInvalidArgs.ErrCode(PassportErrCode).Msg("参数错误")
+	ErrInternal         = xerror.ErrInternal.ErrCode(PassportErrCode).Msg("服务错误, 请稍后重试")
+	ErrUnAuth           = xerror.ErrNotLogin.ErrCode(PassportErrCode)
+	ErrPermDenied       = xerror.ErrPermission.ErrCode(PassportErrCode).Msg("操作权限不足")
+	ErrRateLimit        = xerror.NewError(http.StatusTooManyRequests, PassportErrCode, "你的操作太频繁了")
+	ErrApiUnimplemented = xerror.NewError(http.StatusMethodNotAllowed, PassportErrCode, "接口未实现")
 	ErrNilReq           = ErrArgs.Msg("请求为空")
 
 	// sign-in related

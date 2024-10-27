@@ -3,15 +3,17 @@ package svc
 import (
 	"context"
 	"errors"
+	"math/rand"
+	"sync"
 	"time"
 
 	counterv1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
-	"github.com/ryanreadbooks/whimer/misc/concur"
-	"github.com/ryanreadbooks/whimer/misc/errorx"
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/oss"
 	"github.com/ryanreadbooks/whimer/misc/oss/signer"
 	"github.com/ryanreadbooks/whimer/misc/safety"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/external"
@@ -50,6 +52,7 @@ func NewNoteSvc(ctx *ServiceContext, repo *repo.Repo, cache *redis.Redis) *NoteS
 	}
 }
 
+// 新建笔记
 func (s *NoteSvc) Create(ctx context.Context, req *notemodel.CreateReq) (uint64, error) {
 	var (
 		uid    uint64 = metadata.Uid(ctx)
@@ -98,6 +101,7 @@ func (s *NoteSvc) Create(ctx context.Context, req *notemodel.CreateReq) (uint64,
 	return noteId, nil
 }
 
+// 更新笔记
 func (s *NoteSvc) Update(ctx context.Context, req *notemodel.UpdateReq) error {
 	var (
 		uid uint64 = metadata.Uid(ctx)
@@ -233,6 +237,7 @@ func (s *NoteSvc) UploadAuth(ctx context.Context, req *notemodel.UploadAuthReq) 
 	return &res, nil
 }
 
+// 删除笔记
 func (s *NoteSvc) Delete(ctx context.Context, req *notemodel.DeleteReq) error {
 	var (
 		uid uint64 = metadata.Uid(ctx)
@@ -289,21 +294,7 @@ func (s *NoteSvc) Delete(ctx context.Context, req *notemodel.DeleteReq) error {
 	return nil
 }
 
-func (s *NoteSvc) List(ctx context.Context) (*notemodel.ListRes, error) {
-	var (
-		uid uint64 = metadata.Uid(ctx)
-	)
-
-	notes, err := s.repo.NoteRepo.ListByOwner(ctx, uid)
-	if errors.Is(xsql.ErrNoRecord, err) {
-		return &notemodel.ListRes{}, nil
-	}
-
-	if err != nil {
-		xlog.Msg("repo note list by owner err").Err(err).Errorx(ctx)
-		return nil, global.ErrGetNoteFail
-	}
-
+func (s *NoteSvc) assembelNotes(ctx context.Context, notes []*noterepo.Model) (*notemodel.BatchNoteItem, error) {
 	var noteIds = make([]uint64, 0, len(notes))
 	likesReq := make([]*counterv1.GetSummaryRequest, 0, len(notes))
 	for _, note := range notes {
@@ -322,9 +313,9 @@ func (s *NoteSvc) List(ctx context.Context) (*notemodel.ListRes, error) {
 	}
 
 	// 组合notes和noteAssets
-	var res notemodel.ListRes
+	var res notemodel.BatchNoteItem
 	for _, note := range notes {
-		item := &notemodel.ListResItem{
+		item := &notemodel.Item{
 			NoteId:   note.Id,
 			Title:    note.Title,
 			Desc:     note.Desc,
@@ -334,7 +325,7 @@ func (s *NoteSvc) List(ctx context.Context) (*notemodel.ListRes, error) {
 		}
 		for _, asset := range noteAssets {
 			if note.Id == asset.NoteId {
-				item.Images = append(item.Images, &notemodel.ListResItemImage{
+				item.Images = append(item.Images, &notemodel.ItemImage{
 					Url: oss.GetPublicVisitUrl(
 						s.Ctx.Config.Oss.Bucket,
 						asset.AssetKey,
@@ -373,7 +364,27 @@ func (s *NoteSvc) List(ctx context.Context) (*notemodel.ListRes, error) {
 	return &res, nil
 }
 
-func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*notemodel.ListResItem, error) {
+// 列出某用户所有笔记
+func (s *NoteSvc) List(ctx context.Context) (*notemodel.BatchNoteItem, error) {
+	var (
+		uid uint64 = metadata.Uid(ctx)
+	)
+
+	notes, err := s.repo.NoteRepo.ListByOwner(ctx, uid)
+	if errors.Is(xsql.ErrNoRecord, err) {
+		return &notemodel.BatchNoteItem{}, nil
+	}
+
+	if err != nil {
+		xlog.Msg("repo note list by owner err").Err(err).Errorx(ctx)
+		return nil, global.ErrGetNoteFail
+	}
+
+	return s.assembelNotes(ctx, notes)
+}
+
+// 获取笔记
+func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*notemodel.Item, error) {
 	var (
 		uid uint64 = metadata.Uid(ctx)
 		nid        = noteId
@@ -396,7 +407,7 @@ func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*notemodel.ListRe
 			return nil, global.ErrGetNoteFail
 		}
 
-		concur.SafeGo(func() {
+		concurrent.SafeGo(func() {
 			ctxc := context.WithoutCancel(ctx)
 			if errg := s.cache.SetNote(ctxc, note); errg != nil {
 				xlog.Msg("cache set note failed").Err(err).Extra("note", note).Errorx(ctxc)
@@ -404,8 +415,8 @@ func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*notemodel.ListRe
 		})
 	}
 
-	if note.Owner != uid {
-		return nil, global.ErrPermDenied.Msg("你不拥有该笔记")
+	if note.Privacy == global.PrivacyPrivate && uid != note.Owner {
+		return nil, global.ErrNotNoteOwner
 	}
 
 	assets, err := s.repo.NoteAssetRepo.FindByNoteIds(ctx, []uint64{note.Id})
@@ -414,7 +425,7 @@ func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*notemodel.ListRe
 		return nil, global.ErrGetNoteFail
 	}
 
-	var res = notemodel.ListResItem{
+	var res = notemodel.Item{
 		NoteId:   noteId,
 		Title:    note.Title,
 		Desc:     note.Desc,
@@ -424,7 +435,7 @@ func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*notemodel.ListRe
 	}
 
 	for _, asset := range assets {
-		res.Images = append(res.Images, &notemodel.ListResItemImage{
+		res.Images = append(res.Images, &notemodel.ItemImage{
 			Url: oss.GetPublicVisitUrl(
 				s.Ctx.Config.Oss.Bucket,
 				asset.AssetKey,
@@ -444,6 +455,7 @@ func (s *NoteSvc) GetNote(ctx context.Context, noteId uint64) (*notemodel.ListRe
 	return &res, nil
 }
 
+// 判断笔记是否存在
 func (s *NoteSvc) IsNoteExist(ctx context.Context, nid uint64) (bool, error) {
 	if nid <= 0 {
 		return false, global.ErrNoteNotFound
@@ -461,6 +473,7 @@ func (s *NoteSvc) IsNoteExist(ctx context.Context, nid uint64) (bool, error) {
 	return true, nil
 }
 
+// 获取笔记作者
 func (s *NoteSvc) GetNoteOwner(ctx context.Context, nid uint64) (uint64, error) {
 	if nid <= 0 {
 		return 0, global.ErrNoteNotFound
@@ -486,7 +499,7 @@ func (s *NoteSvc) LikeNote(ctx context.Context, in *notev1.LikeNoteReq) (*notev1
 	)
 
 	if opUid != in.Uid {
-		return nil, errorx.ErrPermission
+		return nil, xerror.ErrPermission
 	}
 
 	if ok, err := s.IsNoteExist(ctx, in.NoteId); err != nil || !ok {
@@ -540,4 +553,58 @@ func (s *NoteSvc) GetNoteLikes(ctx context.Context, nid uint64) (uint64, error) 
 	}
 
 	return resp.Count, nil
+}
+
+func (s *NoteSvc) RandomGet(ctx context.Context, count int) (*notemodel.BatchNoteItem, error) {
+	var (
+		err    error
+		lastId uint64
+		wg     sync.WaitGroup
+		items  []*noterepo.Model // items为随机获取的结果
+	)
+
+	wg.Add(1)
+	concurrent.DoneIn(time.Second*20, func(sCtx context.Context) {
+		defer wg.Done()
+		//  TODO optimize by using local cache
+		id, sErr := s.repo.NoteRepo.GetPublicLastId(sCtx)
+		if sErr != nil {
+			xlog.Msg("note repo get public last id failed").Err(err).Errorx(sCtx)
+		}
+		lastId = id
+	})
+
+	// TODO optimize by using local cache
+	maxCnt, err := s.repo.NoteRepo.GetPublicCount(ctx)
+	if err != nil {
+		xlog.Msg("note repo get public count failed").
+			Err(err).
+			Errorx(ctx)
+		return nil, global.ErrInternal
+	}
+
+	wg.Wait()
+
+	if maxCnt <= uint64(count) {
+		// we fetch all
+		items, err = s.repo.NoteRepo.GetPublicAll(ctx)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		var notes []*noterepo.Model
+		for tryCnt := 1; tryCnt <= 8; tryCnt++ {
+			begin := rand.Int63n(int64(lastId))
+			if begin == 0 {
+				begin = 1
+			}
+			notes, err = s.repo.NoteRepo.GetPublicByCursor(ctx, uint64(begin), count)
+			if err != nil {
+				return nil, err
+			}
+			items = append(items, notes...)
+		}
+	}
+
+	return s.assembelNotes(ctx, items)
 }

@@ -1,18 +1,19 @@
 package interceptor
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor/checker"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
 )
 
 // server端拦截器
-func InstallServerUnaryInterceptors(server *zrpc.RpcServer,
+func InstallUnaryServerInterceptors(server *zrpc.RpcServer,
 	customs ...grpc.UnaryServerInterceptor) {
 	// 默认拦截器
 	interceptors := []grpc.UnaryServerInterceptor{
-		ServerErrorHandle,
-		ServerMetadataExtract,
-		ServerValidateHandle,
+		UnaryServerErrorHandle,
+		UnaryServerMetadataExtract,
+		UnaryServerValidateHandle,
 	}
 
 	// 自定义拦截器
@@ -20,6 +21,6 @@ func InstallServerUnaryInterceptors(server *zrpc.RpcServer,
 	server.AddUnaryInterceptors(interceptors...)
 }
 
-func WithChecker(checkers ...ServerMetadateChecker) grpc.UnaryServerInterceptor {
-	return ServerMetadataCheck(checkers...)
+func WithUnaryChecker(checkers ...checker.UnaryServerMetadataChecker) grpc.UnaryServerInterceptor {
+	return UnaryServerMetadataCheck(checkers...)
 }

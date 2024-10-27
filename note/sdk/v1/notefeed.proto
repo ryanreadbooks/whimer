@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package note.sdk.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/ryanreadbooks/whimer/note/sdk/v1";
+
+// feed流获取note相关服务功能
+service NoteFeedService {
+  
+}

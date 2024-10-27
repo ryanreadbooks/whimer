@@ -1,4 +1,4 @@
-package errorx
+package xerror
 
 const (
 	Continue           = 100

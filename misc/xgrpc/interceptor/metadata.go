@@ -3,15 +3,15 @@ package interceptor
 import (
 	"context"
 
-	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor/checker"
 
 	"google.golang.org/grpc"
 	grpcmeta "google.golang.org/grpc/metadata"
 )
 
 // 提取metadata中的请求上下文信息: 比如uid，设备信息等
-func ServerMetadataExtract(ctx context.Context,
+func UnaryServerMetadataExtract(ctx context.Context,
 	req any,
 	info *grpc.UnaryServerInfo,
 	handler grpc.UnaryHandler) (resp any, err error) {
@@ -28,7 +28,7 @@ func ServerMetadataExtract(ctx context.Context,
 	return handler(ctx, req)
 }
 
-func ClientMetadataInject(ctx context.Context,
+func UnaryClientMetadataInject(ctx context.Context,
 	method string,
 	req, reply any,
 	cc *grpc.ClientConn,
@@ -43,17 +43,16 @@ func ClientMetadataInject(ctx context.Context,
 	return invoker(ctx, method, req, reply, cc, opts...)
 }
 
-type ServerMetadateChecker func(ctx context.Context) error
 
 // 提前对metadata中的内容进行检查
-func ServerMetadataCheck(checkers ...ServerMetadateChecker) grpc.UnaryServerInterceptor {
+func UnaryServerMetadataCheck(checkers ...checker.UnaryServerMetadataChecker) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context,
 		req any,
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler) (resp any, err error) {
 
 		for _, checker := range checkers {
-			if err := checker(ctx); err != nil {
+			if err := checker(ctx, info); err != nil {
 				return nil, err
 			}
 		}
@@ -62,11 +61,3 @@ func ServerMetadataCheck(checkers ...ServerMetadateChecker) grpc.UnaryServerInte
 	}
 }
 
-func UidExistenceChecker(ctx context.Context) error {
-	uid := metadata.Uid(ctx)
-	if uid <= 0 {
-		return errorx.ErrNotLogin
-	}
-
-	return nil
-}

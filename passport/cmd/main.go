@@ -40,9 +40,9 @@ func main() {
 		user.RegisterUserServer(s, userrpc.NewUserServer(ctx))
 
 		// for debugging
-		xgrpc.EnableReflection(c.Grpc, s)
+		xgrpc.EnableReflectionIfNecessary(c.Grpc, s)
 	})
-	interceptor.InstallServerUnaryInterceptors(grpcServer)
+	interceptor.InstallUnaryServerInterceptors(grpcServer)
 
 	group := service.NewServiceGroup()
 	defer group.Stop()

@@ -4,14 +4,14 @@ import (
 	sdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
-type ListResItemImage struct {
+type ItemImage struct {
 	Url  string `json:"url"`
 	Type int    `json:"type"`
 }
 
-type ListResItemImageList []*ListResItemImage
+type ItemImageList []*ItemImage
 
-func (l ListResItemImageList) AsPb() []*sdk.GetNoteResImage {
+func (l ItemImageList) AsPb() []*sdk.GetNoteResImage {
 	images := make([]*sdk.GetNoteResImage, 0, len(l))
 	for _, img := range l {
 		images = append(images, &sdk.GetNoteResImage{
@@ -22,18 +22,18 @@ func (l ListResItemImageList) AsPb() []*sdk.GetNoteResImage {
 	return images
 }
 
-type ListResItem struct {
-	NoteId   uint64               `json:"note_id"`
-	Title    string               `json:"title"`
-	Desc     string               `json:"desc"`
-	Privacy  int8                 `json:"privacy"`
-	CreateAt int64                `json:"create_at"`
-	UpdateAt int64                `json:"update_at"`
-	Images   ListResItemImageList `json:"images"`
-	Likes    uint64               `json:"likes"`
+type Item struct {
+	NoteId   uint64        `json:"note_id"`
+	Title    string        `json:"title"`
+	Desc     string        `json:"desc"`
+	Privacy  int8          `json:"privacy"`
+	CreateAt int64         `json:"create_at"`
+	UpdateAt int64         `json:"update_at"`
+	Images   ItemImageList `json:"images"`
+	Likes    uint64        `json:"likes"`
 }
 
-func (i *ListResItem) AsPb() *sdk.NoteItem {
+func (i *Item) AsPb() *sdk.NoteItem {
 	return &sdk.NoteItem{
 		NoteId:   i.NoteId,
 		Title:    i.Title,
@@ -46,8 +46,8 @@ func (i *ListResItem) AsPb() *sdk.NoteItem {
 	}
 }
 
-type ListRes struct {
-	Items []*ListResItem `json:"items"`
+type BatchNoteItem struct {
+	Items []*Item `json:"items"`
 }
 
 type GetNoteReq struct {

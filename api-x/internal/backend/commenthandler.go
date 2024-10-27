@@ -9,7 +9,7 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/comment"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
-	"github.com/ryanreadbooks/whimer/misc/concur"
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/utils/maps"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
@@ -141,7 +141,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 		if req.Cursor == 0 {
 			wg.Add(1)
 			// 第一次请求时需要返回置顶评论
-			concur.SafeGo(func() {
+			concurrent.SafeGo(func() {
 				defer wg.Done()
 				var err error
 				resp, err := comment.GetCommenter().

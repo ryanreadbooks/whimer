@@ -21,7 +21,7 @@ var (
 func Init(c *config.Config) {
 	cli, err := zrpc.NewClient(
 		c.Backend.Comment.AsZrpcClientConf(),
-		zrpc.WithUnaryClientInterceptor(interceptor.ClientMetadataInject))
+		zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientMetadataInject))
 	if err != nil {
 		logx.Errorf("external init: can not init comment")
 	} else {

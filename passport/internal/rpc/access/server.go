@@ -4,13 +4,13 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/ryanreadbooks/whimer/misc/errorx"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/passport/internal/model/platform"
 	"github.com/ryanreadbooks/whimer/passport/internal/model/profile"
 	"github.com/ryanreadbooks/whimer/passport/internal/svc"
 	access "github.com/ryanreadbooks/whimer/passport/sdk/access/v1"
 	user "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
-	
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -48,7 +48,7 @@ func (s *AccessServer) CheckSignIn(ctx context.Context, in *access.CheckSignInRe
 	if len(in.Platform) == 0 {
 		meInfo, err = s.Svc.AccessSvc.CheckSignedIn(ctx, in.SessId)
 		if err != nil {
-			if errorx.IsInternal(err) {
+			if xerror.IsInternal(err) {
 				return nil, status.Error(codes.Internal, err.Error())
 			}
 		}
@@ -58,7 +58,7 @@ func (s *AccessServer) CheckSignIn(ctx context.Context, in *access.CheckSignInRe
 		}
 		meInfo, err = s.Svc.AccessSvc.CheckPlatformSignedIn(ctx, in.SessId, in.Platform)
 		if err != nil {
-			if errorx.IsInternal(err) {
+			if xerror.IsInternal(err) {
 				return nil, status.Error(codes.Internal, err.Error())
 			}
 		}

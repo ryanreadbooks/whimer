@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/note"
-	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 
 	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
@@ -17,7 +17,7 @@ func (h *Handler) CreateNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[note.CreateReq](httpx.ParseJsonBody, r)
 		if err != nil {
-			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+			httpx.Error(w, xerror.ErrArgs.Msg(err.Error()))
 			return
 		}
 
@@ -36,7 +36,7 @@ func (h *Handler) UpdateNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[note.UpdateReq](httpx.ParseJsonBody, r)
 		if err != nil {
-			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+			httpx.Error(w, xerror.ErrArgs.Msg(err.Error()))
 			return
 		}
 
@@ -63,7 +63,7 @@ func (h *Handler) DeleteNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[note.NoteIdReq](httpx.ParseJsonBody, r)
 		if err != nil {
-			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+			httpx.Error(w, xerror.ErrArgs.Msg(err.Error()))
 			return
 		}
 
@@ -96,7 +96,7 @@ func (h *Handler) GetNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[note.NoteIdReq](httpx.ParsePath, r)
 		if err != nil {
-			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+			httpx.Error(w, xerror.ErrArgs.Msg(err.Error()))
 			return
 		}
 
@@ -116,7 +116,7 @@ func (h *Handler) UploadNoteAuth() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[note.UploadAuthReq](httpx.ParseForm, r)
 		if err != nil {
-			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+			httpx.Error(w, xerror.ErrArgs.Msg(err.Error()))
 			return
 		}
 
@@ -139,7 +139,7 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 
 		req, err := xhttp.ParseValidate[note.LikeReq](httpx.ParseJsonBody, r)
 		if err != nil {
-			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+			httpx.Error(w, xerror.ErrArgs.Msg(err.Error()))
 			return
 		}
 
@@ -162,7 +162,7 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[note.NoteIdReq](httpx.ParsePath, r)
 		if err != nil {
-			httpx.Error(w, errorx.ErrArgs.Msg(err.Error()))
+			httpx.Error(w, xerror.ErrArgs.Msg(err.Error()))
 			return
 		}
 
