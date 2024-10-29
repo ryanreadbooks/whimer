@@ -25,7 +25,7 @@ func init() {
 
 // 验证请求
 // 服务端拦截请求 进行基本的req检验和validate
-func UnaryServerValidateHandle(ctx context.Context,
+func UnaryServerValidateHandler(ctx context.Context,
 	req any,
 	info *grpc.UnaryServerInfo,
 	handler grpc.UnaryHandler) (resp any, err error) {

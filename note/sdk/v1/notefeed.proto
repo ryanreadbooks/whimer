@@ -3,10 +3,24 @@ syntax = "proto3";
 package note.sdk.v1;
 
 import "buf/validate/validate.proto";
+import "v1/note.proto";
 
 option go_package = "github.com/ryanreadbooks/whimer/note/sdk/v1";
 
+message RandomGetRequest {
+  int32 count = 1 [
+    (buf.validate.field).int32.gt = 0,
+    (buf.validate.field).int32.lte = 30
+  ];
+}
+
+message RandomGetResponse {
+  repeated NoteItem items = 1;
+  int32 count = 2;
+}
+
 // feed流获取note相关服务功能
 service NoteFeedService {
-  
+  // 随机获取笔记内容
+  rpc RandomGet(RandomGetRequest) returns (RandomGetResponse);
 }

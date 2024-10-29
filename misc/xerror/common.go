@@ -2,6 +2,7 @@ package xerror
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/misc/utils"
@@ -16,6 +17,16 @@ type Error struct {
 }
 
 func (e *Error) Error() string {
+	if e == nil {
+		return ""
+	}
+	return fmt.Sprintf("Code: %d, Msg: %s", e.Code, e.Message)
+}
+
+func (e *Error) Json() string {
+	if e == nil {
+		return ""
+	}
 	s, _ := json.Marshal(e)
 	return utils.Bytes2String(s)
 }
@@ -59,6 +70,25 @@ func (e *Error) ErrCode(ecode int) *Error {
 	}
 }
 
+func (e *Error) Is(err error) bool {
+	if oth, ok := err.(*Error); ok {
+		return e.Equal(oth)
+	}
+	return false
+}
+
+func (e *Error) Equal(other *Error) bool {
+	if other == nil {
+		return e == nil
+	}
+	if e == nil {
+		return other == nil
+	}
+
+	// 不要求Msg相等
+	return e.Code == other.Code && e.StatusCode == other.StatusCode
+}
+
 func NewError(st, code int, msg string) *Error {
 	return &Error{
 		StatusCode: st,
@@ -81,14 +111,31 @@ func ShouldLog(err error) bool {
 		return false
 	}
 
-	// 判断是否为Error对象
-	commErr, ok := err.(*Error)
+	// 有限检查是否为Stacker
+	stackErr, ok := err.(*errStack)
+	var (
+		commErr  *Error
+		causeErr error = err
+	)
+
 	if ok {
+		// 判断底层是否为Error对象
+		cause := Cause(stackErr)
+		commErr, ok = cause.(*Error)
+		if !ok {
+			causeErr = cause
+		}
+	} else {
+		// 判断是否为Error对象
+		commErr, _ = err.(*Error)
+	}
+
+	if commErr != nil {
 		return commErr.StatusCode >= http.StatusInternalServerError
 	}
 
 	// 判断是否为grpc.Status
-	grpcerr, ok := status.FromError(err)
+	grpcerr, ok := status.FromError(causeErr)
 	if ok {
 		switch grpcerr.Code() {
 		case codes.OK,

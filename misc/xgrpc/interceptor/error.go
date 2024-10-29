@@ -10,10 +10,18 @@ import (
 )
 
 // 处理grpc server返回的interceptor
-func UnaryServerErrorHandle(ctx context.Context,
+func UnaryServerErrorHandler(ctx context.Context,
 	req any,
 	info *grpc.UnaryServerInfo,
 	handler grpc.UnaryHandler) (resp any, err error) {
+
+	// 自动输出日志
+	defer func() {
+		if err != nil {
+			// TODO 输出日志
+			xerror.ShouldLog(err)
+		}
+	}()
 
 	resp, err = handler(ctx, req)
 	if err != nil {

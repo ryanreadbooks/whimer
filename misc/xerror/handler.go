@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/zeromicro/go-zero/rest/httpx"
 	"google.golang.org/grpc/status"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
 
 func init() {
@@ -17,9 +17,10 @@ func init() {
 
 func errorHandler(err error) (int, any) {
 	if err == nil {
-		return http.StatusOK, ErrSuccess
+		return http.StatusOK, Success
 	}
 
+	err = Cause(err)
 	xerr, ok := err.(*Error)
 	if ok {
 		return xerr.StatusCode, xerr

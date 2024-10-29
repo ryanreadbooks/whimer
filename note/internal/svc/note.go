@@ -13,6 +13,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/oss"
 	"github.com/ryanreadbooks/whimer/misc/oss/signer"
 	"github.com/ryanreadbooks/whimer/misc/safety"
+	"github.com/ryanreadbooks/whimer/misc/utils/maps"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
@@ -555,7 +556,7 @@ func (s *NoteSvc) GetNoteLikes(ctx context.Context, nid uint64) (uint64, error) 
 	return resp.Count, nil
 }
 
-func (s *NoteSvc) RandomGet(ctx context.Context, count int) (*notemodel.BatchNoteItem, error) {
+func (s *NoteSvc) randomGet(ctx context.Context, count int) (*notemodel.BatchNoteItem, error) {
 	var (
 		err    error
 		lastId uint64
@@ -585,6 +586,7 @@ func (s *NoteSvc) RandomGet(ctx context.Context, count int) (*notemodel.BatchNot
 
 	wg.Wait()
 
+	itemsMap := make(map[uint64]*noterepo.Model, count)
 	if maxCnt <= uint64(count) {
 		// we fetch all
 		items, err = s.repo.NoteRepo.GetPublicAll(ctx)
@@ -593,7 +595,7 @@ func (s *NoteSvc) RandomGet(ctx context.Context, count int) (*notemodel.BatchNot
 		}
 	} else {
 		var notes []*noterepo.Model
-		for tryCnt := 1; tryCnt <= 8; tryCnt++ {
+		for tryCnt := 1; tryCnt <= 8 && len(itemsMap) < count; tryCnt++ {
 			begin := rand.Int63n(int64(lastId))
 			if begin == 0 {
 				begin = 1
@@ -602,8 +604,11 @@ func (s *NoteSvc) RandomGet(ctx context.Context, count int) (*notemodel.BatchNot
 			if err != nil {
 				return nil, err
 			}
-			items = append(items, notes...)
+			for _, note := range notes {
+				itemsMap[note.Id] = note
+			}
 		}
+		items = maps.Values(itemsMap)
 	}
 
 	return s.assembelNotes(ctx, items)

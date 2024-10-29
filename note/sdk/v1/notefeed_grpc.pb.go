@@ -7,7 +7,10 @@
 package v1
 
 import (
+	context "context"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -15,10 +18,18 @@ import (
 // Requires gRPC-Go v1.64.0 or later.
 const _ = grpc.SupportPackageIsVersion9
 
+const (
+	NoteFeedService_RandomGet_FullMethodName = "/note.sdk.v1.NoteFeedService/RandomGet"
+)
+
 // NoteFeedServiceClient is the client API for NoteFeedService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// feed流获取note相关服务功能
 type NoteFeedServiceClient interface {
+	// 随机获取笔记内容
+	RandomGet(ctx context.Context, in *RandomGetRequest, opts ...grpc.CallOption) (*RandomGetResponse, error)
 }
 
 type noteFeedServiceClient struct {
@@ -29,10 +40,24 @@ func NewNoteFeedServiceClient(cc grpc.ClientConnInterface) NoteFeedServiceClient
 	return &noteFeedServiceClient{cc}
 }
 
+func (c *noteFeedServiceClient) RandomGet(ctx context.Context, in *RandomGetRequest, opts ...grpc.CallOption) (*RandomGetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RandomGetResponse)
+	err := c.cc.Invoke(ctx, NoteFeedService_RandomGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NoteFeedServiceServer is the server API for NoteFeedService service.
 // All implementations must embed UnimplementedNoteFeedServiceServer
 // for forward compatibility.
+//
+// feed流获取note相关服务功能
 type NoteFeedServiceServer interface {
+	// 随机获取笔记内容
+	RandomGet(context.Context, *RandomGetRequest) (*RandomGetResponse, error)
 	mustEmbedUnimplementedNoteFeedServiceServer()
 }
 
@@ -43,6 +68,9 @@ type NoteFeedServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedNoteFeedServiceServer struct{}
 
+func (UnimplementedNoteFeedServiceServer) RandomGet(context.Context, *RandomGetRequest) (*RandomGetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RandomGet not implemented")
+}
 func (UnimplementedNoteFeedServiceServer) mustEmbedUnimplementedNoteFeedServiceServer() {}
 func (UnimplementedNoteFeedServiceServer) testEmbeddedByValue()                         {}
 
@@ -64,13 +92,36 @@ func RegisterNoteFeedServiceServer(s grpc.ServiceRegistrar, srv NoteFeedServiceS
 	s.RegisterService(&NoteFeedService_ServiceDesc, srv)
 }
 
+func _NoteFeedService_RandomGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RandomGetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteFeedServiceServer).RandomGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteFeedService_RandomGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteFeedServiceServer).RandomGet(ctx, req.(*RandomGetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NoteFeedService_ServiceDesc is the grpc.ServiceDesc for NoteFeedService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var NoteFeedService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "note.sdk.v1.NoteFeedService",
 	HandlerType: (*NoteFeedServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams:     []grpc.StreamDesc{},
-	Metadata:    "v1/notefeed.proto",
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "RandomGet",
+			Handler:    _NoteFeedService_RandomGet_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "v1/notefeed.proto",
 }

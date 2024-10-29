@@ -17,7 +17,7 @@ const (
 
 // 常用错误
 var (
-	ErrSuccess            = NewError(http.StatusOK, CodeOk, "成功")
+	Success               = NewError(http.StatusOK, CodeOk, "成功")
 	ErrInvalidArgs        = NewError(BadRequest, CodeInvalidParam, "参数出错了(；一_一)")
 	ErrArgs               = ErrInvalidArgs
 	ErrNilArg             = ErrArgs.Msg("参数为空")
