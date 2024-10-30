@@ -87,7 +87,7 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 			NoteId: oid,
 		})
 	if err != nil {
-		if xerror.ShouldLog(err) {
+		if xerror.ShouldLogError(err) {
 			xlog.Msg("noter check note exists err").Err(err).Extra("oid", oid).Errorx(ctx)
 		}
 		return nil, err
@@ -358,7 +358,7 @@ func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReply
 		})
 
 	if err != nil {
-		if xerror.ShouldLog(err) {
+		if xerror.ShouldLogError(err) {
 			xlog.Msg("noter check note exists err").Err(err).Extra("oid", oid).Errorx(ctx)
 		}
 		return err

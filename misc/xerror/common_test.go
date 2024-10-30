@@ -74,7 +74,7 @@ func TestCommon_ShouldLog(t *testing.T) {
 
 	Convey("ShouldLogTest", t, func() {
 		for _, c := range cases {
-			got := ShouldLog(c.err)
+			got := ShouldLogError(c.err)
 			SoMsg(fmt.Sprintf("err = %s", c.err), got, ShouldEqual, c.expect)
 		}
 	})

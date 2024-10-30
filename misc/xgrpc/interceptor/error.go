@@ -19,7 +19,6 @@ func UnaryServerErrorHandler(ctx context.Context,
 	defer func() {
 		if err != nil {
 			// TODO 输出日志
-			xerror.ShouldLog(err)
 		}
 	}()
 

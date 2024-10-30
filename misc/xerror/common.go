@@ -106,13 +106,13 @@ func IsInternal(err error) bool {
 }
 
 // 判断给定的err是否应该打印日志
-func ShouldLog(err error) bool {
+func ShouldLogError(err error) bool {
 	if err == nil {
 		return false
 	}
 
-	// 有限检查是否为Stacker
-	stackErr, ok := err.(*errStack)
+	// 有限检查是否为errProxy
+	stackErr, ok := err.(*errProxy)
 	var (
 		commErr  *Error
 		causeErr error = err
