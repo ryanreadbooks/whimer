@@ -108,7 +108,7 @@ func (e *errProxy) WithExtra(key string, val any) ErrProxy {
 	return e
 }
 
-func Propagate(err error) ErrProxy {
+func Wrap(err error) ErrProxy {
 	if err == nil {
 		return nil
 	}
@@ -131,7 +131,7 @@ func Propagate(err error) ErrProxy {
 	}
 }
 
-func PropagateMsg(err error, format string, args ...any) ErrProxy {
+func Wrapf(err error, format string, args ...any) ErrProxy {
 	if err == nil {
 		return nil
 	}
@@ -167,11 +167,11 @@ func Cause(err error) error {
 	return err
 }
 
-func HasFramesHold(err error) bool {
-	return len(UnwindFrames(err)) != 0
+func FramesWrapped(err error) bool {
+	return len(UnwrapFrames(err)) != 0
 }
 
-func UnwindFrames(err error) stacktrace.Frames {
+func UnwrapFrames(err error) stacktrace.Frames {
 	var frames stacktrace.Frames
 	for err != nil {
 		proxyer, ok := err.(ErrProxy)
@@ -191,7 +191,7 @@ func UnwindFrames(err error) stacktrace.Frames {
 	return frames
 }
 
-func UnwindMsg(err error) string {
+func UnwrapMsg(err error) string {
 	var msbd strings.Builder
 	for err != nil {
 		var msg string

@@ -5,8 +5,8 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
-	"github.com/ryanreadbooks/whimer/note/internal/repo/note"
-	"github.com/ryanreadbooks/whimer/note/internal/repo/noteasset"
+	"github.com/ryanreadbooks/whimer/note/internal/infra/repo/note"
+	"github.com/ryanreadbooks/whimer/note/internal/infra/repo/noteasset"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )

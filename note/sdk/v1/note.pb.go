@@ -7,7 +7,6 @@
 package v1
 
 import (
-	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -21,776 +20,25 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type LikeNoteReq_Operation int32
-
-const (
-	LikeNoteReq_OPERATION_UNDO_LIKE LikeNoteReq_Operation = 0 // 取消点赞
-	LikeNoteReq_OPERATION_DO_LIKE   LikeNoteReq_Operation = 1 // 点赞
-)
-
-// Enum value maps for LikeNoteReq_Operation.
-var (
-	LikeNoteReq_Operation_name = map[int32]string{
-		0: "OPERATION_UNDO_LIKE",
-		1: "OPERATION_DO_LIKE",
-	}
-	LikeNoteReq_Operation_value = map[string]int32{
-		"OPERATION_UNDO_LIKE": 0,
-		"OPERATION_DO_LIKE":   1,
-	}
-)
-
-func (x LikeNoteReq_Operation) Enum() *LikeNoteReq_Operation {
-	p := new(LikeNoteReq_Operation)
-	*p = x
-	return p
-}
-
-func (x LikeNoteReq_Operation) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (LikeNoteReq_Operation) Descriptor() protoreflect.EnumDescriptor {
-	return file_v1_note_proto_enumTypes[0].Descriptor()
-}
-
-func (LikeNoteReq_Operation) Type() protoreflect.EnumType {
-	return &file_v1_note_proto_enumTypes[0]
-}
-
-func (x LikeNoteReq_Operation) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use LikeNoteReq_Operation.Descriptor instead.
-func (LikeNoteReq_Operation) EnumDescriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{20, 0}
-}
-
-type IsUserOwnNoteReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Uid    uint64 `protobuf:"varint,1,opt,name=uid,proto3" json:"uid,omitempty"`                     // 用户id
-	NoteId uint64 `protobuf:"varint,2,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"` // 笔记id
-}
-
-func (x *IsUserOwnNoteReq) Reset() {
-	*x = IsUserOwnNoteReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *IsUserOwnNoteReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IsUserOwnNoteReq) ProtoMessage() {}
-
-func (x *IsUserOwnNoteReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IsUserOwnNoteReq.ProtoReflect.Descriptor instead.
-func (*IsUserOwnNoteReq) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *IsUserOwnNoteReq) GetUid() uint64 {
-	if x != nil {
-		return x.Uid
-	}
-	return 0
-}
-
-func (x *IsUserOwnNoteReq) GetNoteId() uint64 {
-	if x != nil {
-		return x.NoteId
-	}
-	return 0
-}
-
-type IsUserOwnNoteRes struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Uid    uint64 `protobuf:"varint,1,opt,name=uid,proto3" json:"uid,omitempty"`
-	Result bool   `protobuf:"varint,2,opt,name=result,proto3" json:"result,omitempty"` // 结果
-}
-
-func (x *IsUserOwnNoteRes) Reset() {
-	*x = IsUserOwnNoteRes{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *IsUserOwnNoteRes) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IsUserOwnNoteRes) ProtoMessage() {}
-
-func (x *IsUserOwnNoteRes) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IsUserOwnNoteRes.ProtoReflect.Descriptor instead.
-func (*IsUserOwnNoteRes) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *IsUserOwnNoteRes) GetUid() uint64 {
-	if x != nil {
-		return x.Uid
-	}
-	return 0
-}
-
-func (x *IsUserOwnNoteRes) GetResult() bool {
-	if x != nil {
-		return x.Result
-	}
-	return false
-}
-
-type IsNoteExistReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NoteId uint64 `protobuf:"varint,1,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"`
-}
-
-func (x *IsNoteExistReq) Reset() {
-	*x = IsNoteExistReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *IsNoteExistReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IsNoteExistReq) ProtoMessage() {}
-
-func (x *IsNoteExistReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IsNoteExistReq.ProtoReflect.Descriptor instead.
-func (*IsNoteExistReq) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *IsNoteExistReq) GetNoteId() uint64 {
-	if x != nil {
-		return x.NoteId
-	}
-	return 0
-}
-
-type IsNoteExistRes struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Exist bool `protobuf:"varint,1,opt,name=exist,proto3" json:"exist,omitempty"`
-}
-
-func (x *IsNoteExistRes) Reset() {
-	*x = IsNoteExistRes{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *IsNoteExistRes) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IsNoteExistRes) ProtoMessage() {}
-
-func (x *IsNoteExistRes) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IsNoteExistRes.ProtoReflect.Descriptor instead.
-func (*IsNoteExistRes) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *IsNoteExistRes) GetExist() bool {
-	if x != nil {
-		return x.Exist
-	}
-	return false
-}
-
-type CreateReqBasic struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Title   string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	Desc    string `protobuf:"bytes,2,opt,name=desc,proto3" json:"desc,omitempty"`
-	Privacy int32  `protobuf:"varint,3,opt,name=privacy,proto3" json:"privacy,omitempty"`
-}
-
-func (x *CreateReqBasic) Reset() {
-	*x = CreateReqBasic{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *CreateReqBasic) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateReqBasic) ProtoMessage() {}
-
-func (x *CreateReqBasic) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateReqBasic.ProtoReflect.Descriptor instead.
-func (*CreateReqBasic) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *CreateReqBasic) GetTitle() string {
-	if x != nil {
-		return x.Title
-	}
-	return ""
-}
-
-func (x *CreateReqBasic) GetDesc() string {
-	if x != nil {
-		return x.Desc
-	}
-	return ""
-}
-
-func (x *CreateReqBasic) GetPrivacy() int32 {
-	if x != nil {
-		return x.Privacy
-	}
-	return 0
-}
-
-type CreateReqImage struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	FileId string `protobuf:"bytes,1,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
-}
-
-func (x *CreateReqImage) Reset() {
-	*x = CreateReqImage{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *CreateReqImage) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateReqImage) ProtoMessage() {}
-
-func (x *CreateReqImage) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateReqImage.ProtoReflect.Descriptor instead.
-func (*CreateReqImage) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *CreateReqImage) GetFileId() string {
-	if x != nil {
-		return x.FileId
-	}
-	return ""
-}
-
-type CreateNoteReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Basic  *CreateReqBasic   `protobuf:"bytes,1,opt,name=basic,proto3" json:"basic,omitempty"`
-	Images []*CreateReqImage `protobuf:"bytes,2,rep,name=images,proto3" json:"images,omitempty"`
-}
-
-func (x *CreateNoteReq) Reset() {
-	*x = CreateNoteReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *CreateNoteReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateNoteReq) ProtoMessage() {}
-
-func (x *CreateNoteReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateNoteReq.ProtoReflect.Descriptor instead.
-func (*CreateNoteReq) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *CreateNoteReq) GetBasic() *CreateReqBasic {
-	if x != nil {
-		return x.Basic
-	}
-	return nil
-}
-
-func (x *CreateNoteReq) GetImages() []*CreateReqImage {
-	if x != nil {
-		return x.Images
-	}
-	return nil
-}
-
-type CreateNoteRes struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NoteId uint64 `protobuf:"varint,1,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"`
-}
-
-func (x *CreateNoteRes) Reset() {
-	*x = CreateNoteRes{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *CreateNoteRes) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateNoteRes) ProtoMessage() {}
-
-func (x *CreateNoteRes) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateNoteRes.ProtoReflect.Descriptor instead.
-func (*CreateNoteRes) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *CreateNoteRes) GetNoteId() uint64 {
-	if x != nil {
-		return x.NoteId
-	}
-	return 0
-}
-
-type DeleteNoteReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NoteId uint64 `protobuf:"varint,1,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"`
-}
-
-func (x *DeleteNoteReq) Reset() {
-	*x = DeleteNoteReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *DeleteNoteReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteNoteReq) ProtoMessage() {}
-
-func (x *DeleteNoteReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteNoteReq.ProtoReflect.Descriptor instead.
-func (*DeleteNoteReq) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *DeleteNoteReq) GetNoteId() uint64 {
-	if x != nil {
-		return x.NoteId
-	}
-	return 0
-}
-
-type DeleteNoteRes struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-}
-
-func (x *DeleteNoteRes) Reset() {
-	*x = DeleteNoteRes{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[9]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *DeleteNoteRes) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteNoteRes) ProtoMessage() {}
-
-func (x *DeleteNoteRes) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[9]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteNoteRes.ProtoReflect.Descriptor instead.
-func (*DeleteNoteRes) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{9}
-}
-
-type UpdateNoteReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NoteId uint64         `protobuf:"varint,1,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"`
-	Note   *CreateNoteReq `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`
-}
-
-func (x *UpdateNoteReq) Reset() {
-	*x = UpdateNoteReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[10]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *UpdateNoteReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateNoteReq) ProtoMessage() {}
-
-func (x *UpdateNoteReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[10]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateNoteReq.ProtoReflect.Descriptor instead.
-func (*UpdateNoteReq) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *UpdateNoteReq) GetNoteId() uint64 {
-	if x != nil {
-		return x.NoteId
-	}
-	return 0
-}
-
-func (x *UpdateNoteReq) GetNote() *CreateNoteReq {
-	if x != nil {
-		return x.Note
-	}
-	return nil
-}
-
-type UpdateNoteRes struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NoteId uint64 `protobuf:"varint,1,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"`
-}
-
-func (x *UpdateNoteRes) Reset() {
-	*x = UpdateNoteRes{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[11]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *UpdateNoteRes) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateNoteRes) ProtoMessage() {}
-
-func (x *UpdateNoteRes) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[11]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateNoteRes.ProtoReflect.Descriptor instead.
-func (*UpdateNoteRes) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *UpdateNoteRes) GetNoteId() uint64 {
-	if x != nil {
-		return x.NoteId
-	}
-	return 0
-}
-
-type GetNoteReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NoteId uint64 `protobuf:"varint,1,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"`
-}
-
-func (x *GetNoteReq) Reset() {
-	*x = GetNoteReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[12]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *GetNoteReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetNoteReq) ProtoMessage() {}
-
-func (x *GetNoteReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[12]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetNoteReq.ProtoReflect.Descriptor instead.
-func (*GetNoteReq) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *GetNoteReq) GetNoteId() uint64 {
-	if x != nil {
-		return x.NoteId
-	}
-	return 0
-}
-
-type GetNoteResImage struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Url  string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
-	Type int32  `protobuf:"varint,2,opt,name=type,proto3" json:"type,omitempty"`
-}
-
-func (x *GetNoteResImage) Reset() {
-	*x = GetNoteResImage{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[13]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *GetNoteResImage) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetNoteResImage) ProtoMessage() {}
-
-func (x *GetNoteResImage) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[13]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetNoteResImage.ProtoReflect.Descriptor instead.
-func (*GetNoteResImage) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *GetNoteResImage) GetUrl() string {
-	if x != nil {
-		return x.Url
-	}
-	return ""
-}
-
-func (x *GetNoteResImage) GetType() int32 {
-	if x != nil {
-		return x.Type
-	}
-	return 0
-}
-
 type NoteItem struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	NoteId   uint64             `protobuf:"varint,1,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"`
-	Title    string             `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Desc     string             `protobuf:"bytes,3,opt,name=desc,proto3" json:"desc,omitempty"`
-	Privacy  int32              `protobuf:"varint,4,opt,name=privacy,proto3" json:"privacy,omitempty"`
-	CreateAt int64              `protobuf:"varint,5,opt,name=create_at,json=createAt,proto3" json:"create_at,omitempty"`
-	UpdateAt int64              `protobuf:"varint,6,opt,name=update_at,json=updateAt,proto3" json:"update_at,omitempty"`
-	Images   []*GetNoteResImage `protobuf:"bytes,7,rep,name=images,proto3" json:"images,omitempty"`
-	Likes    uint64             `protobuf:"varint,8,opt,name=likes,proto3" json:"likes,omitempty"` // 点赞数量
+	NoteId   uint64       `protobuf:"varint,1,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"`
+	Title    string       `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Desc     string       `protobuf:"bytes,3,opt,name=desc,proto3" json:"desc,omitempty"`
+	Privacy  int32        `protobuf:"varint,4,opt,name=privacy,proto3" json:"privacy,omitempty"`
+	CreateAt int64        `protobuf:"varint,5,opt,name=create_at,json=createAt,proto3" json:"create_at,omitempty"`
+	UpdateAt int64        `protobuf:"varint,6,opt,name=update_at,json=updateAt,proto3" json:"update_at,omitempty"`
+	Images   []*NoteImage `protobuf:"bytes,7,rep,name=images,proto3" json:"images,omitempty"`
+	Likes    uint64       `protobuf:"varint,8,opt,name=likes,proto3" json:"likes,omitempty"` // 点赞数量
 }
 
 func (x *NoteItem) Reset() {
 	*x = NoteItem{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[14]
+		mi := &file_v1_note_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -803,7 +51,7 @@ func (x *NoteItem) String() string {
 func (*NoteItem) ProtoMessage() {}
 
 func (x *NoteItem) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[14]
+	mi := &file_v1_note_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -816,7 +64,7 @@ func (x *NoteItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NoteItem.ProtoReflect.Descriptor instead.
 func (*NoteItem) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{14}
+	return file_v1_note_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *NoteItem) GetNoteId() uint64 {
@@ -861,7 +109,7 @@ func (x *NoteItem) GetUpdateAt() int64 {
 	return 0
 }
 
-func (x *NoteItem) GetImages() []*GetNoteResImage {
+func (x *NoteItem) GetImages() []*NoteImage {
 	if x != nil {
 		return x.Images
 	}
@@ -875,29 +123,32 @@ func (x *NoteItem) GetLikes() uint64 {
 	return 0
 }
 
-type ListNoteReq struct {
+type NoteImage struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
+
+	Url  string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	Type int32  `protobuf:"varint,2,opt,name=type,proto3" json:"type,omitempty"`
 }
 
-func (x *ListNoteReq) Reset() {
-	*x = ListNoteReq{}
+func (x *NoteImage) Reset() {
+	*x = NoteImage{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[15]
+		mi := &file_v1_note_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
 }
 
-func (x *ListNoteReq) String() string {
+func (x *NoteImage) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListNoteReq) ProtoMessage() {}
+func (*NoteImage) ProtoMessage() {}
 
-func (x *ListNoteReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[15]
+func (x *NoteImage) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_note_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -908,470 +159,21 @@ func (x *ListNoteReq) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListNoteReq.ProtoReflect.Descriptor instead.
-func (*ListNoteReq) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{15}
+// Deprecated: Use NoteImage.ProtoReflect.Descriptor instead.
+func (*NoteImage) Descriptor() ([]byte, []int) {
+	return file_v1_note_proto_rawDescGZIP(), []int{1}
 }
 
-type ListNoteRes struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Items []*NoteItem `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
-}
-
-func (x *ListNoteRes) Reset() {
-	*x = ListNoteRes{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[16]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ListNoteRes) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListNoteRes) ProtoMessage() {}
-
-func (x *ListNoteRes) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[16]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListNoteRes.ProtoReflect.Descriptor instead.
-func (*ListNoteRes) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{16}
-}
-
-func (x *ListNoteRes) GetItems() []*NoteItem {
+func (x *NoteImage) GetUrl() string {
 	if x != nil {
-		return x.Items
-	}
-	return nil
-}
-
-type GetUploadAuthReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Resource string `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
-	Source   string `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
-	MimeType string `protobuf:"bytes,3,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
-}
-
-func (x *GetUploadAuthReq) Reset() {
-	*x = GetUploadAuthReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[17]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *GetUploadAuthReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetUploadAuthReq) ProtoMessage() {}
-
-func (x *GetUploadAuthReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[17]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetUploadAuthReq.ProtoReflect.Descriptor instead.
-func (*GetUploadAuthReq) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{17}
-}
-
-func (x *GetUploadAuthReq) GetResource() string {
-	if x != nil {
-		return x.Resource
+		return x.Url
 	}
 	return ""
 }
 
-func (x *GetUploadAuthReq) GetSource() string {
+func (x *NoteImage) GetType() int32 {
 	if x != nil {
-		return x.Source
-	}
-	return ""
-}
-
-func (x *GetUploadAuthReq) GetMimeType() string {
-	if x != nil {
-		return x.MimeType
-	}
-	return ""
-}
-
-type UploadAuthResHeaders struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Auth   string `protobuf:"bytes,1,opt,name=auth,proto3" json:"auth,omitempty"`
-	Sha256 string `protobuf:"bytes,2,opt,name=sha256,proto3" json:"sha256,omitempty"`
-	Date   string `protobuf:"bytes,3,opt,name=date,proto3" json:"date,omitempty"`
-	Token  string `protobuf:"bytes,4,opt,name=token,proto3" json:"token,omitempty"`
-}
-
-func (x *UploadAuthResHeaders) Reset() {
-	*x = UploadAuthResHeaders{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[18]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *UploadAuthResHeaders) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UploadAuthResHeaders) ProtoMessage() {}
-
-func (x *UploadAuthResHeaders) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[18]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UploadAuthResHeaders.ProtoReflect.Descriptor instead.
-func (*UploadAuthResHeaders) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *UploadAuthResHeaders) GetAuth() string {
-	if x != nil {
-		return x.Auth
-	}
-	return ""
-}
-
-func (x *UploadAuthResHeaders) GetSha256() string {
-	if x != nil {
-		return x.Sha256
-	}
-	return ""
-}
-
-func (x *UploadAuthResHeaders) GetDate() string {
-	if x != nil {
-		return x.Date
-	}
-	return ""
-}
-
-func (x *UploadAuthResHeaders) GetToken() string {
-	if x != nil {
-		return x.Token
-	}
-	return ""
-}
-
-type GetUploadAuthRes struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	FileId      string                `protobuf:"bytes,1,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
-	CurrentTime int64                 `protobuf:"varint,2,opt,name=current_time,json=currentTime,proto3" json:"current_time,omitempty"`
-	ExpireTime  int64                 `protobuf:"varint,3,opt,name=expire_time,json=expireTime,proto3" json:"expire_time,omitempty"`
-	UploadAddr  string                `protobuf:"bytes,4,opt,name=upload_addr,json=uploadAddr,proto3" json:"upload_addr,omitempty"`
-	Headers     *UploadAuthResHeaders `protobuf:"bytes,5,opt,name=headers,proto3" json:"headers,omitempty"`
-}
-
-func (x *GetUploadAuthRes) Reset() {
-	*x = GetUploadAuthRes{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[19]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *GetUploadAuthRes) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetUploadAuthRes) ProtoMessage() {}
-
-func (x *GetUploadAuthRes) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[19]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetUploadAuthRes.ProtoReflect.Descriptor instead.
-func (*GetUploadAuthRes) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{19}
-}
-
-func (x *GetUploadAuthRes) GetFileId() string {
-	if x != nil {
-		return x.FileId
-	}
-	return ""
-}
-
-func (x *GetUploadAuthRes) GetCurrentTime() int64 {
-	if x != nil {
-		return x.CurrentTime
-	}
-	return 0
-}
-
-func (x *GetUploadAuthRes) GetExpireTime() int64 {
-	if x != nil {
-		return x.ExpireTime
-	}
-	return 0
-}
-
-func (x *GetUploadAuthRes) GetUploadAddr() string {
-	if x != nil {
-		return x.UploadAddr
-	}
-	return ""
-}
-
-func (x *GetUploadAuthRes) GetHeaders() *UploadAuthResHeaders {
-	if x != nil {
-		return x.Headers
-	}
-	return nil
-}
-
-type LikeNoteReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NoteId    uint64                `protobuf:"varint,1,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"` // 笔记id
-	Uid       uint64                `protobuf:"varint,2,opt,name=uid,proto3" json:"uid,omitempty"`                     // 执行点赞的用户id
-	Operation LikeNoteReq_Operation `protobuf:"varint,3,opt,name=operation,proto3,enum=note.sdk.v1.LikeNoteReq_Operation" json:"operation,omitempty"`
-}
-
-func (x *LikeNoteReq) Reset() {
-	*x = LikeNoteReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[20]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *LikeNoteReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LikeNoteReq) ProtoMessage() {}
-
-func (x *LikeNoteReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[20]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LikeNoteReq.ProtoReflect.Descriptor instead.
-func (*LikeNoteReq) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{20}
-}
-
-func (x *LikeNoteReq) GetNoteId() uint64 {
-	if x != nil {
-		return x.NoteId
-	}
-	return 0
-}
-
-func (x *LikeNoteReq) GetUid() uint64 {
-	if x != nil {
-		return x.Uid
-	}
-	return 0
-}
-
-func (x *LikeNoteReq) GetOperation() LikeNoteReq_Operation {
-	if x != nil {
-		return x.Operation
-	}
-	return LikeNoteReq_OPERATION_UNDO_LIKE
-}
-
-type LikeNoteRes struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-}
-
-func (x *LikeNoteRes) Reset() {
-	*x = LikeNoteRes{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[21]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *LikeNoteRes) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LikeNoteRes) ProtoMessage() {}
-
-func (x *LikeNoteRes) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[21]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LikeNoteRes.ProtoReflect.Descriptor instead.
-func (*LikeNoteRes) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{21}
-}
-
-type GetNoteLikesReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NoteId uint64 `protobuf:"varint,1,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"` //笔记id
-}
-
-func (x *GetNoteLikesReq) Reset() {
-	*x = GetNoteLikesReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[22]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *GetNoteLikesReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetNoteLikesReq) ProtoMessage() {}
-
-func (x *GetNoteLikesReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[22]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetNoteLikesReq.ProtoReflect.Descriptor instead.
-func (*GetNoteLikesReq) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{22}
-}
-
-func (x *GetNoteLikesReq) GetNoteId() uint64 {
-	if x != nil {
-		return x.NoteId
-	}
-	return 0
-}
-
-type GetNoteLikesRes struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NoteId uint64 `protobuf:"varint,1,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"`
-	Likes  uint64 `protobuf:"varint,2,opt,name=likes,proto3" json:"likes,omitempty"` // 点赞数量
-}
-
-func (x *GetNoteLikesRes) Reset() {
-	*x = GetNoteLikesRes{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_note_proto_msgTypes[23]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *GetNoteLikesRes) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetNoteLikesRes) ProtoMessage() {}
-
-func (x *GetNoteLikesRes) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_note_proto_msgTypes[23]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetNoteLikesRes.ProtoReflect.Descriptor instead.
-func (*GetNoteLikesRes) Descriptor() ([]byte, []int) {
-	return file_v1_note_proto_rawDescGZIP(), []int{23}
-}
-
-func (x *GetNoteLikesRes) GetNoteId() uint64 {
-	if x != nil {
-		return x.NoteId
-	}
-	return 0
-}
-
-func (x *GetNoteLikesRes) GetLikes() uint64 {
-	if x != nil {
-		return x.Likes
+		return x.Type
 	}
 	return 0
 }
@@ -1380,58 +182,7 @@ var File_v1_note_proto protoreflect.FileDescriptor
 
 var file_v1_note_proto_rawDesc = []byte{
 	0x0a, 0x0d, 0x76, 0x31, 0x2f, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12,
-	0x0b, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x1a, 0x1b, 0x62, 0x75,
-	0x66, 0x2f, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x65, 0x2f, 0x76, 0x61, 0x6c, 0x69, 0x64,
-	0x61, 0x74, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x3d, 0x0a, 0x10, 0x49, 0x73, 0x55,
-	0x73, 0x65, 0x72, 0x4f, 0x77, 0x6e, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x12, 0x10, 0x0a,
-	0x03, 0x75, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x03, 0x75, 0x69, 0x64, 0x12,
-	0x17, 0x0a, 0x07, 0x6e, 0x6f, 0x74, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04,
-	0x52, 0x06, 0x6e, 0x6f, 0x74, 0x65, 0x49, 0x64, 0x22, 0x3c, 0x0a, 0x10, 0x49, 0x73, 0x55, 0x73,
-	0x65, 0x72, 0x4f, 0x77, 0x6e, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x73, 0x12, 0x10, 0x0a, 0x03,
-	0x75, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x03, 0x75, 0x69, 0x64, 0x12, 0x16,
-	0x0a, 0x06, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x06,
-	0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x22, 0x29, 0x0a, 0x0e, 0x49, 0x73, 0x4e, 0x6f, 0x74, 0x65,
-	0x45, 0x78, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x12, 0x17, 0x0a, 0x07, 0x6e, 0x6f, 0x74, 0x65,
-	0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x6e, 0x6f, 0x74, 0x65, 0x49,
-	0x64, 0x22, 0x26, 0x0a, 0x0e, 0x49, 0x73, 0x4e, 0x6f, 0x74, 0x65, 0x45, 0x78, 0x69, 0x73, 0x74,
-	0x52, 0x65, 0x73, 0x12, 0x14, 0x0a, 0x05, 0x65, 0x78, 0x69, 0x73, 0x74, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x08, 0x52, 0x05, 0x65, 0x78, 0x69, 0x73, 0x74, 0x22, 0x54, 0x0a, 0x0e, 0x43, 0x72, 0x65,
-	0x61, 0x74, 0x65, 0x52, 0x65, 0x71, 0x42, 0x61, 0x73, 0x69, 0x63, 0x12, 0x14, 0x0a, 0x05, 0x74,
-	0x69, 0x74, 0x6c, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x74, 0x69, 0x74, 0x6c,
-	0x65, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x65, 0x73, 0x63, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x04, 0x64, 0x65, 0x73, 0x63, 0x12, 0x18, 0x0a, 0x07, 0x70, 0x72, 0x69, 0x76, 0x61, 0x63, 0x79,
-	0x18, 0x03, 0x20, 0x01, 0x28, 0x05, 0x52, 0x07, 0x70, 0x72, 0x69, 0x76, 0x61, 0x63, 0x79, 0x22,
-	0x29, 0x0a, 0x0e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x52, 0x65, 0x71, 0x49, 0x6d, 0x61, 0x67,
-	0x65, 0x12, 0x17, 0x0a, 0x07, 0x66, 0x69, 0x6c, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x06, 0x66, 0x69, 0x6c, 0x65, 0x49, 0x64, 0x22, 0x77, 0x0a, 0x0d, 0x43, 0x72,
-	0x65, 0x61, 0x74, 0x65, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x12, 0x31, 0x0a, 0x05, 0x62,
-	0x61, 0x73, 0x69, 0x63, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x6e, 0x6f, 0x74,
-	0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x52,
-	0x65, 0x71, 0x42, 0x61, 0x73, 0x69, 0x63, 0x52, 0x05, 0x62, 0x61, 0x73, 0x69, 0x63, 0x12, 0x33,
-	0x0a, 0x06, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1b,
-	0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x72, 0x65,
-	0x61, 0x74, 0x65, 0x52, 0x65, 0x71, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x52, 0x06, 0x69, 0x6d, 0x61,
-	0x67, 0x65, 0x73, 0x22, 0x28, 0x0a, 0x0d, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x4e, 0x6f, 0x74,
-	0x65, 0x52, 0x65, 0x73, 0x12, 0x17, 0x0a, 0x07, 0x6e, 0x6f, 0x74, 0x65, 0x5f, 0x69, 0x64, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x6e, 0x6f, 0x74, 0x65, 0x49, 0x64, 0x22, 0x28, 0x0a,
-	0x0d, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x12, 0x17,
-	0x0a, 0x07, 0x6e, 0x6f, 0x74, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52,
-	0x06, 0x6e, 0x6f, 0x74, 0x65, 0x49, 0x64, 0x22, 0x0f, 0x0a, 0x0d, 0x44, 0x65, 0x6c, 0x65, 0x74,
-	0x65, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x73, 0x22, 0x58, 0x0a, 0x0d, 0x55, 0x70, 0x64, 0x61,
-	0x74, 0x65, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x12, 0x17, 0x0a, 0x07, 0x6e, 0x6f, 0x74,
-	0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x6e, 0x6f, 0x74, 0x65,
-	0x49, 0x64, 0x12, 0x2e, 0x0a, 0x04, 0x6e, 0x6f, 0x74, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x1a, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x43,
-	0x72, 0x65, 0x61, 0x74, 0x65, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x52, 0x04, 0x6e, 0x6f,
-	0x74, 0x65, 0x22, 0x28, 0x0a, 0x0d, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x4e, 0x6f, 0x74, 0x65,
-	0x52, 0x65, 0x73, 0x12, 0x17, 0x0a, 0x07, 0x6e, 0x6f, 0x74, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x6e, 0x6f, 0x74, 0x65, 0x49, 0x64, 0x22, 0x25, 0x0a, 0x0a,
-	0x47, 0x65, 0x74, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x12, 0x17, 0x0a, 0x07, 0x6e, 0x6f,
-	0x74, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x6e, 0x6f, 0x74,
-	0x65, 0x49, 0x64, 0x22, 0x37, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65,
-	0x73, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x72, 0x6c, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x03, 0x75, 0x72, 0x6c, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x22, 0xed, 0x01, 0x0a,
+	0x0b, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x22, 0xe7, 0x01, 0x0a,
 	0x08, 0x4e, 0x6f, 0x74, 0x65, 0x49, 0x74, 0x65, 0x6d, 0x12, 0x17, 0x0a, 0x07, 0x6e, 0x6f, 0x74,
 	0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x6e, 0x6f, 0x74, 0x65,
 	0x49, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
@@ -1442,118 +193,24 @@ var file_v1_note_proto_rawDesc = []byte{
 	0x5f, 0x61, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28, 0x03, 0x52, 0x08, 0x63, 0x72, 0x65, 0x61, 0x74,
 	0x65, 0x41, 0x74, 0x12, 0x1b, 0x0a, 0x09, 0x75, 0x70, 0x64, 0x61, 0x74, 0x65, 0x5f, 0x61, 0x74,
 	0x18, 0x06, 0x20, 0x01, 0x28, 0x03, 0x52, 0x08, 0x75, 0x70, 0x64, 0x61, 0x74, 0x65, 0x41, 0x74,
-	0x12, 0x34, 0x0a, 0x06, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x73, 0x18, 0x07, 0x20, 0x03, 0x28, 0x0b,
-	0x32, 0x1c, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x47,
-	0x65, 0x74, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x73, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x52, 0x06,
-	0x69, 0x6d, 0x61, 0x67, 0x65, 0x73, 0x12, 0x14, 0x0a, 0x05, 0x6c, 0x69, 0x6b, 0x65, 0x73, 0x18,
-	0x08, 0x20, 0x01, 0x28, 0x04, 0x52, 0x05, 0x6c, 0x69, 0x6b, 0x65, 0x73, 0x22, 0x0d, 0x0a, 0x0b,
-	0x4c, 0x69, 0x73, 0x74, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x22, 0x3a, 0x0a, 0x0b, 0x4c,
-	0x69, 0x73, 0x74, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x73, 0x12, 0x2b, 0x0a, 0x05, 0x69, 0x74,
-	0x65, 0x6d, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x6e, 0x6f, 0x74, 0x65,
-	0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x4e, 0x6f, 0x74, 0x65, 0x49, 0x74, 0x65, 0x6d,
-	0x52, 0x05, 0x69, 0x74, 0x65, 0x6d, 0x73, 0x22, 0x63, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x55, 0x70,
-	0x6c, 0x6f, 0x61, 0x64, 0x41, 0x75, 0x74, 0x68, 0x52, 0x65, 0x71, 0x12, 0x1a, 0x0a, 0x08, 0x72,
-	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x72,
-	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63,
-	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12,
-	0x1b, 0x0a, 0x09, 0x6d, 0x69, 0x6d, 0x65, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x03, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x08, 0x6d, 0x69, 0x6d, 0x65, 0x54, 0x79, 0x70, 0x65, 0x22, 0x6c, 0x0a, 0x14,
-	0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x41, 0x75, 0x74, 0x68, 0x52, 0x65, 0x73, 0x48, 0x65, 0x61,
-	0x64, 0x65, 0x72, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x61, 0x75, 0x74, 0x68, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x04, 0x61, 0x75, 0x74, 0x68, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x68, 0x61, 0x32,
-	0x35, 0x36, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x68, 0x61, 0x32, 0x35, 0x36,
-	0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04,
-	0x64, 0x61, 0x74, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x04, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x05, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0xcd, 0x01, 0x0a, 0x10, 0x47,
-	0x65, 0x74, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x41, 0x75, 0x74, 0x68, 0x52, 0x65, 0x73, 0x12,
-	0x17, 0x0a, 0x07, 0x66, 0x69, 0x6c, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x06, 0x66, 0x69, 0x6c, 0x65, 0x49, 0x64, 0x12, 0x21, 0x0a, 0x0c, 0x63, 0x75, 0x72, 0x72,
-	0x65, 0x6e, 0x74, 0x5f, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x0b,
-	0x63, 0x75, 0x72, 0x72, 0x65, 0x6e, 0x74, 0x54, 0x69, 0x6d, 0x65, 0x12, 0x1f, 0x0a, 0x0b, 0x65,
-	0x78, 0x70, 0x69, 0x72, 0x65, 0x5f, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x03,
-	0x52, 0x0a, 0x65, 0x78, 0x70, 0x69, 0x72, 0x65, 0x54, 0x69, 0x6d, 0x65, 0x12, 0x1f, 0x0a, 0x0b,
-	0x75, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x18, 0x04, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x0a, 0x75, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x41, 0x64, 0x64, 0x72, 0x12, 0x3b, 0x0a,
-	0x07, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21,
-	0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x55, 0x70, 0x6c,
-	0x6f, 0x61, 0x64, 0x41, 0x75, 0x74, 0x68, 0x52, 0x65, 0x73, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72,
-	0x73, 0x52, 0x07, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x22, 0xc9, 0x01, 0x0a, 0x0b, 0x4c,
-	0x69, 0x6b, 0x65, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x12, 0x20, 0x0a, 0x07, 0x6e, 0x6f,
-	0x74, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x42, 0x07, 0xba, 0x48, 0x04,
-	0x32, 0x02, 0x20, 0x00, 0x52, 0x06, 0x6e, 0x6f, 0x74, 0x65, 0x49, 0x64, 0x12, 0x19, 0x0a, 0x03,
-	0x75, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x42, 0x07, 0xba, 0x48, 0x04, 0x32, 0x02,
-	0x20, 0x00, 0x52, 0x03, 0x75, 0x69, 0x64, 0x12, 0x40, 0x0a, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61,
-	0x74, 0x69, 0x6f, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x22, 0x2e, 0x6e, 0x6f, 0x74,
-	0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x4c, 0x69, 0x6b, 0x65, 0x4e, 0x6f, 0x74,
-	0x65, 0x52, 0x65, 0x71, 0x2e, 0x4f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x09,
-	0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x3b, 0x0a, 0x09, 0x4f, 0x70, 0x65,
-	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x17, 0x0a, 0x13, 0x4f, 0x50, 0x45, 0x52, 0x41, 0x54,
-	0x49, 0x4f, 0x4e, 0x5f, 0x55, 0x4e, 0x44, 0x4f, 0x5f, 0x4c, 0x49, 0x4b, 0x45, 0x10, 0x00, 0x12,
-	0x15, 0x0a, 0x11, 0x4f, 0x50, 0x45, 0x52, 0x41, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x44, 0x4f, 0x5f,
-	0x4c, 0x49, 0x4b, 0x45, 0x10, 0x01, 0x22, 0x0d, 0x0a, 0x0b, 0x4c, 0x69, 0x6b, 0x65, 0x4e, 0x6f,
-	0x74, 0x65, 0x52, 0x65, 0x73, 0x22, 0x33, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x4e, 0x6f, 0x74, 0x65,
-	0x4c, 0x69, 0x6b, 0x65, 0x73, 0x52, 0x65, 0x71, 0x12, 0x20, 0x0a, 0x07, 0x6e, 0x6f, 0x74, 0x65,
-	0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x42, 0x07, 0xba, 0x48, 0x04, 0x32, 0x02,
-	0x20, 0x00, 0x52, 0x06, 0x6e, 0x6f, 0x74, 0x65, 0x49, 0x64, 0x22, 0x40, 0x0a, 0x0f, 0x47, 0x65,
-	0x74, 0x4e, 0x6f, 0x74, 0x65, 0x4c, 0x69, 0x6b, 0x65, 0x73, 0x52, 0x65, 0x73, 0x12, 0x17, 0x0a,
-	0x07, 0x6e, 0x6f, 0x74, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06,
-	0x6e, 0x6f, 0x74, 0x65, 0x49, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x6c, 0x69, 0x6b, 0x65, 0x73, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x04, 0x52, 0x05, 0x6c, 0x69, 0x6b, 0x65, 0x73, 0x32, 0xcd, 0x05, 0x0a,
-	0x0b, 0x4e, 0x6f, 0x74, 0x65, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x4d, 0x0a, 0x0d,
-	0x49, 0x73, 0x55, 0x73, 0x65, 0x72, 0x4f, 0x77, 0x6e, 0x4e, 0x6f, 0x74, 0x65, 0x12, 0x1d, 0x2e,
-	0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x49, 0x73, 0x55, 0x73,
-	0x65, 0x72, 0x4f, 0x77, 0x6e, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x1d, 0x2e, 0x6e,
-	0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x49, 0x73, 0x55, 0x73, 0x65,
-	0x72, 0x4f, 0x77, 0x6e, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x73, 0x12, 0x47, 0x0a, 0x0b, 0x49,
-	0x73, 0x4e, 0x6f, 0x74, 0x65, 0x45, 0x78, 0x69, 0x73, 0x74, 0x12, 0x1b, 0x2e, 0x6e, 0x6f, 0x74,
-	0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x49, 0x73, 0x4e, 0x6f, 0x74, 0x65, 0x45,
-	0x78, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x1b, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73,
-	0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x49, 0x73, 0x4e, 0x6f, 0x74, 0x65, 0x45, 0x78, 0x69, 0x73,
-	0x74, 0x52, 0x65, 0x73, 0x12, 0x44, 0x0a, 0x0a, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x4e, 0x6f,
-	0x74, 0x65, 0x12, 0x1a, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31,
-	0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x1a,
-	0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x72, 0x65,
-	0x61, 0x74, 0x65, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x73, 0x12, 0x44, 0x0a, 0x0a, 0x55, 0x70,
-	0x64, 0x61, 0x74, 0x65, 0x4e, 0x6f, 0x74, 0x65, 0x12, 0x1a, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e,
-	0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x4e, 0x6f, 0x74,
-	0x65, 0x52, 0x65, 0x71, 0x1a, 0x1a, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e,
-	0x76, 0x31, 0x2e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x73,
-	0x12, 0x44, 0x0a, 0x0a, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x4e, 0x6f, 0x74, 0x65, 0x12, 0x1a,
-	0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x65, 0x6c,
-	0x65, 0x74, 0x65, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x1a, 0x2e, 0x6e, 0x6f, 0x74,
-	0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x4e,
-	0x6f, 0x74, 0x65, 0x52, 0x65, 0x73, 0x12, 0x39, 0x0a, 0x07, 0x47, 0x65, 0x74, 0x4e, 0x6f, 0x74,
-	0x65, 0x12, 0x17, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e,
-	0x47, 0x65, 0x74, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x15, 0x2e, 0x6e, 0x6f, 0x74,
-	0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x4e, 0x6f, 0x74, 0x65, 0x49, 0x74, 0x65,
-	0x6d, 0x12, 0x3e, 0x0a, 0x08, 0x4c, 0x69, 0x73, 0x74, 0x4e, 0x6f, 0x74, 0x65, 0x12, 0x18, 0x2e,
-	0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x4c, 0x69, 0x73, 0x74,
-	0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x18, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73,
-	0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x4c, 0x69, 0x73, 0x74, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65,
-	0x73, 0x12, 0x4d, 0x0a, 0x0d, 0x47, 0x65, 0x74, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x41, 0x75,
-	0x74, 0x68, 0x12, 0x1d, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31,
-	0x2e, 0x47, 0x65, 0x74, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x41, 0x75, 0x74, 0x68, 0x52, 0x65,
-	0x71, 0x1a, 0x1d, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e,
-	0x47, 0x65, 0x74, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x41, 0x75, 0x74, 0x68, 0x52, 0x65, 0x73,
-	0x12, 0x3e, 0x0a, 0x08, 0x4c, 0x69, 0x6b, 0x65, 0x4e, 0x6f, 0x74, 0x65, 0x12, 0x18, 0x2e, 0x6e,
-	0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x4c, 0x69, 0x6b, 0x65, 0x4e,
-	0x6f, 0x74, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x18, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64,
-	0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x4c, 0x69, 0x6b, 0x65, 0x4e, 0x6f, 0x74, 0x65, 0x52, 0x65, 0x73,
-	0x12, 0x4a, 0x0a, 0x0c, 0x47, 0x65, 0x74, 0x4e, 0x6f, 0x74, 0x65, 0x4c, 0x69, 0x6b, 0x65, 0x73,
-	0x12, 0x1c, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x47,
-	0x65, 0x74, 0x4e, 0x6f, 0x74, 0x65, 0x4c, 0x69, 0x6b, 0x65, 0x73, 0x52, 0x65, 0x71, 0x1a, 0x1c,
-	0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74,
-	0x4e, 0x6f, 0x74, 0x65, 0x4c, 0x69, 0x6b, 0x65, 0x73, 0x52, 0x65, 0x73, 0x42, 0x97, 0x01, 0x0a,
-	0x0f, 0x63, 0x6f, 0x6d, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31,
-	0x42, 0x09, 0x4e, 0x6f, 0x74, 0x65, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x2b, 0x67,
-	0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x72, 0x79, 0x61, 0x6e, 0x72, 0x65,
-	0x61, 0x64, 0x62, 0x6f, 0x6f, 0x6b, 0x73, 0x2f, 0x77, 0x68, 0x69, 0x6d, 0x65, 0x72, 0x2f, 0x6e,
-	0x6f, 0x74, 0x65, 0x2f, 0x73, 0x64, 0x6b, 0x2f, 0x76, 0x31, 0xa2, 0x02, 0x03, 0x4e, 0x53, 0x58,
-	0xaa, 0x02, 0x0b, 0x4e, 0x6f, 0x74, 0x65, 0x2e, 0x53, 0x64, 0x6b, 0x2e, 0x56, 0x31, 0xca, 0x02,
-	0x0b, 0x4e, 0x6f, 0x74, 0x65, 0x5c, 0x53, 0x64, 0x6b, 0x5c, 0x56, 0x31, 0xe2, 0x02, 0x17, 0x4e,
-	0x6f, 0x74, 0x65, 0x5c, 0x53, 0x64, 0x6b, 0x5c, 0x56, 0x31, 0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65,
-	0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0xea, 0x02, 0x0d, 0x4e, 0x6f, 0x74, 0x65, 0x3a, 0x3a, 0x53,
-	0x64, 0x6b, 0x3a, 0x3a, 0x56, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x12, 0x2e, 0x0a, 0x06, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x73, 0x18, 0x07, 0x20, 0x03, 0x28, 0x0b,
+	0x32, 0x16, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x2e, 0x4e,
+	0x6f, 0x74, 0x65, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x52, 0x06, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x73,
+	0x12, 0x14, 0x0a, 0x05, 0x6c, 0x69, 0x6b, 0x65, 0x73, 0x18, 0x08, 0x20, 0x01, 0x28, 0x04, 0x52,
+	0x05, 0x6c, 0x69, 0x6b, 0x65, 0x73, 0x22, 0x31, 0x0a, 0x09, 0x4e, 0x6f, 0x74, 0x65, 0x49, 0x6d,
+	0x61, 0x67, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x72, 0x6c, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x03, 0x75, 0x72, 0x6c, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x05, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x42, 0x97, 0x01, 0x0a, 0x0f, 0x63, 0x6f,
+	0x6d, 0x2e, 0x6e, 0x6f, 0x74, 0x65, 0x2e, 0x73, 0x64, 0x6b, 0x2e, 0x76, 0x31, 0x42, 0x09, 0x4e,
+	0x6f, 0x74, 0x65, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x2b, 0x67, 0x69, 0x74, 0x68,
+	0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x72, 0x79, 0x61, 0x6e, 0x72, 0x65, 0x61, 0x64, 0x62,
+	0x6f, 0x6f, 0x6b, 0x73, 0x2f, 0x77, 0x68, 0x69, 0x6d, 0x65, 0x72, 0x2f, 0x6e, 0x6f, 0x74, 0x65,
+	0x2f, 0x73, 0x64, 0x6b, 0x2f, 0x76, 0x31, 0xa2, 0x02, 0x03, 0x4e, 0x53, 0x58, 0xaa, 0x02, 0x0b,
+	0x4e, 0x6f, 0x74, 0x65, 0x2e, 0x53, 0x64, 0x6b, 0x2e, 0x56, 0x31, 0xca, 0x02, 0x0b, 0x4e, 0x6f,
+	0x74, 0x65, 0x5c, 0x53, 0x64, 0x6b, 0x5c, 0x56, 0x31, 0xe2, 0x02, 0x17, 0x4e, 0x6f, 0x74, 0x65,
+	0x5c, 0x53, 0x64, 0x6b, 0x5c, 0x56, 0x31, 0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65, 0x74, 0x61, 0x64,
+	0x61, 0x74, 0x61, 0xea, 0x02, 0x0d, 0x4e, 0x6f, 0x74, 0x65, 0x3a, 0x3a, 0x53, 0x64, 0x6b, 0x3a,
+	0x3a, 0x56, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1568,68 +225,18 @@ func file_v1_note_proto_rawDescGZIP() []byte {
 	return file_v1_note_proto_rawDescData
 }
 
-var file_v1_note_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_v1_note_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_v1_note_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_v1_note_proto_goTypes = []any{
-	(LikeNoteReq_Operation)(0),   // 0: note.sdk.v1.LikeNoteReq.Operation
-	(*IsUserOwnNoteReq)(nil),     // 1: note.sdk.v1.IsUserOwnNoteReq
-	(*IsUserOwnNoteRes)(nil),     // 2: note.sdk.v1.IsUserOwnNoteRes
-	(*IsNoteExistReq)(nil),       // 3: note.sdk.v1.IsNoteExistReq
-	(*IsNoteExistRes)(nil),       // 4: note.sdk.v1.IsNoteExistRes
-	(*CreateReqBasic)(nil),       // 5: note.sdk.v1.CreateReqBasic
-	(*CreateReqImage)(nil),       // 6: note.sdk.v1.CreateReqImage
-	(*CreateNoteReq)(nil),        // 7: note.sdk.v1.CreateNoteReq
-	(*CreateNoteRes)(nil),        // 8: note.sdk.v1.CreateNoteRes
-	(*DeleteNoteReq)(nil),        // 9: note.sdk.v1.DeleteNoteReq
-	(*DeleteNoteRes)(nil),        // 10: note.sdk.v1.DeleteNoteRes
-	(*UpdateNoteReq)(nil),        // 11: note.sdk.v1.UpdateNoteReq
-	(*UpdateNoteRes)(nil),        // 12: note.sdk.v1.UpdateNoteRes
-	(*GetNoteReq)(nil),           // 13: note.sdk.v1.GetNoteReq
-	(*GetNoteResImage)(nil),      // 14: note.sdk.v1.GetNoteResImage
-	(*NoteItem)(nil),             // 15: note.sdk.v1.NoteItem
-	(*ListNoteReq)(nil),          // 16: note.sdk.v1.ListNoteReq
-	(*ListNoteRes)(nil),          // 17: note.sdk.v1.ListNoteRes
-	(*GetUploadAuthReq)(nil),     // 18: note.sdk.v1.GetUploadAuthReq
-	(*UploadAuthResHeaders)(nil), // 19: note.sdk.v1.UploadAuthResHeaders
-	(*GetUploadAuthRes)(nil),     // 20: note.sdk.v1.GetUploadAuthRes
-	(*LikeNoteReq)(nil),          // 21: note.sdk.v1.LikeNoteReq
-	(*LikeNoteRes)(nil),          // 22: note.sdk.v1.LikeNoteRes
-	(*GetNoteLikesReq)(nil),      // 23: note.sdk.v1.GetNoteLikesReq
-	(*GetNoteLikesRes)(nil),      // 24: note.sdk.v1.GetNoteLikesRes
+	(*NoteItem)(nil),  // 0: note.sdk.v1.NoteItem
+	(*NoteImage)(nil), // 1: note.sdk.v1.NoteImage
 }
 var file_v1_note_proto_depIdxs = []int32{
-	5,  // 0: note.sdk.v1.CreateNoteReq.basic:type_name -> note.sdk.v1.CreateReqBasic
-	6,  // 1: note.sdk.v1.CreateNoteReq.images:type_name -> note.sdk.v1.CreateReqImage
-	7,  // 2: note.sdk.v1.UpdateNoteReq.note:type_name -> note.sdk.v1.CreateNoteReq
-	14, // 3: note.sdk.v1.NoteItem.images:type_name -> note.sdk.v1.GetNoteResImage
-	15, // 4: note.sdk.v1.ListNoteRes.items:type_name -> note.sdk.v1.NoteItem
-	19, // 5: note.sdk.v1.GetUploadAuthRes.headers:type_name -> note.sdk.v1.UploadAuthResHeaders
-	0,  // 6: note.sdk.v1.LikeNoteReq.operation:type_name -> note.sdk.v1.LikeNoteReq.Operation
-	1,  // 7: note.sdk.v1.NoteService.IsUserOwnNote:input_type -> note.sdk.v1.IsUserOwnNoteReq
-	3,  // 8: note.sdk.v1.NoteService.IsNoteExist:input_type -> note.sdk.v1.IsNoteExistReq
-	7,  // 9: note.sdk.v1.NoteService.CreateNote:input_type -> note.sdk.v1.CreateNoteReq
-	11, // 10: note.sdk.v1.NoteService.UpdateNote:input_type -> note.sdk.v1.UpdateNoteReq
-	9,  // 11: note.sdk.v1.NoteService.DeleteNote:input_type -> note.sdk.v1.DeleteNoteReq
-	13, // 12: note.sdk.v1.NoteService.GetNote:input_type -> note.sdk.v1.GetNoteReq
-	16, // 13: note.sdk.v1.NoteService.ListNote:input_type -> note.sdk.v1.ListNoteReq
-	18, // 14: note.sdk.v1.NoteService.GetUploadAuth:input_type -> note.sdk.v1.GetUploadAuthReq
-	21, // 15: note.sdk.v1.NoteService.LikeNote:input_type -> note.sdk.v1.LikeNoteReq
-	23, // 16: note.sdk.v1.NoteService.GetNoteLikes:input_type -> note.sdk.v1.GetNoteLikesReq
-	2,  // 17: note.sdk.v1.NoteService.IsUserOwnNote:output_type -> note.sdk.v1.IsUserOwnNoteRes
-	4,  // 18: note.sdk.v1.NoteService.IsNoteExist:output_type -> note.sdk.v1.IsNoteExistRes
-	8,  // 19: note.sdk.v1.NoteService.CreateNote:output_type -> note.sdk.v1.CreateNoteRes
-	12, // 20: note.sdk.v1.NoteService.UpdateNote:output_type -> note.sdk.v1.UpdateNoteRes
-	10, // 21: note.sdk.v1.NoteService.DeleteNote:output_type -> note.sdk.v1.DeleteNoteRes
-	15, // 22: note.sdk.v1.NoteService.GetNote:output_type -> note.sdk.v1.NoteItem
-	17, // 23: note.sdk.v1.NoteService.ListNote:output_type -> note.sdk.v1.ListNoteRes
-	20, // 24: note.sdk.v1.NoteService.GetUploadAuth:output_type -> note.sdk.v1.GetUploadAuthRes
-	22, // 25: note.sdk.v1.NoteService.LikeNote:output_type -> note.sdk.v1.LikeNoteRes
-	24, // 26: note.sdk.v1.NoteService.GetNoteLikes:output_type -> note.sdk.v1.GetNoteLikesRes
-	17, // [17:27] is the sub-list for method output_type
-	7,  // [7:17] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	1, // 0: note.sdk.v1.NoteItem.images:type_name -> note.sdk.v1.NoteImage
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_v1_note_proto_init() }
@@ -1639,174 +246,6 @@ func file_v1_note_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_v1_note_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*IsUserOwnNoteReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*IsUserOwnNoteRes); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[2].Exporter = func(v any, i int) any {
-			switch v := v.(*IsNoteExistReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[3].Exporter = func(v any, i int) any {
-			switch v := v.(*IsNoteExistRes); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[4].Exporter = func(v any, i int) any {
-			switch v := v.(*CreateReqBasic); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[5].Exporter = func(v any, i int) any {
-			switch v := v.(*CreateReqImage); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[6].Exporter = func(v any, i int) any {
-			switch v := v.(*CreateNoteReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[7].Exporter = func(v any, i int) any {
-			switch v := v.(*CreateNoteRes); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[8].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteNoteReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[9].Exporter = func(v any, i int) any {
-			switch v := v.(*DeleteNoteRes); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[10].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateNoteReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[11].Exporter = func(v any, i int) any {
-			switch v := v.(*UpdateNoteRes); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[12].Exporter = func(v any, i int) any {
-			switch v := v.(*GetNoteReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[13].Exporter = func(v any, i int) any {
-			switch v := v.(*GetNoteResImage); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[14].Exporter = func(v any, i int) any {
 			switch v := v.(*NoteItem); i {
 			case 0:
 				return &v.state
@@ -1818,104 +257,8 @@ func file_v1_note_proto_init() {
 				return nil
 			}
 		}
-		file_v1_note_proto_msgTypes[15].Exporter = func(v any, i int) any {
-			switch v := v.(*ListNoteReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[16].Exporter = func(v any, i int) any {
-			switch v := v.(*ListNoteRes); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[17].Exporter = func(v any, i int) any {
-			switch v := v.(*GetUploadAuthReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[18].Exporter = func(v any, i int) any {
-			switch v := v.(*UploadAuthResHeaders); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[19].Exporter = func(v any, i int) any {
-			switch v := v.(*GetUploadAuthRes); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[20].Exporter = func(v any, i int) any {
-			switch v := v.(*LikeNoteReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[21].Exporter = func(v any, i int) any {
-			switch v := v.(*LikeNoteRes); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[22].Exporter = func(v any, i int) any {
-			switch v := v.(*GetNoteLikesReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_v1_note_proto_msgTypes[23].Exporter = func(v any, i int) any {
-			switch v := v.(*GetNoteLikesRes); i {
+		file_v1_note_proto_msgTypes[1].Exporter = func(v any, i int) any {
+			switch v := v.(*NoteImage); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1932,14 +275,13 @@ func file_v1_note_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_v1_note_proto_rawDesc,
-			NumEnums:      1,
-			NumMessages:   24,
+			NumEnums:      0,
+			NumMessages:   2,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   0,
 		},
 		GoTypes:           file_v1_note_proto_goTypes,
 		DependencyIndexes: file_v1_note_proto_depIdxs,
-		EnumInfos:         file_v1_note_proto_enumTypes,
 		MessageInfos:      file_v1_note_proto_msgTypes,
 	}.Build()
 	File_v1_note_proto = out.File

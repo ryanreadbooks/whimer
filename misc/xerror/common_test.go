@@ -31,19 +31,19 @@ func TestCommon_ShouldLog(t *testing.T) {
 			expect: true,
 		},
 		{
-			err:    Propagate(ErrInvalidArgs),
+			err:    Wrap(ErrInvalidArgs),
 			expect: false,
 		},
 		{
-			err:    Propagate(ErrInternal),
+			err:    Wrap(ErrInternal),
 			expect: true,
 		},
 		{
-			err:    PropagateMsg(Propagate(ErrPermission), "test permission denied"),
+			err:    Wrapf(Wrap(ErrPermission), "test permission denied"),
 			expect: false,
 		},
 		{
-			err:    PropagateMsg(Propagate(ErrInternal), "test internal error"),
+			err:    Wrapf(Wrap(ErrInternal), "test internal error"),
 			expect: true,
 		},
 		{
@@ -55,19 +55,19 @@ func TestCommon_ShouldLog(t *testing.T) {
 			expect: true,
 		},
 		{
-			err:    Propagate(status.Error(codes.InvalidArgument, "invalid arg")),
+			err:    Wrap(status.Error(codes.InvalidArgument, "invalid arg")),
 			expect: false,
 		},
 		{
-			err:    Propagate(status.Error(codes.Internal, "internal err")),
+			err:    Wrap(status.Error(codes.Internal, "internal err")),
 			expect: true,
 		},
 		{
-			err:    PropagateMsg(Propagate(status.Error(codes.PermissionDenied, "permdenied")), "pg perm"),
+			err:    Wrapf(Wrap(status.Error(codes.PermissionDenied, "permdenied")), "pg perm"),
 			expect: false,
 		},
 		{
-			err:    PropagateMsg(Propagate(status.Error(codes.Internal, "internal")), "pg internal"),
+			err:    Wrapf(Wrap(status.Error(codes.Internal, "internal")), "pg internal"),
 			expect: true,
 		},
 	}

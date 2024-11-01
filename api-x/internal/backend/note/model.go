@@ -49,8 +49,8 @@ type CreateReq struct {
 	Images CreateReqImageList `json:"images"`
 }
 
-func (r *CreateReq) AsPb() *notesdk.CreateNoteReq {
-	return &notesdk.CreateNoteReq{
+func (r *CreateReq) AsPb() *notesdk.CreateNoteRequest {
+	return &notesdk.CreateNoteRequest{
 		Basic:  r.Basic.AsPb(),
 		Images: r.Images.AsPb(),
 	}
@@ -132,7 +132,7 @@ type ListRes struct {
 	Items []*NoteItem `json:"items"`
 }
 
-func NewListResFromPb(pb *notesdk.ListNoteRes) *ListRes {
+func NewListResFromPb(pb *notesdk.ListNoteResponse) *ListRes {
 	if pb == nil {
 		return nil
 	}
@@ -151,8 +151,8 @@ type UploadAuthReq struct {
 	MimeType string `json:"mime" form:"mime"`
 }
 
-func (r *UploadAuthReq) AsPb() *notesdk.GetUploadAuthReq {
-	return &notesdk.GetUploadAuthReq{
+func (r *UploadAuthReq) AsPb() *notesdk.GetUploadAuthRequest {
+	return &notesdk.GetUploadAuthRequest{
 		Resource: r.Resource,
 		Source:   r.Source,
 		MimeType: r.MimeType,

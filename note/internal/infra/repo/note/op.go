@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 
@@ -26,14 +27,14 @@ const (
 func (r *Repo) FindOne(ctx context.Context, id uint64) (*Model, error) {
 	model := new(Model)
 	err := r.db.QueryRowCtx(ctx, model, sqlFind, id)
-	return model, xsql.ConvertError(err)
+	return model, xerror.Wrap(xsql.ConvertError(err))
 }
 
 func (r *Repo) ListByOwner(ctx context.Context, uid uint64) ([]*Model, error) {
 	res := make([]*Model, 0)
 	err := r.db.QueryRowsCtx(ctx, &res, sqlListByOwner, uid)
 	if err != nil {
-		return nil, xsql.ConvertError(err)
+		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
 	return res, nil
 }
@@ -50,7 +51,7 @@ func (r *Repo) insert(ctx context.Context, sess sqlx.Session, note *Model) (uint
 		now)
 
 	if err != nil {
-		return 0, xsql.ConvertError(err)
+		return 0, xerror.Wrap(xsql.ConvertError(err))
 	}
 	newId, _ := res.LastInsertId()
 	return uint64(newId), nil
@@ -75,7 +76,7 @@ func (r *Repo) update(ctx context.Context, sess sqlx.Session, note *Model) error
 		note.Id,
 	)
 
-	return xsql.ConvertError(err)
+	return xerror.Wrap(xsql.ConvertError(err))
 }
 
 func (r *Repo) Update(ctx context.Context, note *Model) error {
@@ -89,7 +90,7 @@ func (r *Repo) UpdateTx(ctx context.Context, tx sqlx.Session, note *Model) error
 func (r *Repo) delete(ctx context.Context, sess sqlx.Session, id uint64) error {
 	_, err := sess.ExecCtx(ctx,
 		sqlDeleteById, id)
-	return xsql.ConvertError(err)
+	return xerror.Wrap(xsql.ConvertError(err))
 }
 
 func (r *Repo) Delete(ctx context.Context, id uint64) error {
@@ -111,7 +112,7 @@ func (r *Repo) GetPrivateByCursor(ctx context.Context, id uint64, count int) ([]
 func (r *Repo) getByCursor(ctx context.Context, id uint64, count, privacy int) ([]*Model, error) {
 	var res = make([]*Model, 0, count)
 	err := r.db.QueryRowsCtx(ctx, &res, sqlGetByCursor, id, privacy, count)
-	return res, xsql.ConvertError(err)
+	return res, xerror.Wrap(xsql.ConvertError(err))
 }
 
 func (r *Repo) GetPublicLastId(ctx context.Context) (uint64, error) {
@@ -125,13 +126,13 @@ func (r *Repo) GetPrivateLastId(ctx context.Context) (uint64, error) {
 func (r *Repo) getLastId(ctx context.Context, privacy int) (uint64, error) {
 	var lastId uint64
 	err := r.db.QueryRowCtx(ctx, &lastId, sqlGetLastId, privacy)
-	return lastId, xsql.ConvertError(err)
+	return lastId, xerror.Wrap(xsql.ConvertError(err))
 }
 
 func (r *Repo) getAll(ctx context.Context, privacy int) ([]*Model, error) {
 	var res = make([]*Model, 0, 16)
 	err := r.db.QueryRowsCtx(ctx, &res, sqlGetAll, privacy)
-	return res, xsql.ConvertError(err)
+	return res, xerror.Wrap(xsql.ConvertError(err))
 }
 
 func (r *Repo) GetPublicAll(ctx context.Context) ([]*Model, error) {
@@ -153,5 +154,5 @@ func (r *Repo) GetPrivateCount(ctx context.Context) (uint64, error) {
 func (r *Repo) getCount(ctx context.Context, privacy int) (uint64, error) {
 	var cnt uint64
 	err := r.db.QueryRowCtx(ctx, &cnt, sqlGetCount, privacy)
-	return cnt, xsql.ConvertError(err)
+	return cnt, xerror.Wrap(xsql.ConvertError(err))
 }

@@ -11,7 +11,7 @@ import (
 )
 
 func TestWrap(t *testing.T) {
-	err := Propagate(ErrArgs)
+	err := Wrap(ErrArgs)
 	fmt.Printf("%v", err)
 }
 
@@ -24,7 +24,7 @@ func TestApiCall(t *testing.T) {
 
 func dao() error {
 	if n := rand.Intn(2); n >= 0 {
-		return PropagateMsg(ErrArgs, "dao rand error: %d", n)
+		return Wrapf(ErrArgs, "dao rand error: %d", n)
 	}
 	return nil
 }
@@ -32,7 +32,7 @@ func dao() error {
 func service2() error {
 	err := service()
 	if err != nil {
-		return PropagateMsg(err, "service2 error")
+		return Wrapf(err, "service2 error")
 	}
 
 	return nil
@@ -41,7 +41,7 @@ func service2() error {
 func service() error {
 	err := dao()
 	if err != nil {
-		return PropagateMsg(err, "servier error, hello world, id:%d", rand.Intn(123))
+		return Wrapf(err, "servier error, hello world, id:%d", rand.Intn(123))
 	}
 
 	return nil
@@ -54,9 +54,9 @@ func api() error {
 
 func TestWrap_UnwindFrames(t *testing.T) {
 	convey.Convey("UnwindFrames\n", t, func() {
-		sts := UnwindFrames(nil)
+		sts := UnwrapFrames(nil)
 		convey.So(sts, convey.ShouldBeEmpty)
-		sts = UnwindFrames(api())
+		sts = UnwrapFrames(api())
 		convey.So(sts, convey.ShouldNotBeEmpty)
 		fmt.Println(stacktrace.FormatFrames(sts))
 
@@ -67,18 +67,18 @@ func TestWrap_UnwindFrames(t *testing.T) {
 
 func TestWrap_HasFramesHold(t *testing.T) {
 	convey.Convey("HasFramesHold\n", t, func() {
-		hold := HasFramesHold(nil)
+		hold := FramesWrapped(nil)
 		convey.So(hold, convey.ShouldBeFalse)
-		hold = HasFramesHold(api())
+		hold = FramesWrapped(api())
 		convey.So(hold, convey.ShouldBeTrue)
 	})
 }
 
 func TestWrap_Log(t *testing.T) {
 	convey.Convey("Log ErrProxy\n", t, func() {
-		err := PropagateMsg(
-			PropagateMsg(
-				Propagate(ErrInvalidArgs).WithField("dao", "one").WithField("dao", "two").WithExtra("query", "select *"),
+		err := Wrapf(
+			Wrapf(
+				Wrap(ErrInvalidArgs).WithField("dao", "one").WithField("dao", "two").WithExtra("query", "select *"),
 				"level 1",
 			).WithExtra("level", 1).WithField("level1", 12),
 			"level 2",
@@ -95,9 +95,9 @@ func TestWrap_UnwindMsg(t *testing.T) {
 		err error
 	}{
 		{
-			err: PropagateMsg(
-				PropagateMsg(
-					Propagate(ErrInvalidArgs).WithField("dao", "one").WithField("dao", "two").WithExtra("query", "select *"),
+			err: Wrapf(
+				Wrapf(
+					Wrap(ErrInvalidArgs).WithField("dao", "one").WithField("dao", "two").WithExtra("query", "select *"),
 					"level 1",
 				).WithExtra("level", 1).WithField("level1", 12),
 				"level 2",
@@ -109,7 +109,7 @@ func TestWrap_UnwindMsg(t *testing.T) {
 	}
 	convey.Convey("Log ErrProxy\n", t, func() {
 		for _, c := range cases {
-			msg := UnwindMsg(c.err)
+			msg := UnwrapMsg(c.err)
 			t.Log(msg)
 		}
 	})

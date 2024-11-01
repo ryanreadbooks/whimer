@@ -1,4 +1,4 @@
-package external
+package dep
 
 import (
 	countersdk "github.com/ryanreadbooks/whimer/counter/sdk/v1"

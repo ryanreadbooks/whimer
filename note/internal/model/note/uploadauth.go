@@ -2,7 +2,7 @@ package creator
 
 import (
 	"github.com/ryanreadbooks/whimer/note/internal/global"
-	sdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
 var (
@@ -39,8 +39,8 @@ type UploadAuthResHeaders struct {
 	Token  string `json:"token"`
 }
 
-func (h *UploadAuthResHeaders) AsPb() *sdk.UploadAuthResHeaders {
-	return &sdk.UploadAuthResHeaders{
+func (h *UploadAuthResHeaders) AsPb() *notev1.UploadAuthResHeaders {
+	return &notev1.UploadAuthResHeaders{
 		Auth:   h.Auth,
 		Sha256: h.Sha256,
 		Date:   h.Date,
@@ -57,8 +57,8 @@ type UploadAuthRes struct {
 	Headers     UploadAuthResHeaders `json:"headers"`
 }
 
-func (r *UploadAuthRes) AsPb() *sdk.GetUploadAuthRes {
-	return &sdk.GetUploadAuthRes{
+func (r *UploadAuthRes) AsPb() *notev1.GetUploadAuthResponse {
+	return &notev1.GetUploadAuthResponse{
 		FileId:      r.FildId,
 		CurrentTime: r.CurrentTime,
 		ExpireTime:  r.ExpireTime,

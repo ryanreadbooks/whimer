@@ -10,42 +10,45 @@ import (
 )
 
 var (
-	NoteServiceName = notev1.NoteService_ServiceDesc.ServiceName
+	NoteServiceName = notev1.NoteAdminService_ServiceDesc.ServiceName
 )
 
-type NoteServiceServer struct {
-	notev1.UnimplementedNoteServiceServer
+type NoteAdminServiceServer struct {
+	notev1.UnimplementedNoteAdminServiceServer
 
 	Svc *svc.ServiceContext
 }
 
-func NewNoteServiceServer(svc *svc.ServiceContext) *NoteServiceServer {
-	return &NoteServiceServer{
+func NewNoteAdminServiceServer(svc *svc.ServiceContext) *NoteAdminServiceServer {
+	return &NoteAdminServiceServer{
 		Svc: svc,
 	}
 }
 
-func (s *NoteServiceServer) IsUserOwnNote(ctx context.Context, in *notev1.IsUserOwnNoteReq) (*notev1.IsUserOwnNoteRes, error) {
-	owner, err := s.Svc.NoteSvc.GetNoteOwner(ctx, in.NoteId)
+func (s *NoteAdminServiceServer) IsUserOwnNote(ctx context.Context, in *notev1.IsUserOwnNoteRequest) (
+	*notev1.IsUserOwnNoteResponse, error) {
+	owner, err := s.Svc.NoteAdminSvc.GetNoteOwner(ctx, in.NoteId)
 	if err != nil {
 		return nil, err
 	}
 
-	return &notev1.IsUserOwnNoteRes{Uid: in.Uid, Result: owner == in.Uid}, nil
+	return &notev1.IsUserOwnNoteResponse{Uid: in.Uid, Result: owner == in.Uid}, nil
 }
 
 // 判断笔记是否存在
-func (s *NoteServiceServer) IsNoteExist(ctx context.Context, in *notev1.IsNoteExistReq) (*notev1.IsNoteExistRes, error) {
-	ok, err := s.Svc.NoteSvc.IsNoteExist(ctx, in.NoteId)
+func (s *NoteAdminServiceServer) IsNoteExist(ctx context.Context, in *notev1.IsNoteExistRequest) (
+	*notev1.IsNoteExistResponse, error) {
+	ok, err := svc.IsNoteExist(ctx, in.NoteId)
 	if err != nil {
 		return nil, err
 	}
 
-	return &notev1.IsNoteExistRes{Exist: ok}, nil
+	return &notev1.IsNoteExistResponse{Exist: ok}, nil
 }
 
 // 创建笔记
-func (s *NoteServiceServer) CreateNote(ctx context.Context, in *notev1.CreateNoteReq) (*notev1.CreateNoteRes, error) {
+func (s *NoteAdminServiceServer) CreateNote(ctx context.Context, in *notev1.CreateNoteRequest) (
+	*notev1.CreateNoteResponse, error) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
@@ -71,16 +74,17 @@ func (s *NoteServiceServer) CreateNote(ctx context.Context, in *notev1.CreateNot
 	}
 
 	// service to create note
-	noteId, err := s.Svc.NoteSvc.Create(ctx, &req)
+	noteId, err := s.Svc.NoteAdminSvc.Create(ctx, &req)
 	if err != nil {
 		return nil, err
 	}
 
-	return &notev1.CreateNoteRes{NoteId: noteId}, nil
+	return &notev1.CreateNoteResponse{NoteId: noteId}, nil
 }
 
 // 更新笔记
-func (s *NoteServiceServer) UpdateNote(ctx context.Context, in *notev1.UpdateNoteReq) (*notev1.UpdateNoteRes, error) {
+func (s *NoteAdminServiceServer) UpdateNote(ctx context.Context, in *notev1.UpdateNoteRequest) (
+	*notev1.UpdateNoteResponse, error) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
@@ -108,16 +112,17 @@ func (s *NoteServiceServer) UpdateNote(ctx context.Context, in *notev1.UpdateNot
 		return nil, err
 	}
 
-	err := s.Svc.NoteSvc.Update(ctx, &req)
+	err := s.Svc.NoteAdminSvc.Update(ctx, &req)
 	if err != nil {
 		return nil, err
 	}
 
-	return &notev1.UpdateNoteRes{NoteId: req.NoteId}, nil
+	return &notev1.UpdateNoteResponse{NoteId: req.NoteId}, nil
 }
 
 // 删除笔记
-func (s *NoteServiceServer) DeleteNote(ctx context.Context, in *notev1.DeleteNoteReq) (*notev1.DeleteNoteRes, error) {
+func (s *NoteAdminServiceServer) DeleteNote(ctx context.Context, in *notev1.DeleteNoteRequest) (
+	*notev1.DeleteNoteResponse, error) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
@@ -130,16 +135,17 @@ func (s *NoteServiceServer) DeleteNote(ctx context.Context, in *notev1.DeleteNot
 		return nil, err
 	}
 
-	err := s.Svc.NoteSvc.Delete(ctx, &req)
+	err := s.Svc.NoteAdminSvc.Delete(ctx, &req)
 	if err != nil {
 		return nil, err
 	}
 
-	return &notev1.DeleteNoteRes{}, nil
+	return &notev1.DeleteNoteResponse{}, nil
 }
 
 // 获取笔记的信息
-func (s *NoteServiceServer) GetNote(ctx context.Context, in *notev1.GetNoteReq) (*notev1.NoteItem, error) {
+func (s *NoteAdminServiceServer) GetNote(ctx context.Context, in *notev1.GetNoteRequest) (
+	*notev1.GetNoteResponse, error) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
@@ -148,17 +154,18 @@ func (s *NoteServiceServer) GetNote(ctx context.Context, in *notev1.GetNoteReq) 
 		return nil, global.ErrNoteNotFound
 	}
 
-	data, err := s.Svc.NoteSvc.GetNote(ctx, in.NoteId)
+	data, err := s.Svc.NoteAdminSvc.GetNote(ctx, in.NoteId)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.AsPb(), nil
+	return &notev1.GetNoteResponse{Note: data.AsPb()}, nil
 }
 
 // 列出笔记
-func (s *NoteServiceServer) ListNote(ctx context.Context, in *notev1.ListNoteReq) (*notev1.ListNoteRes, error) {
-	data, err := s.Svc.NoteSvc.List(ctx)
+func (s *NoteAdminServiceServer) ListNote(ctx context.Context, in *notev1.ListNoteRequest) (
+	*notev1.ListNoteResponse, error) {
+	data, err := s.Svc.NoteAdminSvc.List(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -168,10 +175,11 @@ func (s *NoteServiceServer) ListNote(ctx context.Context, in *notev1.ListNoteReq
 		items = append(items, item.AsPb())
 	}
 
-	return &notev1.ListNoteRes{Items: items}, nil
+	return &notev1.ListNoteResponse{Items: items}, nil
 }
 
-func (s *NoteServiceServer) GetUploadAuth(ctx context.Context, in *notev1.GetUploadAuthReq) (*notev1.GetUploadAuthRes, error) {
+func (s *NoteAdminServiceServer) GetUploadAuth(ctx context.Context, in *notev1.GetUploadAuthRequest) (
+	*notev1.GetUploadAuthResponse, error) {
 	var req = mgtp.UploadAuthReq{
 		Resource: in.Resource,
 		Source:   in.Source,
@@ -182,24 +190,10 @@ func (s *NoteServiceServer) GetUploadAuth(ctx context.Context, in *notev1.GetUpl
 		return nil, err
 	}
 
-	data, err := s.Svc.NoteSvc.UploadAuth(ctx, &req)
+	data, err := s.Svc.NoteAdminSvc.UploadAuth(ctx, &req)
 	if err != nil {
 		return nil, err
 	}
 
 	return data.AsPb(), nil
-}
-
-func (s *NoteServiceServer) LikeNote(ctx context.Context, in *notev1.LikeNoteReq) (*notev1.LikeNoteRes, error) {
-	return s.Svc.NoteSvc.LikeNote(ctx, in)
-}
-
-func (s *NoteServiceServer) GetNoteLikes(ctx context.Context, in *notev1.GetNoteLikesReq) (
-	*notev1.GetNoteLikesRes, error) {
-	likes, err := s.Svc.NoteSvc.GetNoteLikes(ctx, in.NoteId)
-	if err != nil {
-		return nil, err
-	}
-
-	return &notev1.GetNoteLikesRes{Likes: likes}, nil
 }

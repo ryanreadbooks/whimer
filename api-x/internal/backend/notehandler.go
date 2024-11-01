@@ -22,7 +22,7 @@ func (h *Handler) CreateNote() http.HandlerFunc {
 		}
 
 		// service to create note
-		resp, err := note.GetNoter().CreateNote(r.Context(), req.AsPb())
+		resp, err := note.GetNoteAdmin().CreateNote(r.Context(), req.AsPb())
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -42,9 +42,9 @@ func (h *Handler) UpdateNote() http.HandlerFunc {
 
 		var noteId = note.IdConfuser.DeConfuseU(req.NoteId)
 
-		_, err = note.GetNoter().UpdateNote(r.Context(), &notev1.UpdateNoteReq{
+		_, err = note.GetNoteAdmin().UpdateNote(r.Context(), &notev1.UpdateNoteRequest{
 			NoteId: noteId,
-			Note: &notev1.CreateNoteReq{
+			Note: &notev1.CreateNoteRequest{
 				Basic:  req.Basic.AsPb(),
 				Images: req.Images.AsPb(),
 			},
@@ -67,7 +67,7 @@ func (h *Handler) DeleteNote() http.HandlerFunc {
 			return
 		}
 
-		_, err = note.GetNoter().DeleteNote(r.Context(), &notev1.DeleteNoteReq{
+		_, err = note.GetNoteAdmin().DeleteNote(r.Context(), &notev1.DeleteNoteRequest{
 			NoteId: note.IdConfuser.DeConfuseU(req.NoteId),
 		})
 
@@ -82,7 +82,7 @@ func (h *Handler) DeleteNote() http.HandlerFunc {
 
 func (h *Handler) ListNotes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		resp, err := note.GetNoter().ListNote(r.Context(), &notev1.ListNoteReq{})
+		resp, err := note.GetNoteAdmin().ListNote(r.Context(), &notev1.ListNoteRequest{})
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -100,7 +100,7 @@ func (h *Handler) GetNote() http.HandlerFunc {
 			return
 		}
 
-		resp, err := note.GetNoter().GetNote(r.Context(), &notev1.GetNoteReq{
+		resp, err := note.GetNoteAdmin().GetNote(r.Context(), &notev1.GetNoteRequest{
 			NoteId: note.IdConfuser.DeConfuseU(req.NoteId),
 		})
 		if err != nil {
@@ -108,7 +108,7 @@ func (h *Handler) GetNote() http.HandlerFunc {
 			return
 		}
 
-		httpx.OkJson(w, note.NewNoteItemFromPb(resp))
+		httpx.OkJson(w, note.NewNoteItemFromPb(resp.Note))
 	}
 }
 
@@ -120,7 +120,7 @@ func (h *Handler) UploadNoteAuth() http.HandlerFunc {
 			return
 		}
 
-		resp, err := note.GetNoter().GetUploadAuth(r.Context(), req.AsPb())
+		resp, err := note.GetNoteAdmin().GetUploadAuth(r.Context(), req.AsPb())
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -144,10 +144,10 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 		}
 
 		nid := note.IdConfuser.DeConfuseU(req.NoteId)
-		_, err = note.GetNoter().LikeNote(r.Context(), &notev1.LikeNoteReq{
+		_, err = note.GetNoteInteract().LikeNote(r.Context(), &notev1.LikeNoteRequest{
 			NoteId:    nid,
 			Uid:       uid,
-			Operation: notev1.LikeNoteReq_Operation(req.Action),
+			Operation: notev1.LikeNoteRequest_Operation(req.Action),
 		})
 		if err != nil {
 			httpx.Error(w, err)
@@ -167,7 +167,7 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 		}
 
 		nid := note.IdConfuser.DeConfuseU(req.NoteId)
-		resp, err := note.GetNoter().GetNoteLikes(r.Context(), &notev1.GetNoteLikesReq{NoteId: nid})
+		resp, err := note.GetNoteInteract().GetNoteLikes(r.Context(), &notev1.GetNoteLikesRequest{NoteId: nid})
 		if err != nil {
 			httpx.Error(w, err)
 			return

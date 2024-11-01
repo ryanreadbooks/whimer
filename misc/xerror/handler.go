@@ -25,18 +25,22 @@ func errorHandler(err error) (stcode int, retErr any) {
 
 	// HTTP接口全局错误日志打印
 	defer func() {
-		if stcode >= http.StatusInternalServerError {
-			if errPxy != nil {
-				xlog.Msg(UnwindMsg(errPxy)).
+		// 5XX 打印ERROR
+		if errPxy != nil {
+			if stcode >= http.StatusInternalServerError {
+				xlog.Msg(UnwrapMsg(errPxy)).
 					Err(errPxy).
 					FieldMap(errPxy.Fields()).
 					ExtraMap(errPxy.Extra()).
 					Errorx(errPxy.Context())
 			} else {
-
+				// 4xx 打印INFO
+				xlog.Msg(UnwrapMsg(errPxy)).
+					Err(errPxy).
+					FieldMap(errPxy.Fields()).
+					ExtraMap(errPxy.Extra()).
+					Infox(errPxy.Context())
 			}
-
-			return
 		}
 	}()
 
@@ -49,7 +53,7 @@ func errorHandler(err error) (stcode int, retErr any) {
 		return xerr.StatusCode, xerr
 	}
 
-	// 一并处理grpc错误
+	// 尝试解析处理grpc错误
 	gerr, ok := status.FromError(err)
 	if ok {
 		httpCode := runtime.HTTPStatusFromCode(gerr.Code())

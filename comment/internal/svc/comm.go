@@ -83,7 +83,7 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 	)
 
 	_, err := external.GetNoter().IsNoteExist(ctx,
-		&notev1.IsNoteExistReq{
+		&notev1.IsNoteExistRequest{
 			NoteId: oid,
 		})
 	if err != nil {
@@ -296,7 +296,7 @@ func (s *CommentSvc) ReplyPin(ctx context.Context, oid, rid uint64, action int8)
 
 func (s *CommentSvc) userOwnsOid(ctx context.Context, uid, oid uint64) error {
 	resp, err := external.GetNoter().IsUserOwnNote(ctx,
-		&notev1.IsUserOwnNoteReq{
+		&notev1.IsUserOwnNoteRequest{
 			Uid:    uid,
 			NoteId: oid,
 		})
@@ -353,7 +353,7 @@ func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReply
 	)
 
 	noteExitsRes, err := external.GetNoter().IsNoteExist(ctx,
-		&notev1.IsNoteExistReq{
+		&notev1.IsNoteExistRequest{
 			NoteId: oid,
 		})
 

@@ -1,7 +1,7 @@
 package creator
 
 import (
-	sdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
 type ItemImage struct {
@@ -11,10 +11,10 @@ type ItemImage struct {
 
 type ItemImageList []*ItemImage
 
-func (l ItemImageList) AsPb() []*sdk.GetNoteResImage {
-	images := make([]*sdk.GetNoteResImage, 0, len(l))
+func (l ItemImageList) AsPb() []*notev1.NoteImage {
+	images := make([]*notev1.NoteImage, 0, len(l))
 	for _, img := range l {
-		images = append(images, &sdk.GetNoteResImage{
+		images = append(images, &notev1.NoteImage{
 			Url:  img.Url,
 			Type: int32(img.Type),
 		})
@@ -33,8 +33,8 @@ type Item struct {
 	Likes    uint64        `json:"likes"`
 }
 
-func (i *Item) AsPb() *sdk.NoteItem {
-	return &sdk.NoteItem{
+func (i *Item) AsPb() *notev1.NoteItem {
+	return &notev1.NoteItem{
 		NoteId:   i.NoteId,
 		Title:    i.Title,
 		Desc:     i.Desc,

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	uslices "github.com/ryanreadbooks/whimer/misc/utils/slices"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -27,7 +28,7 @@ func (r *Repo) FindOne(ctx context.Context, id uint64) (*Model, error) {
 	model := new(Model)
 	err := r.db.QueryRowCtx(ctx, model, sqlFindAll, id)
 	if err != nil {
-		return nil, xsql.ConvertError(err)
+		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
 	return model, nil
 }
@@ -40,7 +41,7 @@ func (r *Repo) insert(ctx context.Context, sess sqlx.Session, asset *Model) erro
 		asset.NoteId,
 		now)
 
-	return xsql.ConvertError(err)
+	return xerror.Wrap(xsql.ConvertError(err))
 }
 
 func (r *Repo) Insert(ctx context.Context, asset *Model) error {
@@ -55,7 +56,7 @@ func (r *Repo) findByNoteId(ctx context.Context, sess sqlx.Session, noteId uint6
 	res := make([]*Model, 0)
 	err := sess.QueryRowsCtx(ctx, &res, sqlFindByNoteId, noteId)
 	if err != nil {
-		return nil, xsql.ConvertError(err)
+		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
 	return res, nil
 }
@@ -70,7 +71,7 @@ func (r *Repo) FindByNoteIdTx(ctx context.Context, tx sqlx.Session, noteId uint6
 
 func (r *Repo) deleteByNoteId(ctx context.Context, sess sqlx.Session, noteId uint64) error {
 	_, err := sess.ExecCtx(ctx, sqlDeleteByNoteId, noteId)
-	return xsql.ConvertError(err)
+	return xerror.Wrap(xsql.ConvertError(err))
 }
 
 func (r *Repo) DeleteByNoteId(ctx context.Context, noteId uint64) error {
@@ -100,7 +101,7 @@ func (r *Repo) excludeDeleteByNoteId(ctx context.Context, sess sqlx.Session, not
 	}
 	_, err := sess.ExecCtx(ctx, query, args...)
 
-	return xsql.ConvertError(err)
+	return xerror.Wrap(xsql.ConvertError(err))
 }
 func (r *Repo) ExcludeDeleteByNoteId(ctx context.Context, noteId uint64, assetKeys []string) error {
 	return r.excludeDeleteByNoteId(ctx, r.db, noteId, assetKeys)
@@ -129,7 +130,7 @@ func (r *Repo) batchInsert(ctx context.Context, sess sqlx.Session, assets []*Mod
 	// insert into %s (%s) values (?,?,?,?),(?,?,?,?)
 	query := fmt.Sprintf(sqlBatchInsert, builder.String())
 	_, err := sess.ExecCtx(ctx, query, args...)
-	return err
+	return xerror.Wrap(xsql.ConvertError(err))
 }
 
 func (r *Repo) BatchInsert(ctx context.Context, assets []*Model) error {
@@ -147,8 +148,7 @@ func (r *Repo) FindByNoteIds(ctx context.Context, noteIds []uint64) ([]*Model, e
 	res := make([]*Model, 0)
 	err := r.db.QueryRowsCtx(ctx, &res, query)
 	if err != nil {
-
-		return nil, xsql.ConvertError(err)
+		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
 	return res, nil
 }

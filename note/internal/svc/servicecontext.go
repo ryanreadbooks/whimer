@@ -3,8 +3,8 @@ package svc
 import (
 	"github.com/ryanreadbooks/whimer/misc/oss/keygen"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
-	"github.com/ryanreadbooks/whimer/note/internal/external"
-	"github.com/ryanreadbooks/whimer/note/internal/repo"
+	"github.com/ryanreadbooks/whimer/note/internal/infra"
+	"github.com/ryanreadbooks/whimer/note/internal/infra/repo"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -14,8 +14,10 @@ type ServiceContext struct {
 	// utilities
 	OssKeyGen *keygen.Generator
 
-	// other service
-	NoteSvc *NoteSvc
+	// domain service
+	NoteAdminSvc    *NoteAdminSvc
+	NoteFeedSvc     *NoteFeedSvc
+	NoteInteractSvc *NoteInteractSvc
 }
 
 // 初始化一个service
@@ -26,7 +28,7 @@ func NewServiceContext(c *config.Config) *ServiceContext {
 	}
 
 	// 外部依赖客户端初始化
-	external.Init(c)
+	infra.Init(c)
 
 	// utilities
 	ctx.OssKeyGen = keygen.NewGenerator(
@@ -38,7 +40,9 @@ func NewServiceContext(c *config.Config) *ServiceContext {
 	cache := redis.MustNewRedis(c.Redis)
 
 	// 各个子service初始化
-	ctx.NoteSvc = NewNoteSvc(ctx, dao, cache)
+	ctx.NoteAdminSvc = NewNoteAdminSvc(ctx, dao, cache)
+	ctx.NoteFeedSvc = NewNoteFeedSvc(ctx)
+	ctx.NoteInteractSvc = NewNoteInteractSvc(ctx)
 
 	return ctx
 }

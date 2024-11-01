@@ -89,6 +89,10 @@ func (e *Error) Equal(other *Error) bool {
 	return e.Code == other.Code && e.StatusCode == other.StatusCode
 }
 
+func (e *Error) ShouldLogError() bool {
+	return e.Code >= http.StatusInternalServerError
+}
+
 func NewError(st, code int, msg string) *Error {
 	return &Error{
 		StatusCode: st,

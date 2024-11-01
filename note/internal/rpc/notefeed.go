@@ -26,7 +26,7 @@ func NewNoteFeedServiceServer(svc *svc.ServiceContext) *NoteFeedServiceServer {
 func (s *NoteFeedServiceServer) RandomGet(ctx context.Context, in *notev1.RandomGetRequest) (
 	*notev1.RandomGetResponse, error,
 ) {
-	resp, err := s.Svc.NoteSvc.FeedRandomGet(ctx, in.Count)
+	resp, err := s.Svc.NoteFeedSvc.FeedRandomGet(ctx, in.Count)
 	if err != nil {
 		return nil, err
 	}

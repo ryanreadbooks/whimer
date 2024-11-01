@@ -60,7 +60,7 @@ func (l *LogItem) Field(key string, val any) *LogItem {
 
 func (l *LogItem) Fields(kvs ...interface{}) *LogItem {
 	if len(kvs)%2 == 0 {
-		for i := range kvs {
+		for i := 0; i < len(kvs)/2; i++ {
 			l.fields[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
 		}
 	}
@@ -79,7 +79,7 @@ func (l *LogItem) Extra(key string, val any) *LogItem {
 
 func (l *LogItem) Extras(kvs ...interface{}) *LogItem {
 	if len(kvs)%2 == 0 {
-		for i := range kvs {
+		for i := 0; i < len(kvs)/2; i++ {
 			l.extra[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
 		}
 	}

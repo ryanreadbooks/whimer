@@ -2,16 +2,16 @@ package xsql
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 var (
-	ErrNoRecord   = sqlx.ErrNotFound
-	ErrDuplicate  = fmt.Errorf("duplicate entry")
-	ErrOutOfRange = fmt.Errorf("out of range")
+	ErrNoRecord   = xerror.ErrNotFound.Msg("no record found")
+	ErrDuplicate  = xerror.ErrInternal.Msg("duplicate entry")
+	ErrOutOfRange = xerror.ErrInternal.Msg("out of range")
 )
 
 // 转换not found和duplicate entry两种错误
@@ -31,7 +31,8 @@ func ConvertError(err error) error {
 			}
 		}
 
-		return err
+		// 其它db错误全部视为5xx
+		return xerror.Wrapf(xerror.ErrInternal, err.Error())
 	}
 }
 

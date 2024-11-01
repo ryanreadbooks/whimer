@@ -23,15 +23,14 @@ var configFile = flag.String("f", "etc/note.yaml", "the config file")
 func main() {
 	flag.Parse()
 
-	var c config.Config
-	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
+	ctx := svc.NewServiceContext(&config.Conf)
 
-	ctx := svc.NewServiceContext(&c)
-
-	grpcServer := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
-		notev1.RegisterNoteServiceServer(s, rpc.NewNoteServiceServer(ctx))
+	grpcServer := zrpc.MustNewServer(config.Conf.Grpc, func(s *grpc.Server) {
+		notev1.RegisterNoteAdminServiceServer(s, rpc.NewNoteAdminServiceServer(ctx))
 		notev1.RegisterNoteFeedServiceServer(s, rpc.NewNoteFeedServiceServer(ctx))
-		xgrpc.EnableReflectionIfNecessary(c.Grpc, s)
+		notev1.RegisterNoteInteractServiceServer(s, rpc.NewNoteInteractServiceServer(ctx))
+		xgrpc.EnableReflectionIfNecessary(config.Conf.Grpc, s)
 	})
 	interceptor.InstallUnaryServerInterceptors(grpcServer,
 		interceptor.WithUnaryChecker(

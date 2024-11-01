@@ -19,8 +19,17 @@ message RandomGetResponse {
   int32 count = 2;
 }
 
-// feed流获取note相关服务功能
+message GetNoteDetailRequest {
+  uint64 note_id = 1[ (buf.validate.field).uint64.gt = 0 ]; //笔记id
+}
+
+message GetNoteDetailResponse {
+}
+
+// note相关非管理功能服务
 service NoteFeedService {
   // 随机获取笔记内容
   rpc RandomGet(RandomGetRequest) returns (RandomGetResponse);
+  // 获取笔记
+  rpc GetNoteDetail(GetNoteDetailRequest) returns (GetNoteDetailResponse);
 }
