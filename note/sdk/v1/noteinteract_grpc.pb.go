@@ -19,8 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NoteInteractService_LikeNote_FullMethodName     = "/note.sdk.v1.NoteInteractService/LikeNote"
-	NoteInteractService_GetNoteLikes_FullMethodName = "/note.sdk.v1.NoteInteractService/GetNoteLikes"
+	NoteInteractService_LikeNote_FullMethodName            = "/note.sdk.v1.NoteInteractService/LikeNote"
+	NoteInteractService_GetNoteLikes_FullMethodName        = "/note.sdk.v1.NoteInteractService/GetNoteLikes"
+	NoteInteractService_CheckUserLikeStatus_FullMethodName = "/note.sdk.v1.NoteInteractService/CheckUserLikeStatus"
+	NoteInteractService_GetNoteInteraction_FullMethodName  = "/note.sdk.v1.NoteInteractService/GetNoteInteraction"
 )
 
 // NoteInteractServiceClient is the client API for NoteInteractService service.
@@ -33,6 +35,10 @@ type NoteInteractServiceClient interface {
 	LikeNote(ctx context.Context, in *LikeNoteRequest, opts ...grpc.CallOption) (*LikeNoteResponse, error)
 	// 获取笔记点赞数量
 	GetNoteLikes(ctx context.Context, in *GetNoteLikesRequest, opts ...grpc.CallOption) (*GetNoteLikesResponse, error)
+	// 检查某个用户是否点赞过某篇笔记
+	CheckUserLikeStatus(ctx context.Context, in *CheckUserLikeStatusRequest, opts ...grpc.CallOption) (*CheckUserLikeStatusResponse, error)
+	// 获取笔记的交互信息
+	GetNoteInteraction(ctx context.Context, in *GetNoteInteractionRequest, opts ...grpc.CallOption) (*GetNoteInteractionResponse, error)
 }
 
 type noteInteractServiceClient struct {
@@ -63,6 +69,26 @@ func (c *noteInteractServiceClient) GetNoteLikes(ctx context.Context, in *GetNot
 	return out, nil
 }
 
+func (c *noteInteractServiceClient) CheckUserLikeStatus(ctx context.Context, in *CheckUserLikeStatusRequest, opts ...grpc.CallOption) (*CheckUserLikeStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckUserLikeStatusResponse)
+	err := c.cc.Invoke(ctx, NoteInteractService_CheckUserLikeStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *noteInteractServiceClient) GetNoteInteraction(ctx context.Context, in *GetNoteInteractionRequest, opts ...grpc.CallOption) (*GetNoteInteractionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetNoteInteractionResponse)
+	err := c.cc.Invoke(ctx, NoteInteractService_GetNoteInteraction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NoteInteractServiceServer is the server API for NoteInteractService service.
 // All implementations must embed UnimplementedNoteInteractServiceServer
 // for forward compatibility.
@@ -73,6 +99,10 @@ type NoteInteractServiceServer interface {
 	LikeNote(context.Context, *LikeNoteRequest) (*LikeNoteResponse, error)
 	// 获取笔记点赞数量
 	GetNoteLikes(context.Context, *GetNoteLikesRequest) (*GetNoteLikesResponse, error)
+	// 检查某个用户是否点赞过某篇笔记
+	CheckUserLikeStatus(context.Context, *CheckUserLikeStatusRequest) (*CheckUserLikeStatusResponse, error)
+	// 获取笔记的交互信息
+	GetNoteInteraction(context.Context, *GetNoteInteractionRequest) (*GetNoteInteractionResponse, error)
 	mustEmbedUnimplementedNoteInteractServiceServer()
 }
 
@@ -88,6 +118,12 @@ func (UnimplementedNoteInteractServiceServer) LikeNote(context.Context, *LikeNot
 }
 func (UnimplementedNoteInteractServiceServer) GetNoteLikes(context.Context, *GetNoteLikesRequest) (*GetNoteLikesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNoteLikes not implemented")
+}
+func (UnimplementedNoteInteractServiceServer) CheckUserLikeStatus(context.Context, *CheckUserLikeStatusRequest) (*CheckUserLikeStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckUserLikeStatus not implemented")
+}
+func (UnimplementedNoteInteractServiceServer) GetNoteInteraction(context.Context, *GetNoteInteractionRequest) (*GetNoteInteractionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNoteInteraction not implemented")
 }
 func (UnimplementedNoteInteractServiceServer) mustEmbedUnimplementedNoteInteractServiceServer() {}
 func (UnimplementedNoteInteractServiceServer) testEmbeddedByValue()                             {}
@@ -146,6 +182,42 @@ func _NoteInteractService_GetNoteLikes_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NoteInteractService_CheckUserLikeStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckUserLikeStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteInteractServiceServer).CheckUserLikeStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteInteractService_CheckUserLikeStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteInteractServiceServer).CheckUserLikeStatus(ctx, req.(*CheckUserLikeStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NoteInteractService_GetNoteInteraction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNoteInteractionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteInteractServiceServer).GetNoteInteraction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteInteractService_GetNoteInteraction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteInteractServiceServer).GetNoteInteraction(ctx, req.(*GetNoteInteractionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NoteInteractService_ServiceDesc is the grpc.ServiceDesc for NoteInteractService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -160,6 +232,14 @@ var NoteInteractService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetNoteLikes",
 			Handler:    _NoteInteractService_GetNoteLikes_Handler,
+		},
+		{
+			MethodName: "CheckUserLikeStatus",
+			Handler:    _NoteInteractService_CheckUserLikeStatus_Handler,
+		},
+		{
+			MethodName: "GetNoteInteraction",
+			Handler:    _NoteInteractService_GetNoteInteraction_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

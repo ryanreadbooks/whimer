@@ -12,6 +12,7 @@ func InstallUnaryServerInterceptors(server *zrpc.RpcServer,
 	// 默认拦截器
 	interceptors := []grpc.UnaryServerInterceptor{
 		UnaryServerErrorHandler,
+		UnaryServerRecovery,
 		UnaryServerMetadataExtract,
 		UnaryServerValidateHandler,
 	}

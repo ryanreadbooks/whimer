@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NoteFeedService_RandomGet_FullMethodName     = "/note.sdk.v1.NoteFeedService/RandomGet"
-	NoteFeedService_GetNoteDetail_FullMethodName = "/note.sdk.v1.NoteFeedService/GetNoteDetail"
+	NoteFeedService_RandomGet_FullMethodName   = "/note.sdk.v1.NoteFeedService/RandomGet"
+	NoteFeedService_GetFeedNote_FullMethodName = "/note.sdk.v1.NoteFeedService/GetFeedNote"
 )
 
 // NoteFeedServiceClient is the client API for NoteFeedService service.
@@ -32,7 +32,7 @@ type NoteFeedServiceClient interface {
 	// 随机获取笔记内容
 	RandomGet(ctx context.Context, in *RandomGetRequest, opts ...grpc.CallOption) (*RandomGetResponse, error)
 	// 获取笔记
-	GetNoteDetail(ctx context.Context, in *GetNoteDetailRequest, opts ...grpc.CallOption) (*GetNoteDetailResponse, error)
+	GetFeedNote(ctx context.Context, in *GetFeedNoteRequest, opts ...grpc.CallOption) (*GetFeedNoteResponse, error)
 }
 
 type noteFeedServiceClient struct {
@@ -53,10 +53,10 @@ func (c *noteFeedServiceClient) RandomGet(ctx context.Context, in *RandomGetRequ
 	return out, nil
 }
 
-func (c *noteFeedServiceClient) GetNoteDetail(ctx context.Context, in *GetNoteDetailRequest, opts ...grpc.CallOption) (*GetNoteDetailResponse, error) {
+func (c *noteFeedServiceClient) GetFeedNote(ctx context.Context, in *GetFeedNoteRequest, opts ...grpc.CallOption) (*GetFeedNoteResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetNoteDetailResponse)
-	err := c.cc.Invoke(ctx, NoteFeedService_GetNoteDetail_FullMethodName, in, out, cOpts...)
+	out := new(GetFeedNoteResponse)
+	err := c.cc.Invoke(ctx, NoteFeedService_GetFeedNote_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ type NoteFeedServiceServer interface {
 	// 随机获取笔记内容
 	RandomGet(context.Context, *RandomGetRequest) (*RandomGetResponse, error)
 	// 获取笔记
-	GetNoteDetail(context.Context, *GetNoteDetailRequest) (*GetNoteDetailResponse, error)
+	GetFeedNote(context.Context, *GetFeedNoteRequest) (*GetFeedNoteResponse, error)
 	mustEmbedUnimplementedNoteFeedServiceServer()
 }
 
@@ -86,8 +86,8 @@ type UnimplementedNoteFeedServiceServer struct{}
 func (UnimplementedNoteFeedServiceServer) RandomGet(context.Context, *RandomGetRequest) (*RandomGetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RandomGet not implemented")
 }
-func (UnimplementedNoteFeedServiceServer) GetNoteDetail(context.Context, *GetNoteDetailRequest) (*GetNoteDetailResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetNoteDetail not implemented")
+func (UnimplementedNoteFeedServiceServer) GetFeedNote(context.Context, *GetFeedNoteRequest) (*GetFeedNoteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFeedNote not implemented")
 }
 func (UnimplementedNoteFeedServiceServer) mustEmbedUnimplementedNoteFeedServiceServer() {}
 func (UnimplementedNoteFeedServiceServer) testEmbeddedByValue()                         {}
@@ -128,20 +128,20 @@ func _NoteFeedService_RandomGet_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _NoteFeedService_GetNoteDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetNoteDetailRequest)
+func _NoteFeedService_GetFeedNote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFeedNoteRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(NoteFeedServiceServer).GetNoteDetail(ctx, in)
+		return srv.(NoteFeedServiceServer).GetFeedNote(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: NoteFeedService_GetNoteDetail_FullMethodName,
+		FullMethod: NoteFeedService_GetFeedNote_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NoteFeedServiceServer).GetNoteDetail(ctx, req.(*GetNoteDetailRequest))
+		return srv.(NoteFeedServiceServer).GetFeedNote(ctx, req.(*GetFeedNoteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -158,8 +158,8 @@ var NoteFeedService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _NoteFeedService_RandomGet_Handler,
 		},
 		{
-			MethodName: "GetNoteDetail",
-			Handler:    _NoteFeedService_GetNoteDetail_Handler,
+			MethodName: "GetFeedNote",
+			Handler:    _NoteFeedService_GetFeedNote_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

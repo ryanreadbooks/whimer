@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	counterv1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/oss"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
@@ -129,4 +130,27 @@ func AssignNoteLikes(ctx context.Context, batch *notemodel.BatchNoteItem) (*note
 	}
 
 	return batch, nil
+}
+
+// 数据库中获取笔记
+func GetNote(ctx context.Context, noteId uint64) (*noterepo.Model, error) {
+	note, err := CacheGetNote(ctx, noteId)
+	if err != nil {
+		note, err = infra.Repo().NoteRepo.FindOne(ctx, noteId)
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return nil, global.ErrNoteNotFound
+		}
+		if err != nil {
+			return nil, xerror.Wrapf(err, "repo note find one failed").WithCtx(ctx)
+		}
+
+		concurrent.SafeGo(func() {
+			ctxc := context.WithoutCancel(ctx)
+			if errg := CacheSetNote(ctxc, note); errg != nil {
+				xlog.Msg("cache set note failed").Err(err).Extra("note", note).Errorx(ctxc)
+			}
+		})
+	}
+
+	return note, nil
 }

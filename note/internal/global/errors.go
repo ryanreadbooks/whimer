@@ -29,4 +29,5 @@ var (
 	ErrGetNoteFail      = ErrInternal.Msg("获取笔记失败")
 	ErrGetNoteLikesFail = ErrInternal.Msg("获取点赞数据失败")
 	ErrNotNoteOwner     = ErrPermDenied.Msg("你不拥有该笔记")
+	ErrNoteNotPublic    = ErrPermDenied.Msg("笔记非公开")
 )

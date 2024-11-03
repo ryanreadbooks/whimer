@@ -11,12 +11,11 @@ import (
 )
 
 func init() {
-	httpx.SetErrorHandler(ErrorHandler)
 	httpx.SetErrorHandlerCtx(ErrorHandlerCtx)
 	httpx.SetOkHandler(ResultHandler)
 }
 
-func errorHandler(err error) (stcode int, retErr any) {
+func errorHandler(ctx context.Context, err error) (stcode int, retErr any) {
 	if err == nil {
 		return http.StatusOK, Success
 	}
@@ -25,21 +24,25 @@ func errorHandler(err error) (stcode int, retErr any) {
 
 	// HTTP接口全局错误日志打印
 	defer func() {
-		// 5XX 打印ERROR
 		if errPxy != nil {
+			msg, underErr := UnwrapMsg(errPxy)
+			prepare := xlog.Msg(msg).
+				Err(underErr).
+				FieldMap(errPxy.Fields()).
+				ExtraMap(errPxy.Extra())
+				// 5XX 打印ERROR
 			if stcode >= http.StatusInternalServerError {
-				xlog.Msg(UnwrapMsg(errPxy)).
-					Err(errPxy).
-					FieldMap(errPxy.Fields()).
-					ExtraMap(errPxy.Extra()).
-					Errorx(errPxy.Context())
+				prepare.Errorx(errPxy.Context())
 			} else {
 				// 4xx 打印INFO
-				xlog.Msg(UnwrapMsg(errPxy)).
-					Err(errPxy).
-					FieldMap(errPxy.Fields()).
-					ExtraMap(errPxy.Extra()).
-					Infox(errPxy.Context())
+				prepare.Infox(errPxy.Context())
+			}
+		} else {
+			prepare := xlog.Msg(err.Error())
+			if stcode >= http.StatusInternalServerError {
+				prepare.Errorx(ctx)
+			} else {
+				prepare.Infox(ctx)
 			}
 		}
 	}()
@@ -64,11 +67,11 @@ func errorHandler(err error) (stcode int, retErr any) {
 }
 
 func ErrorHandler(err error) (int, any) {
-	return errorHandler(err)
+	return errorHandler(context.Background(), err)
 }
 
 func ErrorHandlerCtx(ctx context.Context, err error) (int, any) {
-	return errorHandler(err)
+	return errorHandler(ctx, err)
 }
 
 func ResultHandler(ctx context.Context, data any) any {

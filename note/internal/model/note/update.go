@@ -1,4 +1,4 @@
-package creator
+package note
 
 import (
 	"github.com/ryanreadbooks/whimer/note/internal/global"

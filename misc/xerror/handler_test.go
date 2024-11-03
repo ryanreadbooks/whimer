@@ -32,5 +32,5 @@ func TestHander_ErrHandler(t *testing.T) {
 	}
 
 	err := entry()
-	errorHandler(err)
+	errorHandler(context.Background(), err)
 }

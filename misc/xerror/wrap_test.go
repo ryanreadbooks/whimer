@@ -109,8 +109,9 @@ func TestWrap_UnwindMsg(t *testing.T) {
 	}
 	convey.Convey("Log ErrProxy\n", t, func() {
 		for _, c := range cases {
-			msg := UnwrapMsg(c.err)
+			msg,underErr := UnwrapMsg(c.err)
 			t.Log(msg)
+			t.Log(underErr)
 		}
 	})
 }

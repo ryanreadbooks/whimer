@@ -10,6 +10,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/utils/maps"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	noterepo "github.com/ryanreadbooks/whimer/note/internal/infra/repo/note"
 	notemodel "github.com/ryanreadbooks/whimer/note/internal/model/note"
@@ -88,4 +89,22 @@ func (s *NoteFeedSvc) randomGet(ctx context.Context, count int) (*notemodel.Batc
 	}
 
 	return AssembleNotes(ctx, items)
+}
+
+func (s *NoteFeedSvc) GetNoteDetail(ctx context.Context, noteId uint64) (*notemodel.Item, error) {
+	note, err := GetNote(ctx, noteId)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "get note detail failed").WithExtra("noteId", noteId).WithCtx(ctx)
+	}
+
+	if note.Privacy == global.PrivacyPrivate {
+		return nil, global.ErrNoteNotPublic
+	}
+
+	res, err := AssembleNotes(ctx, []*noterepo.Model{note})
+	if err != nil || len(res.Items) == 0 {
+		return nil, xerror.Wrapf(err, "assemble notes failed").WithExtra("noteId", noteId).WithCtx(ctx)
+	}
+
+	return res.Items[0], nil
 }

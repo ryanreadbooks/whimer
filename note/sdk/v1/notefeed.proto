@@ -4,6 +4,7 @@ package note.sdk.v1;
 
 import "buf/validate/validate.proto";
 import "v1/note.proto";
+import "v1/noteinteract.proto";
 
 option go_package = "github.com/ryanreadbooks/whimer/note/sdk/v1";
 
@@ -19,17 +20,25 @@ message RandomGetResponse {
   int32 count = 2;
 }
 
-message GetNoteDetailRequest {
-  uint64 note_id = 1[ (buf.validate.field).uint64.gt = 0 ]; //笔记id
+message FeedNoteItem {
+  uint64 note_id = 1;
+  string title = 2;
+  string desc = 3;
+  repeated NoteImage images = 4;
+  uint64 likes = 5;                // 点赞数量
+  NoteInteraction interaction = 6; // 用户与笔记的交互状态
 }
 
-message GetNoteDetailResponse {
+message GetFeedNoteRequest {
+  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; //笔记id
 }
+
+message GetFeedNoteResponse { FeedNoteItem item = 1; }
 
 // note相关非管理功能服务
 service NoteFeedService {
   // 随机获取笔记内容
   rpc RandomGet(RandomGetRequest) returns (RandomGetResponse);
   // 获取笔记
-  rpc GetNoteDetail(GetNoteDetailRequest) returns (GetNoteDetailResponse);
+  rpc GetFeedNote(GetFeedNoteRequest) returns (GetFeedNoteResponse);
 }

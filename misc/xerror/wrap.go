@@ -191,10 +191,15 @@ func UnwrapFrames(err error) stacktrace.Frames {
 	return frames
 }
 
-func UnwrapMsg(err error) string {
-	var msbd strings.Builder
+func UnwrapMsg(err error) (string, error) {
+	var (
+		msbd          strings.Builder
+		underlyingErr error
+	)
+
 	for err != nil {
 		var msg string
+		underlyingErr = err
 		if msg = err.Error(); len(msg) > 0 {
 			msbd.WriteString(msg)
 		}
@@ -208,5 +213,6 @@ func UnwrapMsg(err error) string {
 			msbd.WriteString(" -> ")
 		}
 	}
-	return msbd.String()
+
+	return msbd.String(), underlyingErr
 }

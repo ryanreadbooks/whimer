@@ -35,3 +35,14 @@ func (s *NoteInteractServiceServer) GetNoteLikes(ctx context.Context, in *notev1
 
 	return &notev1.GetNoteLikesResponse{Likes: likes}, nil
 }
+
+// 检查用户点赞状态
+func (s *NoteInteractServiceServer) CheckUserLikeStatus(ctx context.Context, in *notev1.CheckUserLikeStatusRequest) (
+	*notev1.CheckUserLikeStatusResponse, error) {
+	resp, err := s.Svc.NoteInteractSvc.CheckUserLikeStatus(ctx, in.Uid, in.NoteId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &notev1.CheckUserLikeStatusResponse{Liked: resp}, nil
+}

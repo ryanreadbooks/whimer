@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/oss/signer"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -18,22 +17,19 @@ import (
 	noteassetrepo "github.com/ryanreadbooks/whimer/note/internal/infra/repo/noteasset"
 	notemodel "github.com/ryanreadbooks/whimer/note/internal/model/note"
 
-	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 type NoteAdminSvc struct {
 	ctx       *ServiceContext
 	repo      *repo.Repo
-	cache     *NoteAdminCache
 	OssSigner *signer.Signer
 }
 
-func NewNoteAdminSvc(ctx *ServiceContext, repo *repo.Repo, cache *redis.Redis) *NoteAdminSvc {
+func NewNoteAdminSvc(ctx *ServiceContext) *NoteAdminSvc {
 	return &NoteAdminSvc{
-		ctx:   ctx,
-		repo:  infra.Repo(),
-		cache: NewNoteAdminCache(cache),
+		ctx:  ctx,
+		repo: infra.Repo(),
 		OssSigner: signer.NewSigner(
 			ctx.Config.Oss.User,
 			ctx.Config.Oss.Pass,
@@ -126,7 +122,7 @@ func (s *NoteAdminSvc) Update(ctx context.Context, req *notemodel.UpdateReq) err
 
 	defer func() {
 		// 删除缓存
-		if err := s.cache.DelNote(ctx, noteId); err != nil {
+		if err := CacheDelNote(ctx, noteId); err != nil {
 			xlog.Msg("cache del note failed").Err(err).Extra("noteId", noteId).Errorx(ctx)
 		}
 	}()
@@ -244,7 +240,7 @@ func (s *NoteAdminSvc) Delete(ctx context.Context, req *notemodel.DeleteReq) err
 	}
 
 	defer func() {
-		if err := s.cache.DelNote(ctx, noteId); err != nil {
+		if err := CacheDelNote(ctx, noteId); err != nil {
 			xlog.Msg("cache del note failed").Err(err).Extra("noteId", noteId).Errorx(ctx)
 		}
 	}()
@@ -289,7 +285,7 @@ func (s *NoteAdminSvc) List(ctx context.Context) (*notemodel.BatchNoteItem, erro
 	return AssembleNotes(ctx, notes)
 }
 
-// 获取笔记
+// 用于笔记作者获取笔记的详细信息
 func (s *NoteAdminSvc) GetNote(ctx context.Context, noteId uint64) (*notemodel.Item, error) {
 	var (
 		uid uint64 = metadata.Uid(ctx)
@@ -300,22 +296,9 @@ func (s *NoteAdminSvc) GetNote(ctx context.Context, noteId uint64) (*notemodel.I
 		return nil, global.ErrNoteNotFound
 	}
 
-	note, err := s.cache.GetNote(ctx, nid)
+	note, err := GetNote(ctx, nid)
 	if err != nil {
-		note, err = s.repo.NoteRepo.FindOne(ctx, nid)
-		if errors.Is(err, xsql.ErrNoRecord) {
-			return nil, global.ErrNoteNotFound
-		}
-		if err != nil {
-			return nil, xerror.Wrapf(err, "repo note find one failed").WithCtx(ctx)
-		}
-
-		concurrent.SafeGo(func() {
-			ctxc := context.WithoutCancel(ctx)
-			if errg := s.cache.SetNote(ctxc, note); errg != nil {
-				xlog.Msg("cache set note failed").Err(err).Extra("note", note).Errorx(ctxc)
-			}
-		})
+		return nil, xerror.Wrapf(err, "GetNote failed")
 	}
 
 	if uid != note.Owner {
@@ -346,4 +329,3 @@ func (s *NoteAdminSvc) GetNoteOwner(ctx context.Context, nid uint64) (uint64, er
 
 	return n.Owner, nil
 }
-

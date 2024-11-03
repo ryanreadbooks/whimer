@@ -12,6 +12,7 @@ const (
 	CodeInternal           = 10005
 	CodeCsrfFailed         = 10006
 	CodeServiceUnavailable = 10007
+	CodeInternalPanic      = 19000
 	CodeOther              = 19999
 )
 
@@ -25,6 +26,7 @@ var (
 	ErrPermission         = NewError(Forbidden, CodeForbidden, "需要特殊通行证")
 	ErrNotFound           = NewError(NotFound, CodeNotFound, "找不到你要的资源")
 	ErrInternal           = NewError(InternalServerError, CodeInternal, "服务器被怪兽踢烂了(ノ｀Д´)ノ")
+	ErrInternalPanic      = NewError(InternalServerError, CodeInternalPanic, "服务器炸掉了")
 	ErrCsrf               = NewError(Forbidden, CodeCsrfFailed, "CSRF校验失败")
 	ErrServiceUnavailable = NewError(ServiceUnavailable, CodeServiceUnavailable, "服务暂不可用")
 )

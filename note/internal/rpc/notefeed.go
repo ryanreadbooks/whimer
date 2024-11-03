@@ -41,3 +41,13 @@ func (s *NoteFeedServiceServer) RandomGet(ctx context.Context, in *notev1.Random
 		Count: int32(len(items)),
 	}, nil
 }
+
+func (s *NoteFeedServiceServer) GetFeedNote(ctx context.Context, in *notev1.GetFeedNoteRequest) (
+	*notev1.GetFeedNoteResponse, error) {
+	resp, err := s.Svc.NoteFeedSvc.GetNoteDetail(ctx, in.NoteId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &notev1.GetFeedNoteResponse{Item: resp.AsFeedPb()}, nil
+}

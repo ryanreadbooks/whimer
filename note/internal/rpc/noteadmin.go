@@ -143,7 +143,7 @@ func (s *NoteAdminServiceServer) DeleteNote(ctx context.Context, in *notev1.Dele
 	return &notev1.DeleteNoteResponse{}, nil
 }
 
-// 获取笔记的信息
+// 用于笔记作者获取笔记的详细信息
 func (s *NoteAdminServiceServer) GetNote(ctx context.Context, in *notev1.GetNoteRequest) (
 	*notev1.GetNoteResponse, error) {
 	if in == nil {
