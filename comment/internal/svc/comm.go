@@ -828,6 +828,18 @@ func (s *CommentSvc) counterGetCount(ctx context.Context, rid uint64, biz int32)
 	return summary.Count, nil
 }
 
+// 获取用户是否评论过某个对象
+func (s *CommentSvc) CheckUserCommentOnObject(ctx context.Context, uid, oid uint64) (bool, error) {
+	cnt, err := s.repo.CommentRepo.CountByOidUid(ctx, oid, uid)
+	if err != nil {
+		return false, xerror.Wrapf(err, "comment repo count by oid and uid failed").
+			WithExtras("uid", uid, "oid", oid).
+			WithCtx(ctx)
+	}
+
+	return cnt != 0, nil
+}
+
 // 全量同步评论数量
 func (s *CommentSvc) FullSyncReplyCountCache(ctx context.Context) error {
 	res, err := s.repo.CommentRepo.CountGroupByOid(ctx)

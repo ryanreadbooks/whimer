@@ -32,7 +32,7 @@ func main() {
 	ctx := svc.NewServiceContext(&c)
 
 	server := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
-		sdk.RegisterReplyServiceServer(s, rpc.NewReplyServer(ctx))
+		sdk.RegisterReplyServiceServer(s, rpc.NewReplyServiceServer(ctx))
 		xgrpc.EnableReflectionIfNecessary(c.Grpc, s)
 	})
 	interceptor.InstallUnaryServerInterceptors(server,

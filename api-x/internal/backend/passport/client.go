@@ -28,10 +28,10 @@ func Init(c *config.Config) {
 	}
 }
 
-func GetAuther() *auth.Auth {
+func Auther() *auth.Auth {
 	return auther
 }
 
-func GetUserer() user.UserClient {
+func Userer() user.UserClient {
 	return userer
 }

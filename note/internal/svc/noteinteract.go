@@ -8,7 +8,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"
-
+	notemodel "github.com/ryanreadbooks/whimer/note/internal/model/note"
 	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
@@ -84,17 +84,34 @@ func (s *NoteInteractSvc) GetNoteLikes(ctx context.Context, noteId uint64) (uint
 func (s *NoteInteractSvc) CheckUserLikeStatus(ctx context.Context, uid, noteId uint64) (bool, error) {
 	if ok, err := IsNoteExist(ctx, noteId); err != nil || !ok {
 		// 笔记不存在当作没有点赞过
-		return false, xerror.Wrapf(err, "check note exists failed")
+		return false, xerror.Wrapf(err, "check user like status check note exists failed")
 	}
 
-	resp, err := dep.GetCounter().GetRecord(ctx, &counterv1.GetRecordRequest{
-		BizCode: global.NoteLikeBizcode,
-		Uid:     uid,
-		Oid:     noteId,
-	})
+	if liked, err := CheckUserLikeStatus(ctx, uid, noteId); err != nil {
+		return false, xerror.Wrapf(err, "common check user like status failed")
+	} else {
+		return liked, nil
+	}
+}
+
+func (s *NoteInteractSvc) GetNoteInteraction(ctx context.Context, noteId uint64) (*notemodel.UserInteraction, error) {
+	ok, err := IsNoteExist(ctx, noteId)
 	if err != nil {
-		return false, xerror.Wrapf(err, "counter get record failed").WithExtra("noteId", noteId).WithExtra("user", uid).WithCtx(ctx)
+		return nil, xerror.Wrapf(err, "GetNoteInteraction check note exists failed")
 	}
 
-	return resp.GetRecord().GetAct() == counterv1.RecordAct_RECORD_ACT_ADD, nil
+	if !ok {
+		return nil, global.ErrNoteNotFound
+	}
+
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	liked, err := CheckUserLikeStatus(ctx, uid, noteId)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "common check user like status failed")
+	}
+
+	return &notemodel.UserInteraction{Liked: liked}, nil
 }

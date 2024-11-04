@@ -29,21 +29,23 @@ func Init(c *config.Config) {
 		logx.Errorf("external init: can not init note")
 	} else {
 		noteAdmin = notesdk.NewNoteAdminServiceClient(noteCli.Conn())
+		noteFeed = notesdk.NewNoteFeedServiceClient(noteCli.Conn())
+		noteInteract = notesdk.NewNoteInteractServiceClient(noteCli.Conn())
 		available.Store(true)
 	}
 
 	initModel(c)
 }
 
-func GetNoteAdmin() notesdk.NoteAdminServiceClient {
+func NoteAdminServer() notesdk.NoteAdminServiceClient {
 	return noteAdmin
 }
 
-func GetNoteInteract() notesdk.NoteInteractServiceClient {
+func NoteInteractServer() notesdk.NoteInteractServiceClient {
 	return noteInteract
 }
 
-func GetNoteFeed() notesdk.NoteFeedServiceClient {
+func NoteFeedServer() notesdk.NoteFeedServiceClient {
 	return noteFeed
 }
 

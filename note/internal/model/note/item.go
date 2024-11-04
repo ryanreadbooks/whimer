@@ -53,6 +53,7 @@ func (i *Item) AsFeedPb() *notev1.FeedNoteItem {
 		NoteId:      i.NoteId,
 		Title:       i.Title,
 		Desc:        i.Desc,
+		CreatedAt:   i.CreateAt,
 		Images:      i.Images.AsPb(),
 		Likes:       i.Likes,
 		Interaction: i.UserInteraction.AsPb(),

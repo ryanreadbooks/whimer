@@ -19,9 +19,15 @@ func SafeGo(job func()) {
 	}()
 }
 
-func DoneIn(duraton time.Duration, job func(ctx context.Context)) {
+type DoneInJob func(ctx context.Context)
+
+func DoneIn(duration time.Duration, job DoneInJob) {
+	DoneInCtx(context.Background(), duration, job)
+}
+
+func DoneInCtx(parent context.Context, duration time.Duration, job DoneInJob) {
 	SafeGo(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), duraton)
+		ctx, cancel := context.WithTimeout(parent, duration)
 		defer cancel()
 
 		job(ctx)

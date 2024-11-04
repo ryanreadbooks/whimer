@@ -4,11 +4,11 @@ import (
 	"sync/atomic"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
+	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
+
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
-
-	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 )
 
 var (
@@ -30,6 +30,6 @@ func Init(c *config.Config) {
 	}
 }
 
-func GetCommenter() commentv1.ReplyServiceClient {
+func Commenter() commentv1.ReplyServiceClient {
 	return commenter
 }

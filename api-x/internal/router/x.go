@@ -13,7 +13,7 @@ import (
 func RegX(engine *rest.Server, svc *backend.Handler) {
 	root := xhttp.NewRouterGroup(engine)
 	xGroup := root.Group("/x",
-		auth.UserWeb(passport.GetAuther()),
+		auth.UserWeb(passport.Auther()),
 	)
 
 	// register all routes

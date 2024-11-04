@@ -24,9 +24,10 @@ message FeedNoteItem {
   uint64 note_id = 1;
   string title = 2;
   string desc = 3;
-  repeated NoteImage images = 4;
-  uint64 likes = 5;                // 点赞数量
-  NoteInteraction interaction = 6; // 用户与笔记的交互状态
+  int64 created_at = 4;
+  repeated NoteImage images = 5;
+  uint64 likes = 6;                // 点赞数量
+  NoteInteraction interaction = 7; // 用户与笔记的交互状态
 }
 
 message GetFeedNoteRequest {

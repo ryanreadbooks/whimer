@@ -23,7 +23,7 @@ import (
 // 判断笔记是否存在
 func IsNoteExist(ctx context.Context, nid uint64) (bool, error) {
 	if nid <= 0 {
-		return false, global.ErrNoteNotFound
+		return false, nil
 	}
 
 	_, err := infra.Repo().NoteRepo.FindOne(ctx, nid)
@@ -31,7 +31,7 @@ func IsNoteExist(ctx context.Context, nid uint64) (bool, error) {
 		if !xsql.IsNotFound(err) {
 			return false, xerror.Wrapf(err, "note repo find one failed").WithExtra("noteId", nid).WithCtx(ctx)
 		}
-		return false, global.ErrNoteNotFound
+		return false, nil
 	}
 
 	return true, nil
@@ -153,4 +153,21 @@ func GetNote(ctx context.Context, noteId uint64) (*noterepo.Model, error) {
 	}
 
 	return note, nil
+}
+
+// 获取用户是否点赞过笔记
+func CheckUserLikeStatus(ctx context.Context, uid, noteId uint64) (bool, error) {
+	resp, err := dep.GetCounter().GetRecord(ctx, &counterv1.GetRecordRequest{
+		BizCode: global.NoteLikeBizcode,
+		Uid:     uid,
+		Oid:     noteId,
+	})
+	if err != nil {
+		return false, xerror.Wrapf(err, "CheckUserLikeStatus counter get record failed").
+			WithExtra("noteId", noteId).
+			WithExtra("user", uid).
+			WithCtx(ctx)
+	}
+
+	return resp.GetRecord().GetAct() == counterv1.RecordAct_RECORD_ACT_ADD, nil
 }

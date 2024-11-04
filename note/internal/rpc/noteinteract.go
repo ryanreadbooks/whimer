@@ -46,3 +46,18 @@ func (s *NoteInteractServiceServer) CheckUserLikeStatus(ctx context.Context, in 
 
 	return &notev1.CheckUserLikeStatusResponse{Liked: resp}, nil
 }
+
+// 获取用户和某笔记的交互状态，包括是否点赞等
+func (s *NoteInteractServiceServer) GetNoteInteraction(ctx context.Context, in *notev1.GetNoteInteractionRequest) (
+	*notev1.GetNoteInteractionResponse, error) {
+	resp, err := s.Svc.NoteInteractSvc.GetNoteInteraction(ctx, in.NoteId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &notev1.GetNoteInteractionResponse{
+		Interaction: &notev1.NoteInteraction{
+			Liked: resp.Liked,
+		},
+	}, nil
+}

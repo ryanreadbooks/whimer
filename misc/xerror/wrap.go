@@ -18,6 +18,8 @@ type ErrProxy interface {
 	WithCtx(ctx context.Context) ErrProxy
 	WithField(key string, val any) ErrProxy
 	WithExtra(key string, val any) ErrProxy
+	WithFields(kvs ...any) ErrProxy
+	WithExtras(kvs ...any) ErrProxy
 }
 
 type Unwrapper interface {
@@ -105,6 +107,26 @@ func (e *errProxy) WithField(key string, val any) ErrProxy {
 
 func (e *errProxy) WithExtra(key string, val any) ErrProxy {
 	e.extra[key] = val
+	return e
+}
+
+func (e *errProxy) WithFields(kvs ...any) ErrProxy {
+	if len(kvs)%2 == 0 {
+		for i := range kvs {
+			e.fields[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
+		}
+	}
+
+	return e
+}
+
+func (e *errProxy) WithExtras(kvs ...any) ErrProxy {
+	if len(kvs)%2 == 0 {
+		for i := range kvs {
+			e.extra[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
+		}
+	}
+
 	return e
 }
 
