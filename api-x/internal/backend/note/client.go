@@ -4,11 +4,10 @@ import (
 	"sync/atomic"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
-	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/zrpc"
 )
 
 var (
@@ -22,15 +21,13 @@ var (
 )
 
 func Init(c *config.Config) {
-	noteCli, err := zrpc.NewClient(
-		c.Backend.Note.AsZrpcClientConf(),
-		zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientMetadataInject))
+	conn, err := xgrpc.NewClientConn(c.Backend.Note)
 	if err != nil {
 		logx.Errorf("external init: can not init note")
 	} else {
-		noteAdmin = notesdk.NewNoteAdminServiceClient(noteCli.Conn())
-		noteFeed = notesdk.NewNoteFeedServiceClient(noteCli.Conn())
-		noteInteract = notesdk.NewNoteInteractServiceClient(noteCli.Conn())
+		noteAdmin = notesdk.NewNoteAdminServiceClient(conn)
+		noteFeed = notesdk.NewNoteFeedServiceClient(conn)
+		noteInteract = notesdk.NewNoteInteractServiceClient(conn)
 		available.Store(true)
 	}
 

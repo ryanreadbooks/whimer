@@ -2,7 +2,6 @@ package xerror
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/misc/utils"
@@ -11,8 +10,8 @@ import (
 )
 
 type Error struct {
-	StatusCode int    `json:"-"`    // http响应状态码
-	Code       int    `json:"code"` // 业务响应码
+	StatusCode int    `json:"stcode,omitempty"` // http响应状态码
+	Code       int    `json:"code"`             // 业务响应码
 	Message    string `json:"msg"`
 }
 
@@ -20,7 +19,10 @@ func (e *Error) Error() string {
 	if e == nil {
 		return ""
 	}
-	return fmt.Sprintf("Code: %d, Msg: %s", e.Code, e.Message)
+
+	ne := *e
+	ne.StatusCode = 0 // 不对外
+	return ne.Json()
 }
 
 func (e *Error) Json() string {
@@ -155,4 +157,14 @@ func ShouldLogError(err error) bool {
 	}
 
 	return false
+}
+
+func FromJson(c string) *Error {
+	var e Error
+	err := json.Unmarshal(utils.StringToBytes(c), &e)
+	if err != nil {
+		return ErrOther
+	}
+
+	return &e
 }

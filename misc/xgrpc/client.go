@@ -24,6 +24,7 @@ func NewClient[T any, P func(cc grpc.ClientConnInterface) T](
 
 	cli, err := zrpc.NewClient(
 		conf.AsZrpcClientConf(),
+		zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientErrorHandler),
 		zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientMetadataInject),
 	)
 
@@ -32,4 +33,18 @@ func NewClient[T any, P func(cc grpc.ClientConnInterface) T](
 	}
 
 	return constructor(cli.Conn()), nil
+}
+
+// 创建带通用拦截器的grpc客户端连接
+func NewClientConn(conf xconf.Discovery) (*grpc.ClientConn, error) {
+	cli, err := zrpc.NewClient(
+		conf.AsZrpcClientConf(),
+		zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientErrorHandler),
+		zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientMetadataInject),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return cli.Conn(), nil
 }

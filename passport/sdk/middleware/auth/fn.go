@@ -43,3 +43,19 @@ func UserWeb(a *Auth) rest.Middleware {
 		}
 	}
 }
+
+// 可选登录接口
+func UserWebOptional(a *Auth) rest.Middleware {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			uid, sessId, err := a.UserWeb(r.Context(), r)
+			// err is allowed
+			ctx := metadata.WithUid(r.Context(), uid)
+			if err == nil {
+				ctx = metadata.WithSessId(ctx, sessId)
+			}
+
+			next(w, r.WithContext(ctx))
+		}
+	}
+}

@@ -98,7 +98,7 @@ func (s *NoteAdminSvc) Update(ctx context.Context, req *notemodel.UpdateReq) err
 	noteId := req.NoteId
 	xlog.Msg("creator updating").Extra("noteId", noteId).Debugx(ctx)
 	queried, err := s.repo.NoteRepo.FindOne(ctx, noteId)
-	if errors.Is(xsql.ErrNoRecord, err) {
+	if errors.Is(err, xsql.ErrNoRecord) {
 		return global.ErrNoteNotFound
 	}
 	if err != nil {

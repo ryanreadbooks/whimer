@@ -29,4 +29,5 @@ var (
 	ErrInternalPanic      = NewError(InternalServerError, CodeInternalPanic, "服务器炸掉了")
 	ErrCsrf               = NewError(Forbidden, CodeCsrfFailed, "CSRF校验失败")
 	ErrServiceUnavailable = NewError(ServiceUnavailable, CodeServiceUnavailable, "服务暂不可用")
+	ErrOther              = NewError(InternalServerError, CodeOther, "服务错误")
 )

@@ -20,7 +20,8 @@ func errorHandler(ctx context.Context, err error) (stcode int, retErr any) {
 		return http.StatusOK, Success
 	}
 
-	var errPxy ErrProxy
+	// 全局错误处理
+	errPxy, _ := err.(ErrProxy)
 
 	// HTTP接口全局错误日志打印
 	defer func() {
@@ -46,9 +47,6 @@ func errorHandler(ctx context.Context, err error) (stcode int, retErr any) {
 			}
 		}
 	}()
-
-	// 全局错误处理
-	errPxy, _ = err.(ErrProxy)
 
 	err = Cause(err)
 	xerr, ok := err.(*Error)

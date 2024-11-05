@@ -22,6 +22,7 @@ func UnaryServerErrorHandler(ctx context.Context,
 		msg    string
 		rawErr error
 	)
+
 	// 自动输出日志
 	defer func() {
 		if rawErr != nil {
@@ -51,25 +52,25 @@ func UnaryServerErrorHandler(ctx context.Context,
 
 	resp, err = handler(ctx, req)
 	rawErr = err
-	if err != nil {
-		// 错误转换 自动转换成grpc error
-		st, ok := status.FromError(err) // 已经是grpc error
+	err = xerror.Cause(err)
+	// 转成Error对象透传到下游
+	xerr, ok := err.(*xerror.Error)
+	if ok {
+		code = xerror.GrpcCodeFromHttpStatus(xerr.StatusCode)
+		msg = xerr.Json()
+	} else {
+		// 看是否是原生的grpc err
+		st, ok := status.FromError(rawErr)
 		if ok {
 			code = st.Code()
-			return resp, err // err == nil is handled here
+			msg = xerror.ErrOther.Msg(st.Message()).Json()
+		} else {
+			code = codes.Internal
+			msg = xerror.ErrInternal.Msg(rawErr.Error()).Json()
 		}
-
-		err = xerror.Cause(err)
-		errx, ok := err.(*xerror.Error)
-		if ok {
-			code = xerror.GrpcCodeFromHttpStatus(errx.StatusCode)
-			msg = errx.Message
-		}
-
-		return resp, status.Error(code, msg)
 	}
 
-	return resp, err
+	return resp, status.Error(code, msg)
 }
 
 func codeShouldLogError(code codes.Code) bool {
@@ -83,4 +84,25 @@ func codeShouldLogError(code codes.Code) bool {
 		return false
 	}
 	return true
+}
+
+func UnaryClientErrorHandler(ctx context.Context,
+	method string,
+	req, reply any,
+	cc *grpc.ClientConn,
+	invoker grpc.UnaryInvoker,
+	opts ...grpc.CallOption) error {
+
+	err := invoker(ctx, method, req, reply, cc, opts...)
+	if err != nil {
+		// err转成Error类型对象
+		if st, ok := status.FromError(err); ok {
+			var xerr *xerror.Error = xerror.FromJson(st.Message())
+			return xerr
+		} else {
+			return xerror.NewError(xerror.ErrInternal.StatusCode, xerror.ErrInternal.Code, err.Error())
+		}
+	}
+
+	return err
 }

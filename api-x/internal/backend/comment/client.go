@@ -5,10 +5,9 @@ import (
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
-	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/zrpc"
 )
 
 var (
@@ -19,13 +18,11 @@ var (
 )
 
 func Init(c *config.Config) {
-	cli, err := zrpc.NewClient(
-		c.Backend.Comment.AsZrpcClientConf(),
-		zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientMetadataInject))
+	conn, err := xgrpc.NewClientConn(c.Backend.Comment)
 	if err != nil {
 		logx.Errorf("external init: can not init comment")
 	} else {
-		commenter = commentv1.NewReplyServiceClient(cli.Conn())
+		commenter = commentv1.NewReplyServiceClient(conn)
 		available.Store(true)
 	}
 }
