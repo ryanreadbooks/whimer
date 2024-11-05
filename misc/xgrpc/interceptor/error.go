@@ -52,6 +52,10 @@ func UnaryServerErrorHandler(ctx context.Context,
 
 	resp, err = handler(ctx, req)
 	rawErr = err
+	if err == nil {
+		return resp, err
+	}
+
 	err = xerror.Cause(err)
 	// 转成Error对象透传到下游
 	xerr, ok := err.(*xerror.Error)
