@@ -36,10 +36,22 @@ message GetFeedNoteRequest {
 
 message GetFeedNoteResponse { FeedNoteItem item = 1; }
 
+message RecommendGetRequest {
+  uint64 uid = 1; // 用户id
+  int32 need_num = 2 [
+    (buf.validate.field).int32.gt = 0,
+    (buf.validate.field).int32.lte = 30
+  ]; // 推荐条数
+}
+
+message RecommendGetResponse {}
+
 // note相关非管理功能服务
 service NoteFeedService {
   // 随机获取笔记内容
   rpc RandomGet(RandomGetRequest) returns (RandomGetResponse);
   // 获取笔记
   rpc GetFeedNote(GetFeedNoteRequest) returns (GetFeedNoteResponse);
+  // 按照推荐获取
+  rpc RecommendGet(RecommendGetRequest) returns (RecommendGetResponse);
 }

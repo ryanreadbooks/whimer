@@ -8,4 +8,5 @@ use (
 	./misc
 	./note
 	./passport
+	./relation
 )

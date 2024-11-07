@@ -71,48 +71,87 @@ func (e *errProxy) Format(f fmt.State, verb rune) {
 }
 
 func (e *errProxy) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+
 	return e.cause
 }
 
 func (e *errProxy) Cause() error {
+	if e == nil {
+		return nil
+	}
+
 	return e.cause
 }
 
 func (e *errProxy) Stack() []*runtime.Frame {
+	if e == nil {
+		return nil
+	}
+
 	return e.stack
 }
 
 func (e *errProxy) Context() context.Context {
+	if e == nil {
+		return nil
+	}
+
 	return e.ctx
 }
 
 func (e *errProxy) Fields() map[string]any {
+	if e == nil {
+		return nil
+	}
+
 	return e.fields
 }
 
 func (e *errProxy) Extra() map[string]any {
+	if e == nil {
+		return nil
+	}
+
 	return e.extra
 }
 
 // log related methods
 func (e *errProxy) WithCtx(ctx context.Context) ErrProxy {
-	e.ctx = ctx
+	if e != nil {
+		e.ctx = ctx
+	}
 	return e
 }
 
 func (e *errProxy) WithField(key string, val any) ErrProxy {
-	e.fields[key] = val
+	if e != nil {
+		if e.fields == nil {
+			e.fields = make(map[string]any)
+		}
+		e.fields[key] = val
+	}
 	return e
 }
 
 func (e *errProxy) WithExtra(key string, val any) ErrProxy {
-	e.extra[key] = val
+	if e != nil {
+		if e.extra == nil {
+			e.extra = make(map[string]any)
+		}
+		e.extra[key] = val
+	}
 	return e
 }
 
 func (e *errProxy) WithFields(kvs ...any) ErrProxy {
-	if len(kvs)%2 == 0 {
-		for i := range kvs {
+	if e != nil && len(kvs)%2 == 0 {
+		if e.fields == nil {
+			e.fields = make(map[string]any)
+		}
+		for i := 0; i < len(kvs)/2; i++ {
 			e.fields[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
 		}
 	}
@@ -121,8 +160,11 @@ func (e *errProxy) WithFields(kvs ...any) ErrProxy {
 }
 
 func (e *errProxy) WithExtras(kvs ...any) ErrProxy {
-	if len(kvs)%2 == 0 {
-		for i := range kvs {
+	if e != nil && len(kvs)%2 == 0 {
+		if e.extra == nil {
+			e.extra = make(map[string]any)
+		}
+		for i := 0; i < len(kvs)/2; i++ {
 			e.extra[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
 		}
 	}

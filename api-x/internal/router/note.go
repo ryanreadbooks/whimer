@@ -10,7 +10,7 @@ import (
 func regNoteRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 	g := group.Group("/note")
 	{
-		admin := g.Group("/admin", middleware.MustLogin())
+		admin := g.Group("/creator", middleware.MustLogin())
 		{
 			v1g := admin.Group("/v1")
 			// 发布笔记

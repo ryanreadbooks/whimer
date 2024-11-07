@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NoteFeedService_RandomGet_FullMethodName   = "/note.sdk.v1.NoteFeedService/RandomGet"
-	NoteFeedService_GetFeedNote_FullMethodName = "/note.sdk.v1.NoteFeedService/GetFeedNote"
+	NoteFeedService_RandomGet_FullMethodName    = "/note.sdk.v1.NoteFeedService/RandomGet"
+	NoteFeedService_GetFeedNote_FullMethodName  = "/note.sdk.v1.NoteFeedService/GetFeedNote"
+	NoteFeedService_RecommendGet_FullMethodName = "/note.sdk.v1.NoteFeedService/RecommendGet"
 )
 
 // NoteFeedServiceClient is the client API for NoteFeedService service.
@@ -33,6 +34,8 @@ type NoteFeedServiceClient interface {
 	RandomGet(ctx context.Context, in *RandomGetRequest, opts ...grpc.CallOption) (*RandomGetResponse, error)
 	// 获取笔记
 	GetFeedNote(ctx context.Context, in *GetFeedNoteRequest, opts ...grpc.CallOption) (*GetFeedNoteResponse, error)
+	// 按照推荐获取
+	RecommendGet(ctx context.Context, in *RecommendGetRequest, opts ...grpc.CallOption) (*RecommendGetResponse, error)
 }
 
 type noteFeedServiceClient struct {
@@ -63,6 +66,16 @@ func (c *noteFeedServiceClient) GetFeedNote(ctx context.Context, in *GetFeedNote
 	return out, nil
 }
 
+func (c *noteFeedServiceClient) RecommendGet(ctx context.Context, in *RecommendGetRequest, opts ...grpc.CallOption) (*RecommendGetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RecommendGetResponse)
+	err := c.cc.Invoke(ctx, NoteFeedService_RecommendGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NoteFeedServiceServer is the server API for NoteFeedService service.
 // All implementations must embed UnimplementedNoteFeedServiceServer
 // for forward compatibility.
@@ -73,6 +86,8 @@ type NoteFeedServiceServer interface {
 	RandomGet(context.Context, *RandomGetRequest) (*RandomGetResponse, error)
 	// 获取笔记
 	GetFeedNote(context.Context, *GetFeedNoteRequest) (*GetFeedNoteResponse, error)
+	// 按照推荐获取
+	RecommendGet(context.Context, *RecommendGetRequest) (*RecommendGetResponse, error)
 	mustEmbedUnimplementedNoteFeedServiceServer()
 }
 
@@ -88,6 +103,9 @@ func (UnimplementedNoteFeedServiceServer) RandomGet(context.Context, *RandomGetR
 }
 func (UnimplementedNoteFeedServiceServer) GetFeedNote(context.Context, *GetFeedNoteRequest) (*GetFeedNoteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFeedNote not implemented")
+}
+func (UnimplementedNoteFeedServiceServer) RecommendGet(context.Context, *RecommendGetRequest) (*RecommendGetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RecommendGet not implemented")
 }
 func (UnimplementedNoteFeedServiceServer) mustEmbedUnimplementedNoteFeedServiceServer() {}
 func (UnimplementedNoteFeedServiceServer) testEmbeddedByValue()                         {}
@@ -146,6 +164,24 @@ func _NoteFeedService_GetFeedNote_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NoteFeedService_RecommendGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecommendGetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteFeedServiceServer).RecommendGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteFeedService_RecommendGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteFeedServiceServer).RecommendGet(ctx, req.(*RecommendGetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NoteFeedService_ServiceDesc is the grpc.ServiceDesc for NoteFeedService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -160,6 +196,10 @@ var NoteFeedService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetFeedNote",
 			Handler:    _NoteFeedService_GetFeedNote_Handler,
+		},
+		{
+			MethodName: "RecommendGet",
+			Handler:    _NoteFeedService_RecommendGet_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

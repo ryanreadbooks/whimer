@@ -220,7 +220,7 @@ func Msg(s string) *LogItem {
 func Fields(kvs ...interface{}) *LogItem {
 	l := newLogItem()
 	if len(kvs)%2 == 0 {
-		for i := range kvs {
+		for i := 0; i < len(kvs)/2; i++ {
 			l.fields[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
 		}
 	}
@@ -230,7 +230,7 @@ func Fields(kvs ...interface{}) *LogItem {
 func Extras(kvs ...interface{}) *LogItem {
 	l := newLogItem()
 	if len(kvs)%2 == 0 {
-		for i := range kvs {
+		for i := 0; i < len(kvs)/2; i++ {
 			l.extra[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
 		}
 	}

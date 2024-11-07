@@ -14,7 +14,7 @@ var (
 	// 身份认证
 	auther *auth.Auth
 	// 笔记服务
-	noter notesdk.NoteAdminServiceClient
+	noter notesdk.NoteCreatorServiceClient
 	// 计数服务
 	counter countersdk.CounterServiceClient
 )
@@ -25,7 +25,7 @@ func Init(c *config.Config) {
 	var err error
 
 	noter, err = xgrpc.NewClient(c.External.Grpc.Note,
-		notesdk.NewNoteAdminServiceClient)
+		notesdk.NewNoteCreatorServiceClient)
 	if err != nil {
 		logx.Errorf("external init: can not init noter: %v", err)
 	}
@@ -41,7 +41,7 @@ func GetAuther() *auth.Auth {
 	return auther
 }
 
-func GetNoter() notesdk.NoteAdminServiceClient {
+func GetNoter() notesdk.NoteCreatorServiceClient {
 	return noter
 }
 

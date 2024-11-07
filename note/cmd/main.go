@@ -4,8 +4,8 @@ import (
 	"flag"
 
 	"github.com/ryanreadbooks/whimer/note/internal/config"
-	"github.com/ryanreadbooks/whimer/note/internal/rpc"
-	"github.com/ryanreadbooks/whimer/note/internal/svc"
+	"github.com/ryanreadbooks/whimer/note/internal/entry/grpc"
+	"github.com/ryanreadbooks/whimer/note/internal/srv"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -18,9 +18,9 @@ func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
-	ctx := svc.NewServiceContext(&config.Conf)
+	srv := srv.NewServiceContext(&config.Conf)
 
-	grpcServer := rpc.Init(config.Conf.Grpc, ctx)
+	grpcServer := grpc.Init(config.Conf.Grpc, srv)
 
 	group := service.NewServiceGroup()
 	defer group.Stop()

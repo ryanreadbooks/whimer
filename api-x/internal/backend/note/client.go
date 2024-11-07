@@ -12,7 +12,7 @@ import (
 
 var (
 	// 笔记服务
-	noteAdmin    notesdk.NoteAdminServiceClient
+	noteCreator  notesdk.NoteCreatorServiceClient
 	noteFeed     notesdk.NoteFeedServiceClient
 	noteInteract notesdk.NoteInteractServiceClient
 
@@ -25,7 +25,7 @@ func Init(c *config.Config) {
 	if err != nil {
 		logx.Errorf("external init: can not init note")
 	} else {
-		noteAdmin = notesdk.NewNoteAdminServiceClient(conn)
+		noteCreator = notesdk.NewNoteCreatorServiceClient(conn)
 		noteFeed = notesdk.NewNoteFeedServiceClient(conn)
 		noteInteract = notesdk.NewNoteInteractServiceClient(conn)
 		available.Store(true)
@@ -34,8 +34,8 @@ func Init(c *config.Config) {
 	initModel(c)
 }
 
-func NoteAdminServer() notesdk.NoteAdminServiceClient {
-	return noteAdmin
+func NoteCreatorServer() notesdk.NoteCreatorServiceClient {
+	return noteCreator
 }
 
 func NoteInteractServer() notesdk.NoteInteractServiceClient {

@@ -28,7 +28,7 @@ func (h *Handler) AdminCreateNote() http.HandlerFunc {
 		}
 
 		// service to create note
-		resp, err := note.NoteAdminServer().CreateNote(r.Context(), req.AsPb())
+		resp, err := note.NoteCreatorServer().CreateNote(r.Context(), req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -48,7 +48,7 @@ func (h *Handler) AdminUpdateNote() http.HandlerFunc {
 
 		var noteId = note.IdConfuser.DeConfuseU(req.NoteId)
 
-		_, err = note.NoteAdminServer().UpdateNote(r.Context(), &notev1.UpdateNoteRequest{
+		_, err = note.NoteCreatorServer().UpdateNote(r.Context(), &notev1.UpdateNoteRequest{
 			NoteId: noteId,
 			Note: &notev1.CreateNoteRequest{
 				Basic:  req.Basic.AsPb(),
@@ -73,7 +73,7 @@ func (h *Handler) AdminDeleteNote() http.HandlerFunc {
 			return
 		}
 
-		_, err = note.NoteAdminServer().DeleteNote(r.Context(), &notev1.DeleteNoteRequest{
+		_, err = note.NoteCreatorServer().DeleteNote(r.Context(), &notev1.DeleteNoteRequest{
 			NoteId: note.IdConfuser.DeConfuseU(req.NoteId),
 		})
 
@@ -88,7 +88,7 @@ func (h *Handler) AdminDeleteNote() http.HandlerFunc {
 
 func (h *Handler) AdminListNotes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		resp, err := note.NoteAdminServer().ListNote(r.Context(), &notev1.ListNoteRequest{})
+		resp, err := note.NoteCreatorServer().ListNote(r.Context(), &notev1.ListNoteRequest{})
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -106,7 +106,7 @@ func (h *Handler) AdminGetNote() http.HandlerFunc {
 			return
 		}
 
-		resp, err := note.NoteAdminServer().GetNote(r.Context(), &notev1.GetNoteRequest{
+		resp, err := note.NoteCreatorServer().GetNote(r.Context(), &notev1.GetNoteRequest{
 			NoteId: note.IdConfuser.DeConfuseU(req.NoteId),
 		})
 		if err != nil {
@@ -126,7 +126,7 @@ func (h *Handler) AdminUploadNoteAuth() http.HandlerFunc {
 			return
 		}
 
-		resp, err := note.NoteAdminServer().GetUploadAuth(r.Context(), req.AsPb())
+		resp, err := note.NoteCreatorServer().GetUploadAuth(r.Context(), req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
