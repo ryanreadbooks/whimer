@@ -7,6 +7,9 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
+// 全局变量
+var Conf Config
+
 type Config struct {
 	Http rest.RestConf      `json:"http"`
 	Grpc zrpc.RpcServerConf `json:"grpc"`

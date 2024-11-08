@@ -19,19 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ReplyService_AddReply_FullMethodName             = "/comment.sdk.v1.ReplyService/AddReply"
-	ReplyService_DelReply_FullMethodName             = "/comment.sdk.v1.ReplyService/DelReply"
-	ReplyService_LikeAction_FullMethodName           = "/comment.sdk.v1.ReplyService/LikeAction"
-	ReplyService_DislikeAction_FullMethodName        = "/comment.sdk.v1.ReplyService/DislikeAction"
-	ReplyService_ReportReply_FullMethodName          = "/comment.sdk.v1.ReplyService/ReportReply"
-	ReplyService_PinReply_FullMethodName             = "/comment.sdk.v1.ReplyService/PinReply"
-	ReplyService_PageGetReply_FullMethodName         = "/comment.sdk.v1.ReplyService/PageGetReply"
-	ReplyService_PageGetSubReply_FullMethodName      = "/comment.sdk.v1.ReplyService/PageGetSubReply"
-	ReplyService_PageGetDetailedReply_FullMethodName = "/comment.sdk.v1.ReplyService/PageGetDetailedReply"
-	ReplyService_GetPinnedReply_FullMethodName       = "/comment.sdk.v1.ReplyService/GetPinnedReply"
-	ReplyService_CountReply_FullMethodName           = "/comment.sdk.v1.ReplyService/CountReply"
-	ReplyService_GetReplyLikeCount_FullMethodName    = "/comment.sdk.v1.ReplyService/GetReplyLikeCount"
-	ReplyService_GetReplyDislikeCount_FullMethodName = "/comment.sdk.v1.ReplyService/GetReplyDislikeCount"
+	ReplyService_AddReply_FullMethodName                 = "/comment.sdk.v1.ReplyService/AddReply"
+	ReplyService_DelReply_FullMethodName                 = "/comment.sdk.v1.ReplyService/DelReply"
+	ReplyService_LikeAction_FullMethodName               = "/comment.sdk.v1.ReplyService/LikeAction"
+	ReplyService_DislikeAction_FullMethodName            = "/comment.sdk.v1.ReplyService/DislikeAction"
+	ReplyService_ReportReply_FullMethodName              = "/comment.sdk.v1.ReplyService/ReportReply"
+	ReplyService_PinReply_FullMethodName                 = "/comment.sdk.v1.ReplyService/PinReply"
+	ReplyService_PageGetReply_FullMethodName             = "/comment.sdk.v1.ReplyService/PageGetReply"
+	ReplyService_PageGetSubReply_FullMethodName          = "/comment.sdk.v1.ReplyService/PageGetSubReply"
+	ReplyService_PageGetDetailedReply_FullMethodName     = "/comment.sdk.v1.ReplyService/PageGetDetailedReply"
+	ReplyService_GetPinnedReply_FullMethodName           = "/comment.sdk.v1.ReplyService/GetPinnedReply"
+	ReplyService_CountReply_FullMethodName               = "/comment.sdk.v1.ReplyService/CountReply"
+	ReplyService_GetReplyLikeCount_FullMethodName        = "/comment.sdk.v1.ReplyService/GetReplyLikeCount"
+	ReplyService_GetReplyDislikeCount_FullMethodName     = "/comment.sdk.v1.ReplyService/GetReplyDislikeCount"
+	ReplyService_CheckUserCommentOnObject_FullMethodName = "/comment.sdk.v1.ReplyService/CheckUserCommentOnObject"
 )
 
 // ReplyServiceClient is the client API for ReplyService service.
@@ -64,6 +65,8 @@ type ReplyServiceClient interface {
 	GetReplyLikeCount(ctx context.Context, in *GetReplyLikeCountReq, opts ...grpc.CallOption) (*GetReplyLikeCountRes, error)
 	// 获取某条评论的点踩数
 	GetReplyDislikeCount(ctx context.Context, in *GetReplyDislikeCountReq, opts ...grpc.CallOption) (*GetReplyDislikeCountRes, error)
+	// 获取某个用户是否评论了某个对象
+	CheckUserCommentOnObject(ctx context.Context, in *CheckUserCommentOnObjectRequest, opts ...grpc.CallOption) (*CheckUserCommentOnObjectResponse, error)
 }
 
 type replyServiceClient struct {
@@ -204,6 +207,16 @@ func (c *replyServiceClient) GetReplyDislikeCount(ctx context.Context, in *GetRe
 	return out, nil
 }
 
+func (c *replyServiceClient) CheckUserCommentOnObject(ctx context.Context, in *CheckUserCommentOnObjectRequest, opts ...grpc.CallOption) (*CheckUserCommentOnObjectResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckUserCommentOnObjectResponse)
+	err := c.cc.Invoke(ctx, ReplyService_CheckUserCommentOnObject_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ReplyServiceServer is the server API for ReplyService service.
 // All implementations must embed UnimplementedReplyServiceServer
 // for forward compatibility.
@@ -234,6 +247,8 @@ type ReplyServiceServer interface {
 	GetReplyLikeCount(context.Context, *GetReplyLikeCountReq) (*GetReplyLikeCountRes, error)
 	// 获取某条评论的点踩数
 	GetReplyDislikeCount(context.Context, *GetReplyDislikeCountReq) (*GetReplyDislikeCountRes, error)
+	// 获取某个用户是否评论了某个对象
+	CheckUserCommentOnObject(context.Context, *CheckUserCommentOnObjectRequest) (*CheckUserCommentOnObjectResponse, error)
 	mustEmbedUnimplementedReplyServiceServer()
 }
 
@@ -282,6 +297,9 @@ func (UnimplementedReplyServiceServer) GetReplyLikeCount(context.Context, *GetRe
 }
 func (UnimplementedReplyServiceServer) GetReplyDislikeCount(context.Context, *GetReplyDislikeCountReq) (*GetReplyDislikeCountRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetReplyDislikeCount not implemented")
+}
+func (UnimplementedReplyServiceServer) CheckUserCommentOnObject(context.Context, *CheckUserCommentOnObjectRequest) (*CheckUserCommentOnObjectResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckUserCommentOnObject not implemented")
 }
 func (UnimplementedReplyServiceServer) mustEmbedUnimplementedReplyServiceServer() {}
 func (UnimplementedReplyServiceServer) testEmbeddedByValue()                      {}
@@ -538,6 +556,24 @@ func _ReplyService_GetReplyDislikeCount_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ReplyService_CheckUserCommentOnObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckUserCommentOnObjectRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReplyServiceServer).CheckUserCommentOnObject(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReplyService_CheckUserCommentOnObject_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReplyServiceServer).CheckUserCommentOnObject(ctx, req.(*CheckUserCommentOnObjectRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ReplyService_ServiceDesc is the grpc.ServiceDesc for ReplyService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -596,6 +632,10 @@ var ReplyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetReplyDislikeCount",
 			Handler:    _ReplyService_GetReplyDislikeCount_Handler,
+		},
+		{
+			MethodName: "CheckUserCommentOnObject",
+			Handler:    _ReplyService_CheckUserCommentOnObject_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

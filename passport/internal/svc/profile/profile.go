@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/misc/concur"
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/oss/uploader"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
@@ -107,7 +107,7 @@ func (s *Service) UpdateAvatar(ctx context.Context, req *profile.AvatarInfoReq) 
 	if err != nil {
 		xlog.Msg("repo update avatar err").Err(err).Extra("target_uid", user.Uid).Errorx(ctx)
 		// 异步
-		concur.DoneIn(time.Second*10, func(ctx context.Context) {
+		concurrent.DoneIn(time.Second*10, func(ctx context.Context) {
 			if err := s.avatarUploader.Remove(ctx, s.c.Oss.Bucket, objName); err != nil {
 				xlog.Msg("goroutine repo update then remove oss err").Err(err).
 					Extra("target_uid", user.Uid).

@@ -9,7 +9,7 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/comment"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
-	"github.com/ryanreadbooks/whimer/misc/concur"
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/utils/maps"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
@@ -24,14 +24,14 @@ func (h *Handler) PublishComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[comment.PubReq](httpx.ParseJsonBody, r)
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
-		resp, err := comment.GetCommenter().
+		resp, err := comment.Commenter().
 			AddReply(r.Context(), req.AsPb())
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
@@ -44,15 +44,15 @@ func (h *Handler) PageGetRoots() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[comment.GetCommentsReq](httpx.Parse, r)
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
 		ctx := r.Context()
-		rootReplies, err := comment.GetCommenter().
+		rootReplies, err := comment.Commenter().
 			PageGetReply(ctx, req.AsPb())
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
@@ -61,7 +61,7 @@ func (h *Handler) PageGetRoots() http.HandlerFunc {
 		if len(rootReplies.Replies) > 0 {
 			replies, err = attachReplyUsers(ctx, rootReplies.Replies)
 			if err != nil {
-				httpx.Error(w, err)
+				xhttp.Error(r, w, err)
 				return
 			}
 		}
@@ -79,15 +79,15 @@ func (h *Handler) PageGetSubs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[comment.GetSubCommentsReq](httpx.Parse, r)
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
 		ctx := r.Context()
-		subReplies, err := comment.GetCommenter().
+		subReplies, err := comment.Commenter().
 			PageGetSubReply(ctx, req.AsPb())
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
@@ -96,7 +96,7 @@ func (h *Handler) PageGetSubs() http.HandlerFunc {
 		if len(subReplies.Replies) > 0 {
 			replies, err = attachReplyUsers(ctx, subReplies.Replies)
 			if err != nil {
-				httpx.Error(w, err)
+				xhttp.Error(r, w, err)
 				return
 			}
 		}
@@ -127,7 +127,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[comment.GetCommentsReq](httpx.Parse, r)
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
@@ -141,10 +141,10 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 		if req.Cursor == 0 {
 			wg.Add(1)
 			// 第一次请求时需要返回置顶评论
-			concur.SafeGo(func() {
+			concurrent.SafeGo(func() {
 				defer wg.Done()
 				var err error
-				resp, err := comment.GetCommenter().
+				resp, err := comment.Commenter().
 					GetPinnedReply(ctx, &commentv1.GetPinnedReplyReq{Oid: req.Oid})
 				if err != nil {
 					logx.Errorw("rpc get pin reply err", xlog.WithUid(ctx), xlog.WithErr(err))
@@ -152,7 +152,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 				}
 				pinnedReply = resp.Reply
 
-				userResp, err := passport.GetUserer().
+				userResp, err := passport.Userer().
 					BatchGetUser(ctx,
 						&user.BatchGetUserReq{
 							Uids: maps.Keys(extractUidsMap([]*commentv1.DetailedReplyItem{pinnedReply})),
@@ -167,10 +167,10 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 			})
 		}
 
-		resp, err := comment.GetCommenter().
+		resp, err := comment.Commenter().
 			PageGetDetailedReply(ctx, req.AsPb())
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
@@ -182,10 +182,10 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 			uidsMap := extractUidsMap(resp.Replies)
 
 			// 发起请求获取uid的详细信息
-			userResp, err := passport.GetUserer().
+			userResp, err := passport.Userer().
 				BatchGetUser(ctx, &user.BatchGetUserReq{Uids: maps.Keys(uidsMap)})
 			if err != nil {
-				httpx.Error(w, err)
+				xhttp.Error(r, w, err)
 				return
 			}
 
@@ -221,7 +221,7 @@ func attachReplyUsers(ctx context.Context, replies []*commentv1.ReplyItem) ([]*c
 		uidsMap[root.Uid] = struct{}{}
 	}
 
-	userResp, err := passport.GetUserer().
+	userResp, err := passport.Userer().
 		BatchGetUser(ctx, &user.BatchGetUserReq{Uids: maps.Keys(uidsMap)})
 	if err != nil {
 		return nil, err
@@ -246,13 +246,13 @@ func (h *Handler) DelComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[comment.DelReq](httpx.Parse, r)
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
-		_, err = comment.GetCommenter().DelReply(r.Context(), &commentv1.DelReplyReq{ReplyId: req.ReplyId})
+		_, err = comment.Commenter().DelReply(r.Context(), &commentv1.DelReplyReq{ReplyId: req.ReplyId})
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
@@ -264,17 +264,17 @@ func (h *Handler) PinComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[comment.PinReq](httpx.Parse, r)
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
-		_, err = comment.GetCommenter().PinReply(r.Context(), &commentv1.PinReplyReq{
+		_, err = comment.Commenter().PinReply(r.Context(), &commentv1.PinReplyReq{
 			Oid:    req.Oid,
 			Rid:    req.ReplyId,
 			Action: commentv1.ReplyAction(req.Action),
 		})
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
@@ -286,16 +286,16 @@ func (h *Handler) LikeComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[comment.ThumbUpReq](httpx.ParseJsonBody, r)
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
-		_, err = comment.GetCommenter().LikeAction(r.Context(), &commentv1.LikeActionReq{
+		_, err = comment.Commenter().LikeAction(r.Context(), &commentv1.LikeActionReq{
 			ReplyId: req.ReplyId,
 			Action:  commentv1.ReplyAction(req.Action),
 		})
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
@@ -307,16 +307,16 @@ func (h *Handler) DislikeComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[comment.ThumbDownReq](httpx.ParseJsonBody, r)
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
-		_, err = comment.GetCommenter().DislikeAction(r.Context(), &commentv1.DislikeActionReq{
+		_, err = comment.Commenter().DislikeAction(r.Context(), &commentv1.DislikeActionReq{
 			ReplyId: req.ReplyId,
 			Action:  commentv1.ReplyAction(req.Action),
 		})
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
@@ -328,16 +328,16 @@ func (h *Handler) GetCommentLikeCount() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[comment.GetLikeCountReq](httpx.ParseForm, r)
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
-		res, err := comment.GetCommenter().GetReplyLikeCount(r.Context(),
+		res, err := comment.Commenter().GetReplyLikeCount(r.Context(),
 			&commentv1.GetReplyLikeCountReq{
 				ReplyId: req.ReplyId,
 			})
 		if err != nil {
-			httpx.Error(w, err)
+			xhttp.Error(r, w, err)
 			return
 		}
 

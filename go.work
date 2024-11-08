@@ -4,7 +4,9 @@ use (
 	./api-x
 	./comment
 	./counter
+	./feed
 	./misc
 	./note
 	./passport
+	./relation
 )

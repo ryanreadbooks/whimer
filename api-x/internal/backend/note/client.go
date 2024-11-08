@@ -4,36 +4,46 @@ import (
 	"sync/atomic"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
-	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/zrpc"
 )
 
 var (
 	// 笔记服务
-	noter notesdk.NoteServiceClient
+	noteCreator  notesdk.NoteCreatorServiceClient
+	noteFeed     notesdk.NoteFeedServiceClient
+	noteInteract notesdk.NoteInteractServiceClient
+
 	// 是否可用
 	available atomic.Bool
 )
 
 func Init(c *config.Config) {
-	noteCli, err := zrpc.NewClient(
-		c.Backend.Note.AsZrpcClientConf(),
-		zrpc.WithUnaryClientInterceptor(interceptor.ClientMetadataInject))
+	conn, err := xgrpc.NewClientConn(c.Backend.Note)
 	if err != nil {
 		logx.Errorf("external init: can not init note")
 	} else {
-		noter = notesdk.NewNoteServiceClient(noteCli.Conn())
+		noteCreator = notesdk.NewNoteCreatorServiceClient(conn)
+		noteFeed = notesdk.NewNoteFeedServiceClient(conn)
+		noteInteract = notesdk.NewNoteInteractServiceClient(conn)
 		available.Store(true)
 	}
 
 	initModel(c)
 }
 
-func GetNoter() notesdk.NoteServiceClient {
-	return noter
+func NoteCreatorServer() notesdk.NoteCreatorServiceClient {
+	return noteCreator
+}
+
+func NoteInteractServer() notesdk.NoteInteractServiceClient {
+	return noteInteract
+}
+
+func NoteFeedServer() notesdk.NoteFeedServiceClient {
+	return noteFeed
 }
 
 func Available() bool {

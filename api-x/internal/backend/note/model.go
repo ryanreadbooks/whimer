@@ -2,8 +2,8 @@ package note
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
-	"github.com/ryanreadbooks/whimer/misc/errorx"
 	"github.com/ryanreadbooks/whimer/misc/safety"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
@@ -49,8 +49,8 @@ type CreateReq struct {
 	Images CreateReqImageList `json:"images"`
 }
 
-func (r *CreateReq) AsPb() *notesdk.CreateNoteReq {
-	return &notesdk.CreateNoteReq{
+func (r *CreateReq) AsPb() *notesdk.CreateNoteRequest {
+	return &notesdk.CreateNoteRequest{
 		Basic:  r.Basic.AsPb(),
 		Images: r.Images.AsPb(),
 	}
@@ -75,11 +75,11 @@ type NoteIdReq struct {
 
 func (r *NoteIdReq) Validate() error {
 	if r == nil {
-		return errorx.ErrNilArg
+		return xerror.ErrNilArg
 	}
 
 	if len(r.NoteId) <= 0 {
-		return errorx.ErrArgs.Msg("笔记id错误")
+		return xerror.ErrArgs.Msg("笔记id错误")
 	}
 
 	return nil
@@ -92,7 +92,7 @@ type NoteItemImage struct {
 
 type NoteItemImageList []*NoteItemImage
 
-type NoteItem struct {
+type AdminNoteItem struct {
 	NoteId   string            `json:"note_id"`
 	Title    string            `json:"title"`
 	Desc     string            `json:"desc"`
@@ -103,7 +103,7 @@ type NoteItem struct {
 	Likes    uint64            `json:"likes"`
 }
 
-func NewNoteItemFromPb(pb *notesdk.NoteItem) *NoteItem {
+func NewAdminNoteItemFromPb(pb *notesdk.NoteItem) *AdminNoteItem {
 	if pb == nil {
 		return nil
 	}
@@ -116,7 +116,7 @@ func NewNoteItemFromPb(pb *notesdk.NoteItem) *NoteItem {
 		})
 	}
 
-	return &NoteItem{
+	return &AdminNoteItem{
 		NoteId:   IdConfuser.ConfuseU(pb.NoteId),
 		Title:    pb.Title,
 		Desc:     pb.Desc,
@@ -128,21 +128,21 @@ func NewNoteItemFromPb(pb *notesdk.NoteItem) *NoteItem {
 	}
 }
 
-type ListRes struct {
-	Items []*NoteItem `json:"items"`
+type AdminListRes struct {
+	Items []*AdminNoteItem `json:"items"`
 }
 
-func NewListResFromPb(pb *notesdk.ListNoteRes) *ListRes {
+func NewListResFromPb(pb *notesdk.ListNoteResponse) *AdminListRes {
 	if pb == nil {
 		return nil
 	}
 
-	items := make([]*NoteItem, 0, len(pb.Items))
+	items := make([]*AdminNoteItem, 0, len(pb.Items))
 	for _, item := range pb.Items {
-		items = append(items, NewNoteItemFromPb(item))
+		items = append(items, NewAdminNoteItemFromPb(item))
 	}
 
-	return &ListRes{Items: items}
+	return &AdminListRes{Items: items}
 }
 
 type UploadAuthReq struct {
@@ -151,8 +151,8 @@ type UploadAuthReq struct {
 	MimeType string `json:"mime" form:"mime"`
 }
 
-func (r *UploadAuthReq) AsPb() *notesdk.GetUploadAuthReq {
-	return &notesdk.GetUploadAuthReq{
+func (r *UploadAuthReq) AsPb() *notesdk.GetUploadAuthRequest {
+	return &notesdk.GetUploadAuthRequest{
 		Resource: r.Resource,
 		Source:   r.Source,
 		MimeType: r.MimeType,
@@ -192,11 +192,11 @@ type LikeReq struct {
 
 func (r *LikeReq) Validate() error {
 	if r == nil {
-		return errorx.ErrNilArg
+		return xerror.ErrNilArg
 	}
 
 	if r.Action != 0 && r.Action != 1 {
-		return errorx.ErrInvalidArgs.Msg("不支持的点赞操作")
+		return xerror.ErrInvalidArgs.Msg("不支持的点赞操作")
 	}
 
 	return nil
@@ -205,4 +205,47 @@ func (r *LikeReq) Validate() error {
 type GetLikesRes struct {
 	NoteId string `json:"note_id"`
 	Count  uint64 `json:"count"`
+}
+
+// 包含发起请求的用户和该笔记的交互记录
+type Interaction struct {
+	Liked     bool `json:"liked"`     // 用户是否点赞过该笔记
+	Commented bool `json:"commented"` // 用户是否评论过该笔记
+}
+
+type FeedNoteItem struct {
+	NoteId   string            `json:"note_id"`
+	Title    string            `json:"title"`
+	Desc     string            `json:"desc"`
+	CreateAt int64             `json:"create_at"`
+	Images   NoteItemImageList `json:"images"`
+	Likes    uint64            `json:"likes"`    // 点赞数
+	Comments uint64            `json:"comments"` // 评论数
+	Interact Interaction       `json:"interact"` // 请求的用户与该笔记的交互记录
+}
+
+func NewFeedNoteItemFromPb(pb *notesdk.FeedNoteItem) *FeedNoteItem {
+	if pb == nil {
+		return nil
+	}
+
+	images := make(NoteItemImageList, 0, len(pb.Images))
+	for _, img := range pb.Images {
+		images = append(images, &NoteItemImage{
+			Url:  img.Url,
+			Type: int(img.Type),
+		})
+	}
+
+	return &FeedNoteItem{
+		NoteId:   IdConfuser.ConfuseU(pb.NoteId),
+		Title:    pb.Title,
+		Desc:     pb.Desc,
+		CreateAt: pb.CreatedAt,
+		Images:   images,
+		Likes:    pb.Likes,
+		Interact: Interaction{
+			Liked: pb.Interaction.Liked,
+		},
+	}
 }

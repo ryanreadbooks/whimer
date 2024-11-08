@@ -200,7 +200,9 @@ func (s *CounterSvc) GetRecord(ctx context.Context,
 				Errorx(ctx)
 			return nil, global.ErrInternal
 		} else {
-			return nil, global.ErrNoRecord
+			return &v1.GetRecordResponse{Record: &v1.Record{
+				Act: v1.RecordAct_RECORD_ACT_UNSPECIFIED,
+			}}, nil // 找不到记录不当作错误
 		}
 	}
 

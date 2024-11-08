@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-func EnableReflection(c zrpc.RpcServerConf, s *grpc.Server) {
+func EnableReflectionIfNecessary(c zrpc.RpcServerConf, s *grpc.Server) {
 	if c.Mode == service.DevMode || c.Mode == service.TestMode {
 		reflection.Register(s)
 	}

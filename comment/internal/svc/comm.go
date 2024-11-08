@@ -14,9 +14,9 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/queue"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	counterv1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
-	"github.com/ryanreadbooks/whimer/misc/concur"
-	"github.com/ryanreadbooks/whimer/misc/errorx"
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
@@ -83,11 +83,11 @@ func (s *CommentSvc) ReplyAdd(ctx context.Context, req *model.ReplyReq) (*model.
 	)
 
 	_, err := external.GetNoter().IsNoteExist(ctx,
-		&notev1.IsNoteExistReq{
+		&notev1.IsNoteExistRequest{
 			NoteId: oid,
 		})
 	if err != nil {
-		if errorx.ShouldLog(err) {
+		if xerror.ShouldLogError(err) {
 			xlog.Msg("noter check note exists err").Err(err).Extra("oid", oid).Errorx(ctx)
 		}
 		return nil, err
@@ -296,7 +296,7 @@ func (s *CommentSvc) ReplyPin(ctx context.Context, oid, rid uint64, action int8)
 
 func (s *CommentSvc) userOwnsOid(ctx context.Context, uid, oid uint64) error {
 	resp, err := external.GetNoter().IsUserOwnNote(ctx,
-		&notev1.IsUserOwnNoteReq{
+		&notev1.IsUserOwnNoteRequest{
 			Uid:    uid,
 			NoteId: oid,
 		})
@@ -353,12 +353,12 @@ func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReply
 	)
 
 	noteExitsRes, err := external.GetNoter().IsNoteExist(ctx,
-		&notev1.IsNoteExistReq{
+		&notev1.IsNoteExistRequest{
 			NoteId: oid,
 		})
 
 	if err != nil {
-		if errorx.ShouldLog(err) {
+		if xerror.ShouldLogError(err) {
 			xlog.Msg("noter check note exists err").Err(err).Extra("oid", oid).Errorx(ctx)
 		}
 		return err
@@ -747,7 +747,7 @@ func (s *CommentSvc) GetPinnedReply(ctx context.Context, oid uint64) (*commentv1
 		}
 
 		// set cache
-		concur.SafeGo(func() {
+		concurrent.SafeGo(func() {
 			ctxc := context.WithoutCancel(ctx)
 			err = s.cache.SetPinned(ctxc, root)
 			if err != nil {
@@ -826,6 +826,18 @@ func (s *CommentSvc) counterGetCount(ctx context.Context, rid uint64, biz int32)
 	}
 
 	return summary.Count, nil
+}
+
+// 获取用户是否评论过某个对象
+func (s *CommentSvc) CheckUserCommentOnObject(ctx context.Context, uid, oid uint64) (bool, error) {
+	cnt, err := s.repo.CommentRepo.CountByOidUid(ctx, oid, uid)
+	if err != nil {
+		return false, xerror.Wrapf(err, "comment repo count by oid and uid failed").
+			WithExtras("uid", uid, "oid", oid).
+			WithCtx(ctx)
+	}
+
+	return cnt != 0, nil
 }
 
 // 全量同步评论数量

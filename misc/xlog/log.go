@@ -60,15 +60,34 @@ func (l *LogItem) Field(key string, val any) *LogItem {
 
 func (l *LogItem) Fields(kvs ...interface{}) *LogItem {
 	if len(kvs)%2 == 0 {
-		for i := range kvs {
+		for i := 0; i < len(kvs)/2; i++ {
 			l.fields[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
 		}
 	}
 	return l
 }
 
+func (l *LogItem) FieldMap(fields map[string]any) *LogItem {
+	l.fields = fields
+	return l
+}
+
 func (l *LogItem) Extra(key string, val any) *LogItem {
 	l.extra[key] = val
+	return l
+}
+
+func (l *LogItem) Extras(kvs ...interface{}) *LogItem {
+	if len(kvs)%2 == 0 {
+		for i := 0; i < len(kvs)/2; i++ {
+			l.extra[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
+		}
+	}
+	return l
+}
+
+func (l *LogItem) ExtraMap(ext map[string]any) *LogItem {
+	l.extra = ext
 	return l
 }
 
@@ -201,8 +220,18 @@ func Msg(s string) *LogItem {
 func Fields(kvs ...interface{}) *LogItem {
 	l := newLogItem()
 	if len(kvs)%2 == 0 {
-		for i := range kvs {
+		for i := 0; i < len(kvs)/2; i++ {
 			l.fields[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
+		}
+	}
+	return l
+}
+
+func Extras(kvs ...interface{}) *LogItem {
+	l := newLogItem()
+	if len(kvs)%2 == 0 {
+		for i := 0; i < len(kvs)/2; i++ {
+			l.extra[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
 		}
 	}
 	return l
@@ -220,9 +249,21 @@ func Field(key string, val string) *LogItem {
 	return l
 }
 
+func FieldMap(exts map[string]any) *LogItem {
+	l := newLogItem()
+	l.fields = exts
+	return l
+}
+
 func Extra(key string, val string) *LogItem {
 	l := newLogItem()
 	l.extra[key] = val
+	return l
+}
+
+func ExtraMap(exts map[string]any) *LogItem {
+	l := newLogItem()
+	l.extra = exts
 	return l
 }
 

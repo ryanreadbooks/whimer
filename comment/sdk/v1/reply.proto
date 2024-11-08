@@ -176,6 +176,9 @@ service ReplyService {
   // 获取某条评论的点踩数
   rpc GetReplyDislikeCount(GetReplyDislikeCountReq)
       returns (GetReplyDislikeCountRes);
+  // 获取某个用户是否评论了某个对象
+  rpc CheckUserCommentOnObject(CheckUserCommentOnObjectRequest)
+      returns (CheckUserCommentOnObjectResponse);
 }
 
 message GetReplyLikeCountReq {
@@ -194,4 +197,13 @@ message GetReplyDislikeCountReq {
 message GetReplyDislikeCountRes {
   uint64 reply_id = 1;
   uint64 count = 2; // 点赞数量
+}
+
+message CheckUserCommentOnObjectRequest {
+  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
+  uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 用户id
+}
+
+message CheckUserCommentOnObjectResponse {
+  bool commented = 1; // 是否评论过
 }

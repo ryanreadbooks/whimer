@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package note.sdk.v1;
+
+import "buf/validate/validate.proto";
+import "v1/note.proto";
+
+option go_package = "github.com/ryanreadbooks/whimer/note/sdk/v1";
+
+message LikeNoteRequest {
+  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 笔记id
+  uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 执行点赞的用户id
+  enum Operation {
+    OPERATION_UNDO_LIKE = 0; // 取消点赞
+    OPERATION_DO_LIKE = 1;   // 点赞
+  }
+  Operation operation = 3;
+}
+
+message LikeNoteResponse {}
+
+message GetNoteLikesRequest {
+  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; //笔记id
+}
+
+message GetNoteLikesResponse {
+  uint64 note_id = 1;
+  uint64 likes = 2; // 点赞数量
+}
+
+// 检查用户是否点赞过某篇笔记
+message CheckUserLikeStatusRequest {
+  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; //笔记id
+  uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ];     // 用户id
+}
+
+message CheckUserLikeStatusResponse {
+  bool liked = 1; // 是否点赞
+}
+
+// 用户和笔记的交互信息
+message NoteInteraction {
+  bool liked = 1; // 用户是否点赞
+}
+
+message GetNoteInteractionRequest {
+  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; //笔记id
+  uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ];     // 用户id
+}
+
+message GetNoteInteractionResponse {
+  NoteInteraction interaction = 1;
+}
+
+// 与笔记交互逻辑相关服务，比如点赞、收藏等
+service NoteInteractService {
+  // 点赞笔记/取消点赞
+  rpc LikeNote(LikeNoteRequest) returns (LikeNoteResponse);
+  // 获取笔记点赞数量
+  rpc GetNoteLikes(GetNoteLikesRequest) returns (GetNoteLikesResponse);
+  // 检查某个用户是否点赞过某篇笔记
+  rpc CheckUserLikeStatus(CheckUserLikeStatusRequest)
+      returns (CheckUserLikeStatusResponse);
+  // 获取笔记的交互信息
+  rpc GetNoteInteraction(GetNoteInteractionRequest)
+      returns (GetNoteInteractionResponse);
+}

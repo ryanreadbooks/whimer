@@ -42,6 +42,7 @@ const (
 var (
 	sqlSelRooParent  = "SELECT id,root,parent,oid,pin FROM comment WHERE id=?"
 	sqlCountByO      = "SELECT COUNT(*) FROM comment WHERE oid=?"
+	sqlCountByOU     = "SELECT COUNT(*) FROM comment WHERE oid=? AND uid=?"
 	sqlCountGbO      = "SELECT oid, COUNT(*) AS cnt FROM comment GROUP BY oid"
 	sqlCountGbOLimit = "SELECT oid, COUNT(*) AS cnt FROM comment GROUP BY oid LIMIT ?,?"
 	sqlSelPinned     = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? AND pin=1 LIMIT 1", fields)
@@ -325,6 +326,16 @@ func (r *Repo) GetPinned(ctx context.Context, oid uint64) (*Model, error) {
 func (r *Repo) CountByOid(ctx context.Context, oid uint64) (uint64, error) {
 	var cnt uint64
 	err := r.db.QueryRowCtx(ctx, &cnt, sqlCountByO, oid)
+	if err != nil {
+		return 0, xsql.ConvertError(err)
+	}
+
+	return cnt, nil
+}
+
+func (r *Repo) CountByOidUid(ctx context.Context, oid, uid uint64) (uint64, error) {
+	var cnt uint64
+	err := r.db.QueryRowCtx(ctx, &cnt, sqlCountByOU, oid, uid)
 	if err != nil {
 		return 0, xsql.ConvertError(err)
 	}

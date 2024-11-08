@@ -11,6 +11,7 @@ import (
 	sdk "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor/checker"
 	"google.golang.org/grpc"
 
 	"github.com/zeromicro/go-queue/kq"
@@ -31,11 +32,11 @@ func main() {
 	ctx := svc.NewServiceContext(&c)
 
 	server := zrpc.MustNewServer(c.Grpc, func(s *grpc.Server) {
-		sdk.RegisterReplyServiceServer(s, rpc.NewReplyServer(ctx))
-		xgrpc.EnableReflection(c.Grpc, s)
+		sdk.RegisterReplyServiceServer(s, rpc.NewReplyServiceServer(ctx))
+		xgrpc.EnableReflectionIfNecessary(c.Grpc, s)
 	})
-	interceptor.InstallServerUnaryInterceptors(server,
-		interceptor.WithChecker(interceptor.UidExistenceChecker))
+	interceptor.InstallUnaryServerInterceptors(server,
+		interceptor.WithUnaryChecker(checker.UidExistence))
 
 	mq := kq.MustNewQueue(c.Kafka.AsKqConf(), job.New(ctx))
 	csyncer := cronjob.MustNewCacheSyncer(c.Cron.SyncReplySpec, ctx)
