@@ -50,7 +50,7 @@ type Note struct {
 }
 
 func (r *NoteDao) FindOne(ctx context.Context, id uint64) (*Note, error) {
-	if resp, err := r.CacheGetNote(ctx, id); err != nil && resp != nil {
+	if resp, err := r.CacheGetNote(ctx, id); err == nil && resp != nil {
 		return resp, nil
 	}
 

@@ -12,15 +12,11 @@ message UserInfo {
   string gender = 5;
 }
 
-message BatchGetUserReq {
-  repeated uint64 uids = 1;
-}
+message BatchGetUserRequest { repeated uint64 uids = 1; }
 
-message BatchGetUserRes {
-  map<string, UserInfo> users = 1;
-}
+message BatchGetUserResponse { map<string, UserInfo> users = 1; }
 
-service User {
+service UserService {
   // 批量获取用户信息
-  rpc BatchGetUser(BatchGetUserReq) returns (BatchGetUserRes);
+  rpc BatchGetUser(BatchGetUserRequest) returns (BatchGetUserResponse);
 }

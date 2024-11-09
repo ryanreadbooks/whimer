@@ -18,7 +18,7 @@ func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
-	srv := srv.NewServiceContext(&config.Conf)
+	srv := srv.NewService(&config.Conf)
 
 	grpcServer := grpc.Init(config.Conf.Grpc, srv)
 

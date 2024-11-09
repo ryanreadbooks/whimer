@@ -6,15 +6,18 @@ package passport.sdk.access.v1;
 
 option go_package = "github.com/ryanreadbooks/whimer/passport/sdk/access/v1";
 
-message CheckSignInReq {
+message IsCheckedInRequest {
   string sess_id = 1;
   string platform = 2;
 }
 
-message CheckSignInRes {
+message IsCheckedInResponse {
   bool signed = 1;
   optional passport.sdk.user.v1.UserInfo user = 2;
   string msg = 3;
 }
 
-service Access { rpc CheckSignIn(CheckSignInReq) returns (CheckSignInRes); }
+service AccessService {
+  // 判断是否登录
+  rpc IsCheckedIn(IsCheckedInRequest) returns (IsCheckedInResponse);
+}

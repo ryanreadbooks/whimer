@@ -10,10 +10,10 @@ import (
 type NoteInteractServiceServer struct {
 	notev1.UnimplementedNoteInteractServiceServer
 
-	Svc *srv.ServiceContext
+	Svc *srv.Service
 }
 
-func NewNoteInteractServiceServer(svc *srv.ServiceContext) *NoteInteractServiceServer {
+func NewNoteInteractServiceServer(svc *srv.Service) *NoteInteractServiceServer {
 	return &NoteInteractServiceServer{
 		Svc: svc,
 	}

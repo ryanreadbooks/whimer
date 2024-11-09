@@ -12,10 +12,10 @@ import (
 type NoteCreatorServiceServer struct {
 	notev1.UnimplementedNoteCreatorServiceServer
 
-	Srv *srv.ServiceContext
+	Srv *srv.Service
 }
 
-func NewNoteAdminServiceServer(srv *srv.ServiceContext) *NoteCreatorServiceServer {
+func NewNoteAdminServiceServer(srv *srv.Service) *NoteCreatorServiceServer {
 	return &NoteCreatorServiceServer{
 		Srv: srv,
 	}

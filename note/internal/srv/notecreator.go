@@ -9,16 +9,16 @@ import (
 )
 
 type NoteCreatorSrv struct {
-	ctx *ServiceContext
+	parent *Service
 
 	noteBiz         biz.NoteBiz
 	noteCreatorBiz  biz.NoteCreatorBiz
 	noteInteractBiz biz.NoteInteractBiz
 }
 
-func NewNoteCreatorSrv(ctx *ServiceContext, biz biz.Biz) *NoteCreatorSrv {
+func NewNoteCreatorSrv(p *Service, biz biz.Biz) *NoteCreatorSrv {
 	return &NoteCreatorSrv{
-		ctx:             ctx,
+		parent:          p,
 		noteBiz:         biz.Note,
 		noteCreatorBiz:  biz.Creator,
 		noteInteractBiz: biz.Interact,

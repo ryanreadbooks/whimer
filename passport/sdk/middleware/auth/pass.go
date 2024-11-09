@@ -6,13 +6,13 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	ppac "github.com/ryanreadbooks/whimer/passport/sdk/access/v1"
+	accessv1 "github.com/ryanreadbooks/whimer/passport/sdk/access/v1"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type Auth struct {
-	ppac.AccessClient
+	accessv1.AccessServiceClient
 }
 
 type Config struct {
@@ -25,13 +25,13 @@ func New(c *Config) (*Auth, error) {
 		return nil, err
 	}
 
-	a := &Auth{ppac.NewAccessClient(cli.Conn())}
+	a := &Auth{accessv1.NewAccessServiceClient(cli.Conn())}
 
 	return a, nil
 }
 
 func NewFromConn(conn zrpc.Client) *Auth {
-	return &Auth{ppac.NewAccessClient(conn.Conn())}
+	return &Auth{accessv1.NewAccessServiceClient(conn.Conn())}
 }
 
 func MustAuther(c xconf.Discovery) *Auth {
@@ -42,18 +42,18 @@ func MustAuther(c xconf.Discovery) *Auth {
 	return NewFromConn(authCli)
 }
 
-func rawSignInReq(sessId, platform string) *ppac.CheckSignInReq {
-	return &ppac.CheckSignInReq{
+func rawSignInReq(sessId, platform string) *accessv1.IsCheckedInRequest {
+	return &accessv1.IsCheckedInRequest{
 		SessId:   sessId,
 		Platform: platform,
 	}
 }
 
-func allReq(sessId string) *ppac.CheckSignInReq {
+func allReq(sessId string) *accessv1.IsCheckedInRequest {
 	return rawSignInReq(sessId, "")
 }
 
-func webReq(sessId string) *ppac.CheckSignInReq {
+func webReq(sessId string) *accessv1.IsCheckedInRequest {
 	return rawSignInReq(sessId, "web")
 }
 
@@ -80,7 +80,7 @@ func (a *Auth) User(ctx context.Context, r *http.Request) (uid uint64, sessId st
 		return
 	}
 
-	resp, err := a.CheckSignIn(ctx, allReq(sessId))
+	resp, err := a.IsCheckedIn(ctx, allReq(sessId))
 	if err != nil {
 		return
 	}
@@ -103,7 +103,7 @@ func (a *Auth) UserWeb(ctx context.Context, r *http.Request) (uid uint64, sessId
 		return
 	}
 
-	resp, err := a.CheckSignIn(ctx, webReq(sessId))
+	resp, err := a.IsCheckedIn(ctx, webReq(sessId))
 	if err != nil {
 		return
 	}

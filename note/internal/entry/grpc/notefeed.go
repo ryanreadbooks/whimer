@@ -14,10 +14,10 @@ var (
 type NoteFeedServiceServer struct {
 	notev1.UnimplementedNoteFeedServiceServer
 
-	Svc *srv.ServiceContext
+	Svc *srv.Service
 }
 
-func NewNoteFeedServiceServer(svc *srv.ServiceContext) *NoteFeedServiceServer {
+func NewNoteFeedServiceServer(svc *srv.Service) *NoteFeedServiceServer {
 	return &NoteFeedServiceServer{
 		Svc: svc,
 	}

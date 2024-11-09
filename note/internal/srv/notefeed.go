@@ -18,14 +18,14 @@ import (
 )
 
 type NoteFeedSrv struct {
-	Ctx *ServiceContext
+	Ctx *Service
 
 	noteBiz         biz.NoteBiz
 	noteCreatorBiz  biz.NoteCreatorBiz
 	noteInteractBiz biz.NoteInteractBiz
 }
 
-func NewNoteFeedSrv(ctx *ServiceContext, biz biz.Biz) *NoteFeedSrv {
+func NewNoteFeedSrv(ctx *Service, biz biz.Biz) *NoteFeedSrv {
 	s := &NoteFeedSrv{
 		Ctx:             ctx,
 		noteBiz:         biz.Note,

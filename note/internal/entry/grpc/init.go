@@ -11,11 +11,11 @@ import (
 	"google.golang.org/grpc"
 )
 
-func Init(c zrpc.RpcServerConf, ctx *srv.ServiceContext) *zrpc.RpcServer {
+func Init(c zrpc.RpcServerConf, service *srv.Service) *zrpc.RpcServer {
 	grpcServer := zrpc.MustNewServer(c, func(s *grpc.Server) {
-		notev1.RegisterNoteCreatorServiceServer(s, NewNoteAdminServiceServer(ctx))
-		notev1.RegisterNoteFeedServiceServer(s, NewNoteFeedServiceServer(ctx))
-		notev1.RegisterNoteInteractServiceServer(s, NewNoteInteractServiceServer(ctx))
+		notev1.RegisterNoteCreatorServiceServer(s, NewNoteAdminServiceServer(service))
+		notev1.RegisterNoteFeedServiceServer(s, NewNoteFeedServiceServer(service))
+		notev1.RegisterNoteInteractServiceServer(s, NewNoteInteractServiceServer(service))
 		xgrpc.EnableReflectionIfNecessary(c, s)
 	})
 
