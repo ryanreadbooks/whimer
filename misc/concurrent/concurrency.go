@@ -27,6 +27,7 @@ func DoneIn(duration time.Duration, job DoneInJob) {
 
 func DoneInCtx(parent context.Context, duration time.Duration, job DoneInJob) {
 	SafeGo(func() {
+		parent = context.WithoutCancel(parent)
 		ctx, cancel := context.WithTimeout(parent, duration)
 		defer cancel()
 

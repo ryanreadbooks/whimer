@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 const (
@@ -23,6 +25,10 @@ type SessionMeta struct {
 	Id       string `json:"id"`
 	ExpireAt int64  `json:"expire_at"` // 过期时间 unix second timestamp
 	Status   int8   `json:"status"`    // session 状态
+}
+
+func (m *SessionMeta) IsExpired() bool {
+	return time.Now().Unix()-1 > m.ExpireAt
 }
 
 // 用户session信息
@@ -54,6 +60,7 @@ func (s *Session) Cookie() *http.Cookie {
 	}
 }
 
+// session序列化
 type SessionSerializer interface {
 	Serialize(s *Session) ([]byte, error)
 	Deserialize([]byte) (*Session, error)
@@ -68,6 +75,22 @@ func (s JsonSessionSerializer) Serialize(sess *Session) ([]byte, error) {
 func (s JsonSessionSerializer) Deserialize(data []byte) (*Session, error) {
 	var sess Session
 	err := json.Unmarshal(data, &sess)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sess, nil
+}
+
+type MsgpackSessionSerializer struct{}
+
+func (s MsgpackSessionSerializer) Serialize(sess *Session) ([]byte, error) {
+	return msgpack.Marshal(sess)
+}
+
+func (s MsgpackSessionSerializer) Deserialize(data []byte) (*Session, error) {
+	var sess Session
+	err := msgpack.Unmarshal(data, &sess)
 	if err != nil {
 		return nil, err
 	}

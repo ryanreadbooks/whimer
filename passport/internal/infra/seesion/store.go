@@ -10,18 +10,22 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
+// Store只提供存储功能
 type Store interface {
 	// 获取id为key的session
 	// 返回找到的session, 如果found为true, 表示没有对应的key的session
 	// err不为nil时, 表示发生了系统错误
 	Get(ctx context.Context, key string) (sess *model.Session, found bool, err error)
+	// 批量获取
+	BatchGet(ctx context.Context, keys []string) ([]*model.Session, error)
 	// 获取uid所有的session
 	GetUid(ctx context.Context, uid uint64) ([]*model.Session, error)
-	// 设置id为key的session
-	// 存在则覆盖
+	// 设置id为key的session 存在则覆盖
 	Set(ctx context.Context, key string, sess *model.Session) error
 	// 立即删除id为key的session, 如果不存在 则操作为no-op
 	Del(ctx context.Context, key string) error
+	// 批量删除sessId
+	BatchDel(ctx context.Context, keys []string) error
 	// 删除uid的所有session, 如果不存在, 则操作为no-op
 	DelUid(ctx context.Context, uid uint64) error
 }
@@ -61,7 +65,7 @@ type RedisStore struct {
 func NewRedisStore(cache *redis.Redis, opts ...RedisStoreOpt) Store {
 	rs := &RedisStore{
 		cache:      cache,
-		ser:        model.JsonSessionSerializer{},
+		ser:        model.JsonSessionSerializer{}, // Json序列化
 		sessPrefix: defaultSessPrefix,
 		uidPrefix:  defaultUidPrefix,
 	}
@@ -81,6 +85,20 @@ func (r *RedisStore) getUidKey(uid uint64) string {
 	return r.uidPrefix + strconv.FormatUint(uid, 10)
 }
 
+func (r *RedisStore) parseGetResult(result string) (*model.Session, error) {
+	data, err := base64.StdEncoding.DecodeString(result)
+	if err != nil {
+		return nil, err
+	}
+
+	sess, err := r.ser.Deserialize(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return sess, nil
+}
+
 func (r *RedisStore) Get(ctx context.Context, key string) (sess *model.Session, found bool, err error) {
 	result, err := r.cache.GetCtx(ctx, r.getSessKey(key))
 	if err != nil {
@@ -94,12 +112,7 @@ func (r *RedisStore) Get(ctx context.Context, key string) (sess *model.Session, 
 		return
 	}
 
-	data, err := base64.StdEncoding.DecodeString(result)
-	if err != nil {
-		return
-	}
-
-	sess, err = r.ser.Deserialize(data)
+	sess, err = r.parseGetResult(result)
 	if err != nil {
 		return
 	}
@@ -108,10 +121,44 @@ func (r *RedisStore) Get(ctx context.Context, key string) (sess *model.Session, 
 	return
 }
 
-func (r *RedisStore) GetUid(ctx context.Context, uid uint64) ([]*model.Session, error) {
-	var sesses = make([]*model.Session, 0)
+func (r *RedisStore) BatchGet(ctx context.Context, keys []string) ([]*model.Session, error) {
+	l := len(keys)
+	var res = make([]*model.Session, 0, l)
+	if l == 0 {
+		return res, nil
+	}
 
-	return sesses, nil
+	sessKeys := make([]string, 0, l)
+	for _, k := range keys {
+		if k != "" {
+			sessKeys = append(sessKeys, r.getSessKey(k))
+		}
+	}
+
+	sessDatas, err := r.cache.MgetCtx(ctx, sessKeys...)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, sessData := range sessDatas {
+		if len(sessData) > 0 {
+			sess, err := r.parseGetResult(sessData)
+			if err == nil {
+				res = append(res, sess)
+			}
+		}
+	}
+
+	return res, nil
+}
+
+func (r *RedisStore) GetUid(ctx context.Context, uid uint64) ([]*model.Session, error) {
+	res, err := r.cache.SmembersCtx(ctx, r.getUidKey(uid))
+	if err != nil {
+		return nil, err
+	}
+
+	return r.BatchGet(ctx, res)
 }
 
 func (r *RedisStore) Set(ctx context.Context, key string, sess *model.Session) error {
@@ -176,7 +223,7 @@ func (r *RedisStore) Del(ctx context.Context, key string) error {
 	err = r.cache.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
 		p.Del(ctx, r.getSessKey(key))
 		uid := sess.Uid
-		p.SRem(ctx, r.getUidKey(uid), r.getSessKey(key))
+		p.SRem(ctx, r.getUidKey(uid), key)
 
 		res, err := p.Exec(ctx)
 		if err != nil {
@@ -186,6 +233,51 @@ func (r *RedisStore) Del(ctx context.Context, key string) error {
 		for _, cmd := range res {
 			if cmd.Err() != nil {
 				return err
+			}
+		}
+
+		return nil
+	})
+
+	return err
+}
+
+func (r *RedisStore) BatchDel(ctx context.Context, keys []string) error {
+	if len(keys) == 0 {
+		return nil
+	}
+
+	sesses, err := r.BatchGet(ctx, keys)
+	if err != nil {
+		return err
+	}
+
+	// 在pipeline中删除
+	err = r.cache.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
+		targets := make(map[uint64][]string)
+		for _, sess := range sesses {
+			targets[sess.Uid] = append(targets[sess.Uid], sess.Meta.Id)
+		}
+
+		for uid, rawSessKeys := range targets {
+			// 删除 uid set中的members
+			// 删除 member 对应的key
+			members := make([]any, 0, len(rawSessKeys))
+			for _, rawSessKey := range rawSessKeys {
+				p.Del(ctx, r.getSessKey(rawSessKey))
+				members = append(members, rawSessKey)
+			}
+			p.SRem(ctx, r.getUidKey(uid), members...)
+		}
+
+		res, err := p.Exec(ctx)
+		if err != nil {
+			return err
+		}
+
+		for _, cmd := range res {
+			if cmd.Err() != nil {
+				return cmd.Err()
 			}
 		}
 

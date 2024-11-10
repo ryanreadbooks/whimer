@@ -17,7 +17,7 @@ func EnsureCheckedIn(c *srv.Service) rest.Middleware {
 		return func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie(model.WhimerSessId)
 			if err != nil || len(cookie.Value) == 0 {
-				httpx.Error(w, global.ErrNotSignedIn)
+				httpx.Error(w, global.ErrNotCheckedIn)
 				return
 			}
 

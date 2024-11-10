@@ -20,7 +20,7 @@ var (
 	ErrNilReq           = ErrArgs.Msg("请求为空")
 
 	// sign-in related
-	ErrNotSignedIn             = ErrUnAuth
+	ErrNotCheckedIn            = ErrUnAuth
 	ErrRegisterTel             = ErrInternal.Msg("注册失败")
 	ErrRequestSms              = ErrInternal.Msg("获取验证码失败, 请稍后重试")
 	ErrRequestSmsFrequent      = ErrRateLimit.Msg("短信请求过快, 请稍后重试")
@@ -33,8 +33,9 @@ var (
 	ErrCheckIn                 = ErrInternal.Msg("登录失败, 请稍后重试")
 	ErrAccessBiz               = ErrInternal.Msg("服务异常，请稍后重试")
 	ErrSessRenewal             = ErrInternal.Msg("续期失败, 请稍后重试")
-	ErrSignInTooFrequent       = ErrRateLimit.Msg("登录太快, 请稍后重试")
+	ErrCheckInTooFrequent      = ErrRateLimit.Msg("登录太快, 请稍后重试")
 	ErrSessInvalidated         = ErrPermDenied.Msg("登录过期, 请重新登录")
+	ErrCheckOut                = ErrPermDenied.Msg("退出登录失败，请稍后重试")
 	ErrSessPlatformNotMatched  = ErrPermDenied.Msg("未在此设备上登录")
 	ErrUserNotFound            = ErrPermDenied.Msg("没有找到你的信息")
 	ErrInvalidUid              = ErrArgs.Msg("uid格式不对")

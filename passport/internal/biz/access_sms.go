@@ -101,7 +101,7 @@ func (b *accessSmsBiz) CheckSmsCorrect(ctx context.Context, tel, smsCode string)
 	}()
 
 	if !acquired {
-		err = global.ErrSignInTooFrequent
+		err = global.ErrCheckInTooFrequent
 		return
 	}
 

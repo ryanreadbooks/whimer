@@ -2,6 +2,8 @@ package model
 
 import (
 	"context"
+
+	"github.com/ryanreadbooks/whimer/misc/metadata"
 )
 
 const (
@@ -9,8 +11,9 @@ const (
 	CtxSessIdKey   = "__CtxSessIdKey__"
 )
 
-func WithUserInfo(ctx context.Context, me *UserInfo) context.Context {
-	return context.WithValue(ctx, CtxUserInfoKey, me)
+func WithUserInfo(ctx context.Context, user *UserInfo) context.Context {
+	ctx = context.WithValue(ctx, CtxUserInfoKey, user)
+	return metadata.WithUid(ctx, user.Uid)
 }
 
 func WithSessId(ctx context.Context, sessId string) context.Context {

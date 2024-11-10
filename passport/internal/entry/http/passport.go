@@ -4,7 +4,8 @@ import (
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	global "github.com/ryanreadbooks/whimer/passport/internal/global"
+	"github.com/ryanreadbooks/whimer/misc/xhttp/middleware/csrf"
+	"github.com/ryanreadbooks/whimer/passport/internal/config"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
 	"github.com/ryanreadbooks/whimer/passport/internal/srv"
 
@@ -12,7 +13,7 @@ import (
 )
 
 // 获取手机验证码
-func SmsSendHandler(ctx *srv.Service) http.HandlerFunc {
+func SmsSendHandler(serv *srv.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[model.SendSmsRequest](httpx.ParseJsonBody, r)
 		if err != nil {
@@ -25,7 +26,7 @@ func SmsSendHandler(ctx *srv.Service) http.HandlerFunc {
 			return
 		}
 
-		err = ctx.AccessSrv.SendSmsCode(r.Context(), req.Tel)
+		err = serv.AccessSrv.SendSmsCode(r.Context(), req.Tel)
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -36,7 +37,7 @@ func SmsSendHandler(ctx *srv.Service) http.HandlerFunc {
 }
 
 // 手机号+短信验证码登录
-func CheckInWithSmsHandler(ctx *srv.Service) http.HandlerFunc {
+func CheckInWithSmsHandler(serv *srv.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[model.SmsCheckInRequest](httpx.ParseJsonBody, r)
 		if err != nil {
@@ -44,23 +45,26 @@ func CheckInWithSmsHandler(ctx *srv.Service) http.HandlerFunc {
 			return
 		}
 
-		data, err := ctx.AccessSrv.SmsCheckIn(r.Context(), req)
+		data, err := serv.AccessSrv.SmsCheckIn(r.Context(), req)
 		if err != nil {
-			xhttp.Error(r,w,err)
+			xhttp.Error(r, w, err)
 			return
 		}
 
-		http.SetCookie(w, data.Session.Cookie())
+		sessCookie := data.Session.Cookie()
+		http.SetCookie(w, sessCookie)
+		http.SetCookie(w, csrf.GetToken().Cookie(config.Conf.Domain, sessCookie.Expires))
+		w.Header().Add("Vary", "Cooie")
 		httpx.OkJson(w, data)
 	}
 }
 
 // 针对当前session退出登录
-func CheckOutCurrentHandler(ctx *srv.Service) http.HandlerFunc {
+func CheckOutCurrentHandler(serv *srv.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// TODO do some checking
 		sessId := model.CtxGetSessId(r.Context())
-		err := ctx.AccessSrv.CheckOutCurrent(r.Context(), sessId)
+		err := serv.AccessSrv.CheckOutCurrent(r.Context(), sessId)
 		if err != nil {
 			httpx.Error(w, err)
 			return
@@ -73,9 +77,16 @@ func CheckOutCurrentHandler(ctx *srv.Service) http.HandlerFunc {
 }
 
 // 全平台退登
-func CheckOutAllPlatformHandler(ctx *srv.Service) http.HandlerFunc {
+func CheckOutAllPlatformHandler(serv *srv.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		httpx.Error(w, global.ErrApiUnimplemented)
+		err := serv.AccessSrv.CheckoutAll(r.Context())
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		http.SetCookie(w, expiredSessIdCookie())
+		httpx.Ok(w)
 	}
 }
 

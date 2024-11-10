@@ -92,8 +92,6 @@ func (a *Auth) User(ctx context.Context, r *http.Request) (uid uint64, sessId st
 
 	uid = resp.User.Uid
 
-	// TODO csrf check
-
 	return
 }
 
@@ -114,8 +112,6 @@ func (a *Auth) UserWeb(ctx context.Context, r *http.Request) (uid uint64, sessId
 	}
 
 	uid = resp.User.Uid
-
-	// TODO csrf check
 
 	return
 }

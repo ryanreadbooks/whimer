@@ -111,6 +111,15 @@ func (s *AccessSrv) CheckOutCurrent(ctx context.Context, sessId string) error {
 	return s.accessBiz.CheckOutTarget(ctx, sessId)
 }
 
-func (s *AccessSrv) CheckoutAll(ctx context.Context, sessId string) error {
-	return s.accessBiz.CheckOutTarget(ctx, sessId)
+func (s *AccessSrv) CheckoutAll(ctx context.Context) error {
+	var (
+		userInfo = model.CtxGetUserInfo(ctx)
+		uid      = userInfo.Uid
+	)
+
+	if uid == 0 {
+		return global.ErrNotCheckedIn
+	}
+
+	return s.accessBiz.CheckOutAll(ctx, uid)
 }

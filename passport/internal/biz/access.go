@@ -37,12 +37,14 @@ type AccessBiz interface {
 	IsSessIdCheckedIn(ctx context.Context, sessId string) (*model.UserInfo, error)
 	// 检查某个sessId是否所属某个平台
 	IsSessIdCheckedInPlatform(ctx context.Context, sessId, platform string) (*model.UserInfo, error)
+	// 检查用户是否登录
+	IsCheckedIn(ctx context.Context, uid uint64) (*model.UserInfo, error)
 	// 检查某个用户是否在某个平台登录
-	IsCheckedInOnPlatform(ctx context.Context, platform string) (*model.UserInfo, error)
+	IsCheckedInOnPlatform(ctx context.Context, uid uint64, platform string) (*model.UserInfo, error)
 	// 退出某个登录会话
 	CheckOutTarget(ctx context.Context, sessId string) error
 	// 全平台退登
-	CheckOutAll(ctx context.Context, sessId string) error
+	CheckOutAll(ctx context.Context, uid uint64) error
 }
 
 type accessBiz struct {
@@ -125,11 +127,50 @@ func (b *accessBiz) CheckOutTarget(ctx context.Context, sessId string) error {
 	return nil
 }
 
-func (b *accessBiz) CheckOutAll(ctx context.Context, sessId string) error {
+func (b *accessBiz) CheckOutAll(ctx context.Context, uid uint64) error {
+	err := b.sessMgr.InvalidateAll(ctx, uid)
+	if err != nil {
+		return xerror.Wrapf(err, "access biz failed to invalidate all").WithCtx(ctx)
+	}
 	return nil
 }
 
-func (b *accessBiz) IsCheckedInOnPlatform(ctx context.Context, platform string) (*model.UserInfo, error) {
+// 判断用户是否登录
+func (b *accessBiz) IsCheckedIn(ctx context.Context, uid uint64) (*model.UserInfo, error) {
+	sessions, err := b.sessMgr.GetUserSessions(ctx, uid)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "access biz failed to get user sessions").WithCtx(ctx)
+	}
 
-	return nil, nil
+	if len(sessions) == 0 {
+		return nil, global.ErrNotCheckedIn
+	}
+
+	return b.sessionToUserInfo(sessions[0])
+}
+
+// 检查某个用户是否在某个平台登录
+func (b *accessBiz) IsCheckedInOnPlatform(ctx context.Context, uid uint64, platform string) (*model.UserInfo, error) {
+	sessions, err := b.sessMgr.GetUserSessions(ctx, uid)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "access biz failed to get user sessions").WithCtx(ctx)
+	}
+
+	if len(sessions) == 0 {
+		return nil, global.ErrNotCheckedIn
+	}
+
+	var target *model.Session
+	for _, sess := range sessions {
+		if sess.Platform == platform {
+			target = sess
+			break
+		}
+	}
+
+	if target == nil {
+		return nil, global.ErrNotCheckedIn
+	}
+
+	return b.sessionToUserInfo(target)
 }
