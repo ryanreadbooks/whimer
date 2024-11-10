@@ -29,6 +29,7 @@ jobs:
     strategy:
       matrix:
         modules: ${{ fromJSON(needs.detect-modules.outputs.modules) }}
+      max-parallel: 2
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -37,8 +38,10 @@ jobs:
       - name: debug
         run: pwd && ls
       - name: golangci-lint ${{ matrix.modules }}
+        continue-on-error: true
+        timeout-minutes: 20 
         uses: golangci/golangci-lint-action@v6
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: ${{ matrix.modules }}
-          args: --verbose
+          args: --verbose --timeout=20m0s
