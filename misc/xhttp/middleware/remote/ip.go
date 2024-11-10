@@ -7,7 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 )
 
-func Addr(next http.HandlerFunc) http.HandlerFunc {
+func ClientAddr(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rx := metadata.WithClientAddr(r.Context(), r.RemoteAddr)
 		// TODO not ipv6 compatible

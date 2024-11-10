@@ -1,3 +1,5 @@
+domain:
+
 http:
   mode: dev
   name: passport-api

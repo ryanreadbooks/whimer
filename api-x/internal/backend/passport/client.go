@@ -10,18 +10,18 @@ import (
 
 var (
 	auther *auth.Auth
-	userer user.UserClient
+	userer user.UserServiceClient
 	err    error
 )
 
 func Init(c *config.Config) {
 	auther = auth.MustAuther(c.Backend.Passport)
 
-	conn , err := xgrpc.NewClientConn(c.Backend.Passport)
+	conn, err := xgrpc.NewClientConn(c.Backend.Passport)
 	if err != nil {
 		logx.Errorf("external init: can not init passport user")
 	} else {
-		userer = user.NewUserClient(conn)
+		userer = user.NewUserServiceClient(conn)
 	}
 }
 
@@ -29,6 +29,6 @@ func Auther() *auth.Auth {
 	return auther
 }
 
-func Userer() user.UserClient {
+func Userer() user.UserServiceClient {
 	return userer
 }

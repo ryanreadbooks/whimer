@@ -19,101 +19,103 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Access_CheckSignIn_FullMethodName = "/passport.sdk.access.v1.Access/CheckSignIn"
+	AccessService_IsCheckedIn_FullMethodName = "/passport.sdk.access.v1.AccessService/IsCheckedIn"
 )
 
-// AccessClient is the client API for Access service.
+// AccessServiceClient is the client API for AccessService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type AccessClient interface {
-	CheckSignIn(ctx context.Context, in *CheckSignInReq, opts ...grpc.CallOption) (*CheckSignInRes, error)
+type AccessServiceClient interface {
+	// 判断是否登录
+	IsCheckedIn(ctx context.Context, in *IsCheckedInRequest, opts ...grpc.CallOption) (*IsCheckedInResponse, error)
 }
 
-type accessClient struct {
+type accessServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewAccessClient(cc grpc.ClientConnInterface) AccessClient {
-	return &accessClient{cc}
+func NewAccessServiceClient(cc grpc.ClientConnInterface) AccessServiceClient {
+	return &accessServiceClient{cc}
 }
 
-func (c *accessClient) CheckSignIn(ctx context.Context, in *CheckSignInReq, opts ...grpc.CallOption) (*CheckSignInRes, error) {
+func (c *accessServiceClient) IsCheckedIn(ctx context.Context, in *IsCheckedInRequest, opts ...grpc.CallOption) (*IsCheckedInResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CheckSignInRes)
-	err := c.cc.Invoke(ctx, Access_CheckSignIn_FullMethodName, in, out, cOpts...)
+	out := new(IsCheckedInResponse)
+	err := c.cc.Invoke(ctx, AccessService_IsCheckedIn_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// AccessServer is the server API for Access service.
-// All implementations must embed UnimplementedAccessServer
+// AccessServiceServer is the server API for AccessService service.
+// All implementations must embed UnimplementedAccessServiceServer
 // for forward compatibility.
-type AccessServer interface {
-	CheckSignIn(context.Context, *CheckSignInReq) (*CheckSignInRes, error)
-	mustEmbedUnimplementedAccessServer()
+type AccessServiceServer interface {
+	// 判断是否登录
+	IsCheckedIn(context.Context, *IsCheckedInRequest) (*IsCheckedInResponse, error)
+	mustEmbedUnimplementedAccessServiceServer()
 }
 
-// UnimplementedAccessServer must be embedded to have
+// UnimplementedAccessServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedAccessServer struct{}
+type UnimplementedAccessServiceServer struct{}
 
-func (UnimplementedAccessServer) CheckSignIn(context.Context, *CheckSignInReq) (*CheckSignInRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CheckSignIn not implemented")
+func (UnimplementedAccessServiceServer) IsCheckedIn(context.Context, *IsCheckedInRequest) (*IsCheckedInResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsCheckedIn not implemented")
 }
-func (UnimplementedAccessServer) mustEmbedUnimplementedAccessServer() {}
-func (UnimplementedAccessServer) testEmbeddedByValue()                {}
+func (UnimplementedAccessServiceServer) mustEmbedUnimplementedAccessServiceServer() {}
+func (UnimplementedAccessServiceServer) testEmbeddedByValue()                       {}
 
-// UnsafeAccessServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to AccessServer will
+// UnsafeAccessServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to AccessServiceServer will
 // result in compilation errors.
-type UnsafeAccessServer interface {
-	mustEmbedUnimplementedAccessServer()
+type UnsafeAccessServiceServer interface {
+	mustEmbedUnimplementedAccessServiceServer()
 }
 
-func RegisterAccessServer(s grpc.ServiceRegistrar, srv AccessServer) {
-	// If the following call pancis, it indicates UnimplementedAccessServer was
+func RegisterAccessServiceServer(s grpc.ServiceRegistrar, srv AccessServiceServer) {
+	// If the following call pancis, it indicates UnimplementedAccessServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&Access_ServiceDesc, srv)
+	s.RegisterService(&AccessService_ServiceDesc, srv)
 }
 
-func _Access_CheckSignIn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CheckSignInReq)
+func _AccessService_IsCheckedIn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsCheckedInRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AccessServer).CheckSignIn(ctx, in)
+		return srv.(AccessServiceServer).IsCheckedIn(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Access_CheckSignIn_FullMethodName,
+		FullMethod: AccessService_IsCheckedIn_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AccessServer).CheckSignIn(ctx, req.(*CheckSignInReq))
+		return srv.(AccessServiceServer).IsCheckedIn(ctx, req.(*IsCheckedInRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Access_ServiceDesc is the grpc.ServiceDesc for Access service.
+// AccessService_ServiceDesc is the grpc.ServiceDesc for AccessService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Access_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "passport.sdk.access.v1.Access",
-	HandlerType: (*AccessServer)(nil),
+var AccessService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "passport.sdk.access.v1.AccessService",
+	HandlerType: (*AccessServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CheckSignIn",
-			Handler:    _Access_CheckSignIn_Handler,
+			MethodName: "IsCheckedIn",
+			Handler:    _AccessService_IsCheckedIn_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

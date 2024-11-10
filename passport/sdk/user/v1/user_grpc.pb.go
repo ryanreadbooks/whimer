@@ -19,103 +19,103 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	User_BatchGetUser_FullMethodName = "/passport.sdk.user.v1.User/BatchGetUser"
+	UserService_BatchGetUser_FullMethodName = "/passport.sdk.user.v1.UserService/BatchGetUser"
 )
 
-// UserClient is the client API for User service.
+// UserServiceClient is the client API for UserService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type UserClient interface {
+type UserServiceClient interface {
 	// 批量获取用户信息
-	BatchGetUser(ctx context.Context, in *BatchGetUserReq, opts ...grpc.CallOption) (*BatchGetUserRes, error)
+	BatchGetUser(ctx context.Context, in *BatchGetUserRequest, opts ...grpc.CallOption) (*BatchGetUserResponse, error)
 }
 
-type userClient struct {
+type userServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewUserClient(cc grpc.ClientConnInterface) UserClient {
-	return &userClient{cc}
+func NewUserServiceClient(cc grpc.ClientConnInterface) UserServiceClient {
+	return &userServiceClient{cc}
 }
 
-func (c *userClient) BatchGetUser(ctx context.Context, in *BatchGetUserReq, opts ...grpc.CallOption) (*BatchGetUserRes, error) {
+func (c *userServiceClient) BatchGetUser(ctx context.Context, in *BatchGetUserRequest, opts ...grpc.CallOption) (*BatchGetUserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BatchGetUserRes)
-	err := c.cc.Invoke(ctx, User_BatchGetUser_FullMethodName, in, out, cOpts...)
+	out := new(BatchGetUserResponse)
+	err := c.cc.Invoke(ctx, UserService_BatchGetUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// UserServer is the server API for User service.
-// All implementations must embed UnimplementedUserServer
+// UserServiceServer is the server API for UserService service.
+// All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
-type UserServer interface {
+type UserServiceServer interface {
 	// 批量获取用户信息
-	BatchGetUser(context.Context, *BatchGetUserReq) (*BatchGetUserRes, error)
-	mustEmbedUnimplementedUserServer()
+	BatchGetUser(context.Context, *BatchGetUserRequest) (*BatchGetUserResponse, error)
+	mustEmbedUnimplementedUserServiceServer()
 }
 
-// UnimplementedUserServer must be embedded to have
+// UnimplementedUserServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedUserServer struct{}
+type UnimplementedUserServiceServer struct{}
 
-func (UnimplementedUserServer) BatchGetUser(context.Context, *BatchGetUserReq) (*BatchGetUserRes, error) {
+func (UnimplementedUserServiceServer) BatchGetUser(context.Context, *BatchGetUserRequest) (*BatchGetUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchGetUser not implemented")
 }
-func (UnimplementedUserServer) mustEmbedUnimplementedUserServer() {}
-func (UnimplementedUserServer) testEmbeddedByValue()              {}
+func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
+func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
 
-// UnsafeUserServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to UserServer will
+// UnsafeUserServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to UserServiceServer will
 // result in compilation errors.
-type UnsafeUserServer interface {
-	mustEmbedUnimplementedUserServer()
+type UnsafeUserServiceServer interface {
+	mustEmbedUnimplementedUserServiceServer()
 }
 
-func RegisterUserServer(s grpc.ServiceRegistrar, srv UserServer) {
-	// If the following call pancis, it indicates UnimplementedUserServer was
+func RegisterUserServiceServer(s grpc.ServiceRegistrar, srv UserServiceServer) {
+	// If the following call pancis, it indicates UnimplementedUserServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&User_ServiceDesc, srv)
+	s.RegisterService(&UserService_ServiceDesc, srv)
 }
 
-func _User_BatchGetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BatchGetUserReq)
+func _UserService_BatchGetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServer).BatchGetUser(ctx, in)
+		return srv.(UserServiceServer).BatchGetUser(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: User_BatchGetUser_FullMethodName,
+		FullMethod: UserService_BatchGetUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServer).BatchGetUser(ctx, req.(*BatchGetUserReq))
+		return srv.(UserServiceServer).BatchGetUser(ctx, req.(*BatchGetUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// User_ServiceDesc is the grpc.ServiceDesc for User service.
+// UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var User_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "passport.sdk.user.v1.User",
-	HandlerType: (*UserServer)(nil),
+var UserService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "passport.sdk.user.v1.UserService",
+	HandlerType: (*UserServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "BatchGetUser",
-			Handler:    _User_BatchGetUser_Handler,
+			Handler:    _UserService_BatchGetUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

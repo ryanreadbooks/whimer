@@ -13,7 +13,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/utils/maps"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	user "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
+	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest/httpx"
@@ -133,7 +133,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 
 		var (
 			pinnedReply     *commentv1.DetailedReplyItem
-			pinnedReplyUser map[string]*user.UserInfo = nil
+			pinnedReplyUser map[string]*userv1.UserInfo = nil
 			wg              sync.WaitGroup
 			ctx             = r.Context()
 		)
@@ -154,7 +154,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 
 				userResp, err := passport.Userer().
 					BatchGetUser(ctx,
-						&user.BatchGetUserReq{
+						&userv1.BatchGetUserRequest{
 							Uids: maps.Keys(extractUidsMap([]*commentv1.DetailedReplyItem{pinnedReply})),
 						},
 					)
@@ -162,7 +162,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 					logx.Errorw("rpc get batch get user err", xlog.WithUid(ctx), xlog.WithErr(err))
 					return
 				}
-				pinnedReplyUser = make(map[string]*user.UserInfo)
+				pinnedReplyUser = make(map[string]*userv1.UserInfo)
 				pinnedReplyUser = userResp.Users
 			})
 		}
@@ -183,7 +183,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 
 			// 发起请求获取uid的详细信息
 			userResp, err := passport.Userer().
-				BatchGetUser(ctx, &user.BatchGetUserReq{Uids: maps.Keys(uidsMap)})
+				BatchGetUser(ctx, &userv1.BatchGetUserRequest{Uids: maps.Keys(uidsMap)})
 			if err != nil {
 				xhttp.Error(r, w, err)
 				return
@@ -222,7 +222,7 @@ func attachReplyUsers(ctx context.Context, replies []*commentv1.ReplyItem) ([]*c
 	}
 
 	userResp, err := passport.Userer().
-		BatchGetUser(ctx, &user.BatchGetUserReq{Uids: maps.Keys(uidsMap)})
+		BatchGetUser(ctx, &userv1.BatchGetUserRequest{Uids: maps.Keys(uidsMap)})
 	if err != nil {
 		return nil, err
 	}
