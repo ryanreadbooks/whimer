@@ -29,14 +29,17 @@ jobs:
     strategy:
       matrix:
         modules: ${{ fromJSON(needs.detect-modules.outputs.modules) }}
-      max-parallel: 2
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-      - name: debug
-        run: pwd && ls
+      - name: check env
+        run: |
+          echo working dir `pwd`
+          ls
+          echo ${{ matrix.modules }}
+          go version
       - name: golangci-lint ${{ matrix.modules }}
         continue-on-error: true
         timeout-minutes: 20 
@@ -44,4 +47,4 @@ jobs:
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: ${{ matrix.modules }}
-          args: --verbose --timeout=20m0s
+          args: --verbose --timeout=20m0s --out-format=github-actions
