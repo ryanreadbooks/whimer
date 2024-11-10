@@ -1,0 +1,46 @@
+name: govulncheck
+on:
+  pull_request:
+  push:
+    branches:
+      - "master"
+
+env:
+  GO_VERSION: 1.22
+
+jobs:
+  detect-modules:
+    runs-on: ubuntu-latest
+    outputs:
+      modules: ${{ steps.set-modules.outputs.modules }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - id: set-modules
+        run: echo "modules=$(go list -m -json | jq -s '.' | jq -c '[.[].Dir]')" >> $GITHUB_OUTPUT
+
+  govulncheck:
+    needs: detect-modules
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        modules: ${{ fromJSON(needs.detect-modules.outputs.modules) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: check env
+        run: |
+          echo working dir `pwd`
+          ls
+          echo ${{ matrix.modules }}
+          go version
+      - name: govulncheck ${{ matrix.modules }}
+        timeout-minutes: 20 
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: ${{ env.GO_VERSION }}
+          work-dir: ${{ matrix.modules }}
