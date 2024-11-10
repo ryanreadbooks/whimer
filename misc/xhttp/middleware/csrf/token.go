@@ -24,6 +24,14 @@ func (t Token) Cookie(domain string, expire time.Time) *http.Cookie {
 	}
 }
 
+func Invalidate() *http.Cookie {
+	return &http.Cookie{
+		Name:   cookieCsrfName,
+		Value:  "",
+		MaxAge: -1,
+	}
+}
+
 func GetToken() Token {
 	token := randomBytes()
 

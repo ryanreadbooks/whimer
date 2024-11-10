@@ -54,7 +54,7 @@ func CheckInWithSmsHandler(serv *srv.Service) http.HandlerFunc {
 		sessCookie := data.Session.Cookie()
 		http.SetCookie(w, sessCookie)
 		http.SetCookie(w, csrf.GetToken().Cookie(config.Conf.Domain, sessCookie.Expires))
-		w.Header().Add("Vary", "Cooie")
+		w.Header().Add("Vary", "Cookie")
 		httpx.OkJson(w, data)
 	}
 }
@@ -72,6 +72,7 @@ func CheckOutCurrentHandler(serv *srv.Service) http.HandlerFunc {
 
 		// invalidate cookie
 		http.SetCookie(w, expiredSessIdCookie())
+		http.SetCookie(w, csrf.Invalidate())
 		httpx.Ok(w)
 	}
 }
@@ -86,6 +87,7 @@ func CheckOutAllPlatformHandler(serv *srv.Service) http.HandlerFunc {
 		}
 
 		http.SetCookie(w, expiredSessIdCookie())
+		http.SetCookie(w, csrf.Invalidate())
 		httpx.Ok(w)
 	}
 }
