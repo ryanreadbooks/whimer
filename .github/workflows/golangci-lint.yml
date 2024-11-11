@@ -41,7 +41,6 @@ jobs:
           echo ${{ matrix.modules }}
           go version
       - name: golangci-lint ${{ matrix.modules }}
-        continue-on-error: true
         timeout-minutes: 20 
         uses: golangci/golangci-lint-action@v6
         with:
