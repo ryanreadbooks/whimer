@@ -1,4 +1,6 @@
 name: govulncheck
+run-name: 'govulncheck ${{github.workflow}} #${{ github.event.pull_request.number }}'
+
 on:
   pull_request:
   push:

@@ -33,7 +33,7 @@ func New(c *config.Config, cache *redis.Redis) *Dao {
 
 	db := xsql.New(conn)
 	return &Dao{
-		db:      db,
+		db:          db,
 		RelationDao: NewRelationDao(db, cache),
 	}
 }

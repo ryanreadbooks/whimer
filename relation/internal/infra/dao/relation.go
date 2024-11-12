@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -64,7 +65,7 @@ func enforceUidRule(a, b uint64) (uint64, uint64) {
 	return a, b
 }
 
-func NewRelationFromAlphaToBeta(a, b uint64) *Relation {
+func newRelationFromAlphaToBeta(a, b uint64) *Relation {
 	return &Relation{
 		UserAlpha: a,
 		UserBeta:  b,
@@ -73,12 +74,20 @@ func NewRelationFromAlphaToBeta(a, b uint64) *Relation {
 	}
 }
 
-func NewRelationFromBetaToAlpha(a, b uint64) *Relation {
+func newRelationFromBetaToAlpha(a, b uint64) *Relation {
 	return &Relation{
 		UserAlpha: a,
 		UserBeta:  b,
 		Link:      LinkBackward,
 		Bctime:    time.Now().Unix(),
+	}
+}
+
+func newMutualRelation(a, b uint64) *Relation {
+	return &Relation{
+		UserAlpha: a,
+		UserBeta:  b,
+		Link:      LinkMutual,
 	}
 }
 
@@ -96,15 +105,29 @@ func NewRelationDao(db *xsql.DB, c *redis.Redis) *RelationDao {
 
 // all sqls here
 const (
-	fields = "alpah,beta,link,actime,bctime,amtime,bmtime"
+	fields = "alpha,beta,link,actime,bctime,amtime,bmtime"
 )
 
 var (
-	sqlInsert = fmt.Sprintf("INSERT INTO relation(%s) VALUES(?,?,?,?,?,?,?) AS val"+
+	sqlInsert = fmt.Sprintf("INSERT INTO relation(%s) VALUES(?,?,?,?,?,?,?) AS val "+
 		"ON DUPLICATE KEY UPDATE link=val.link, amtime=val.amtime, bmtime=val.bmtime", fields)
-	sqlUpdateLink        = "UPDATE relation SET link=?, amtime=?, bmtime=? WHERE alpha=? AND beta=?"
-	sqlFindByUids        = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=?", fields)
-	sqlFindByUidsAndLink = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=?", fields)
+	sqlUpdateLink                   = "UPDATE relation SET link=?, amtime=?, bmtime=? WHERE alpha=? AND beta=?"
+	sqlFindByAlphaBeta              = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=?", fields)
+	sqlFindByAlphaBetaLink          = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=?", fields)
+	sqlFindByAlphaBetaLinkForUpdate = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=? FOR UPDATE", fields)
+
+	sqlFindFollowTemplate = fmt.Sprintf("SELECT %s FROM relation WHERE (alpha=? AND (link=%%d OR link=%%d)) OR (beta=? AND (link=%%d OR link=%%d))", fields)
+	// 获取uid关注的人
+	sqlFindWhoUidFollows = fmt.Sprintf(sqlFindFollowTemplate, LinkForward, LinkMutual, LinkBackward, LinkMutual)
+	// 获取关注uid的人
+	sqlFindWhoFollowUid = fmt.Sprintf(sqlFindFollowTemplate, LinkBackward, LinkMutual, LinkForward, LinkMutual)
+
+	sqlFindTemplate = fmt.Sprintf("SELECT %s FROM relation WHERE %%s=? AND (link=%%d OR link=%%d)", fields)
+
+	sqlFindByAlpha        = fmt.Sprintf(sqlFindTemplate, "alpha", LinkForward, LinkMutual)
+	sqlFindByBeta         = fmt.Sprintf(sqlFindTemplate, "beta", LinkBackward, LinkMutual)
+	sqlFindAlphaGotLinked = fmt.Sprintf(sqlFindTemplate, "alpha", LinkBackward, LinkMutual)
+	sqlFindBetaGotLinked  = fmt.Sprintf(sqlFindTemplate, "beta", LinkForward, LinkMutual)
 )
 
 // 插入/更新一条记录
@@ -129,10 +152,10 @@ func (d *RelationDao) UpdateLink(ctx context.Context, r *Relation) error {
 	return xsql.ConvertError(err)
 }
 
-func (d *RelationDao) FindByUids(ctx context.Context, a, b uint64) (*Relation, error) {
+func (d *RelationDao) FindByAlphaBeta(ctx context.Context, a, b uint64) (*Relation, error) {
 	a, b = enforceUidRule(a, b)
 	var r Relation
-	err := d.db.QueryRowCtx(ctx, &r, sqlFindByUids, a, b)
+	err := d.db.QueryRowCtx(ctx, &r, sqlFindByAlphaBeta, a, b)
 	if err != nil {
 		return nil, xsql.ConvertError(err)
 	}
@@ -140,10 +163,17 @@ func (d *RelationDao) FindByUids(ctx context.Context, a, b uint64) (*Relation, e
 	return &r, nil
 }
 
-func (d *RelationDao) FindByUidsAndLink(ctx context.Context, a, b uint64, link LinkStatus) (*Relation, error) {
+func (d *RelationDao) FindByAlphaBetaAndLink(ctx context.Context, a, b uint64, link LinkStatus, forUpdate bool) (*Relation, error) {
 	a, b = enforceUidRule(a, b)
-	var r Relation
-	err := d.db.QueryRowCtx(ctx, &r, sqlFindByUidsAndLink, a, b, link)
+	var (
+		r   Relation
+		err error
+	)
+	if !forUpdate {
+		err = d.db.QueryRowCtx(ctx, &r, sqlFindByAlphaBetaLink, a, b, link)
+	} else {
+		err = d.db.QueryRowCtx(ctx, &r, sqlFindByAlphaBetaLinkForUpdate, a, b, link)
+	}
 	if err != nil {
 		return nil, xsql.ConvertError(err)
 	}
@@ -153,9 +183,134 @@ func (d *RelationDao) FindByUidsAndLink(ctx context.Context, a, b uint64, link L
 
 // 找到uid关注的人
 // alpha=uid and link=Forward/Mutual or beta=uid and link=Backward/Mutual
-// 找到发出关注连接的用户的用户关系
-func (d *Relation) FindLinkedUid(ctx context.Context, uid uint64) ([]*Relation, error) {
-	var rs = make([]*Relation, 0, 16)
+// 找到发出关注连接的用户存在的用户关系
+func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid uint64) ([]uint64, error) {
+	var (
+		rs = make([]*Relation, 0, 16)
+	)
 
-	return rs, nil
+	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoUidFollows, uid, uid)
+	if err != nil {
+		err = xsql.ConvertError(err)
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return []uint64{}, nil
+		}
+		return nil, err
+	}
+
+	uids := make([]uint64, 0, len(rs))
+	for _, r := range rs {
+		if r.UserAlpha == uid {
+			uids = append(uids, r.UserBeta)
+		} else {
+			uids = append(uids, r.UserAlpha)
+		}
+	}
+
+	return uids, nil
+}
+
+// 找到alpha关注的人
+func (d *RelationDao) FindAlphaLinkTo(ctx context.Context, alpha uint64) ([]uint64, error) {
+	var rs = make([]*Relation, 0, 16)
+	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindByAlpha, alpha)
+	if err != nil {
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return []uint64{}, nil
+		}
+		return nil, err
+	}
+
+	uids := make([]uint64, 0, len(rs))
+	for _, r := range rs {
+		uids = append(uids, r.UserBeta)
+	}
+
+	return uids, nil
+}
+
+// 找到beta关注的人
+func (d *RelationDao) FindBetaLinkTo(ctx context.Context, beta uint64) ([]uint64, error) {
+	var rs = make([]*Relation, 0, 16)
+	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindByBeta, beta)
+	if err != nil {
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return []uint64{}, nil
+		}
+		return nil, err
+	}
+
+	uids := make([]uint64, 0, len(rs))
+	for _, r := range rs {
+		uids = append(uids, r.UserAlpha)
+	}
+
+	return uids, nil
+}
+
+// 找到关注uid的人
+func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid uint64) ([]uint64, error) {
+	var (
+		rs = make([]*Relation, 0, 16)
+	)
+
+	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoFollowUid, uid, uid)
+	if err != nil {
+		err = xsql.ConvertError(err)
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return []uint64{}, nil
+		}
+		return nil, err
+	}
+
+	uids := make([]uint64, 0, len(rs))
+	for _, r := range rs {
+		if r.UserAlpha == uid {
+			uids = append(uids, r.UserBeta)
+		} else {
+			uids = append(uids, r.UserAlpha)
+		}
+	}
+
+	return uids, nil
+}
+
+// 找到关注alpha的人
+func (d *RelationDao) FindAlphaGotLinked(ctx context.Context, alpha uint64) ([]uint64, error) {
+	var rs = make([]*Relation, 0, 16)
+	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindAlphaGotLinked, alpha)
+	if err != nil {
+		err = xsql.ConvertError(err)
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return []uint64{}, nil
+		}
+		return nil, err
+	}
+
+	uids := make([]uint64, 0, len(rs))
+	for _, r := range rs {
+		uids = append(uids, r.UserBeta)
+	}
+
+	return uids, nil
+}
+
+// 找到关注beta的人
+func (d *RelationDao) FindBetaGotLinked(ctx context.Context, beta uint64) ([]uint64, error) {
+	var rs = make([]*Relation, 0, 16)
+	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindBetaGotLinked, beta)
+	if err != nil {
+		err = xsql.ConvertError(err)
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return []uint64{}, nil
+		}
+		return nil, err
+	}
+
+	uids := make([]uint64, 0, len(rs))
+	for _, r := range rs {
+		uids = append(uids, r.UserAlpha)
+	}
+
+	return uids, nil
 }

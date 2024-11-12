@@ -3,6 +3,7 @@ package xsql
 import (
 	"context"
 	"database/sql"
+	"os"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
@@ -22,6 +23,15 @@ func New(s sqlx.SqlConn) *DB {
 	}
 
 	return d
+}
+
+func NewFromEnv() *DB {
+	return New(sqlx.NewMysql(GetDsn(
+		os.Getenv("ENV_DB_USER"),
+		os.Getenv("ENV_DB_PASS"),
+		os.Getenv("ENV_DB_ADDR"),
+		os.Getenv("ENV_DB_NAME"),
+	)))
 }
 
 func (d *DB) getSess(ctx context.Context) sqlx.Session {
