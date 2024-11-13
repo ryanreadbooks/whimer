@@ -13,3 +13,4 @@ inputs:
   - directory: note/sdk
   - directory: passport/sdk
   - directory: counter/sdk
+  - directory: relation/sdk

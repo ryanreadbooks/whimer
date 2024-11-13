@@ -5,6 +5,7 @@ modules:
   - path: note/sdk
   - path: passport/sdk
   - path: counter/sdk
+  - path: relation/sdk
 lint:
   use:
     - DEFAULT
