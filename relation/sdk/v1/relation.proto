@@ -59,8 +59,8 @@ message GetUserFollowingCountRequest {
 message GetUserFollowingCountResponse {}
 
 message ShowSetting {
-  bool show_following = 1; // 是否公开关注列表
-  bool show_fans = 2;      // 是否公开粉丝列表
+  bool show_followings = 1; // 是否公开关注列表
+  bool show_fans = 2;       // 是否公开粉丝列表
 }
 
 message GetUserShowSettingRequest {

@@ -105,24 +105,24 @@ func NewRelationDao(db *xsql.DB, c *redis.Redis) *RelationDao {
 
 // all sqls here
 const (
-	fields = "alpha,beta,link,actime,bctime,amtime,bmtime"
+	relationFields = "alpha,beta,link,actime,bctime,amtime,bmtime"
 )
 
 var (
 	sqlInsert = fmt.Sprintf("INSERT INTO relation(%s) VALUES(?,?,?,?,?,?,?) AS val "+
-		"ON DUPLICATE KEY UPDATE link=val.link, amtime=val.amtime, bmtime=val.bmtime", fields)
+		"ON DUPLICATE KEY UPDATE link=val.link, amtime=val.amtime, bmtime=val.bmtime", relationFields)
 	sqlUpdateLink                   = "UPDATE relation SET link=?, amtime=?, bmtime=? WHERE alpha=? AND beta=?"
-	sqlFindByAlphaBeta              = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=?", fields)
-	sqlFindByAlphaBetaLink          = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=?", fields)
-	sqlFindByAlphaBetaLinkForUpdate = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=? FOR UPDATE", fields)
+	sqlFindByAlphaBeta              = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=?", relationFields)
+	sqlFindByAlphaBetaLink          = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=?", relationFields)
+	sqlFindByAlphaBetaLinkForUpdate = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=? FOR UPDATE", relationFields)
 
-	sqlFindFollowTemplate = fmt.Sprintf("SELECT %s FROM relation WHERE (alpha=? AND (link=%%d OR link=%%d)) OR (beta=? AND (link=%%d OR link=%%d))", fields)
+	sqlFindFollowTemplate = fmt.Sprintf("SELECT %s FROM relation WHERE (alpha=? AND (link=%%d OR link=%%d)) OR (beta=? AND (link=%%d OR link=%%d))", relationFields)
 	// 获取uid关注的人
 	sqlFindWhoUidFollows = fmt.Sprintf(sqlFindFollowTemplate, LinkForward, LinkMutual, LinkBackward, LinkMutual)
 	// 获取关注uid的人
 	sqlFindWhoFollowUid = fmt.Sprintf(sqlFindFollowTemplate, LinkBackward, LinkMutual, LinkForward, LinkMutual)
 
-	sqlFindTemplate = fmt.Sprintf("SELECT %s FROM relation WHERE %%s=? AND (link=%%d OR link=%%d)", fields)
+	sqlFindTemplate = fmt.Sprintf("SELECT %s FROM relation WHERE %%s=? AND (link=%%d OR link=%%d)", relationFields)
 
 	sqlFindByAlpha        = fmt.Sprintf(sqlFindTemplate, "alpha", LinkForward, LinkMutual)
 	sqlFindByBeta         = fmt.Sprintf(sqlFindTemplate, "beta", LinkBackward, LinkMutual)
