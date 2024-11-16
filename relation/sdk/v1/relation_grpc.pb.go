@@ -25,7 +25,6 @@ const (
 	RelationService_RemoveUserFan_FullMethodName         = "/relation.sdk.v1.RelationService/RemoveUserFan"
 	RelationService_GetUserFanCount_FullMethodName       = "/relation.sdk.v1.RelationService/GetUserFanCount"
 	RelationService_GetUserFollowingCount_FullMethodName = "/relation.sdk.v1.RelationService/GetUserFollowingCount"
-	RelationService_GetUserShowSetting_FullMethodName    = "/relation.sdk.v1.RelationService/GetUserShowSetting"
 )
 
 // RelationServiceClient is the client API for RelationService service.
@@ -44,8 +43,6 @@ type RelationServiceClient interface {
 	GetUserFanCount(ctx context.Context, in *GetUserFanCountRequest, opts ...grpc.CallOption) (*GetUserFanCountResponse, error)
 	// 获取用户的关注数量
 	GetUserFollowingCount(ctx context.Context, in *GetUserFollowingCountRequest, opts ...grpc.CallOption) (*GetUserFollowingCountResponse, error)
-	// 获取用户的关注信息展示设置
-	GetUserShowSetting(ctx context.Context, in *GetUserShowSettingRequest, opts ...grpc.CallOption) (*GetUserShowSettingResponse, error)
 }
 
 type relationServiceClient struct {
@@ -116,16 +113,6 @@ func (c *relationServiceClient) GetUserFollowingCount(ctx context.Context, in *G
 	return out, nil
 }
 
-func (c *relationServiceClient) GetUserShowSetting(ctx context.Context, in *GetUserShowSettingRequest, opts ...grpc.CallOption) (*GetUserShowSettingResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetUserShowSettingResponse)
-	err := c.cc.Invoke(ctx, RelationService_GetUserShowSetting_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // RelationServiceServer is the server API for RelationService service.
 // All implementations must embed UnimplementedRelationServiceServer
 // for forward compatibility.
@@ -142,8 +129,6 @@ type RelationServiceServer interface {
 	GetUserFanCount(context.Context, *GetUserFanCountRequest) (*GetUserFanCountResponse, error)
 	// 获取用户的关注数量
 	GetUserFollowingCount(context.Context, *GetUserFollowingCountRequest) (*GetUserFollowingCountResponse, error)
-	// 获取用户的关注信息展示设置
-	GetUserShowSetting(context.Context, *GetUserShowSettingRequest) (*GetUserShowSettingResponse, error)
 	mustEmbedUnimplementedRelationServiceServer()
 }
 
@@ -171,9 +156,6 @@ func (UnimplementedRelationServiceServer) GetUserFanCount(context.Context, *GetU
 }
 func (UnimplementedRelationServiceServer) GetUserFollowingCount(context.Context, *GetUserFollowingCountRequest) (*GetUserFollowingCountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserFollowingCount not implemented")
-}
-func (UnimplementedRelationServiceServer) GetUserShowSetting(context.Context, *GetUserShowSettingRequest) (*GetUserShowSettingResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetUserShowSetting not implemented")
 }
 func (UnimplementedRelationServiceServer) mustEmbedUnimplementedRelationServiceServer() {}
 func (UnimplementedRelationServiceServer) testEmbeddedByValue()                         {}
@@ -304,24 +286,6 @@ func _RelationService_GetUserFollowingCount_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RelationService_GetUserShowSetting_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetUserShowSettingRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RelationServiceServer).GetUserShowSetting(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RelationService_GetUserShowSetting_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RelationServiceServer).GetUserShowSetting(ctx, req.(*GetUserShowSettingRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // RelationService_ServiceDesc is the grpc.ServiceDesc for RelationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -352,10 +316,6 @@ var RelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserFollowingCount",
 			Handler:    _RelationService_GetUserFollowingCount_Handler,
-		},
-		{
-			MethodName: "GetUserShowSetting",
-			Handler:    _RelationService_GetUserShowSetting_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

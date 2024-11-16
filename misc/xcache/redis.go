@@ -9,26 +9,47 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
-// var (
-// 	r *redis.Redis
-// )
+type Cache[T any] struct {
+	r *redis.Redis
+}
 
-// func Init(rd *redis.Redis) {
-// 	r = rd
-// }
+func New[T any](rd *redis.Redis) *Cache[T] {
+	return &Cache[T]{
+		r: rd,
+	}
+}
 
-// 从缓存处获取失败时执行函数
+type defOptFn[T any] func() T
+
+type opter[T any] interface {
+	~func(*T)
+}
+
+func injectOpt[T any, P opter[T]](def defOptFn[T], opts ...P) *T {
+	opt := def()
+	for _, o := range opts {
+		o(&opt)
+	}
+
+	return &opt
+}
+
+type unmarshaler func([]byte, any) error
+type marshaler func(any) ([]byte, error)
+
+// get操作从缓存处获取失败时执行函数
+//
 // 返回的三个参数为：
 //
 //	T 结果对象
 //	int 结果对象存入缓存的过期时间
 //	err error
-type FallbackFn[T any] func(ctx context.Context) (t T, sec int, err error)
+type GetFallbackFn[T any] func(ctx context.Context) (t T, sec int, err error)
 
 type getOpt[T any] struct {
-	unmarshaler func([]byte, any) error
-	marshaler   func(any) ([]byte, error)
-	fallback    FallbackFn[T]
+	unmarshaler unmarshaler
+	marshaler   marshaler
+	fallback    GetFallbackFn[T]
 	bgSet       bool
 }
 
@@ -49,7 +70,7 @@ func WithGetUnmarshaler[T any](um func([]byte, any) error) GetOpt[T] {
 	}
 }
 
-func WithGetFallback[T any](fn FallbackFn[T]) GetOpt[T] {
+func WithGetFallback[T any](fn GetFallbackFn[T]) GetOpt[T] {
 	return func(o *getOpt[T]) {
 		o.fallback = fn
 	}
@@ -64,10 +85,7 @@ func WithGetBgSet[T any](b bool) GetOpt[T] {
 // 从缓存中获取对象
 // 如果T是一个对象，自动进行json序列化
 func (c *Cache[T]) Get(ctx context.Context, key string, opts ...GetOpt[T]) (t T, err error) {
-	opt := getOptDefault[T]()
-	for _, o := range opts {
-		o(&opt)
-	}
+	opt := injectOpt[getOpt[T]](getOptDefault[T], opts...)
 
 	resp, err := c.r.GetCtx(ctx, key)
 	if err != nil || resp == "" {
@@ -131,11 +149,7 @@ func (c *Cache[T]) Set(ctx context.Context, key string, value T, opts ...SetOpt[
 }
 
 func (c *Cache[T]) Setex(ctx context.Context, key string, value T, seconds int, opts ...SetOpt[T]) error {
-	opt := setOptDefault[T]()
-	for _, o := range opts {
-		o(&opt)
-	}
-
+	opt := injectOpt[setOpt[T]](setOptDefault[T], opts...)
 	content, err := opt.marshaler(value)
 	if err != nil {
 		return err
@@ -144,16 +158,60 @@ func (c *Cache[T]) Setex(ctx context.Context, key string, value T, seconds int, 
 	return c.r.SetexCtx(ctx, key, utils.Bytes2String(content), seconds)
 }
 
-type Cache[T any] struct {
-	r *redis.Redis
+func (c *Cache[T]) Del(ctx context.Context, keys ...string) (int, error) {
+	return c.r.DelCtx(ctx, keys...)
 }
 
-func New[T any](rd *redis.Redis) *Cache[T] {
-	return &Cache[T]{
-		r: rd,
+// smembers操作从缓存获取失败时执行函数
+//
+// 返回的三个参数为：
+//
+//	[]T 结果对象切片
+//	err error
+type SmembersFallbackFn[T any] func(ctx context.Context) ([]T, error)
+
+type smembersOpt[T any] struct {
+	fallback    SmembersFallbackFn[T]
+	unmarshaler unmarshaler
+}
+
+func smembersDefaultOpt[T any]() smembersOpt[T] {
+	return smembersOpt[T]{
+		fallback:    nil,
+		unmarshaler: json.Unmarshal,
 	}
 }
 
-func (c *Cache[T]) Del(ctx context.Context, keys ...string) (int, error) {
-	return c.r.DelCtx(ctx, keys...)
+type SmembersOpt[T any] func(o *smembersOpt[T])
+
+// smembers
+//
+// 不支持自动写入缓存
+func (c *Cache[T]) Smembers(ctx context.Context, key string, opts ...SmembersOpt[T]) ([]T, error) {
+	opt := injectOpt[smembersOpt[T]](smembersDefaultOpt[T], opts...)
+
+	res, err := c.r.SmembersCtx(ctx, key)
+	if err != nil {
+		// fallback
+		if opt.fallback != nil {
+			result, err := opt.fallback(ctx)
+			if err != nil {
+				return nil, err
+			}
+			return result, err
+		}
+	}
+
+	// try to unmarshal
+	var result = make([]T, 0, len(res))
+	for _, r := range res {
+		var e T
+		err := opt.unmarshaler(utils.StringToBytes(r), &e)
+		if err != nil {
+			continue
+		}
+		result = append(result, e)
+	}
+
+	return result, nil
 }

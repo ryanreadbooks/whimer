@@ -146,7 +146,7 @@ func TestRelation_FindUidLinkTo(t *testing.T) {
 	}
 	Convey("FindUidLinkTo", t, func() {
 		for idx, c := range cases {
-			res, err := relationDao.FindUidLinkTo(ctx, c.uid)
+			res, err := relationDao.FindUidLinkTo(ctx, c.uid, 0, 10)
 			So(err, ShouldBeNil)
 			So(res, ShouldHaveLength, len(c.wants))
 			sort.Slice(res, func(i, j int) bool { return res[i] < res[j] })
@@ -209,7 +209,7 @@ func TestRelation_FindUidGotLinked(t *testing.T) {
 	}
 	Convey("FindUidGotLinked", t, func() {
 		for idx, c := range cases {
-			res, err := relationDao.FindUidGotLinked(ctx, c.uid)
+			res, err := relationDao.FindUidGotLinked(ctx, c.uid, 0, 10)
 			So(err, ShouldBeNil)
 			So(res, ShouldHaveLength, len(c.wants))
 			sort.Slice(res, func(i, j int) bool { return res[i] < res[j] })

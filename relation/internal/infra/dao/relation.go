@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xsql"
@@ -33,7 +34,7 @@ type Relation struct {
 	//
 	// 示例：(200,-2,100)==(100,2,200), (200,2,100)==(100,-2,200)
 	//			(200,-4,100)==(100,-4,200)
-
+	Id        uint64     `db:"id"`
 	UserAlpha uint64     `db:"alpha"`  // 用户A
 	UserBeta  uint64     `db:"beta"`   // 用户B
 	Link      LinkStatus `db:"link"`   // 用户的关注关系
@@ -105,25 +106,31 @@ func NewRelationDao(db *xsql.DB, c *redis.Redis) *RelationDao {
 
 // all sqls here
 const (
-	relationFields = "alpha,beta,link,actime,bctime,amtime,bmtime"
+	relationAllFields = "id,alpha,beta,link,actime,bctime,amtime,bmtime"
+	relationFields    = "alpha,beta,link,actime,bctime,amtime,bmtime"
 )
 
 var (
 	sqlInsert = fmt.Sprintf("INSERT INTO relation(%s) VALUES(?,?,?,?,?,?,?) AS val "+
 		"ON DUPLICATE KEY UPDATE link=val.link, amtime=val.amtime, bmtime=val.bmtime", relationFields)
 	sqlUpdateLink                   = "UPDATE relation SET link=?, amtime=?, bmtime=? WHERE alpha=? AND beta=?"
-	sqlFindByAlphaBeta              = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=?", relationFields)
-	sqlFindByAlphaBetaLink          = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=?", relationFields)
-	sqlFindByAlphaBetaLinkForUpdate = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=? FOR UPDATE", relationFields)
+	sqlFindByAlphaBeta              = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=?", relationAllFields)
+	sqlFindByAlphaBetaLink          = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=?", relationAllFields)
+	sqlFindByAlphaBetaLinkForUpdate = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=? FOR UPDATE", relationAllFields)
 
-	sqlFindFollowTemplate = fmt.Sprintf("SELECT %s FROM relation WHERE (alpha=? AND (link=%%d OR link=%%d)) OR (beta=? AND (link=%%d OR link=%%d))", relationFields)
+	unionBaseTemplate = fmt.Sprintf(`
+		(SELECT %s FROM relation WHERE id>? AND alpha=? AND link IN (%%d, %%d) LIMIT ?) 
+			UNION ALL 
+		(SELECT %s FROM relation WHERE id>? AND beta=? AND link IN (%%d, %%d) LIMIT ?) LIMIT ?`, relationAllFields, relationAllFields)
+
+	sqlUnionTemplate = strings.ReplaceAll(strings.ReplaceAll(unionBaseTemplate, "\n", ""), "\t", "")
+
 	// 获取uid关注的人
-	sqlFindWhoUidFollows = fmt.Sprintf(sqlFindFollowTemplate, LinkForward, LinkMutual, LinkBackward, LinkMutual)
+	sqlFindWhoUidFollows = fmt.Sprintf(sqlUnionTemplate, LinkForward, LinkMutual, LinkBackward, LinkMutual)
 	// 获取关注uid的人
-	sqlFindWhoFollowUid = fmt.Sprintf(sqlFindFollowTemplate, LinkBackward, LinkMutual, LinkForward, LinkMutual)
+	sqlFindWhoFollowUid = fmt.Sprintf(sqlUnionTemplate, LinkBackward, LinkMutual, LinkForward, LinkMutual)
 
-	sqlFindTemplate = fmt.Sprintf("SELECT %s FROM relation WHERE %%s=? AND (link=%%d OR link=%%d)", relationFields)
-
+	sqlFindTemplate       = fmt.Sprintf("SELECT %s FROM relation WHERE %%s=? AND (link IN (%%d,%%d))", relationAllFields)
 	sqlFindByAlpha        = fmt.Sprintf(sqlFindTemplate, "alpha", LinkForward, LinkMutual)
 	sqlFindByBeta         = fmt.Sprintf(sqlFindTemplate, "beta", LinkBackward, LinkMutual)
 	sqlFindAlphaGotLinked = fmt.Sprintf(sqlFindTemplate, "alpha", LinkBackward, LinkMutual)
@@ -181,15 +188,15 @@ func (d *RelationDao) FindByAlphaBetaAndLink(ctx context.Context, a, b uint64, l
 	return &r, nil
 }
 
-// 找到uid关注的人
-// alpha=uid and link=Forward/Mutual or beta=uid and link=Backward/Mutual
-// 找到发出关注连接的用户存在的用户关系
-func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid uint64) ([]uint64, error) {
+// 找到uid关注的人 (找到发出关注连接的用户存在的用户关系)
+//
+//	alpha=uid and link=Forward/Mutual or beta=uid and link=Backward/Mutual
+func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid, offset uint64, limit int) ([]uint64, error) {
 	var (
 		rs = make([]*Relation, 0, 16)
 	)
 
-	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoUidFollows, uid, uid)
+	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoUidFollows, offset, uid, limit, offset, uid, limit, limit)
 	if err != nil {
 		err = xsql.ConvertError(err)
 		if errors.Is(err, xsql.ErrNoRecord) {
@@ -249,12 +256,12 @@ func (d *RelationDao) FindBetaLinkTo(ctx context.Context, beta uint64) ([]uint64
 }
 
 // 找到关注uid的人
-func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid uint64) ([]uint64, error) {
+func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid, offset uint64, limit int) ([]uint64, error) {
 	var (
 		rs = make([]*Relation, 0, 16)
 	)
 
-	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoFollowUid, uid, uid)
+	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoFollowUid, offset, uid, limit, offset, uid, limit, limit)
 	if err != nil {
 		err = xsql.ConvertError(err)
 		if errors.Is(err, xsql.ErrNoRecord) {

@@ -18,22 +18,14 @@ message FollowUserRequest {
 
 message FollowUserResponse {}
 
-enum ActionPolicy {
-  ACTION_POLICY_UNSPECIFIED = 0;
-  ACTION_POLICY_SELF = 1;  // 获取的是自己的数据
-  ACTION_POLICY_OTHER = 2; // 获取的是别人的数据 会触发额外检查
-}
-
 message GetUserFanListRequest {
   uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
-  ActionPolicy policy = 2;
 }
 
 message GetUserFanListResponse {}
 
 message GetUserFollowingListRequest {
   uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
-  ActionPolicy policy = 2;
 }
 
 message GetUserFollowingListResponse {}
@@ -41,7 +33,6 @@ message GetUserFollowingListResponse {}
 message RemoveUserFanRequest {
   uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
   repeated uint64 fans_id = 2; // 需要移除的粉丝id
-  ActionPolicy policy = 3;
 }
 
 message RemoveUserFanResponse {}
@@ -58,17 +49,6 @@ message GetUserFollowingCountRequest {
 
 message GetUserFollowingCountResponse {}
 
-message ShowSetting {
-  bool show_followings = 1; // 是否公开关注列表
-  bool show_fans = 2;       // 是否公开粉丝列表
-}
-
-message GetUserShowSettingRequest {
-  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
-}
-
-message GetUserShowSettingResponse { ShowSetting setting = 1; }
-
 service RelationService {
   // 关注/取消关注某个用户
   rpc FollowUser(FollowUserRequest) returns (FollowUserResponse);
@@ -84,7 +64,4 @@ service RelationService {
   // 获取用户的关注数量
   rpc GetUserFollowingCount(GetUserFollowingCountRequest)
       returns (GetUserFollowingCountResponse);
-  // 获取用户的关注信息展示设置
-  rpc GetUserShowSetting(GetUserShowSettingRequest)
-      returns (GetUserShowSettingResponse);
 }

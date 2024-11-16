@@ -2,6 +2,7 @@ package xcache
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -37,4 +38,12 @@ func TestGet(t *testing.T) {
 	}))
 	t.Log(err)
 	t.Log(obj)
+}
+
+func TestJson(t *testing.T) {
+	var s = "100"
+	var i int
+	err := json.Unmarshal([]byte(s), &i)
+	t.Log(err)
+	t.Log(i)
 }

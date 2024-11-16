@@ -16,6 +16,8 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
+// TODO 关注显式设置功能暂不实现
+
 const (
 	ShowFollowings    = 0 // 展示关注列表
 	NotShowFollowings = 1 // 不展示关注列表
