@@ -1,7 +1,7 @@
 grpc:
   mode: dev
   name: relation-grpc
-  listenon: 0.0.0.0:6667
+  listenon: 0.0.0.0:9998
   log:
     level: debug
   etcd:

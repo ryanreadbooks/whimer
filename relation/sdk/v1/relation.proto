@@ -14,6 +14,7 @@ message FollowUserRequest {
     ACTION_FOLLOW = 1;   // follower发起关注followee
     ACTION_UNFOLLOW = 2; // follower取消对followee的关注
   }
+  Action action = 3;
 }
 
 message FollowUserResponse {}

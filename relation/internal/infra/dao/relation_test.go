@@ -90,7 +90,7 @@ func TestRelation_FindByAlphaBeta(t *testing.T) {
 
 	Convey("FindByAlphaBeta", t, func() {
 		for _, c := range cases {
-			res, err := relationDao.FindByAlphaBeta(ctx, c.alpha, c.beta)
+			res, err := relationDao.FindByAlphaBeta(ctx, c.alpha, c.beta, false)
 			So(err != nil, ShouldEqual, c.wantErr)
 			So(res == nil, ShouldEqual, c.desire == nil)
 			if c.desire != nil {

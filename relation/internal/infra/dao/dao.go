@@ -37,3 +37,7 @@ func New(c *config.Config, cache *redis.Redis) *Dao {
 		RelationDao: NewRelationDao(db, cache),
 	}
 }
+
+func (d *Dao) DB() *xsql.DB {
+	return d.db
+}

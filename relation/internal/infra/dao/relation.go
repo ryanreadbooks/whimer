@@ -49,6 +49,8 @@ func enforceUserRule(r *Relation) *Relation {
 	if r.UserAlpha > r.UserBeta {
 		// 交换两者
 		r.UserAlpha, r.UserBeta = r.UserBeta, r.UserAlpha
+		r.Actime, r.Bctime = r.Bctime, r.Actime
+		r.Amtime, r.Bmtime = r.Bmtime, r.Amtime
 		// 还需要反转关系
 		if r.Link != LinkMutual {
 			r.Link = -r.Link
@@ -106,15 +108,17 @@ func NewRelationDao(db *xsql.DB, c *redis.Redis) *RelationDao {
 
 // all sqls here
 const (
+	sqlForUpdate = "FOR UPDATE"
+
 	relationAllFields = "id,alpha,beta,link,actime,bctime,amtime,bmtime"
 	relationFields    = "alpha,beta,link,actime,bctime,amtime,bmtime"
 )
 
 var (
 	sqlInsert = fmt.Sprintf("INSERT INTO relation(%s) VALUES(?,?,?,?,?,?,?) AS val "+
-		"ON DUPLICATE KEY UPDATE link=val.link, amtime=val.amtime, bmtime=val.bmtime", relationFields)
+		"ON DUPLICATE KEY UPDATE link=val.link, actime=val.actime, bctime=val.bctime, amtime=val.amtime, bmtime=val.bmtime", relationFields)
 	sqlUpdateLink                   = "UPDATE relation SET link=?, amtime=?, bmtime=? WHERE alpha=? AND beta=?"
-	sqlFindByAlphaBeta              = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=?", relationAllFields)
+	sqlFindByAlphaBeta              = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? %%s", relationAllFields)
 	sqlFindByAlphaBetaLink          = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=?", relationAllFields)
 	sqlFindByAlphaBetaLinkForUpdate = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=? FOR UPDATE", relationAllFields)
 
@@ -147,7 +151,7 @@ func (d *RelationDao) Insert(ctx context.Context, r *Relation) error {
 		r.Actime,
 		r.Bctime,
 		r.Amtime,
-		r.Bctime,
+		r.Bmtime,
 	)
 
 	return xsql.ConvertError(err)
@@ -159,10 +163,15 @@ func (d *RelationDao) UpdateLink(ctx context.Context, r *Relation) error {
 	return xsql.ConvertError(err)
 }
 
-func (d *RelationDao) FindByAlphaBeta(ctx context.Context, a, b uint64) (*Relation, error) {
+func (d *RelationDao) FindByAlphaBeta(ctx context.Context, a, b uint64, forUpdate bool) (*Relation, error) {
 	a, b = enforceUidRule(a, b)
 	var r Relation
-	err := d.db.QueryRowCtx(ctx, &r, sqlFindByAlphaBeta, a, b)
+	sql := fmt.Sprintf(sqlFindByAlphaBeta, "")
+	if forUpdate {
+		sql = fmt.Sprintf(sqlFindByAlphaBeta, sqlForUpdate)
+	}
+
+	err := d.db.QueryRowCtx(ctx, &r, sql, a, b)
 	if err != nil {
 		return nil, xsql.ConvertError(err)
 	}
