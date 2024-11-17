@@ -7,6 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/relation/internal/biz"
 	"github.com/ryanreadbooks/whimer/relation/internal/global"
+	"github.com/ryanreadbooks/whimer/relation/internal/model"
 )
 
 type RelationSrv struct {
@@ -64,4 +65,52 @@ func (s *RelationSrv) UnfollowUser(ctx context.Context, follower, unfollowed uin
 	}
 
 	return nil
+}
+
+func (s *RelationSrv) GetUserFanList(ctx context.Context, who, offset uint64, cnt int) (fans []uint64, result model.ListResult, err error) {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	if uid != who {
+		err = global.ErrNotAllowedGetFanList
+		return
+	}
+
+	fans, result, err = s.relationBiz.GetUserFansList(ctx, who, offset, cnt)
+	if err != nil {
+		err = xerror.Wrapf(err, "relation service get user fans list failed")
+		return
+	}
+
+	return
+}
+
+func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who, offset uint64, cnt int) (followings []uint64, result model.ListResult, err error) {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	if uid != who {
+		err = global.ErrNotAllowedGetFollowingList
+		return
+	}
+
+	followings, result, err = s.relationBiz.GetUserFollowingList(ctx, who, offset, cnt)
+	if err != nil {
+		err = xerror.Wrapf(err, "relation service get user following list failed")
+		return
+	}
+
+	return
+}
+
+// 获取用户粉丝数
+func (s *RelationSrv) GetUserFanCount(ctx context.Context, uid uint64) (uint64, error) {
+	return s.relationBiz.GetUserFanCount(ctx, uid)
+}
+
+// 获取用户关注数
+func (s *RelationSrv) GetUserFollowingCount(ctx context.Context, uid uint64) (uint64, error) {
+	return s.relationBiz.GetUserFollowingCount(ctx, uid)
 }

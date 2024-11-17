@@ -17,19 +17,37 @@ message FollowUserRequest {
   Action action = 3;
 }
 
+message QueryCondition {
+  uint64 offset = 1;
+  int32 count = 2 [
+    (buf.validate.field).int32.gt = 0,
+    (buf.validate.field).int32.lte = 20
+  ];
+}
+
 message FollowUserResponse {}
 
 message GetUserFanListRequest {
   uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
+  QueryCondition cond = 2;
 }
 
-message GetUserFanListResponse {}
+message GetUserFanListResponse {
+  repeated uint64 fans = 1;
+  uint64 next_offset = 2;
+  bool has_more = 3;
+}
 
 message GetUserFollowingListRequest {
   uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
+  QueryCondition cond = 2;
 }
 
-message GetUserFollowingListResponse {}
+message GetUserFollowingListResponse {
+  repeated uint64 followings = 1;
+  uint64 next_offset = 2;
+  bool has_more = 3;
+}
 
 message RemoveUserFanRequest {
   uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
@@ -42,13 +60,13 @@ message GetUserFanCountRequest {
   uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
 }
 
-message GetUserFanCountResponse {}
+message GetUserFanCountResponse { uint64 count = 1; }
 
 message GetUserFollowingCountRequest {
   uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
 }
 
-message GetUserFollowingCountResponse {}
+message GetUserFollowingCountResponse { uint64 count = 1; }
 
 service RelationService {
   // 关注/取消关注某个用户

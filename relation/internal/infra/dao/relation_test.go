@@ -146,7 +146,7 @@ func TestRelation_FindUidLinkTo(t *testing.T) {
 	}
 	Convey("FindUidLinkTo", t, func() {
 		for idx, c := range cases {
-			res, err := relationDao.FindUidLinkTo(ctx, c.uid, 0, 10)
+			res, _, _, err := relationDao.FindUidLinkTo(ctx, c.uid, 0, 10)
 			So(err, ShouldBeNil)
 			So(res, ShouldHaveLength, len(c.wants))
 			sort.Slice(res, func(i, j int) bool { return res[i] < res[j] })
@@ -209,7 +209,7 @@ func TestRelation_FindUidGotLinked(t *testing.T) {
 	}
 	Convey("FindUidGotLinked", t, func() {
 		for idx, c := range cases {
-			res, err := relationDao.FindUidGotLinked(ctx, c.uid, 0, 10)
+			res, _, _, err := relationDao.FindUidGotLinked(ctx, c.uid, 0, 10)
 			So(err, ShouldBeNil)
 			So(res, ShouldHaveLength, len(c.wants))
 			sort.Slice(res, func(i, j int) bool { return res[i] < res[j] })
@@ -224,5 +224,19 @@ func TestRelation_FindUidGotLinked(t *testing.T) {
 			sort.Slice(got, func(i, j int) bool { return got[i] < got[j] })
 			SoMsg(fmt.Sprintf("[%d]. %v, got:%v, s1:%v, s2:%v want:%v", idx, c, got, s1, s2, c.wants), got, ShouldResemble, c.wants)
 		}
+	})
+}
+
+func TestRelation_Count(t *testing.T) {
+	Convey("CountFans", t, func() {
+		cnt, err :=relationDao.CountUidFans(ctx, 1001)	
+		So(err, ShouldBeNil)
+		t.Log(cnt)
+	})
+
+	Convey("CountFollowings", t, func() {
+		cnt, err :=relationDao.CountUidFollowings(ctx, 1001)	
+		So(err, ShouldBeNil)
+		t.Log(cnt)
 	})
 }

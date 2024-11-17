@@ -10,6 +10,7 @@ import (
 	"github.com/ryanreadbooks/whimer/relation/internal/global"
 	"github.com/ryanreadbooks/whimer/relation/internal/infra"
 	"github.com/ryanreadbooks/whimer/relation/internal/infra/dao"
+	"github.com/ryanreadbooks/whimer/relation/internal/model"
 )
 
 // 关注相关
@@ -19,9 +20,13 @@ type RelationBiz interface {
 	// follower取消对followee关注
 	UserUnFollow(ctx context.Context, follower, followee uint64) error
 	// 获取用户的关注列表
-	GetUserFollowingList(ctx context.Context, uid uint64, offset uint64, limit int) ([]uint64, error)
+	GetUserFollowingList(ctx context.Context, uid uint64, offset uint64, limit int) ([]uint64, model.ListResult, error)
 	// 获取用户的粉丝列表
-	GetUserFansList(ctx context.Context, uid uint64, offset uint64, limit int) ([]uint64, error)
+	GetUserFansList(ctx context.Context, uid uint64, offset uint64, limit int) ([]uint64, model.ListResult, error)
+	// 获取用户关注数
+	GetUserFollowingCount(ctx context.Context, uid uint64) (uint64, error)
+	// 获取用户粉丝数
+	GetUserFanCount(ctx context.Context, uid uint64) (uint64, error)
 }
 
 type relationBiz struct {
@@ -167,12 +172,46 @@ func (b *relationBiz) UserUnFollow(ctx context.Context, follower, followee uint6
 	return nil
 }
 
-func (b *relationBiz) GetUserFollowingList(ctx context.Context, uid uint64, offset uint64, limit int) ([]uint64, error) {
+func (b *relationBiz) GetUserFollowingList(ctx context.Context, uid uint64, offset uint64, limit int) ([]uint64, model.ListResult, error) {
+	var lr model.ListResult
+	followings, next, more, err := infra.Dao().RelationDao.FindUidLinkTo(ctx, uid, offset, limit)
+	if err != nil {
+		return nil, lr, xerror.Wrapf(err, "relation biz failed to find uid link to").WithExtras("offset", offset, "limit", limit)
+	}
 
-	return nil, nil
+	lr.NextOffset = next
+	lr.HasMore = more
+	return followings, lr, nil
 }
 
-func (b *relationBiz) GetUserFansList(ctx context.Context, uid uint64, offset uint64, limit int) ([]uint64, error) {
+func (b *relationBiz) GetUserFansList(ctx context.Context, uid uint64, offset uint64, limit int) ([]uint64, model.ListResult, error) {
+	var lr model.ListResult
+	fans, next, more, err := infra.Dao().RelationDao.FindUidGotLinked(ctx, uid, offset, limit)
+	if err != nil {
+		return nil, lr, xerror.Wrapf(err, "relation biz failed to find uid got linked to").WithExtras("offset", offset, "limit", limit)
+	}
 
-	return nil, nil
+	lr.NextOffset = next
+	lr.HasMore = more
+	return fans, lr, nil
+}
+
+// 获取用户关注数
+func (b *relationBiz) GetUserFollowingCount(ctx context.Context, uid uint64) (uint64, error) {
+	cnt, err := infra.Dao().RelationDao.CountUidFollowings(ctx, uid)
+	if err != nil {
+		return 0, xerror.Wrapf(err, "relation biz failed to count user followings")
+	}
+
+	return cnt, nil
+}
+
+// 获取用户粉丝数
+func (b *relationBiz) GetUserFanCount(ctx context.Context, uid uint64) (uint64, error) {
+	cnt, err := infra.Dao().RelationDao.CountUidFans(ctx, uid)
+	if err != nil {
+		return 0, xerror.Wrapf(err, "relation biz failed to count user fans")
+	}
+
+	return cnt, nil
 }

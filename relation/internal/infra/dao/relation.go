@@ -132,13 +132,26 @@ var (
 	// 获取uid关注的人
 	sqlFindWhoUidFollows = fmt.Sprintf(sqlUnionTemplate, LinkForward, LinkMutual, LinkBackward, LinkMutual)
 	// 获取关注uid的人
-	sqlFindWhoFollowUid = fmt.Sprintf(sqlUnionTemplate, LinkBackward, LinkMutual, LinkForward, LinkMutual)
+	sqlFindWhoFollowsUid = fmt.Sprintf(sqlUnionTemplate, LinkBackward, LinkMutual, LinkForward, LinkMutual)
 
 	sqlFindTemplate       = fmt.Sprintf("SELECT %s FROM relation WHERE %%s=? AND (link IN (%%d,%%d))", relationAllFields)
 	sqlFindByAlpha        = fmt.Sprintf(sqlFindTemplate, "alpha", LinkForward, LinkMutual)
 	sqlFindByBeta         = fmt.Sprintf(sqlFindTemplate, "beta", LinkBackward, LinkMutual)
 	sqlFindAlphaGotLinked = fmt.Sprintf(sqlFindTemplate, "alpha", LinkBackward, LinkMutual)
 	sqlFindBetaGotLinked  = fmt.Sprintf(sqlFindTemplate, "beta", LinkForward, LinkMutual)
+
+	// counting
+	unionCountTemplate = `
+		SELECT SUM(cnt) FROM 
+		((SELECT COUNT(*) cnt FROM relation WHERE alpha=? AND link IN (%d, %d)) 
+			UNION ALL 
+		(SELECT COUNT(*) cnt FROM relation WHERE beta=? AND link IN (%d, %d))) AS total
+	`
+	sqlUnionCountTemplate = strings.ReplaceAll(strings.ReplaceAll(unionCountTemplate, "\n", ""), "\t", "")
+	// 获取uid关注的人的数量
+	sqlCountUidFollowings = fmt.Sprintf(sqlUnionCountTemplate, LinkForward, LinkMutual, LinkBackward, LinkMutual)
+	// 获取关注uid的人的数量
+	sqlCountUidFans = fmt.Sprintf(sqlUnionCountTemplate, LinkBackward, LinkMutual, LinkForward, LinkMutual)
 )
 
 // 插入/更新一条记录
@@ -200,21 +213,27 @@ func (d *RelationDao) FindByAlphaBetaAndLink(ctx context.Context, a, b uint64, l
 // 找到uid关注的人 (找到发出关注连接的用户存在的用户关系)
 //
 //	alpha=uid and link=Forward/Mutual or beta=uid and link=Backward/Mutual
-func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid, offset uint64, limit int) ([]uint64, error) {
+func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid, offset uint64, limit int) (uids []uint64, next uint64, more bool, err error) {
 	var (
 		rs = make([]*Relation, 0, 16)
 	)
 
-	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoUidFollows, offset, uid, limit, offset, uid, limit, limit)
+	err = d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoUidFollows, offset, uid, limit, offset, uid, limit, limit)
 	if err != nil {
 		err = xsql.ConvertError(err)
 		if errors.Is(err, xsql.ErrNoRecord) {
-			return []uint64{}, nil
+			err = nil
+			uids = []uint64{}
+			return
 		}
-		return nil, err
+		return
 	}
 
-	uids := make([]uint64, 0, len(rs))
+	if len(rs) == 0 {
+		return
+	}
+
+	uids = make([]uint64, 0, len(rs))
 	for _, r := range rs {
 		if r.UserAlpha == uid {
 			uids = append(uids, r.UserBeta)
@@ -223,7 +242,14 @@ func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid, offset uint64, lim
 		}
 	}
 
-	return uids, nil
+	next = rs[len(rs)-1].Id
+	if len(rs) == limit {
+		more = true
+	} else {
+		next = 0
+	}
+
+	return
 }
 
 // 找到alpha关注的人
@@ -265,21 +291,27 @@ func (d *RelationDao) FindBetaLinkTo(ctx context.Context, beta uint64) ([]uint64
 }
 
 // 找到关注uid的人
-func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid, offset uint64, limit int) ([]uint64, error) {
+func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid, offset uint64, limit int) (uids []uint64, next uint64, more bool, err error) {
 	var (
 		rs = make([]*Relation, 0, 16)
 	)
 
-	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoFollowUid, offset, uid, limit, offset, uid, limit, limit)
+	err = d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoFollowsUid, offset, uid, limit, offset, uid, limit, limit)
 	if err != nil {
 		err = xsql.ConvertError(err)
 		if errors.Is(err, xsql.ErrNoRecord) {
-			return []uint64{}, nil
+			err = nil
+			uids = []uint64{}
+			return
 		}
-		return nil, err
+		return
 	}
 
-	uids := make([]uint64, 0, len(rs))
+	if len(rs) == 0 {
+		return
+	}
+
+	uids = make([]uint64, 0, len(rs))
 	for _, r := range rs {
 		if r.UserAlpha == uid {
 			uids = append(uids, r.UserBeta)
@@ -288,7 +320,14 @@ func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid, offset uint64, 
 		}
 	}
 
-	return uids, nil
+	next = rs[len(rs)-1].Id
+	if len(rs) == limit {
+		more = true
+	} else {
+		next = 0
+	}
+
+	return
 }
 
 // 找到关注alpha的人
@@ -329,4 +368,20 @@ func (d *RelationDao) FindBetaGotLinked(ctx context.Context, beta uint64) ([]uin
 	}
 
 	return uids, nil
+}
+
+// 获取关注uid的人数
+func (d *RelationDao) CountUidFans(ctx context.Context, uid uint64) (uint64, error) {
+	var cnt uint64
+	// TODO use cache
+	err := d.db.QueryRowCtx(ctx, &cnt, sqlCountUidFans, uid, uid)
+	return cnt, xsql.ConvertError(err)
+}
+
+// 获取uid关注的人数
+func (d *RelationDao) CountUidFollowings(ctx context.Context, uid uint64) (uint64, error) {
+	var cnt uint64
+	// TODO use cache
+	err := d.db.QueryRowCtx(ctx, &cnt, sqlCountUidFollowings, uid, uid)
+	return cnt, xsql.ConvertError(err)
 }
