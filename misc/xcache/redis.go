@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
+	"github.com/ryanreadbooks/whimer/misc/generics"
 	"github.com/ryanreadbooks/whimer/misc/utils"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
@@ -17,21 +18,6 @@ func New[T any](rd *redis.Redis) *Cache[T] {
 	return &Cache[T]{
 		r: rd,
 	}
-}
-
-type defOptFn[T any] func() T
-
-type opter[T any] interface {
-	~func(*T)
-}
-
-func injectOpt[T any, P opter[T]](def defOptFn[T], opts ...P) *T {
-	opt := def()
-	for _, o := range opts {
-		o(&opt)
-	}
-
-	return &opt
 }
 
 type unmarshaler func([]byte, any) error
@@ -51,6 +37,15 @@ type getOpt[T any] struct {
 	marshaler   marshaler
 	fallback    GetFallbackFn[T]
 	bgSet       bool
+}
+
+func (o getOpt[T]) Default() getOpt[T] {
+	return getOpt[T]{
+		unmarshaler: json.Unmarshal,
+		marshaler:   json.Marshal,
+		bgSet:       false,
+		fallback:    nil,
+	}
 }
 
 func getOptDefault[T any]() getOpt[T] {
@@ -85,8 +80,7 @@ func WithGetBgSet[T any](b bool) GetOpt[T] {
 // 从缓存中获取对象
 // 如果T是一个对象，自动进行json序列化
 func (c *Cache[T]) Get(ctx context.Context, key string, opts ...GetOpt[T]) (t T, err error) {
-	opt := injectOpt[getOpt[T]](getOptDefault[T], opts...)
-
+	opt := generics.MakeOpt(opts...)
 	resp, err := c.r.GetCtx(ctx, key)
 	if err != nil || resp == "" {
 		if opt.fallback != nil {
@@ -119,7 +113,7 @@ type setOpt[T any] struct {
 	marshaler func(any) ([]byte, error)
 }
 
-func setOptDefault[T any]() setOpt[T] {
+func (o setOpt[T]) Default() setOpt[T] {
 	return setOpt[T]{
 		marshaler: json.Marshal,
 	}
@@ -135,11 +129,7 @@ func WithSetMarshaler[T any](mr func(any) ([]byte, error)) SetOpt[T] {
 
 // 设置对象近缓存中
 func (c *Cache[T]) Set(ctx context.Context, key string, value T, opts ...SetOpt[T]) error {
-	opt := setOptDefault[T]()
-	for _, o := range opts {
-		o(&opt)
-	}
-
+	opt := generics.MakeOpt(opts...)
 	content, err := opt.marshaler(value)
 	if err != nil {
 		return err
@@ -149,7 +139,7 @@ func (c *Cache[T]) Set(ctx context.Context, key string, value T, opts ...SetOpt[
 }
 
 func (c *Cache[T]) Setex(ctx context.Context, key string, value T, seconds int, opts ...SetOpt[T]) error {
-	opt := injectOpt[setOpt[T]](setOptDefault[T], opts...)
+	opt := generics.MakeOpt(opts...)
 	content, err := opt.marshaler(value)
 	if err != nil {
 		return err
@@ -175,7 +165,7 @@ type smembersOpt[T any] struct {
 	unmarshaler unmarshaler
 }
 
-func smembersDefaultOpt[T any]() smembersOpt[T] {
+func (o smembersOpt[T]) Default() smembersOpt[T] {
 	return smembersOpt[T]{
 		fallback:    nil,
 		unmarshaler: json.Unmarshal,
@@ -188,8 +178,7 @@ type SmembersOpt[T any] func(o *smembersOpt[T])
 //
 // 不支持自动写入缓存
 func (c *Cache[T]) Smembers(ctx context.Context, key string, opts ...SmembersOpt[T]) ([]T, error) {
-	opt := injectOpt[smembersOpt[T]](smembersDefaultOpt[T], opts...)
-
+	opt := generics.MakeOpt(opts...)
 	res, err := c.r.SmembersCtx(ctx, key)
 	if err != nil {
 		// fallback
