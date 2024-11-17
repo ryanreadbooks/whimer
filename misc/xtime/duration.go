@@ -31,3 +31,27 @@ var (
 	Day  = 24 * Hour
 	Week = 7 * Day
 )
+
+func WeekJitter(t time.Duration) time.Duration {
+	return Week + JitterDuration(t)
+}
+
+func WeekJitterSec(t time.Duration) int {
+	return int((Week + JitterDuration(t)).Seconds())
+}
+
+func HourJitter(t time.Duration) time.Duration {
+	return Hour + JitterDuration(t)
+}
+
+func HourJitterSec(t time.Duration) int {
+	return int((Hour + JitterDuration(t)).Seconds())
+}
+
+func DayJitter(t time.Duration) time.Duration {
+	return Day + JitterDuration(t)
+}
+
+func DayJitterSec(t time.Duration) int {
+	return int((Day + JitterDuration(t)).Seconds())
+}

@@ -1,4 +1,5 @@
 name: golangci-lint
+run-name: 'golangci-lint ${{github.workflow}} #${{ github.event.pull_request.number }}'
 
 on:
   pull_request:

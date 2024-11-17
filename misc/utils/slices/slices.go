@@ -7,7 +7,9 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/generics"
 )
 
-// [1,2,3,4,5] -> "1,2,3,4,5"
+// 将整数slice通过','组合在一起返回一个string
+//
+// 比如 [1,2,3,4,5] -> "1,2,3,4,5"
 func JoinInts[T generics.Integer](ints []T) string {
 	var ll = len(ints)
 	if ll == 0 {
@@ -25,10 +27,14 @@ func JoinInts[T generics.Integer](ints []T) string {
 	return builder.String()
 }
 
+// 将字符串slice通过','组合在一起返回一个string
 func JoinStrings(strs []string) string {
 	return strings.Join(strs, ",")
 }
 
+// slice去重
+//
+// 比如 [1,2,2,3,4] -> [1,2,3,4]
 func Uniq[T comparable](v []T) []T {
 	u := make([]T, 0, len(v))
 	e := make(map[T]struct{})
@@ -39,4 +45,21 @@ func Uniq[T comparable](v []T) []T {
 		}
 	}
 	return u
+}
+
+// 拼接两个slice
+//
+// 比如 [1,2,3] + [2,3,4] -> [1,2,3,2,3,4]
+func Concat[T any](a, b []T) []T {
+	u := make([]T, 0, len(a)+len(b))
+	u = append(u, a...)
+	u = append(u, b...)
+	return u
+}
+
+// 拼接两个slice后去重
+//
+// 比如 [1,2,3] + [2,3,4] -> [1,2,3,4]
+func ConcatUniq[T comparable](a, b []T) []T {
+	return Uniq(Concat(a, b))
 }

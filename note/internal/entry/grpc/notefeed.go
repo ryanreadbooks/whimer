@@ -14,19 +14,19 @@ var (
 type NoteFeedServiceServer struct {
 	notev1.UnimplementedNoteFeedServiceServer
 
-	Svc *srv.Service
+	Srv *srv.Service
 }
 
 func NewNoteFeedServiceServer(svc *srv.Service) *NoteFeedServiceServer {
 	return &NoteFeedServiceServer{
-		Svc: svc,
+		Srv: svc,
 	}
 }
 
 func (s *NoteFeedServiceServer) RandomGet(ctx context.Context, in *notev1.RandomGetRequest) (
 	*notev1.RandomGetResponse, error,
 ) {
-	resp, err := s.Svc.NoteFeedSrv.FeedRandomGet(ctx, in.Count)
+	resp, err := s.Srv.NoteFeedSrv.FeedRandomGet(ctx, in.Count)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (s *NoteFeedServiceServer) RandomGet(ctx context.Context, in *notev1.Random
 
 func (s *NoteFeedServiceServer) GetFeedNote(ctx context.Context, in *notev1.GetFeedNoteRequest) (
 	*notev1.GetFeedNoteResponse, error) {
-	resp, err := s.Svc.NoteFeedSrv.GetNoteDetail(ctx, in.NoteId)
+	resp, err := s.Srv.NoteFeedSrv.GetNoteDetail(ctx, in.NoteId)
 	if err != nil {
 		return nil, err
 	}
