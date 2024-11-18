@@ -1,11 +1,11 @@
 http:
   mode: dev
-  name: api-x
+  name: feed
   host: 0.0.0.0
-  port: 8081
+  port: 8082
   log:
     level: debug
-  
+
 backend:
   note:
     hosts: [127.0.0.1:2379]

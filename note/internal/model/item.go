@@ -33,6 +33,9 @@ type Note struct {
 	Images          NoteImageList   `json:"images"`
 	Likes           uint64          `json:"likes"`
 	UserInteraction UserInteraction `json:"user_interaction,omitempty"`
+
+	// unexported to user
+	Owner uint64 `json:"-"`
 }
 
 func (n *Note) AsSlice() []*Note {
@@ -50,6 +53,7 @@ func NoteFromDao(d *dao.Note) *Note {
 	n.Privacy = d.Privacy
 	n.CreateAt = d.CreateAt
 	n.UpdateAt = d.UpdateAt
+	n.Owner = d.Owner
 
 	return n
 }

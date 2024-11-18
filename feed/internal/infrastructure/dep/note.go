@@ -1,9 +1,9 @@
-package note
+package dep
 
 import (
 	"sync/atomic"
 
-	"github.com/ryanreadbooks/whimer/api-x/internal/config"
+	"github.com/ryanreadbooks/whimer/feed/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 
@@ -12,7 +12,6 @@ import (
 
 var (
 	// 笔记服务
-	noteCreator  notesdk.NoteCreatorServiceClient
 	noteFeed     notesdk.NoteFeedServiceClient
 	noteInteract notesdk.NoteInteractServiceClient
 
@@ -20,20 +19,16 @@ var (
 	available atomic.Bool
 )
 
-func Init(c *config.Config) {
+func initNote(c *config.Config) {
 	conn, err := xgrpc.NewClientConn(c.Backend.Note)
 	if err != nil {
 		logx.Errorf("external init: can not init note")
 	} else {
-		noteCreator = notesdk.NewNoteCreatorServiceClient(conn)
 		noteFeed = notesdk.NewNoteFeedServiceClient(conn)
 		noteInteract = notesdk.NewNoteInteractServiceClient(conn)
 		available.Store(true)
 	}
-}
 
-func NoteCreatorServer() notesdk.NoteCreatorServiceClient {
-	return noteCreator
 }
 
 func NoteInteractServer() notesdk.NoteInteractServiceClient {
@@ -42,8 +37,4 @@ func NoteInteractServer() notesdk.NoteInteractServiceClient {
 
 func NoteFeedServer() notesdk.NoteFeedServiceClient {
 	return noteFeed
-}
-
-func Available() bool {
-	return available.Load()
 }

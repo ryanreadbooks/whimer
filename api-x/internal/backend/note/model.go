@@ -1,19 +1,9 @@
 package note
 
 import (
-	"github.com/ryanreadbooks/whimer/api-x/internal/config"
-	"github.com/ryanreadbooks/whimer/misc/safety"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
-
-var (
-	IdConfuser *safety.Confuser
-)
-
-func initModel(c *config.Config) {
-	IdConfuser = safety.NewConfuser(c.Metadata.Note.Salt, 24)
-}
 
 type CreateReqBasic struct {
 	Title   string `json:"title"`
@@ -57,20 +47,20 @@ func (r *CreateReq) AsPb() *notesdk.CreateNoteRequest {
 }
 
 type CreateRes struct {
-	NoteId string `json:"note_id"`
+	NoteId uint64 `json:"note_id"`
 }
 
 type UpdateReq struct {
-	NoteId string `json:"note_id"`
+	NoteId uint64 `json:"note_id"`
 	CreateReq
 }
 
 type UpdateRes struct {
-	NoteId string `json:"note_id"`
+	NoteId uint64 `json:"note_id"`
 }
 
 type NoteIdReq struct {
-	NoteId string `json:"note_id" path:"note_id" form:"note_id"`
+	NoteId uint64 `json:"note_id" path:"note_id" form:"note_id"`
 }
 
 func (r *NoteIdReq) Validate() error {
@@ -78,7 +68,7 @@ func (r *NoteIdReq) Validate() error {
 		return xerror.ErrNilArg
 	}
 
-	if len(r.NoteId) <= 0 {
+	if r.NoteId <= 0 {
 		return xerror.ErrArgs.Msg("笔记id错误")
 	}
 
@@ -93,7 +83,7 @@ type NoteItemImage struct {
 type NoteItemImageList []*NoteItemImage
 
 type AdminNoteItem struct {
-	NoteId   string            `json:"note_id"`
+	NoteId   uint64            `json:"note_id"`
 	Title    string            `json:"title"`
 	Desc     string            `json:"desc"`
 	Privacy  int8              `json:"privacy"`
@@ -117,7 +107,7 @@ func NewAdminNoteItemFromPb(pb *notesdk.NoteItem) *AdminNoteItem {
 	}
 
 	return &AdminNoteItem{
-		NoteId:   IdConfuser.ConfuseU(pb.NoteId),
+		NoteId:   pb.NoteId,
 		Title:    pb.Title,
 		Desc:     pb.Desc,
 		Privacy:  int8(pb.Privacy),
@@ -186,7 +176,7 @@ const (
 
 // 点赞/取消点赞
 type LikeReq struct {
-	NoteId string        `json:"note_id"`
+	NoteId uint64        `json:"note_id"`
 	Action LikeReqAction `json:"action"`
 }
 
@@ -203,7 +193,7 @@ func (r *LikeReq) Validate() error {
 }
 
 type GetLikesRes struct {
-	NoteId string `json:"note_id"`
+	NoteId uint64 `json:"note_id"`
 	Count  uint64 `json:"count"`
 }
 
@@ -214,7 +204,7 @@ type Interaction struct {
 }
 
 type FeedNoteItem struct {
-	NoteId   string            `json:"note_id"`
+	NoteId   uint64            `json:"note_id"`
 	Title    string            `json:"title"`
 	Desc     string            `json:"desc"`
 	CreateAt int64             `json:"create_at"`
@@ -238,7 +228,7 @@ func NewFeedNoteItemFromPb(pb *notesdk.FeedNoteItem) *FeedNoteItem {
 	}
 
 	return &FeedNoteItem{
-		NoteId:   IdConfuser.ConfuseU(pb.NoteId),
+		NoteId:   pb.NoteId,
 		Title:    pb.Title,
 		Desc:     pb.Desc,
 		CreateAt: pb.CreatedAt,

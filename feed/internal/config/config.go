@@ -5,7 +5,8 @@ import (
 	"github.com/zeromicro/go-zero/rest"
 )
 
-// 各服务配置
+var Conf Config
+
 type Config struct {
 	Http rest.RestConf `json:"http"`
 

@@ -18,6 +18,8 @@ import (
 type NoteBiz interface {
 	// 获取笔记基础信息
 	GetNote(ctx context.Context, noteId uint64) (*model.Note, error)
+	// 获取公开的笔记基础信息
+	GetPublicNote(ctx context.Context, noteId uint64) (*model.Note, error)
 	// 判断笔记是否存在
 	IsNoteExist(ctx context.Context, noteId uint64) (bool, error)
 	// 获取笔记作者
@@ -37,6 +39,9 @@ func NewNoteBiz() NoteBiz {
 func (b *noteBiz) GetNote(ctx context.Context, noteId uint64) (*model.Note, error) {
 	note, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
 	if err != nil {
+		if xsql.IsNotFound(err) {
+			return nil, global.ErrNoteNotFound
+		}
 		return nil, xerror.Wrapf(err, "biz find one note failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
@@ -46,6 +51,19 @@ func (b *noteBiz) GetNote(ctx context.Context, noteId uint64) (*model.Note, erro
 	}
 
 	return resp.Items[0], nil
+}
+
+func (b *noteBiz) GetPublicNote(ctx context.Context, noteId uint64) (*model.Note, error) {
+	note, err := b.GetNote(ctx, noteId)
+	if err != nil {
+		return nil, err
+	}
+
+	if note.Privacy != global.PrivacyPublic {
+		return nil, global.ErrNoteNotPublic
+	}
+
+	return note, nil
 }
 
 func (b *noteBiz) IsNoteExist(ctx context.Context, noteId uint64) (bool, error) {

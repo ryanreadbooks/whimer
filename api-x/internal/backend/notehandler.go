@@ -34,7 +34,7 @@ func (h *Handler) AdminCreateNote() http.HandlerFunc {
 			return
 		}
 
-		httpx.OkJson(w, note.CreateRes{NoteId: note.IdConfuser.ConfuseU(resp.NoteId)})
+		httpx.OkJson(w, note.CreateRes{NoteId: resp.NoteId})
 	}
 }
 
@@ -46,10 +46,8 @@ func (h *Handler) AdminUpdateNote() http.HandlerFunc {
 			return
 		}
 
-		var noteId = note.IdConfuser.DeConfuseU(req.NoteId)
-
 		_, err = note.NoteCreatorServer().UpdateNote(r.Context(), &notev1.UpdateNoteRequest{
-			NoteId: noteId,
+			NoteId: req.NoteId,
 			Note: &notev1.CreateNoteRequest{
 				Basic:  req.Basic.AsPb(),
 				Images: req.Images.AsPb(),
@@ -74,7 +72,7 @@ func (h *Handler) AdminDeleteNote() http.HandlerFunc {
 		}
 
 		_, err = note.NoteCreatorServer().DeleteNote(r.Context(), &notev1.DeleteNoteRequest{
-			NoteId: note.IdConfuser.DeConfuseU(req.NoteId),
+			NoteId: req.NoteId,
 		})
 
 		if err != nil {
@@ -107,7 +105,7 @@ func (h *Handler) AdminGetNote() http.HandlerFunc {
 		}
 
 		resp, err := note.NoteCreatorServer().GetNote(r.Context(), &notev1.GetNoteRequest{
-			NoteId: note.IdConfuser.DeConfuseU(req.NoteId),
+			NoteId: req.NoteId,
 		})
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -149,7 +147,7 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 			return
 		}
 
-		nid := note.IdConfuser.DeConfuseU(req.NoteId)
+		nid := req.NoteId
 		_, err = note.NoteInteractServer().LikeNote(r.Context(), &notev1.LikeNoteRequest{
 			NoteId:    nid,
 			Uid:       uid,
@@ -172,7 +170,7 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 			return
 		}
 
-		nid := note.IdConfuser.DeConfuseU(req.NoteId)
+		nid := req.NoteId
 		resp, err := note.NoteInteractServer().GetNoteLikes(r.Context(), &notev1.GetNoteLikesRequest{NoteId: nid})
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -181,7 +179,7 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 
 		httpx.OkJson(w, &note.GetLikesRes{
 			Count:  resp.Likes,
-			NoteId: note.IdConfuser.ConfuseU(resp.NoteId),
+			NoteId: resp.NoteId,
 		})
 	}
 }
@@ -197,7 +195,7 @@ func (h *Handler) GetNote() http.HandlerFunc {
 
 		var (
 			uid    = metadata.Uid(r.Context())
-			noteId = note.IdConfuser.DeConfuseU(req.NoteId)
+			noteId = req.NoteId
 
 			wg    sync.WaitGroup
 			resp1 *commentv1.CountReplyRes

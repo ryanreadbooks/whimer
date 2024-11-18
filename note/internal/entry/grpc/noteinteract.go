@@ -33,7 +33,7 @@ func (s *NoteInteractServiceServer) GetNoteLikes(ctx context.Context, in *notev1
 		return nil, err
 	}
 
-	return &notev1.GetNoteLikesResponse{Likes: likes}, nil
+	return &notev1.GetNoteLikesResponse{Likes: likes, NoteId: in.NoteId}, nil
 }
 
 // 检查用户点赞状态
