@@ -49,3 +49,16 @@ func (s *UserServiceServer) BatchGetUser(ctx context.Context, in *user.BatchGetU
 
 	return &user.BatchGetUserResponse{Users: users}, nil
 }
+
+func (s *UserServiceServer) GetUser(ctx context.Context, in *user.GetUserRequest) (*user.GetUserResponse, error) {
+	if in == nil {
+		return nil, global.ErrNilReq
+	}
+
+	resp, err := s.Svc.UserSrv.GetUser(ctx, in.Uid)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user.GetUserResponse{User: resp.ToPb()}, nil
+}

@@ -26,6 +26,7 @@ var (
 	ErrPermission         = NewError(Forbidden, CodeForbidden, "需要特殊通行证")
 	ErrNotFound           = NewError(NotFound, CodeNotFound, "找不到你要的资源")
 	ErrInternal           = NewError(InternalServerError, CodeInternal, "服务器被怪兽踢烂了(ノ｀Д´)ノ")
+	ErrDepNotReady        = NewError(InternalServerError, CodeInternal, "服务未就绪")
 	ErrInternalPanic      = NewError(InternalServerError, CodeInternalPanic, "服务器炸掉了")
 	ErrCsrf               = NewError(Forbidden, CodeCsrfFailed, "CSRF校验失败")
 	ErrServiceUnavailable = NewError(ServiceUnavailable, CodeServiceUnavailable, "服务暂不可用")

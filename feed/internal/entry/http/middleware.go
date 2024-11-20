@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/ryanreadbooks/whimer/feed/internal/infrastructure/dep"
+	"github.com/ryanreadbooks/whimer/feed/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/passport/sdk/middleware/auth"
 	
 	"github.com/zeromicro/go-zero/rest"

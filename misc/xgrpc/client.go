@@ -1,10 +1,16 @@
 package xgrpc
 
 import (
+	"context"
+	"time"
+
 	"github.com/ryanreadbooks/whimer/misc/xconf"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 )
 
 // 快速创建带通用拦截器的grpc客户端连接
@@ -41,10 +47,63 @@ func NewClientConn(conf xconf.Discovery) (*grpc.ClientConn, error) {
 		conf.AsZrpcClientConf(),
 		zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientErrorHandler),
 		zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientMetadataInject),
+		zrpc.WithDialOption(grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff:           backoff.DefaultConfig,
+			MinConnectTimeout: 8 * time.Second,
+		})),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return cli.Conn(), nil
+}
+
+type UnreadyClientConn struct {
+}
+
+func NewUnreadyClientConn() *UnreadyClientConn {
+	return &UnreadyClientConn{}
+}
+
+func (*UnreadyClientConn) Invoke(ctx context.Context,
+	method string,
+	args any,
+	reply any,
+	opts ...grpc.CallOption) error {
+
+	return xerror.ErrDepNotReady
+}
+
+func (*UnreadyClientConn) NewStream(ctx context.Context,
+	desc *grpc.StreamDesc,
+	method string,
+	opts ...grpc.CallOption) (grpc.ClientStream, error) {
+
+	return nil, xerror.ErrDepNotReady
+}
+
+// 重新连接
+func RetryConnectConn(c xconf.Discovery, connect func(cc grpc.ClientConnInterface)) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+outer:
+	for {
+		select {
+		case <-ticker.C:
+			// try to reconnect
+			logx.Infof("retrying to connect to note conn at %s(%v)", c.Key, c.Hosts)
+			cc, err := NewClientConn(c)
+			if err != nil {
+				logx.Infof("retrying to connect to note conn at %s(%v) failed again: %v", c.Key, c.Hosts, err)
+			} else {
+				// retry connect succeeded
+				// ignore concurrency
+				connect(cc)
+				logx.Infof("retry connect %s(%v) loop exited", c.Key, c.Hosts)
+				break outer
+			}
+		}
+	}
 }
