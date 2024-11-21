@@ -840,6 +840,13 @@ func (s *CommentSvc) CheckUserCommentOnObject(ctx context.Context, uid, oid uint
 	return cnt != 0, nil
 }
 
+func (s *CommentSvc) BatchCountReply(ctx context.Context, oids []uint64) (map[uint64]uint64, error) {
+	cnts := make(map[uint64]uint64, len(oids))
+
+	// TODO (implement me)
+	return cnts, nil
+}
+
 // 全量同步评论数量
 func (s *CommentSvc) FullSyncReplyCountCache(ctx context.Context) error {
 	res, err := s.repo.CommentRepo.CountGroupByOid(ctx)

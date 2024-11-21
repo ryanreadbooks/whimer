@@ -20,10 +20,10 @@ func main() {
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
 
-	service := srv.Init(&config.Conf)
+	srv.Init(&config.Conf)
 
 	apiserver := rest.MustNewServer(config.Conf.Http)
-	http.Init(apiserver, service)
+	http.Init(apiserver)
 
 	servgroup := zeroservice.NewServiceGroup()
 	defer servgroup.Stop()

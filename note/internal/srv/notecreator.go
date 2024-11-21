@@ -52,10 +52,8 @@ func (s *NoteCreatorSrv) List(ctx context.Context) (*model.Notes, error) {
 		return nil, xerror.Wrapf(err, "srv creator list note failed").WithCtx(ctx)
 	}
 
-	resp, err = s.noteInteractBiz.AssignNoteLikes(ctx, resp)
-	if err != nil {
-		return nil, xerror.Wrapf(err, "srv interact assign note likes failed").WithCtx(ctx)
-	}
+	resp, _ = s.noteInteractBiz.AssignNoteLikes(ctx, resp)
+	resp, _ = s.noteInteractBiz.AssignNoteReplies(ctx, resp)
 
 	return resp, nil
 }
@@ -67,10 +65,8 @@ func (s *NoteCreatorSrv) GetNote(ctx context.Context, noteId uint64) (*model.Not
 		return nil, xerror.Wrapf(err, "srv creator get note failed").WithCtx(ctx)
 	}
 
-	resp, err := s.noteInteractBiz.AssignNoteLikes(ctx, &model.Notes{Items: []*model.Note{note}})
-	if err != nil {
-		return nil, xerror.Wrapf(err, "srv interact assign note likes failed").WithCtx(ctx)
-	}
+	resp, _ := s.noteInteractBiz.AssignNoteLikes(ctx, &model.Notes{Items: []*model.Note{note}})
+	resp, _ = s.noteInteractBiz.AssignNoteReplies(ctx, resp)
 
 	return resp.Items[0], nil
 }

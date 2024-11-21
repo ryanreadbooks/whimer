@@ -5,11 +5,14 @@ import (
 	"github.com/ryanreadbooks/whimer/feed/internal/infra"
 )
 
-type Service struct {
+// globals 
+var (
+	Service  *service
+)
+
+type service struct {
 }
 
-func Init(c *config.Config) *Service {
+func Init(c *config.Config) {
 	infra.Init(c)
-
-	return &Service{}
 }

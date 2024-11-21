@@ -24,15 +24,16 @@ func (l NoteImageList) AsPb() []*notev1.NoteImage {
 }
 
 type Note struct {
-	NoteId          uint64          `json:"note_id"`
-	Title           string          `json:"title"`
-	Desc            string          `json:"desc"`
-	Privacy         int8            `json:"privacy,omitempty"`
-	CreateAt        int64           `json:"create_at,omitempty"`
-	UpdateAt        int64           `json:"update_at,omitempty"`
-	Images          NoteImageList   `json:"images"`
-	Likes           uint64          `json:"likes"`
-	UserInteraction UserInteraction `json:"user_interaction,omitempty"`
+	NoteId   uint64        `json:"note_id"`
+	Title    string        `json:"title"`
+	Desc     string        `json:"desc"`
+	Privacy  int8          `json:"privacy,omitempty"`
+	CreateAt int64         `json:"create_at,omitempty"`
+	UpdateAt int64         `json:"update_at,omitempty"`
+	Images   NoteImageList `json:"images"`
+	Likes    uint64        `json:"likes"`   // 点赞数
+	Replies  uint64        `json:"replies"` // 评论数
+	// UserInteraction UserInteraction `json:"user_interaction,omitempty"`
 
 	// unexported to user
 	Owner uint64 `json:"-"`
@@ -76,24 +77,35 @@ func (i *Note) AsPb() *notev1.NoteItem {
 		UpdateAt: i.UpdateAt,
 		Images:   i.Images.AsPb(),
 		Likes:    i.Likes,
+		Replies:  i.Replies,
 	}
 }
 
 // 转换成pb并隐藏一些不公开的属性
 func (i *Note) AsFeedPb() *notev1.FeedNoteItem {
 	return &notev1.FeedNoteItem{
-		NoteId:      i.NoteId,
-		Title:       i.Title,
-		Desc:        i.Desc,
-		CreatedAt:   i.CreateAt,
-		Images:      i.Images.AsPb(),
-		Likes:       i.Likes,
-		Interaction: i.UserInteraction.AsPb(),
+		NoteId:    i.NoteId,
+		Title:     i.Title,
+		Desc:      i.Desc,
+		CreatedAt: i.CreateAt,
+		Images:    i.Images.AsPb(),
+		Likes:     i.Likes,
+		Author:    i.Owner,
+		Replies:   i.Replies,
+		// Interaction: i.UserInteraction.AsPb(),
 	}
 }
 
 type Notes struct {
 	Items []*Note `json:"items"`
+}
+
+func (n *Notes) GetIds() []uint64 {
+	r := make([]uint64, 0, len(n.Items))
+	for _, item := range n.Items {
+		r = append(r, item.NoteId)
+	}
+	return r
 }
 
 type GetNoteReq struct {

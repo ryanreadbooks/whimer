@@ -12,7 +12,8 @@ message NoteItem {
   int64 create_at = 5;
   int64 update_at = 6;
   repeated NoteImage images = 7;
-  uint64 likes = 8; // 点赞数量
+  uint64 likes = 8;   // 点赞数量
+  uint64 replies = 9; //评论数量
 }
 
 message NoteImage {

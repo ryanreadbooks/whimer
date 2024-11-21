@@ -2,11 +2,14 @@ package xgrpc
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
@@ -39,6 +42,16 @@ func NewClient[T any, P func(cc grpc.ClientConnInterface) T](
 	}
 
 	return constructor(cli.Conn()), nil
+}
+
+func MustNewClient[T any, P func(cc grpc.ClientConnInterface) T](
+	conf xconf.Discovery, constructor P) (ret T) {
+	c, err := NewClient(conf, constructor)
+	if err != nil {
+		panic(err)
+	}
+
+	return c
 }
 
 // 创建带通用拦截器的grpc客户端连接
@@ -106,4 +119,27 @@ outer:
 			}
 		}
 	}
+}
+
+func RetryConnectConnInBackground(c xconf.Discovery, connect func(cc grpc.ClientConnInterface)) {
+	concurrent.SafeGo(func() {
+		RetryConnectConn(c, connect)
+	})
+}
+
+func NewRecoverableClient[T any](c xconf.Discovery, get func(grpc.ClientConnInterface) T) T {
+	var cc grpc.ClientConnInterface
+	cc, err := NewClientConn(c)
+	var res T
+	if err != nil {
+		xlog.Info(fmt.Sprintf("can not init grpc client %T", res))
+		RetryConnectConnInBackground(c, func(cc grpc.ClientConnInterface) {
+			// we ignore concurrent problem here
+			res = get(cc)
+		})
+		cc = NewUnreadyClientConn()
+	}
+	res = get(cc)
+
+	return res
 }

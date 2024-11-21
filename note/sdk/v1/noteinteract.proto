@@ -40,7 +40,8 @@ message CheckUserLikeStatusResponse {
 
 // 用户和笔记的交互信息
 message NoteInteraction {
-  bool liked = 1; // 用户是否点赞
+  bool liked = 1;     // 用户是否点赞
+  bool commented = 2; // 用户是否评论
 }
 
 message GetNoteInteractionRequest {
@@ -48,9 +49,7 @@ message GetNoteInteractionRequest {
   uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ];     // 用户id
 }
 
-message GetNoteInteractionResponse {
-  NoteInteraction interaction = 1;
-}
+message GetNoteInteractionResponse { NoteInteraction interaction = 1; }
 
 // 与笔记交互逻辑相关服务，比如点赞、收藏等
 service NoteInteractService {

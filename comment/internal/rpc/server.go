@@ -172,12 +172,36 @@ func (s *ReplyServiceServer) GetReplyDislikeCount(ctx context.Context,
 }
 
 func (s *ReplyServiceServer) CheckUserCommentOnObject(ctx context.Context,
-	in *commentv1.CheckUserCommentOnObjectRequest) (
-	*commentv1.CheckUserCommentOnObjectResponse, error) {
+	in *commentv1.CheckUserOnOjbectRequest) (
+	*commentv1.CheckUserOnOjbectResponse, error) {
 	ok, err := s.Svc.CommentSvc.CheckUserCommentOnObject(ctx, in.Uid, in.Oid)
 	if err != nil {
 		return nil, err
 	}
 
-	return &commentv1.CheckUserCommentOnObjectResponse{Commented: ok}, nil
+	return &commentv1.CheckUserOnOjbectResponse{
+		Result: &commentv1.CheckUserCommentPair{
+			Uid:       in.Uid,
+			Oid:       in.Oid,
+			Commented: ok,
+		},
+	}, nil
+}
+
+// 获取多个被评论对象的评论数
+func (s *ReplyServiceServer) BatchCountReply(ctx context.Context, in *commentv1.BatchCountReplyRequest) (
+	*commentv1.BatchCountReplyResponse, error) {
+	resp, err := s.Svc.CommentSvc.BatchCountReply(ctx, in.GetOids())
+	if err != nil {
+		return nil, err
+	}
+
+	return &commentv1.BatchCountReplyResponse{Numbers: resp}, nil
+}
+
+func (s *ReplyServiceServer) BatchCheckUserCommentOnObject(ctx context.Context,
+	in *commentv1.BatchCheckUserOnOjbectRequest) (
+	*commentv1.BatchCheckUserOnOjbectResponse, error) {
+
+	return &commentv1.BatchCheckUserOnOjbectResponse{}, nil
 }

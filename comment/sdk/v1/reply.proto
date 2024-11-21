@@ -148,6 +148,10 @@ message CountReplyRes {
   uint64 num_reply = 1; // 评论数量
 }
 
+message BatchCountReplyRequest { repeated uint64 oids = 1; }
+
+message BatchCountReplyResponse { map<uint64, uint64> numbers = 1; }
+
 service ReplyService {
   // 发表评论
   rpc AddReply(AddReplyReq) returns (AddReplyRes);
@@ -171,14 +175,19 @@ service ReplyService {
   rpc GetPinnedReply(GetPinnedReplyReq) returns (GetPinnedReplyRes);
   // 获取某个被评对象的评论数
   rpc CountReply(CountReplyReq) returns (CountReplyRes);
+  // 获取多个被评论对象的评论数
+  rpc BatchCountReply(BatchCountReplyRequest) returns (BatchCountReplyResponse);
   // 获取某条评论的点赞数
   rpc GetReplyLikeCount(GetReplyLikeCountReq) returns (GetReplyLikeCountRes);
   // 获取某条评论的点踩数
   rpc GetReplyDislikeCount(GetReplyDislikeCountReq)
       returns (GetReplyDislikeCountRes);
   // 获取某个用户是否评论了某个对象
-  rpc CheckUserCommentOnObject(CheckUserCommentOnObjectRequest)
-      returns (CheckUserCommentOnObjectResponse);
+  rpc CheckUserOnOjbect(CheckUserOnOjbectRequest)
+      returns (CheckUserOnOjbectResponse);
+
+  rpc BatchCheckUserOnOjbect(BatchCheckUserOnOjbectRequest)
+      returns (BatchCheckUserOnOjbectResponse);
 }
 
 message GetReplyLikeCountReq {
@@ -199,11 +208,25 @@ message GetReplyDislikeCountRes {
   uint64 count = 2; // 点赞数量
 }
 
-message CheckUserCommentOnObjectRequest {
+message CheckUserOnOjbectRequest {
   uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
   uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 用户id
 }
 
-message CheckUserCommentOnObjectResponse {
-  bool commented = 1; // 是否评论过
+message CheckUserOnOjbectResponse {
+  CheckUserCommentPair result = 1;
+}
+
+message BatchCheckUserOnOjbectRequest {
+  map<uint64, uint64> mappings = 1; // uid ——> oid
+}
+
+message CheckUserCommentPair {
+  uint64 oid = 1;
+  uint64 uid = 2;
+  bool commented = 3;
+}
+
+message BatchCheckUserOnOjbectResponse {
+  repeated CheckUserCommentPair results = 1;
 }

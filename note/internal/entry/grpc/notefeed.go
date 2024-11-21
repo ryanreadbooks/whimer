@@ -31,9 +31,9 @@ func (s *NoteFeedServiceServer) RandomGet(ctx context.Context, in *notev1.Random
 		return nil, err
 	}
 
-	items := make([]*notev1.NoteItem, 0, len(resp.Items))
+	items := make([]*notev1.FeedNoteItem, 0, len(resp.Items))
 	for _, item := range resp.Items {
-		items = append(items, item.AsPb())
+		items = append(items, item.AsFeedPb())
 	}
 
 	return &notev1.RandomGetResponse{
