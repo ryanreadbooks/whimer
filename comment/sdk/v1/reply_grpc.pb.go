@@ -33,8 +33,8 @@ const (
 	ReplyService_BatchCountReply_FullMethodName        = "/comment.sdk.v1.ReplyService/BatchCountReply"
 	ReplyService_GetReplyLikeCount_FullMethodName      = "/comment.sdk.v1.ReplyService/GetReplyLikeCount"
 	ReplyService_GetReplyDislikeCount_FullMethodName   = "/comment.sdk.v1.ReplyService/GetReplyDislikeCount"
-	ReplyService_CheckUserOnOjbect_FullMethodName      = "/comment.sdk.v1.ReplyService/CheckUserOnOjbect"
-	ReplyService_BatchCheckUserOnOjbect_FullMethodName = "/comment.sdk.v1.ReplyService/BatchCheckUserOnOjbect"
+	ReplyService_CheckUserOnObject_FullMethodName      = "/comment.sdk.v1.ReplyService/CheckUserOnObject"
+	ReplyService_BatchCheckUserOnObject_FullMethodName = "/comment.sdk.v1.ReplyService/BatchCheckUserOnObject"
 )
 
 // ReplyServiceClient is the client API for ReplyService service.
@@ -70,8 +70,8 @@ type ReplyServiceClient interface {
 	// 获取某条评论的点踩数
 	GetReplyDislikeCount(ctx context.Context, in *GetReplyDislikeCountReq, opts ...grpc.CallOption) (*GetReplyDislikeCountRes, error)
 	// 获取某个用户是否评论了某个对象
-	CheckUserOnOjbect(ctx context.Context, in *CheckUserOnOjbectRequest, opts ...grpc.CallOption) (*CheckUserOnOjbectResponse, error)
-	BatchCheckUserOnOjbect(ctx context.Context, in *BatchCheckUserOnOjbectRequest, opts ...grpc.CallOption) (*BatchCheckUserOnOjbectResponse, error)
+	CheckUserOnObject(ctx context.Context, in *CheckUserOnObjectRequest, opts ...grpc.CallOption) (*CheckUserOnObjectResponse, error)
+	BatchCheckUserOnObject(ctx context.Context, in *BatchCheckUserOnObjectRequest, opts ...grpc.CallOption) (*BatchCheckUserOnObjectResponse, error)
 }
 
 type replyServiceClient struct {
@@ -222,20 +222,20 @@ func (c *replyServiceClient) GetReplyDislikeCount(ctx context.Context, in *GetRe
 	return out, nil
 }
 
-func (c *replyServiceClient) CheckUserOnOjbect(ctx context.Context, in *CheckUserOnOjbectRequest, opts ...grpc.CallOption) (*CheckUserOnOjbectResponse, error) {
+func (c *replyServiceClient) CheckUserOnObject(ctx context.Context, in *CheckUserOnObjectRequest, opts ...grpc.CallOption) (*CheckUserOnObjectResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CheckUserOnOjbectResponse)
-	err := c.cc.Invoke(ctx, ReplyService_CheckUserOnOjbect_FullMethodName, in, out, cOpts...)
+	out := new(CheckUserOnObjectResponse)
+	err := c.cc.Invoke(ctx, ReplyService_CheckUserOnObject_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *replyServiceClient) BatchCheckUserOnOjbect(ctx context.Context, in *BatchCheckUserOnOjbectRequest, opts ...grpc.CallOption) (*BatchCheckUserOnOjbectResponse, error) {
+func (c *replyServiceClient) BatchCheckUserOnObject(ctx context.Context, in *BatchCheckUserOnObjectRequest, opts ...grpc.CallOption) (*BatchCheckUserOnObjectResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BatchCheckUserOnOjbectResponse)
-	err := c.cc.Invoke(ctx, ReplyService_BatchCheckUserOnOjbect_FullMethodName, in, out, cOpts...)
+	out := new(BatchCheckUserOnObjectResponse)
+	err := c.cc.Invoke(ctx, ReplyService_BatchCheckUserOnObject_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -275,8 +275,8 @@ type ReplyServiceServer interface {
 	// 获取某条评论的点踩数
 	GetReplyDislikeCount(context.Context, *GetReplyDislikeCountReq) (*GetReplyDislikeCountRes, error)
 	// 获取某个用户是否评论了某个对象
-	CheckUserOnOjbect(context.Context, *CheckUserOnOjbectRequest) (*CheckUserOnOjbectResponse, error)
-	BatchCheckUserOnOjbect(context.Context, *BatchCheckUserOnOjbectRequest) (*BatchCheckUserOnOjbectResponse, error)
+	CheckUserOnObject(context.Context, *CheckUserOnObjectRequest) (*CheckUserOnObjectResponse, error)
+	BatchCheckUserOnObject(context.Context, *BatchCheckUserOnObjectRequest) (*BatchCheckUserOnObjectResponse, error)
 	mustEmbedUnimplementedReplyServiceServer()
 }
 
@@ -329,11 +329,11 @@ func (UnimplementedReplyServiceServer) GetReplyLikeCount(context.Context, *GetRe
 func (UnimplementedReplyServiceServer) GetReplyDislikeCount(context.Context, *GetReplyDislikeCountReq) (*GetReplyDislikeCountRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetReplyDislikeCount not implemented")
 }
-func (UnimplementedReplyServiceServer) CheckUserOnOjbect(context.Context, *CheckUserOnOjbectRequest) (*CheckUserOnOjbectResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CheckUserOnOjbect not implemented")
+func (UnimplementedReplyServiceServer) CheckUserOnObject(context.Context, *CheckUserOnObjectRequest) (*CheckUserOnObjectResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckUserOnObject not implemented")
 }
-func (UnimplementedReplyServiceServer) BatchCheckUserOnOjbect(context.Context, *BatchCheckUserOnOjbectRequest) (*BatchCheckUserOnOjbectResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method BatchCheckUserOnOjbect not implemented")
+func (UnimplementedReplyServiceServer) BatchCheckUserOnObject(context.Context, *BatchCheckUserOnObjectRequest) (*BatchCheckUserOnObjectResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchCheckUserOnObject not implemented")
 }
 func (UnimplementedReplyServiceServer) mustEmbedUnimplementedReplyServiceServer() {}
 func (UnimplementedReplyServiceServer) testEmbeddedByValue()                      {}
@@ -608,38 +608,38 @@ func _ReplyService_GetReplyDislikeCount_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ReplyService_CheckUserOnOjbect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CheckUserOnOjbectRequest)
+func _ReplyService_CheckUserOnObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckUserOnObjectRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ReplyServiceServer).CheckUserOnOjbect(ctx, in)
+		return srv.(ReplyServiceServer).CheckUserOnObject(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ReplyService_CheckUserOnOjbect_FullMethodName,
+		FullMethod: ReplyService_CheckUserOnObject_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).CheckUserOnOjbect(ctx, req.(*CheckUserOnOjbectRequest))
+		return srv.(ReplyServiceServer).CheckUserOnObject(ctx, req.(*CheckUserOnObjectRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ReplyService_BatchCheckUserOnOjbect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BatchCheckUserOnOjbectRequest)
+func _ReplyService_BatchCheckUserOnObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchCheckUserOnObjectRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ReplyServiceServer).BatchCheckUserOnOjbect(ctx, in)
+		return srv.(ReplyServiceServer).BatchCheckUserOnObject(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ReplyService_BatchCheckUserOnOjbect_FullMethodName,
+		FullMethod: ReplyService_BatchCheckUserOnObject_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).BatchCheckUserOnOjbect(ctx, req.(*BatchCheckUserOnOjbectRequest))
+		return srv.(ReplyServiceServer).BatchCheckUserOnObject(ctx, req.(*BatchCheckUserOnObjectRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -708,12 +708,12 @@ var ReplyService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ReplyService_GetReplyDislikeCount_Handler,
 		},
 		{
-			MethodName: "CheckUserOnOjbect",
-			Handler:    _ReplyService_CheckUserOnOjbect_Handler,
+			MethodName: "CheckUserOnObject",
+			Handler:    _ReplyService_CheckUserOnObject_Handler,
 		},
 		{
-			MethodName: "BatchCheckUserOnOjbect",
-			Handler:    _ReplyService_BatchCheckUserOnOjbect_Handler,
+			MethodName: "BatchCheckUserOnObject",
+			Handler:    _ReplyService_BatchCheckUserOnObject_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

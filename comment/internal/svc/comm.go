@@ -345,7 +345,7 @@ func (s *CommentSvc) canAddSubReply(ctx context.Context, tx sqlx.Session, rootId
 }
 
 // job related methods
-func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReplyData) error {
+func (s *CommentSvc) ConsumeAddReplyEvent(ctx context.Context, data *queue.AddReplyData) error {
 	var (
 		oid      = data.Oid
 		rootId   = data.RootId
@@ -411,7 +411,7 @@ func (s *CommentSvc) ConsumeAddReplyEv(ctx context.Context, data *queue.AddReply
 	return nil
 }
 
-func (s *CommentSvc) ConsumeDelReplyEv(ctx context.Context, data *queue.DelReplyData) error {
+func (s *CommentSvc) ConsumeDelReplyEvent(ctx context.Context, data *queue.DelReplyData) error {
 	var (
 		rid = data.ReplyId
 	)
@@ -460,7 +460,7 @@ func (s *CommentSvc) ConsumeDelReplyEv(ctx context.Context, data *queue.DelReply
 }
 
 // 处理点赞或者点踩
-func (s *CommentSvc) ConsumeLikeDislikeEv(ctx context.Context, data *queue.BinaryReplyData) error {
+func (s *CommentSvc) ConsumeLikeDislikeEvent(ctx context.Context, data *queue.BinaryReplyData) error {
 	var (
 		rid    = data.ReplyId
 		uid    = data.Uid
@@ -511,7 +511,7 @@ func (s *CommentSvc) ConsumeLikeDislikeEv(ctx context.Context, data *queue.Binar
 
 // 置顶或者取消置顶
 // 每个对象仅支持一条置顶评论，后置顶的评论会替代旧的置顶评论的置顶状态
-func (s *CommentSvc) ConsumePinEv(ctx context.Context, data *queue.PinReplyData) error {
+func (s *CommentSvc) ConsumePinEvent(ctx context.Context, data *queue.PinReplyData) error {
 	rid := data.ReplyId
 	oid := data.Oid
 
@@ -800,6 +800,25 @@ func (s *CommentSvc) CountReply(ctx context.Context, oid uint64) (uint64, error)
 	return count, nil
 }
 
+// 批量获取评论数量
+func (s *CommentSvc) BatchCountReply(ctx context.Context, oids []uint64) (map[uint64]uint64, error) {
+	counts, err := s.cache.BatchGetReplyCount(ctx, oids)
+	if err != nil {
+		// fetch from db instead
+		counts, err = s.repo.CommentRepo.BatchCountByOid(ctx, oids)
+		if err != nil {
+			return nil, xerror.Wrapf(err, "repo batch count by oid failed").WithExtra("oids", oids).WithCtx(ctx)
+		}
+		err = s.cache.BatchSetReplyCount(ctx, counts)
+		if err != nil {
+			xlog.Msg("cache batch set reply count failed").Err(err).
+				Extras("oids", oids).Errorx(ctx)
+		}
+	}
+
+	return counts, nil
+}
+
 // 获取评论点赞数量
 func (s *CommentSvc) GetReplyLikesCount(ctx context.Context, rid uint64) (uint64, error) {
 	return s.counterGetCount(ctx, rid, global.CommentLikeBizcode)
@@ -840,11 +859,40 @@ func (s *CommentSvc) CheckUserCommentOnObject(ctx context.Context, uid, oid uint
 	return cnt != 0, nil
 }
 
-func (s *CommentSvc) BatchCountReply(ctx context.Context, oids []uint64) (map[uint64]uint64, error) {
-	cnts := make(map[uint64]uint64, len(oids))
+// 批量获取哪些用户评论是否评论了某些object
+// TODO(implement me)
+func (s *CommentSvc) BatchCheckUserCommentOnObject(ctx context.Context, req map[uint64][]uint64) ([]model.UidCommentOnOid, error) {
+	ret, err := s.repo.CommentRepo.FindByUidsOids(ctx, req)
+	if err != nil {
+		return nil, err
+	}
 
-	// TODO (implement me)
-	return cnts, nil
+	// 记录uid评论过哪些oids
+	commented := make(map[uint64][]uint64, len(ret))
+	for _, r := range ret {
+		commented[r.Uid] = append(commented[r.Uid], r.Oid)
+	}
+
+	var result = make([]model.UidCommentOnOid, 0, len(req))
+	// commented和req的进行对比 得到req中uid是否评论某oid
+	for uid, targets := range req {
+		oidCommenteds := commented[uid]
+		for _, oidChecked := range targets {
+			cmted := false
+			for _, oidCmted := range oidCommenteds {
+				if oidChecked == oidCmted {
+					cmted = true
+				}
+			}
+			result = append(result, model.UidCommentOnOid{
+				Uid:       uid,
+				Oid:       oidChecked,
+				Commented: cmted,
+			})
+		}
+	}
+
+	return result, nil
 }
 
 // 全量同步评论数量

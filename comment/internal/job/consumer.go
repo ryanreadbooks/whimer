@@ -34,13 +34,13 @@ func (j *Job) Consume(ctx context.Context, key, value string) error {
 
 	switch data.Action {
 	case queue.ActAddReply:
-		return j.Svc.CommentSvc.ConsumeAddReplyEv(ctx, data.AddReplyData)
+		return j.Svc.CommentSvc.ConsumeAddReplyEvent(ctx, data.AddReplyData)
 	case queue.ActDelReply:
-		return j.Svc.CommentSvc.ConsumeDelReplyEv(ctx, data.DelReplyData)
+		return j.Svc.CommentSvc.ConsumeDelReplyEvent(ctx, data.DelReplyData)
 	case queue.ActLikeReply, queue.ActDislikeReply:
-		return j.Svc.CommentSvc.ConsumeLikeDislikeEv(ctx, data.LikeReplyData)
+		return j.Svc.CommentSvc.ConsumeLikeDislikeEvent(ctx, data.LikeReplyData)
 	case queue.ActPinReply:
-		return j.Svc.CommentSvc.ConsumePinEv(ctx, data.PinReplyData)
+		return j.Svc.CommentSvc.ConsumePinEvent(ctx, data.PinReplyData)
 	default:
 		xlog.Msg("job Consumer got unsupported action type").Extra("type", data.Action).Debugx(ctx)
 		return global.ErrInternal

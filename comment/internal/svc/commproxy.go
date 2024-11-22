@@ -12,18 +12,18 @@ type commentSvcProxy struct {
 }
 
 func (s *commentSvcProxy) AddReply(ctx context.Context, data *comm.Model) error {
-	return s.proxy.ConsumeAddReplyEv(ctx, (*queue.AddReplyData)(data))
+	return s.proxy.ConsumeAddReplyEvent(ctx, (*queue.AddReplyData)(data))
 }
 
 func (s *commentSvcProxy) DelReply(ctx context.Context, rid uint64, reply *comm.Model) error {
-	return s.proxy.ConsumeDelReplyEv(ctx, &queue.DelReplyData{
+	return s.proxy.ConsumeDelReplyEvent(ctx, &queue.DelReplyData{
 		ReplyId: rid,
 		Reply:   reply,
 	})
 }
 
 func (s *commentSvcProxy) LikeReply(ctx context.Context, rid, uid uint64) error {
-	return s.proxy.ConsumeLikeDislikeEv(ctx, &queue.BinaryReplyData{
+	return s.proxy.ConsumeLikeDislikeEvent(ctx, &queue.BinaryReplyData{
 		Uid:     uid,
 		ReplyId: rid,
 		Action:  queue.ActionDo,
@@ -32,7 +32,7 @@ func (s *commentSvcProxy) LikeReply(ctx context.Context, rid, uid uint64) error 
 }
 
 func (s *commentSvcProxy) UnLikeReply(ctx context.Context, rid, uid uint64) error {
-	return s.proxy.ConsumeLikeDislikeEv(ctx, &queue.BinaryReplyData{
+	return s.proxy.ConsumeLikeDislikeEvent(ctx, &queue.BinaryReplyData{
 		Uid:     uid,
 		ReplyId: rid,
 		Action:  queue.ActionUndo,
@@ -41,7 +41,7 @@ func (s *commentSvcProxy) UnLikeReply(ctx context.Context, rid, uid uint64) erro
 }
 
 func (s *commentSvcProxy) DisLikeReply(ctx context.Context, rid, uid uint64) error {
-	return s.proxy.ConsumeLikeDislikeEv(ctx, &queue.BinaryReplyData{
+	return s.proxy.ConsumeLikeDislikeEvent(ctx, &queue.BinaryReplyData{
 		Uid:     uid,
 		ReplyId: rid,
 		Action:  queue.ActionDo,
@@ -50,7 +50,7 @@ func (s *commentSvcProxy) DisLikeReply(ctx context.Context, rid, uid uint64) err
 }
 
 func (s *commentSvcProxy) UnDisLikeReply(ctx context.Context, rid, uid uint64) error {
-	return s.proxy.ConsumeLikeDislikeEv(ctx, &queue.BinaryReplyData{
+	return s.proxy.ConsumeLikeDislikeEvent(ctx, &queue.BinaryReplyData{
 		Uid:     uid,
 		ReplyId: rid,
 		Action:  queue.ActionUndo,
@@ -59,7 +59,7 @@ func (s *commentSvcProxy) UnDisLikeReply(ctx context.Context, rid, uid uint64) e
 }
 
 func (s *commentSvcProxy) PinReply(ctx context.Context, oid, rid uint64) error {
-	return s.proxy.ConsumePinEv(ctx, &queue.PinReplyData{
+	return s.proxy.ConsumePinEvent(ctx, &queue.PinReplyData{
 		ReplyId: rid,
 		Action:  queue.ActionDo,
 		Oid:     oid,
@@ -67,7 +67,7 @@ func (s *commentSvcProxy) PinReply(ctx context.Context, oid, rid uint64) error {
 }
 
 func (s *commentSvcProxy) UnPinReply(ctx context.Context, oid, rid uint64) error {
-	return s.proxy.ConsumePinEv(ctx, &queue.PinReplyData{
+	return s.proxy.ConsumePinEvent(ctx, &queue.PinReplyData{
 		ReplyId: rid,
 		Action:  queue.ActionUndo,
 		Oid:     oid,

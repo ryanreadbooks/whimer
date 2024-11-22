@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/utils/maps"
+	"github.com/ryanreadbooks/whimer/misc/utils/slices"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
@@ -36,12 +38,15 @@ const (
 	sqlDelById   = "DELETE FROM comment WHERE id=?"
 	sqlDelByRoot = "DELETE FROM comment WHERE root=?"
 
+	sqlFindUOIn = "SELECT DISTINCT uid, oid FROM comment WHERE uid IN (%s) AND oid IN (%s)"
+
 	forUpdate = "FOR UPDATE"
 )
 
 var (
 	sqlSelRooParent  = "SELECT id,root,parent,oid,pin FROM comment WHERE id=?"
 	sqlCountByO      = "SELECT COUNT(*) FROM comment WHERE oid=?"
+	sqlBatchCountByO = "SELECT oid, COUNT(*) cnt FROM comment WHERE oid IN (%s) GROUP BY oid"
 	sqlCountByOU     = "SELECT COUNT(*) FROM comment WHERE oid=? AND uid=?"
 	sqlCountGbO      = "SELECT oid, COUNT(*) AS cnt FROM comment GROUP BY oid"
 	sqlCountGbOLimit = "SELECT oid, COUNT(*) AS cnt FROM comment GROUP BY oid LIMIT ?,?"
@@ -333,6 +338,26 @@ func (r *Repo) CountByOid(ctx context.Context, oid uint64) (uint64, error) {
 	return cnt, nil
 }
 
+func (r *Repo) BatchCountByOid(ctx context.Context, oids []uint64) (map[uint64]uint64, error) {
+	var ret []struct {
+		Oid uint64 `db:"oid"`
+		Cnt uint64 `db:"cnt"`
+	}
+
+	query := fmt.Sprintf(sqlBatchCountByO, slices.JoinInts(oids))
+	err := r.db.QueryRowsCtx(ctx, &ret, query)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	result := make(map[uint64]uint64, len(ret))
+	for _, r := range ret {
+		result[r.Oid] = r.Cnt
+	}
+
+	return result, nil
+}
+
 func (r *Repo) CountByOidUid(ctx context.Context, oid, uid uint64) (uint64, error) {
 	var cnt uint64
 	err := r.db.QueryRowCtx(ctx, &cnt, sqlCountByOU, oid, uid)
@@ -377,4 +402,38 @@ func (r *Repo) CountGroupByOidLimit(ctx context.Context, offset, limit int64) (m
 	}
 
 	return ret, nil
+}
+
+type UidOid struct {
+	Uid uint64
+	Oid uint64
+}
+
+// uid -> []oids
+func (r *Repo) FindByUidsOids(ctx context.Context, uidOids map[uint64][]uint64) ([]UidOid, error) {
+	var batchRes []UidOid
+	// 分批操作
+	err := maps.BatchExec(uidOids, 200, func(target map[uint64][]uint64) error {
+		uids, oids := maps.KeysValues(target)
+		var allOids []uint64 = oids[0]
+		for i := 1; i < len(oids); i++ {
+			allOids = slices.Concat(allOids, oids[i])
+		}
+
+		var ret = make([]UidOid, 0, len(uids)*len(allOids)) // we should strictly limit the length of them
+		query := fmt.Sprintf(sqlFindUOIn, slices.JoinInts(uids), slices.JoinInts(allOids))
+		err := r.db.QueryRowsCtx(ctx, &ret, query)
+		if err != nil {
+			return err
+		}
+
+		batchRes = append(batchRes, ret...)
+		return nil
+	})
+
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return batchRes, nil
 }

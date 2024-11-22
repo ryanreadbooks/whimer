@@ -183,11 +183,11 @@ service ReplyService {
   rpc GetReplyDislikeCount(GetReplyDislikeCountReq)
       returns (GetReplyDislikeCountRes);
   // 获取某个用户是否评论了某个对象
-  rpc CheckUserOnOjbect(CheckUserOnOjbectRequest)
-      returns (CheckUserOnOjbectResponse);
+  rpc CheckUserOnObject(CheckUserOnObjectRequest)
+      returns (CheckUserOnObjectResponse);
 
-  rpc BatchCheckUserOnOjbect(BatchCheckUserOnOjbectRequest)
-      returns (BatchCheckUserOnOjbectResponse);
+  rpc BatchCheckUserOnObject(BatchCheckUserOnObjectRequest)
+      returns (BatchCheckUserOnObjectResponse);
 }
 
 message GetReplyLikeCountReq {
@@ -208,17 +208,24 @@ message GetReplyDislikeCountRes {
   uint64 count = 2; // 点赞数量
 }
 
-message CheckUserOnOjbectRequest {
+message CheckUserOnObjectRequest {
   uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
   uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 用户id
 }
 
-message CheckUserOnOjbectResponse {
-  CheckUserCommentPair result = 1;
-}
+message CheckUserOnObjectResponse { CheckUserCommentPair result = 1; }
 
-message BatchCheckUserOnOjbectRequest {
-  map<uint64, uint64> mappings = 1; // uid ——> oid
+message BatchCheckUserOnObjectRequest {
+  message Objects {
+    repeated uint64 oids = 1 [
+      (buf.validate.field).repeated .min_items = 1,
+      (buf.validate.field).repeated .max_items = 50
+    ];
+  }
+  map<uint64, Objects> mappings = 1 [
+    (buf.validate.field).map.min_pairs = 1,
+    (buf.validate.field).map.max_pairs = 50
+  ];
 }
 
 message CheckUserCommentPair {
@@ -227,6 +234,6 @@ message CheckUserCommentPair {
   bool commented = 3;
 }
 
-message BatchCheckUserOnOjbectResponse {
+message BatchCheckUserOnObjectResponse {
   repeated CheckUserCommentPair results = 1;
 }

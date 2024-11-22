@@ -171,15 +171,15 @@ func (s *ReplyServiceServer) GetReplyDislikeCount(ctx context.Context,
 	}, nil
 }
 
-func (s *ReplyServiceServer) CheckUserCommentOnObject(ctx context.Context,
-	in *commentv1.CheckUserOnOjbectRequest) (
-	*commentv1.CheckUserOnOjbectResponse, error) {
+func (s *ReplyServiceServer) CheckUserOnObject(ctx context.Context,
+	in *commentv1.CheckUserOnObjectRequest) (
+	*commentv1.CheckUserOnObjectResponse, error) {
 	ok, err := s.Svc.CommentSvc.CheckUserCommentOnObject(ctx, in.Uid, in.Oid)
 	if err != nil {
 		return nil, err
 	}
 
-	return &commentv1.CheckUserOnOjbectResponse{
+	return &commentv1.CheckUserOnObjectResponse{
 		Result: &commentv1.CheckUserCommentPair{
 			Uid:       in.Uid,
 			Oid:       in.Oid,
@@ -199,9 +199,22 @@ func (s *ReplyServiceServer) BatchCountReply(ctx context.Context, in *commentv1.
 	return &commentv1.BatchCountReplyResponse{Numbers: resp}, nil
 }
 
-func (s *ReplyServiceServer) BatchCheckUserCommentOnObject(ctx context.Context,
-	in *commentv1.BatchCheckUserOnOjbectRequest) (
-	*commentv1.BatchCheckUserOnOjbectResponse, error) {
+func (s *ReplyServiceServer) BatchCheckUserOnObject(ctx context.Context,
+	in *commentv1.BatchCheckUserOnObjectRequest) (
+	*commentv1.BatchCheckUserOnObjectResponse, error) {
+	var uidObjects = make(map[uint64][]uint64, len(in.Mappings))
+	for uid, m := range in.GetMappings() {
+		uidObjects[uid] = append(uidObjects[uid], m.Oids...)
+	}
+	resp, err := s.Svc.CommentSvc.BatchCheckUserCommentOnObject(ctx, uidObjects)
+	if err != nil {
+		return nil, err
+	}
 
-	return &commentv1.BatchCheckUserOnOjbectResponse{}, nil
+	results := make([]*commentv1.CheckUserCommentPair, 0, len(resp))
+	for _, r := range resp {
+		results = append(results, r.AsPb())
+	}
+
+	return &commentv1.BatchCheckUserOnObjectResponse{Results: results}, nil
 }

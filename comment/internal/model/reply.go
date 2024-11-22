@@ -4,6 +4,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/ryanreadbooks/whimer/comment/internal/global"
+	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 )
 
 // 评论类型
@@ -87,4 +88,18 @@ func (r *ReplyReq) Validate() error {
 type ReplyRes struct {
 	ReplyId uint64
 	Uid     uint64
+}
+
+type UidCommentOnOid struct {
+	Uid       uint64
+	Oid       uint64
+	Commented bool
+}
+
+func (o *UidCommentOnOid) AsPb() *commentv1.CheckUserCommentPair {
+	return &commentv1.CheckUserCommentPair{
+		Uid:       o.Uid,
+		Oid:       o.Oid,
+		Commented: o.Commented,
+	}
 }
