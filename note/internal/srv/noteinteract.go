@@ -83,6 +83,17 @@ func (s *NoteInteractSrv) CheckUserLikeStatus(ctx context.Context, uid, noteId u
 	return s.noteInteractBiz.CheckUserLikeStatus(ctx, uid, noteId)
 }
 
+func (s *NoteInteractSrv) BatchCheckUserLikeStatus(ctx context.Context, req map[uint64][]uint64) (
+	map[uint64][]*model.LikeStatus, error) {
+	// 批量查找就不检查noteId是否存在
+	uidsCheckStatus, err := s.noteInteractBiz.BatchCheckUserLikeStatus(ctx, req)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "batch check user like status failed").WithExtra("req", req).WithCtx(ctx)
+	}
+
+	return uidsCheckStatus, nil
+}
+
 // 获取笔记的交互信息
 func (s *NoteInteractSrv) GetNoteInteraction(ctx context.Context, noteId uint64) (*model.UserInteraction, error) {
 	var (

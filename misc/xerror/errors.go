@@ -32,3 +32,8 @@ var (
 	ErrServiceUnavailable = NewError(ServiceUnavailable, CodeServiceUnavailable, "服务暂不可用")
 	ErrOther              = NewError(InternalServerError, CodeOther, "服务错误")
 )
+
+// internal user
+var (
+	ErrPanic = NewError(InternalServerError, -99999, "FATAL PANIC")
+)

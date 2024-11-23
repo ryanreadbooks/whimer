@@ -47,6 +47,38 @@ func (s *NoteInteractServiceServer) CheckUserLikeStatus(ctx context.Context, in 
 	return &notev1.CheckUserLikeStatusResponse{Liked: resp}, nil
 }
 
+// 批量检查用户点赞状态
+func (s *NoteInteractServiceServer) BatchCheckUserLikeStatus(ctx context.Context,
+	in *notev1.BatchCheckUserLikeStatusRequest) (
+	*notev1.BatchCheckUserLikeStatusResponse, error) {
+
+	var uidNoteIds = make(map[uint64][]uint64, len(in.Mappings))
+	for uid, m := range in.GetMappings() {
+		uidNoteIds[uid] = append(uidNoteIds[uid], m.NoteIds...)
+	}
+
+	resp, err := s.Srv.NoteInteractSrv.BatchCheckUserLikeStatus(ctx, uidNoteIds)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[uint64]*notev1.LikeStatusList)
+	for uid, status := range resp {
+		list := make([]*notev1.LikeStatus, 0, len(status))
+		for _, s := range status {
+			list = append(list, &notev1.LikeStatus{
+				NoteId: s.NoteId,
+				Liked:  s.Liked,
+			})
+		}
+		result[uid] = &notev1.LikeStatusList{
+			List: list,
+		}
+	}
+
+	return &notev1.BatchCheckUserLikeStatusResponse{Results: result}, nil
+}
+
 // 获取用户和某笔记的交互状态，包括是否点赞等
 func (s *NoteInteractServiceServer) GetNoteInteraction(ctx context.Context, in *notev1.GetNoteInteractionRequest) (
 	*notev1.GetNoteInteractionResponse, error) {

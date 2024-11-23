@@ -180,8 +180,7 @@ func (s *ReplyServiceServer) CheckUserOnObject(ctx context.Context,
 	}
 
 	return &commentv1.CheckUserOnObjectResponse{
-		Result: &commentv1.CheckUserCommentPair{
-			Uid:       in.Uid,
+		Result: &commentv1.OidCommented{
 			Oid:       in.Oid,
 			Commented: ok,
 		},
@@ -202,6 +201,7 @@ func (s *ReplyServiceServer) BatchCountReply(ctx context.Context, in *commentv1.
 func (s *ReplyServiceServer) BatchCheckUserOnObject(ctx context.Context,
 	in *commentv1.BatchCheckUserOnObjectRequest) (
 	*commentv1.BatchCheckUserOnObjectResponse, error) {
+
 	var uidObjects = make(map[uint64][]uint64, len(in.Mappings))
 	for uid, m := range in.GetMappings() {
 		uidObjects[uid] = append(uidObjects[uid], m.Oids...)
@@ -211,10 +211,17 @@ func (s *ReplyServiceServer) BatchCheckUserOnObject(ctx context.Context,
 		return nil, err
 	}
 
-	results := make([]*commentv1.CheckUserCommentPair, 0, len(resp))
+	m := make(map[uint64]*commentv1.OidCommentedList)
 	for _, r := range resp {
-		results = append(results, r.AsPb())
+		if _, ok := m[r.Uid]; !ok {
+			m[r.Uid] = &commentv1.OidCommentedList{}
+		}
+
+		m[r.Uid].List = append(m[r.Uid].List, &commentv1.OidCommented{
+			Oid:       r.Oid,
+			Commented: r.Commented,
+		})
 	}
 
-	return &commentv1.BatchCheckUserOnObjectResponse{Results: results}, nil
+	return &commentv1.BatchCheckUserOnObjectResponse{Results: m}, nil
 }

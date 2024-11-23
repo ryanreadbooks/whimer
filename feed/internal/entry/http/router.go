@@ -3,6 +3,7 @@ package http
 import (
 	"github.com/ryanreadbooks/whimer/feed/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
+	"github.com/ryanreadbooks/whimer/misc/xhttp/middleware"
 	zeroservice "github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/rest"
 )
@@ -10,6 +11,7 @@ import (
 func Init(engine *rest.Server) {
 	root := xhttp.NewRouterGroup(engine)
 
+	root.Use(middleware.Recovery)
 	initPrivateGroup(root)
 	initPublicGroup(root)
 	mod := config.Conf.Http.Mode
@@ -25,7 +27,7 @@ func initPrivateGroup(root *xhttp.RouterGroup) {
 }
 
 func initPublicGroup(root *xhttp.RouterGroup) {
-	public := root.Group("", MustLogin())
+	public := root.Group("", CanLogin())
 	api := public.Group("/api")
 	apiv1 := api.Group("/v1")
 	{

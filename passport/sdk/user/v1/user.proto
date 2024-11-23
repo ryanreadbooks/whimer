@@ -19,6 +19,7 @@ message BatchGetUserResponse { map<string, UserInfo> users = 1; }
 message GetUserRequest { uint64 uid = 1; }
 
 message GetUserResponse { UserInfo user = 1; }
+
 service UserService {
   // 批量获取用户信息
   rpc BatchGetUser(BatchGetUserRequest) returns (BatchGetUserResponse);

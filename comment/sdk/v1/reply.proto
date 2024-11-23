@@ -213,13 +213,13 @@ message CheckUserOnObjectRequest {
   uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 用户id
 }
 
-message CheckUserOnObjectResponse { CheckUserCommentPair result = 1; }
+message CheckUserOnObjectResponse { OidCommented result = 1; }
 
 message BatchCheckUserOnObjectRequest {
   message Objects {
     repeated uint64 oids = 1 [
-      (buf.validate.field).repeated .min_items = 1,
-      (buf.validate.field).repeated .max_items = 50
+      (buf.validate.field).repeated.min_items = 1,
+      (buf.validate.field).repeated.max_items = 50
     ];
   }
   map<uint64, Objects> mappings = 1 [
@@ -228,12 +228,13 @@ message BatchCheckUserOnObjectRequest {
   ];
 }
 
-message CheckUserCommentPair {
+message OidCommented {
   uint64 oid = 1;
-  uint64 uid = 2;
-  bool commented = 3;
+  bool commented = 2;
 }
 
+message OidCommentedList { repeated OidCommented list = 1; }
+
 message BatchCheckUserOnObjectResponse {
-  repeated CheckUserCommentPair results = 1;
+  map<uint64, OidCommentedList> results = 1;
 }

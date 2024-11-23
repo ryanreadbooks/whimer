@@ -25,10 +25,18 @@ var (
 
 func Init(c *config.Config) {
 	auther = auth.MustAuther(c.Backend.Passport)
-	userer = xgrpc.NewRecoverableClient(c.Backend.Passport, userv1.NewUserServiceClient)
 
-	noteFeed = xgrpc.NewRecoverableClient(c.Backend.Note, notev1.NewNoteFeedServiceClient)
-	noteInteract = xgrpc.NewRecoverableClient(c.Backend.Note, notev1.NewNoteInteractServiceClient)
+	userer = xgrpc.NewRecoverableClient(c.Backend.Passport,
+		userv1.NewUserServiceClient, func(nc userv1.UserServiceClient) { userer = nc })
+
+	noteFeed = xgrpc.NewRecoverableClient(c.Backend.Note,
+		notev1.NewNoteFeedServiceClient, func(nc notev1.NoteFeedServiceClient) { noteFeed = nc })
+
+	noteInteract = xgrpc.NewRecoverableClient(c.Backend.Note,
+		notev1.NewNoteInteractServiceClient, func(nc notev1.NoteInteractServiceClient) { noteInteract = nc })
+
+	commenter = xgrpc.NewRecoverableClient(c.Backend.Comment,
+		commentv1.NewReplyServiceClient, func(nc commentv1.ReplyServiceClient) { commenter = nc })
 }
 
 func Auther() *auth.Auth {

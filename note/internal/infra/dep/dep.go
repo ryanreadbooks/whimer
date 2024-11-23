@@ -13,8 +13,12 @@ var (
 )
 
 func Init(c *config.Config) {
-	counter = xgrpc.NewRecoverableClient(c.External.Grpc.Counter, counterv1.NewCounterServiceClient)
-	commenter = xgrpc.NewRecoverableClient(c.External.Grpc.Comment, commentv1.NewReplyServiceClient)
+	counter = xgrpc.NewRecoverableClient(c.External.Grpc.Counter,
+		counterv1.NewCounterServiceClient,
+		func(nc counterv1.CounterServiceClient) { counter = nc })
+
+	commenter = xgrpc.NewRecoverableClient(c.External.Grpc.Comment,
+		commentv1.NewReplyServiceClient, func(nc commentv1.ReplyServiceClient) { commenter = nc })
 }
 
 func GetCounter() counterv1.CounterServiceClient {

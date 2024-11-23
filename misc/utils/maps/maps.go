@@ -20,7 +20,7 @@ func Values[M ~map[K]V, K comparable, V any](m M) []V {
 	return vals
 }
 
-func KeysValues[M ~map[K]V, K comparable, V any](m M) ([]K, []V) {
+func All[M ~map[K]V, K comparable, V any](m M) ([]K, []V) {
 	l := len(m)
 	var keys = make([]K, 0, l)
 	var vals = make([]V, 0, l)

@@ -44,6 +44,36 @@ message NoteInteraction {
   bool commented = 2; // 用户是否评论
 }
 
+message NoteIdList {
+  repeated uint64 note_ids = 1 [
+    (buf.validate.field).repeated.min_items = 1,
+    (buf.validate.field).repeated.max_items = 50
+  ];
+}
+
+message BatchCheckUserLikeStatusRequest {
+  
+  // uid -> [noteId, noteId2, ...]
+  map<uint64, NoteIdList> mappings = 1 [
+    (buf.validate.field).map.min_pairs = 1,
+    (buf.validate.field).map.max_pairs = 50
+  ];
+}
+
+message LikeStatus {
+  uint64 note_id = 1;
+  bool liked = 2;
+}
+
+message LikeStatusList {
+  repeated LikeStatus list = 1;
+}
+
+message BatchCheckUserLikeStatusResponse {
+  // uid -> {{}, {}, ...}
+  map<uint64, LikeStatusList> results = 1;
+}
+
 message GetNoteInteractionRequest {
   uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; //笔记id
   uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ];     // 用户id
@@ -58,9 +88,9 @@ service NoteInteractService {
   // 获取笔记点赞数量
   rpc GetNoteLikes(GetNoteLikesRequest) returns (GetNoteLikesResponse);
   // 检查某个用户是否点赞过某篇笔记
-  rpc CheckUserLikeStatus(CheckUserLikeStatusRequest)
-      returns (CheckUserLikeStatusResponse);
+  rpc CheckUserLikeStatus(CheckUserLikeStatusRequest) returns (CheckUserLikeStatusResponse);
+  // 批量检查用户是否点赞过多篇笔记
+  rpc BatchCheckUserLikeStatus(BatchCheckUserLikeStatusRequest) returns (BatchCheckUserLikeStatusResponse);
   // 获取笔记的交互信息
-  rpc GetNoteInteraction(GetNoteInteractionRequest)
-      returns (GetNoteInteractionResponse);
+  rpc GetNoteInteraction(GetNoteInteractionRequest) returns (GetNoteInteractionResponse);
 }

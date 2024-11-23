@@ -122,3 +122,15 @@ func (u *UserInteraction) AsPb() *notev1.NoteInteraction {
 		Liked: u.Liked,
 	}
 }
+
+type LikeStatus struct {
+	NoteId uint64
+	Liked  bool
+}
+
+type InteractStatus struct {
+	NoteId    uint64
+	Liked     bool
+	Starred   bool
+	Commented bool
+}

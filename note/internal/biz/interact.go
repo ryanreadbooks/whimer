@@ -23,6 +23,9 @@ type NoteInteractBiz interface {
 	LikeNote(ctx context.Context, uid, noteId uint64, operation int) error
 	// 用户是否点赞笔记
 	CheckUserLikeStatus(ctx context.Context, uid, noteId uint64) (bool, error)
+	// 批量检查用户是否点赞笔记
+	BatchCheckUserLikeStatus(ctx context.Context, uidNoteIds map[uint64][]uint64) (
+		map[uint64][]*model.LikeStatus, error)
 	// 获取笔记点赞信息并填充
 	AssignNoteLikes(ctx context.Context, batch *model.Notes) (*model.Notes, error)
 	// 获取笔记点赞数量
@@ -107,6 +110,46 @@ func (b *noteInteractBiz) CheckUserLikeStatus(ctx context.Context, uid, noteId u
 	}
 
 	return resp.GetRecord().GetAct() == counterv1.RecordAct_RECORD_ACT_ADD, nil
+}
+
+// 批量获取用户是否点赞过笔记
+// 批量查找就不检查noteId是否存在
+func (b *noteInteractBiz) BatchCheckUserLikeStatus(ctx context.Context, uidNoteIds map[uint64][]uint64) (
+	map[uint64][]*model.LikeStatus, error) {
+
+	var req = make(map[uint64]*counterv1.ObjectList)
+	for uid, noteIds := range uidNoteIds {
+		req[uid] = &counterv1.ObjectList{
+			Oids: noteIds,
+		}
+	}
+	resp, err := dep.GetCounter().BatchGetRecord(ctx, &counterv1.BatchGetRecordRequest{
+		BizCode: global.NoteLikeBizcode,
+		Params:  req,
+	})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "note interact biz failed to batch like status").WithCtx(ctx)
+	}
+
+	var result = make(map[uint64][]*model.LikeStatus, len(resp.GetResults()))
+	for uid, noteIds := range uidNoteIds {
+		likeRecords := resp.GetResults()[uid]
+		for _, noteId := range noteIds {
+			hasLiked := false
+			for _, likeRecord := range likeRecords.GetList() {
+				if likeRecord.Oid == noteId && likeRecord.Act == counterv1.RecordAct_RECORD_ACT_ADD {
+					hasLiked = true
+				}
+			}
+
+			result[uid] = append(result[uid], &model.LikeStatus{
+				NoteId: noteId,
+				Liked:  hasLiked,
+			})
+		}
+	}
+
+	return result, nil
 }
 
 func (b *noteInteractBiz) AssignNoteLikes(ctx context.Context, batch *model.Notes) (*model.Notes, error) {

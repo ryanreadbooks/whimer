@@ -122,6 +122,7 @@ func (b *noteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 			Privacy:  note.Privacy,
 			CreateAt: note.CreateAt,
 			UpdateAt: note.UpdateAt,
+			Owner:    note.Owner,
 		}
 		for _, asset := range noteAssets {
 			if note.NoteId == asset.NoteId {

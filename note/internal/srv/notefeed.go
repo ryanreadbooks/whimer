@@ -37,6 +37,7 @@ func NewNoteFeedSrv(ctx *Service, biz biz.Biz) *NoteFeedSrv {
 }
 
 // 信息流随机获取最多count条笔记
+// TODO (refactor me in biz)
 func (s *NoteFeedSrv) FeedRandomGet(ctx context.Context, count int32) (*model.Notes, error) {
 	return s.randomGet(ctx, int(count))
 }

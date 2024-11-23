@@ -42,6 +42,26 @@ func (s *CounterServer) GetRecord(ctx context.Context, req *counterv1.GetRecordR
 	return s.Svc.RecordSvc.GetRecord(ctx, req)
 }
 
+func (s *CounterServer) BatchGetRecord(ctx context.Context, req *counterv1.BatchGetRecordRequest) (
+	*counterv1.BatchGetRecordResponse, error) {
+	var uidOids = make(map[uint64][]uint64, len(req.Params))
+	for uid, oids := range req.Params {
+		uidOids[uid] = append(uidOids[uid], oids.Oids...)
+	}
+
+	resp, err := s.Svc.RecordSvc.BatchGetRecord(ctx, uidOids, int(req.BizCode))
+	if err != nil {
+		return nil, err
+	}
+
+	var result = make(map[uint64]*counterv1.RecordList)
+	for uid, records := range resp {
+		result[uid] = &counterv1.RecordList{List: records}
+	}
+
+	return &counterv1.BatchGetRecordResponse{Results: result}, nil
+}
+
 func (s *CounterServer) GetSummary(ctx context.Context, req *counterv1.GetSummaryRequest) (
 	*counterv1.GetSummaryResponse, error) {
 	return s.Svc.RecordSvc.GetSummary(ctx, req)

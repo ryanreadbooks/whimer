@@ -3,6 +3,7 @@ package model
 import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
+	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 )
 
 const (
@@ -17,8 +18,8 @@ var (
 
 type FeedRecommendRequest struct {
 	NeedNum  int    `form:"need_num"`
-	Platform string `form:"platform,omitempty"`
-	Category string `form:"category"`
+	Platform string `form:"platform,optional"`
+	Category string `form:"category,optional"`
 }
 
 func (r *FeedRecommendRequest) Validate() error {
@@ -32,6 +33,10 @@ func (r *FeedRecommendRequest) Validate() error {
 
 	if r.NeedNum > maxNeed {
 		return xerror.ErrInvalidArgs.Msg("不能拿这么多")
+	}
+
+	if r.Category == "" {
+		r.Category = CategoryHomeRecommend
 	}
 
 	if _, ok := validCategories[r.Category]; !ok {
@@ -65,16 +70,30 @@ type NoteItemImage struct {
 
 type NoteItemImageList []*NoteItemImage
 
+type Author struct {
+	Uid      uint64 `json:"uid"`
+	Nickname string `json:"nickname"`
+	Avatar   string `json:"avatar"`
+}
+
+func NewAuthor(u *userv1.UserInfo) *Author {
+	return &Author{
+		Uid:      u.Uid,
+		Nickname: u.Nickname,
+		Avatar:   u.Avatar,
+	}
+}
+
 type FeedNoteItem struct {
 	NoteId   uint64            `json:"note_id"`
 	Title    string            `json:"title"`
 	Desc     string            `json:"desc"`
 	CreateAt int64             `json:"create_at"`
 	Images   NoteItemImageList `json:"images"`
-	Likes    uint64            `json:"likes"`  // 笔记总点赞数
-	Author   uint64            `json:"author"` // 作者
+	Likes    uint64            `json:"likes"` // 笔记总点赞数
 
-	// 下面这两个字段要额外设置
+	// 下面这些字段要额外设置
+	Author   *Author     `json:"author"`   // 作者信息
 	Comments uint64      `json:"comments"` // 笔记总评论数
 	Interact Interaction `json:"interact"` // 当前请求的用户与该笔记的交互记录，比如点赞、评论、收藏等动作
 }
@@ -99,6 +118,5 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 		CreateAt: pb.CreatedAt,
 		Images:   images,
 		Likes:    pb.Likes,
-		Author:   pb.Author,
 	}
 }

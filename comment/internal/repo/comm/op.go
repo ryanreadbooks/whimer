@@ -414,7 +414,7 @@ func (r *Repo) FindByUidsOids(ctx context.Context, uidOids map[uint64][]uint64) 
 	var batchRes []UidOid
 	// 分批操作
 	err := maps.BatchExec(uidOids, 200, func(target map[uint64][]uint64) error {
-		uids, oids := maps.KeysValues(target)
+		uids, oids := maps.All(target)
 		var allOids []uint64 = oids[0]
 		for i := 1; i < len(oids); i++ {
 			allOids = slices.Concat(allOids, oids[i])

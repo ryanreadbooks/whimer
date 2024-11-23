@@ -96,9 +96,8 @@ type UidCommentOnOid struct {
 	Commented bool
 }
 
-func (o *UidCommentOnOid) AsPb() *commentv1.CheckUserCommentPair {
-	return &commentv1.CheckUserCommentPair{
-		Uid:       o.Uid,
+func (o *UidCommentOnOid) AsPb() *commentv1.OidCommented {
+	return &commentv1.OidCommented{
 		Oid:       o.Oid,
 		Commented: o.Commented,
 	}

@@ -17,7 +17,6 @@ var configFile = flag.String("f", "etc/feed.yaml", "the config file")
 
 func main() {
 	flag.Parse()
-
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
 
 	srv.Init(&config.Conf)
