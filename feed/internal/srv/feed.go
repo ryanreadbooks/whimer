@@ -8,5 +8,5 @@ import (
 
 func (s *service) GetRecommendFeed(ctx context.Context, req *model.FeedRecommendRequest) (
 	[]*model.FeedNoteItem, error) {
-	return s.feedBiz.RandomFeed(ctx, req)
+	return s.FeedBiz.RandomFeed(ctx, req)
 }

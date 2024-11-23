@@ -8,16 +8,16 @@ import (
 
 // globals
 var (
-	Service  *service
+	Service *service
 )
 
 type service struct {
-	feedBiz biz.FeedBiz
+	FeedBiz biz.FeedBiz
 }
 
 func Init(c *config.Config) {
 	infra.Init(c)
 	Service = &service{
-		feedBiz: biz.NewFeedBiz(),
+		FeedBiz: biz.NewFeedBiz(),
 	}
 }
