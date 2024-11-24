@@ -51,9 +51,9 @@ func (s *AccessSrv) SmsCheckIn(ctx context.Context, req *model.SmsCheckInRequest
 	}
 
 	// 检查验证码是否正确
-	err = s.smsBiz.CheckSmsCorrect(ctx, tel, smsCode)
-	if err != nil {
-		err = xerror.Wrapf(err, "access srv check sms correctness failed").WithCtx(ctx)
+	errCodeCheck := s.smsBiz.CheckSmsCorrect(ctx, tel, smsCode)
+	if errCodeCheck != nil {
+		err = xerror.Wrapf(errCodeCheck, "access srv check sms correctness failed").WithCtx(ctx)
 		return
 	}
 
