@@ -51,6 +51,7 @@ func initIdGen(c *config.Config) {
 				} else {
 					// replace current idgen ignoring cocurrent read-write of idgen
 					idgen = newIdgen
+					return
 				}
 			}
 		}
