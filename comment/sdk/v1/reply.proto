@@ -148,6 +148,10 @@ message CountReplyRes {
   uint64 num_reply = 1; // 评论数量
 }
 
+message BatchCountReplyRequest { repeated uint64 oids = 1; }
+
+message BatchCountReplyResponse { map<uint64, uint64> numbers = 1; }
+
 service ReplyService {
   // 发表评论
   rpc AddReply(AddReplyReq) returns (AddReplyRes);
@@ -171,14 +175,19 @@ service ReplyService {
   rpc GetPinnedReply(GetPinnedReplyReq) returns (GetPinnedReplyRes);
   // 获取某个被评对象的评论数
   rpc CountReply(CountReplyReq) returns (CountReplyRes);
+  // 获取多个被评论对象的评论数
+  rpc BatchCountReply(BatchCountReplyRequest) returns (BatchCountReplyResponse);
   // 获取某条评论的点赞数
   rpc GetReplyLikeCount(GetReplyLikeCountReq) returns (GetReplyLikeCountRes);
   // 获取某条评论的点踩数
   rpc GetReplyDislikeCount(GetReplyDislikeCountReq)
       returns (GetReplyDislikeCountRes);
   // 获取某个用户是否评论了某个对象
-  rpc CheckUserCommentOnObject(CheckUserCommentOnObjectRequest)
-      returns (CheckUserCommentOnObjectResponse);
+  rpc CheckUserOnObject(CheckUserOnObjectRequest)
+      returns (CheckUserOnObjectResponse);
+
+  rpc BatchCheckUserOnObject(BatchCheckUserOnObjectRequest)
+      returns (BatchCheckUserOnObjectResponse);
 }
 
 message GetReplyLikeCountReq {
@@ -199,11 +208,33 @@ message GetReplyDislikeCountRes {
   uint64 count = 2; // 点赞数量
 }
 
-message CheckUserCommentOnObjectRequest {
+message CheckUserOnObjectRequest {
   uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
   uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 用户id
 }
 
-message CheckUserCommentOnObjectResponse {
-  bool commented = 1; // 是否评论过
+message CheckUserOnObjectResponse { OidCommented result = 1; }
+
+message BatchCheckUserOnObjectRequest {
+  message Objects {
+    repeated uint64 oids = 1 [
+      (buf.validate.field).repeated.min_items = 1,
+      (buf.validate.field).repeated.max_items = 50
+    ];
+  }
+  map<uint64, Objects> mappings = 1 [
+    (buf.validate.field).map.min_pairs = 1,
+    (buf.validate.field).map.max_pairs = 50
+  ];
+}
+
+message OidCommented {
+  uint64 oid = 1;
+  bool commented = 2;
+}
+
+message OidCommentedList { repeated OidCommented list = 1; }
+
+message BatchCheckUserOnObjectResponse {
+  map<uint64, OidCommentedList> results = 1;
 }

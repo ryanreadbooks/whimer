@@ -19,7 +19,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/fatih/color v1.17.0 // indirect
@@ -57,7 +57,6 @@ require (
 	github.com/redis/go-redis/v9 v9.7.0 // indirect
 	github.com/segmentio/kafka-go v0.4.47 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/speps/go-hashids/v2 v2.0.1 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/zeromicro/go-queue v1.2.2 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.15 // indirect

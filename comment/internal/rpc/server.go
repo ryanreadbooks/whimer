@@ -171,13 +171,57 @@ func (s *ReplyServiceServer) GetReplyDislikeCount(ctx context.Context,
 	}, nil
 }
 
-func (s *ReplyServiceServer) CheckUserCommentOnObject(ctx context.Context,
-	in *commentv1.CheckUserCommentOnObjectRequest) (
-	*commentv1.CheckUserCommentOnObjectResponse, error) {
+func (s *ReplyServiceServer) CheckUserOnObject(ctx context.Context,
+	in *commentv1.CheckUserOnObjectRequest) (
+	*commentv1.CheckUserOnObjectResponse, error) {
 	ok, err := s.Svc.CommentSvc.CheckUserCommentOnObject(ctx, in.Uid, in.Oid)
 	if err != nil {
 		return nil, err
 	}
 
-	return &commentv1.CheckUserCommentOnObjectResponse{Commented: ok}, nil
+	return &commentv1.CheckUserOnObjectResponse{
+		Result: &commentv1.OidCommented{
+			Oid:       in.Oid,
+			Commented: ok,
+		},
+	}, nil
+}
+
+// 获取多个被评论对象的评论数
+func (s *ReplyServiceServer) BatchCountReply(ctx context.Context, in *commentv1.BatchCountReplyRequest) (
+	*commentv1.BatchCountReplyResponse, error) {
+	resp, err := s.Svc.CommentSvc.BatchCountReply(ctx, in.GetOids())
+	if err != nil {
+		return nil, err
+	}
+
+	return &commentv1.BatchCountReplyResponse{Numbers: resp}, nil
+}
+
+func (s *ReplyServiceServer) BatchCheckUserOnObject(ctx context.Context,
+	in *commentv1.BatchCheckUserOnObjectRequest) (
+	*commentv1.BatchCheckUserOnObjectResponse, error) {
+
+	var uidObjects = make(map[uint64][]uint64, len(in.Mappings))
+	for uid, m := range in.GetMappings() {
+		uidObjects[uid] = append(uidObjects[uid], m.Oids...)
+	}
+	resp, err := s.Svc.CommentSvc.BatchCheckUserCommentOnObject(ctx, uidObjects)
+	if err != nil {
+		return nil, err
+	}
+
+	m := make(map[uint64]*commentv1.OidCommentedList)
+	for _, r := range resp {
+		if _, ok := m[r.Uid]; !ok {
+			m[r.Uid] = &commentv1.OidCommentedList{}
+		}
+
+		m[r.Uid].List = append(m[r.Uid].List, &commentv1.OidCommented{
+			Oid:       r.Oid,
+			Commented: r.Commented,
+		})
+	}
+
+	return &commentv1.BatchCheckUserOnObjectResponse{Results: m}, nil
 }

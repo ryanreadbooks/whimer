@@ -37,6 +37,7 @@ func NewNoteFeedSrv(ctx *Service, biz biz.Biz) *NoteFeedSrv {
 }
 
 // 信息流随机获取最多count条笔记
+// TODO (refactor me in biz)
 func (s *NoteFeedSrv) FeedRandomGet(ctx context.Context, count int32) (*model.Notes, error) {
 	return s.randomGet(ctx, int(count))
 }
@@ -50,7 +51,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 	)
 
 	wg.Add(1)
-	concurrent.DoneIn(time.Second*20, func(sCtx context.Context) {
+	concurrent.DoneIn(time.Second*10, func(sCtx context.Context) {
 		defer wg.Done()
 		//  TODO optimize by using local cache
 		id, sErr := infra.Dao().NoteDao.GetPublicLastId(sCtx)
@@ -96,7 +97,15 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 		items = maps.Values(itemsMap)
 	}
 
-	return s.noteBiz.AssembleNotes(ctx, model.NoteSliceFromDao(items))
+	result, err := s.noteBiz.AssembleNotes(ctx, model.NoteSliceFromDao(items))
+	if err != nil {
+		return nil, xerror.Wrapf(err, "feed srv assemble notes failed")
+	}
+
+	result, _ = s.noteInteractBiz.AssignNoteLikes(ctx, result)
+	result, _ = s.noteInteractBiz.AssignNoteReplies(ctx, result)
+
+	return result, nil
 }
 
 func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId uint64) (*model.Note, error) {
@@ -114,5 +123,7 @@ func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId uint64) (*model.
 		return nil, xerror.Wrapf(err, "assemble notes failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
+	res, _ = s.noteInteractBiz.AssignNoteLikes(ctx, res)
+	res, _ = s.noteInteractBiz.AssignNoteReplies(ctx, res)
 	return res.Items[0], nil
 }

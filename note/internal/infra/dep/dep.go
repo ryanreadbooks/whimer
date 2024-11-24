@@ -1,34 +1,30 @@
 package dep
 
 import (
-	countersdk "github.com/ryanreadbooks/whimer/counter/sdk/v1"
+	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
+	counterv1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
-	"github.com/ryanreadbooks/whimer/passport/sdk/middleware/auth"
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
 var (
-	auther *auth.Auth
-	// 计数服务
-	counter countersdk.CounterServiceClient
-	err     error
+	counter   counterv1.CounterServiceClient // 计数服务
+	commenter commentv1.ReplyServiceClient   // 评论服务
 )
 
 func Init(c *config.Config) {
-	auther = auth.MustAuther(c.External.Grpc.Passport)
+	counter = xgrpc.NewRecoverableClient(c.External.Grpc.Counter,
+		counterv1.NewCounterServiceClient,
+		func(nc counterv1.CounterServiceClient) { counter = nc })
 
-	counter, err = xgrpc.NewClient(c.External.Grpc.Counter,
-		countersdk.NewCounterServiceClient)
-	if err != nil {
-		logx.Errorf("external init: can not init counter: %v", err)
-	}
+	commenter = xgrpc.NewRecoverableClient(c.External.Grpc.Comment,
+		commentv1.NewReplyServiceClient, func(nc commentv1.ReplyServiceClient) { commenter = nc })
 }
 
-func GetAuther() *auth.Auth {
-	return auther
-}
-
-func GetCounter() countersdk.CounterServiceClient {
+func GetCounter() counterv1.CounterServiceClient {
 	return counter
+}
+
+func GetCommenter() commentv1.ReplyServiceClient {
+	return commenter
 }

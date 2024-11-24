@@ -15,8 +15,9 @@ import (
 	"github.com/ryanreadbooks/whimer/counter/internal/repo"
 	"github.com/ryanreadbooks/whimer/counter/internal/repo/record"
 	"github.com/ryanreadbooks/whimer/counter/internal/repo/summary"
-	v1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
+	counterv1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/utils/slices"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -49,7 +50,7 @@ func (s *CounterSvc) summaryKey(oid uint64, bizcode int) string {
 
 // 新增计数记录
 func (s *CounterSvc) AddRecord(ctx context.Context,
-	req *v1.AddRecordRequest) (*v1.AddRecordResponse, error) {
+	req *counterv1.AddRecordRequest) (*counterv1.AddRecordResponse, error) {
 	var (
 		biz = req.BizCode
 		uid = req.Uid
@@ -90,12 +91,12 @@ func (s *CounterSvc) AddRecord(ctx context.Context,
 	// handle summary data
 	s.updateSummary(ctx, oid, biz, true)
 
-	return &v1.AddRecordResponse{}, nil
+	return &counterv1.AddRecordResponse{}, nil
 }
 
 // 取消计数记录
 func (s *CounterSvc) CancelRecord(ctx context.Context,
-	req *v1.CancelRecordRequest) (*v1.CancelRecordResponse, error) {
+	req *counterv1.CancelRecordRequest) (*counterv1.CancelRecordResponse, error) {
 	var (
 		biz = req.BizCode
 		uid = req.Uid
@@ -134,7 +135,7 @@ func (s *CounterSvc) CancelRecord(ctx context.Context,
 	// handle summary data
 	s.updateSummary(ctx, oid, biz, false)
 
-	return &v1.CancelRecordResponse{}, nil
+	return &counterv1.CancelRecordResponse{}, nil
 }
 
 func (s *CounterSvc) updateSummary(ctx context.Context, oid uint64, biz int32, positive bool) {
@@ -187,7 +188,7 @@ func (s *CounterSvc) cacheSummary(ctx context.Context, oid uint64, biz int32, po
 }
 
 func (s *CounterSvc) GetRecord(ctx context.Context,
-	req *v1.GetRecordRequest) (*v1.GetRecordResponse, error) {
+	req *counterv1.GetRecordRequest) (*counterv1.GetRecordResponse, error) {
 
 	data, err := s.repo.RecordRepo.Find(ctx, req.Uid, req.Oid, int(req.BizCode))
 	if err != nil {
@@ -200,24 +201,51 @@ func (s *CounterSvc) GetRecord(ctx context.Context,
 				Errorx(ctx)
 			return nil, global.ErrInternal
 		} else {
-			return &v1.GetRecordResponse{Record: &v1.Record{
-				Act: v1.RecordAct_RECORD_ACT_UNSPECIFIED,
+			return &counterv1.GetRecordResponse{Record: &counterv1.Record{
+				Act: counterv1.RecordAct_RECORD_ACT_UNSPECIFIED,
 			}}, nil // 找不到记录不当作错误
 		}
 	}
 
-	return &v1.GetRecordResponse{Record: &v1.Record{
+	return &counterv1.GetRecordResponse{Record: &counterv1.Record{
 		BizCode: int32(data.BizCode),
 		Uid:     data.Uid,
 		Oid:     data.Oid,
-		Act:     v1.RecordAct(data.Act),
+		Act:     counterv1.RecordAct(data.Act),
 		Ctime:   data.Ctime,
 		Mtime:   data.Mtime,
 	}}, nil
 }
 
+func (s *CounterSvc) BatchGetRecord(ctx context.Context, uidOids map[uint64][]uint64, biz int) (
+	map[uint64][]*counterv1.Record, error) {
+	datas, err := s.repo.RecordRepo.BatchFind(ctx, uidOids, biz)
+	var uidRecords = make(map[uint64][]*counterv1.Record, len(datas))
+	if err != nil {
+		if !xsql.IsNotFound(err) {
+			return nil, xerror.Wrapf(err, "batch find failed")
+		} else {
+			// 找不到不当作错误
+			return uidRecords, nil
+		}
+	}
+
+	for _, data := range datas {
+		uidRecords[data.Uid] = append(uidRecords[data.Uid], &counterv1.Record{
+			BizCode: int32(data.BizCode),
+			Uid:     data.Uid,
+			Oid:     data.Oid,
+			Act:     counterv1.RecordAct(data.Act),
+			Ctime:   data.Ctime,
+			Mtime:   data.Mtime,
+		})
+	}
+
+	return uidRecords, nil
+}
+
 // 获取某个oid的计数
-func (s *CounterSvc) GetSummary(ctx context.Context, req *v1.GetSummaryRequest) (*v1.GetSummaryResponse, error) {
+func (s *CounterSvc) GetSummary(ctx context.Context, req *counterv1.GetSummaryRequest) (*counterv1.GetSummaryResponse, error) {
 	// 直接从数据库拿
 	var (
 		biz = req.BizCode
@@ -235,7 +263,7 @@ func (s *CounterSvc) GetSummary(ctx context.Context, req *v1.GetSummaryRequest) 
 		return nil, global.ErrInternal
 	}
 
-	return &v1.GetSummaryResponse{
+	return &counterv1.GetSummaryResponse{
 		BizCode: req.BizCode,
 		Oid:     req.Oid,
 		Count:   number,
@@ -243,8 +271,8 @@ func (s *CounterSvc) GetSummary(ctx context.Context, req *v1.GetSummaryRequest) 
 }
 
 // 批量获取某个oid的计数
-func (s *CounterSvc) BatchGetSummary(ctx context.Context, req *v1.BatchGetSummaryRequest) (
-	*v1.BatchGetSummaryResponse, error) {
+func (s *CounterSvc) BatchGetSummary(ctx context.Context, req *counterv1.BatchGetSummaryRequest) (
+	*counterv1.BatchGetSummaryResponse, error) {
 	const batchsize = 200
 
 	var (
@@ -287,16 +315,16 @@ func (s *CounterSvc) BatchGetSummary(ctx context.Context, req *v1.BatchGetSummar
 		}
 	}
 
-	responses := make([]*v1.GetSummaryResponse, 0, len(summaryRes))
+	responses := make([]*counterv1.GetSummaryResponse, 0, len(summaryRes))
 	for k, v := range merged {
-		responses = append(responses, &v1.GetSummaryResponse{
+		responses = append(responses, &counterv1.GetSummaryResponse{
 			BizCode: k.BizCode,
 			Oid:     k.Oid,
 			Count:   v,
 		})
 	}
 
-	return &v1.BatchGetSummaryResponse{Responses: responses}, nil
+	return &counterv1.BatchGetSummaryResponse{Responses: responses}, nil
 }
 
 // 同步增量数据到数据库

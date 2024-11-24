@@ -168,6 +168,9 @@ func (b *noteCreatorBiz) CreatorGetNote(ctx context.Context, noteId uint64) (*mo
 
 	note, err := infra.Dao().NoteDao.FindOne(ctx, nid)
 	if err != nil {
+		if xsql.IsNotFound(err) {
+			return nil, global.ErrNoteNotFound
+		}
 		return nil, xerror.Wrapf(err, "biz get note failed")
 	}
 

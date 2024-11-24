@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NoteInteractService_LikeNote_FullMethodName            = "/note.sdk.v1.NoteInteractService/LikeNote"
-	NoteInteractService_GetNoteLikes_FullMethodName        = "/note.sdk.v1.NoteInteractService/GetNoteLikes"
-	NoteInteractService_CheckUserLikeStatus_FullMethodName = "/note.sdk.v1.NoteInteractService/CheckUserLikeStatus"
-	NoteInteractService_GetNoteInteraction_FullMethodName  = "/note.sdk.v1.NoteInteractService/GetNoteInteraction"
+	NoteInteractService_LikeNote_FullMethodName                 = "/note.sdk.v1.NoteInteractService/LikeNote"
+	NoteInteractService_GetNoteLikes_FullMethodName             = "/note.sdk.v1.NoteInteractService/GetNoteLikes"
+	NoteInteractService_CheckUserLikeStatus_FullMethodName      = "/note.sdk.v1.NoteInteractService/CheckUserLikeStatus"
+	NoteInteractService_BatchCheckUserLikeStatus_FullMethodName = "/note.sdk.v1.NoteInteractService/BatchCheckUserLikeStatus"
+	NoteInteractService_GetNoteInteraction_FullMethodName       = "/note.sdk.v1.NoteInteractService/GetNoteInteraction"
 )
 
 // NoteInteractServiceClient is the client API for NoteInteractService service.
@@ -37,6 +38,8 @@ type NoteInteractServiceClient interface {
 	GetNoteLikes(ctx context.Context, in *GetNoteLikesRequest, opts ...grpc.CallOption) (*GetNoteLikesResponse, error)
 	// 检查某个用户是否点赞过某篇笔记
 	CheckUserLikeStatus(ctx context.Context, in *CheckUserLikeStatusRequest, opts ...grpc.CallOption) (*CheckUserLikeStatusResponse, error)
+	// 批量检查用户是否点赞过多篇笔记
+	BatchCheckUserLikeStatus(ctx context.Context, in *BatchCheckUserLikeStatusRequest, opts ...grpc.CallOption) (*BatchCheckUserLikeStatusResponse, error)
 	// 获取笔记的交互信息
 	GetNoteInteraction(ctx context.Context, in *GetNoteInteractionRequest, opts ...grpc.CallOption) (*GetNoteInteractionResponse, error)
 }
@@ -79,6 +82,16 @@ func (c *noteInteractServiceClient) CheckUserLikeStatus(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *noteInteractServiceClient) BatchCheckUserLikeStatus(ctx context.Context, in *BatchCheckUserLikeStatusRequest, opts ...grpc.CallOption) (*BatchCheckUserLikeStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchCheckUserLikeStatusResponse)
+	err := c.cc.Invoke(ctx, NoteInteractService_BatchCheckUserLikeStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *noteInteractServiceClient) GetNoteInteraction(ctx context.Context, in *GetNoteInteractionRequest, opts ...grpc.CallOption) (*GetNoteInteractionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetNoteInteractionResponse)
@@ -101,6 +114,8 @@ type NoteInteractServiceServer interface {
 	GetNoteLikes(context.Context, *GetNoteLikesRequest) (*GetNoteLikesResponse, error)
 	// 检查某个用户是否点赞过某篇笔记
 	CheckUserLikeStatus(context.Context, *CheckUserLikeStatusRequest) (*CheckUserLikeStatusResponse, error)
+	// 批量检查用户是否点赞过多篇笔记
+	BatchCheckUserLikeStatus(context.Context, *BatchCheckUserLikeStatusRequest) (*BatchCheckUserLikeStatusResponse, error)
 	// 获取笔记的交互信息
 	GetNoteInteraction(context.Context, *GetNoteInteractionRequest) (*GetNoteInteractionResponse, error)
 	mustEmbedUnimplementedNoteInteractServiceServer()
@@ -121,6 +136,9 @@ func (UnimplementedNoteInteractServiceServer) GetNoteLikes(context.Context, *Get
 }
 func (UnimplementedNoteInteractServiceServer) CheckUserLikeStatus(context.Context, *CheckUserLikeStatusRequest) (*CheckUserLikeStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckUserLikeStatus not implemented")
+}
+func (UnimplementedNoteInteractServiceServer) BatchCheckUserLikeStatus(context.Context, *BatchCheckUserLikeStatusRequest) (*BatchCheckUserLikeStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchCheckUserLikeStatus not implemented")
 }
 func (UnimplementedNoteInteractServiceServer) GetNoteInteraction(context.Context, *GetNoteInteractionRequest) (*GetNoteInteractionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNoteInteraction not implemented")
@@ -200,6 +218,24 @@ func _NoteInteractService_CheckUserLikeStatus_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NoteInteractService_BatchCheckUserLikeStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchCheckUserLikeStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteInteractServiceServer).BatchCheckUserLikeStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteInteractService_BatchCheckUserLikeStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteInteractServiceServer).BatchCheckUserLikeStatus(ctx, req.(*BatchCheckUserLikeStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _NoteInteractService_GetNoteInteraction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetNoteInteractionRequest)
 	if err := dec(in); err != nil {
@@ -236,6 +272,10 @@ var NoteInteractService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckUserLikeStatus",
 			Handler:    _NoteInteractService_CheckUserLikeStatus_Handler,
+		},
+		{
+			MethodName: "BatchCheckUserLikeStatus",
+			Handler:    _NoteInteractService_BatchCheckUserLikeStatus_Handler,
 		},
 		{
 			MethodName: "GetNoteInteraction",

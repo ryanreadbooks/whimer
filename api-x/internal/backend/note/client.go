@@ -30,8 +30,6 @@ func Init(c *config.Config) {
 		noteInteract = notesdk.NewNoteInteractServiceClient(conn)
 		available.Store(true)
 	}
-
-	initModel(c)
 }
 
 func NoteCreatorServer() notesdk.NoteCreatorServiceClient {

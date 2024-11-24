@@ -22,6 +22,7 @@ const (
 	CounterService_AddRecord_FullMethodName       = "/counter.sdk.v1.CounterService/AddRecord"
 	CounterService_CancelRecord_FullMethodName    = "/counter.sdk.v1.CounterService/CancelRecord"
 	CounterService_GetRecord_FullMethodName       = "/counter.sdk.v1.CounterService/GetRecord"
+	CounterService_BatchGetRecord_FullMethodName  = "/counter.sdk.v1.CounterService/BatchGetRecord"
 	CounterService_GetSummary_FullMethodName      = "/counter.sdk.v1.CounterService/GetSummary"
 	CounterService_BatchGetSummary_FullMethodName = "/counter.sdk.v1.CounterService/BatchGetSummary"
 )
@@ -36,6 +37,8 @@ type CounterServiceClient interface {
 	CancelRecord(ctx context.Context, in *CancelRecordRequest, opts ...grpc.CallOption) (*CancelRecordResponse, error)
 	// 获取一条计数记录
 	GetRecord(ctx context.Context, in *GetRecordRequest, opts ...grpc.CallOption) (*GetRecordResponse, error)
+	// 批量获取计数记录
+	BatchGetRecord(ctx context.Context, in *BatchGetRecordRequest, opts ...grpc.CallOption) (*BatchGetRecordResponse, error)
 	// 获取oid计数总数
 	GetSummary(ctx context.Context, in *GetSummaryRequest, opts ...grpc.CallOption) (*GetSummaryResponse, error)
 	// 批量获取oid计数总数
@@ -80,6 +83,16 @@ func (c *counterServiceClient) GetRecord(ctx context.Context, in *GetRecordReque
 	return out, nil
 }
 
+func (c *counterServiceClient) BatchGetRecord(ctx context.Context, in *BatchGetRecordRequest, opts ...grpc.CallOption) (*BatchGetRecordResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetRecordResponse)
+	err := c.cc.Invoke(ctx, CounterService_BatchGetRecord_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *counterServiceClient) GetSummary(ctx context.Context, in *GetSummaryRequest, opts ...grpc.CallOption) (*GetSummaryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetSummaryResponse)
@@ -110,6 +123,8 @@ type CounterServiceServer interface {
 	CancelRecord(context.Context, *CancelRecordRequest) (*CancelRecordResponse, error)
 	// 获取一条计数记录
 	GetRecord(context.Context, *GetRecordRequest) (*GetRecordResponse, error)
+	// 批量获取计数记录
+	BatchGetRecord(context.Context, *BatchGetRecordRequest) (*BatchGetRecordResponse, error)
 	// 获取oid计数总数
 	GetSummary(context.Context, *GetSummaryRequest) (*GetSummaryResponse, error)
 	// 批量获取oid计数总数
@@ -132,6 +147,9 @@ func (UnimplementedCounterServiceServer) CancelRecord(context.Context, *CancelRe
 }
 func (UnimplementedCounterServiceServer) GetRecord(context.Context, *GetRecordRequest) (*GetRecordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRecord not implemented")
+}
+func (UnimplementedCounterServiceServer) BatchGetRecord(context.Context, *BatchGetRecordRequest) (*BatchGetRecordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchGetRecord not implemented")
 }
 func (UnimplementedCounterServiceServer) GetSummary(context.Context, *GetSummaryRequest) (*GetSummaryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSummary not implemented")
@@ -214,6 +232,24 @@ func _CounterService_GetRecord_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CounterService_BatchGetRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetRecordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CounterServiceServer).BatchGetRecord(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CounterService_BatchGetRecord_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CounterServiceServer).BatchGetRecord(ctx, req.(*BatchGetRecordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CounterService_GetSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetSummaryRequest)
 	if err := dec(in); err != nil {
@@ -268,6 +304,10 @@ var CounterService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRecord",
 			Handler:    _CounterService_GetRecord_Handler,
+		},
+		{
+			MethodName: "BatchGetRecord",
+			Handler:    _CounterService_BatchGetRecord_Handler,
 		},
 		{
 			MethodName: "GetSummary",

@@ -83,8 +83,7 @@ func BatchAsyncExec[T any](wg *sync.WaitGroup, list []T, batchsize int, f func(s
 	close(errors)
 
 	var finals []error
-	for range errors {
-		err := <-errors
+	for err := range errors {
 		if err != nil {
 			finals = append(finals, err)
 		}

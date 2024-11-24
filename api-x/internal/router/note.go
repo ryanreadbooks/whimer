@@ -35,12 +35,5 @@ func regNoteRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 			// 获取笔记点赞数量
 			v1g.Get("/likes/:note_id", svc.GetNoteLikeCount())
 		}
-
-		feed := g.Group("/feed", middleware.CanLogin())
-		{
-			v1g := feed.Group("/v1")
-			// 获取笔记信息
-			v1g.Get("get/:note_id", svc.GetNote())
-		}
 	}
 }

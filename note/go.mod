@@ -6,7 +6,6 @@ require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.2-20240717164558-a6c49f84cc0f.2
 	github.com/ryanreadbooks/whimer/counter v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
-	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/zeromicro/go-zero v1.7.3
 	google.golang.org/grpc v1.65.0
@@ -22,7 +21,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/fatih/color v1.17.0 // indirect

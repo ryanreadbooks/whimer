@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/comment/internal/global"
 	"github.com/ryanreadbooks/whimer/comment/internal/repo/comm"
 	"github.com/ryanreadbooks/whimer/misc/utils"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
@@ -96,6 +97,35 @@ func (c *Cache) GetReplyCount(ctx context.Context, oid uint64) (uint64, error) {
 	}
 
 	return num, nil
+}
+
+func (c *Cache) BatchGetReplyCount(ctx context.Context, oids []uint64) (map[uint64]uint64, error) {
+	keys := make([]string, 0, len(oids))
+	for _, oid := range oids {
+		keys = append(keys, getCountCmtKey(oid))
+	}
+	cnts, err := c.rd.MgetCtx(ctx, keys...)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(oids) != len(cnts) {
+		return nil, global.ErrInternal.Msg("缓存出错")
+	}
+
+	result := make(map[uint64]uint64)
+	// 返回结果是按照顺序的
+	for i := 0; i < len(oids); i++ {
+		oid := oids[i]
+		cnt := cnts[i]
+		num, err := strconv.ParseUint(cnt, 10, 64)
+		if err != nil {
+			num = 0
+		}
+		result[oid] = num
+	}
+
+	return result, nil
 }
 
 func (c *Cache) SetReplyCount(ctx context.Context, oid, count uint64) error {

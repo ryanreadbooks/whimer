@@ -163,7 +163,7 @@ func FromJson(c string) *Error {
 	var e Error
 	err := json.Unmarshal(utils.StringToBytes(c), &e)
 	if err != nil {
-		return ErrOther
+		return ErrOther.Msg(c)
 	}
 
 	return &e

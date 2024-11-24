@@ -16,7 +16,7 @@ message RandomGetRequest {
 }
 
 message RandomGetResponse {
-  repeated NoteItem items = 1;
+  repeated FeedNoteItem items = 1;
   int32 count = 2;
 }
 
@@ -26,8 +26,10 @@ message FeedNoteItem {
   string desc = 3;
   int64 created_at = 4;
   repeated NoteImage images = 5;
-  uint64 likes = 6;                // 点赞数量
-  NoteInteraction interaction = 7; // 用户与笔记的交互状态
+  uint64 likes = 6;   // 点赞数量
+  uint64 author = 7;  // 笔记作者
+  uint64 replies = 8; // 点赞数
+  // NoteInteraction interaction = 7; // 用户与笔记的交互状态
 }
 
 message GetFeedNoteRequest {

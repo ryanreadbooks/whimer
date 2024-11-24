@@ -14,6 +14,7 @@ func UnaryServerRecovery(ctx context.Context,
 
 	defer func() {
 		if e := recover(); e != nil {
+			// TODO includes stack trace
 			err = xerror.Wrap(xerror.ErrInternalPanic)
 			return
 		}

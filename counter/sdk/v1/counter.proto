@@ -21,6 +21,8 @@ message Record {
   int64 mtime = 6;
 }
 
+message RecordList { repeated Record list = 1; }
+
 message AddRecordRequest {
   int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
   uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ];
@@ -68,6 +70,20 @@ message BatchGetSummaryRequest { repeated GetSummaryRequest requests = 1; }
 
 message BatchGetSummaryResponse { repeated GetSummaryResponse responses = 1; }
 
+message ObjectList {
+  repeated uint64 oids = 1 [ (buf.validate.field).repeated.min_items = 1 ];
+}
+
+message BatchGetRecordRequest {
+  int32 biz_code = 1;
+  map<uint64, ObjectList> params = 2 [
+    (buf.validate.field).map.min_pairs = 1,
+    (buf.validate.field).map.max_pairs = 50
+  ];
+}
+
+message BatchGetRecordResponse { map<uint64, RecordList> results = 1; }
+
 service CounterService {
   // 添加一条计数记录
   rpc AddRecord(AddRecordRequest) returns (AddRecordResponse);
@@ -75,6 +91,8 @@ service CounterService {
   rpc CancelRecord(CancelRecordRequest) returns (CancelRecordResponse);
   // 获取一条计数记录
   rpc GetRecord(GetRecordRequest) returns (GetRecordResponse);
+  // 批量获取计数记录
+  rpc BatchGetRecord(BatchGetRecordRequest) returns (BatchGetRecordResponse);
   // 获取oid计数总数
   rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
   // 批量获取oid计数总数
