@@ -14,7 +14,6 @@ type ISmsSender interface {
 type logSmsSender struct{}
 
 func (s *logSmsSender) Send(ctx context.Context, tel string, content string) error {
-	// TODO
 	xlog.Msg(fmt.Sprintf("Send to %s, content: %s", tel, content)).Infox(ctx)
 	return nil
 }

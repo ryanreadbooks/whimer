@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/passport/internal/config"
 
@@ -11,12 +12,9 @@ import (
 )
 
 var (
-	// id生成器
-	idgen *foliumsdk.Client
-	// TODO 短信服务商接入
-	sms ISmsSender
-
-	err error
+	idgen foliumsdk.IClient // id生成器
+	sms   ISmsSender        // TODO 短信服务商接入
+	err   error
 )
 
 func Init(c *config.Config) {
@@ -24,7 +22,7 @@ func Init(c *config.Config) {
 	initSmsSender()
 }
 
-func IdGen() *foliumsdk.Client {
+func IdGen() foliumsdk.IClient {
 	return idgen
 }
 
@@ -34,10 +32,29 @@ func SmsSender() ISmsSender {
 
 func initIdGen(c *config.Config) {
 	var err error
-	idgen, err = foliumsdk.NewClient(foliumsdk.WithGrpc(c.Idgen.Addr))
+	idgen, err = foliumsdk.New(foliumsdk.WithGrpcOpt(c.Idgen.Addr), foliumsdk.WithDowngrade())
 	if err != nil {
-		panic(err)
+		xlog.Msg("can not talk to folium server right now").Err(err).Error()
 	}
+
+	// try to recover idgen in background
+	concurrent.SafeGo(func() {
+		xlog.Msg("re-talking to folium server started in background")
+		ticker := time.NewTicker(time.Second * 5)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				newIdgen, err := foliumsdk.New(foliumsdk.WithGrpcOpt(c.Idgen.Addr), foliumsdk.WithDowngrade())
+				if err != nil {
+					xlog.Msg("re-talking to folium server failed in backgroud").Err(err).Error()
+				} else {
+					// replace current idgen ignoring cocurrent read-write of idgen
+					idgen = newIdgen
+				}
+			}
+		}
+	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()

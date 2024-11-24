@@ -188,8 +188,8 @@ github.com/rogpeppe/go-internal v1.12.0 h1:exVL4IDcn6na9z1rAb56Vxr+CgyK3nn3O+epU
 github.com/rogpeppe/go-internal v1.12.0/go.mod h1:E+RYuTGaKKdloAfM02xzb0FW3Paa99yedzYV+kq4uf4=
 github.com/rs/xid v1.5.0 h1:mKX4bl4iPYJtEIxp6CYiUuLQ/8DYMoz0PUdtGgMFRVc=
 github.com/rs/xid v1.5.0/go.mod h1:trrq9SKmegXys3aeAKXMUTdJsYXVwGY3RLcfgqegfbg=
-github.com/ryanreadbooks/folium v0.1.1 h1:zY6LyLwUT5S35mBATxpZN03W4HQGKV2IkN7sAHAFsho=
-github.com/ryanreadbooks/folium v0.1.1/go.mod h1:s3FnzofRmdj+rhRwnMYnxOH3dnL9GO0skmTFV1Uma98=
+github.com/ryanreadbooks/folium v0.1.3 h1:gCAMHHy5UJHDngC0XYTDSwW2AEStwUS8P6J6ogHPZew=
+github.com/ryanreadbooks/folium v0.1.3/go.mod h1:HC0vC6bNwpCIDYs8L0mgFIab9XpViNf5IHEte67id1Q=
 github.com/segmentio/kafka-go v0.4.47 h1:IqziR4pA3vrZq7YdRxaT3w1/5fvIH5qpCwstUanQQB0=
 github.com/segmentio/kafka-go v0.4.47/go.mod h1:HjF6XbOKh0Pjlkr5GVZxt6CsjjwnmhVOfURM5KMd8qg=
 github.com/smarty/assertions v1.15.0 h1:cR//PqUBUiQRakZWqBiFFQ9wb8emQGDb0HeGdqGByCY=
