@@ -1,19 +1,7 @@
-package comm
-
-import "github.com/zeromicro/go-zero/core/stores/sqlx"
-
-type Repo struct {
-	db sqlx.SqlConn
-}
-
-func New(db sqlx.SqlConn) *Repo {
-	return &Repo{
-		db: db,
-	}
-}
+package dao
 
 // comment表
-type Model struct {
+type Comment struct {
 	Id       uint64 `json:"id" db:"id"`
 	Oid      uint64 `json:"oid" db:"oid"`
 	CType    int8   `json:"ctype" db:"ctype"`

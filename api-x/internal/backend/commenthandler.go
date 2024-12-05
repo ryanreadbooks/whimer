@@ -114,7 +114,7 @@ func extractUidsMap(replies []*commentv1.DetailedReplyItem) map[uint64]struct{} 
 	// 提取出主评论和子评论的uid
 	for _, item := range replies {
 		uidsMap[item.Root.Uid] = struct{}{}
-		for _, sub := range item.Subreplies.Items {
+		for _, sub := range item.SubReplies.Items {
 			uidsMap[sub.Uid] = struct{}{}
 		}
 	}
@@ -145,7 +145,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 				defer wg.Done()
 				var err error
 				resp, err := comment.Commenter().
-					GetPinnedReply(ctx, &commentv1.GetPinnedReplyReq{Oid: req.Oid})
+					GetPinnedReply(ctx, &commentv1.GetPinnedReplyRequest{Oid: req.Oid})
 				if err != nil {
 					logx.Errorw("rpc get pin reply err", xlog.WithUid(ctx), xlog.WithErr(err))
 					return
@@ -168,7 +168,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 		}
 
 		resp, err := comment.Commenter().
-			PageGetDetailedReply(ctx, req.AsPb())
+			PageGetDetailedReply(ctx, req.AsDetailedPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -250,7 +250,7 @@ func (h *Handler) DelComment() http.HandlerFunc {
 			return
 		}
 
-		_, err = comment.Commenter().DelReply(r.Context(), &commentv1.DelReplyReq{ReplyId: req.ReplyId})
+		_, err = comment.Commenter().DelReply(r.Context(), &commentv1.DelReplyRequest{ReplyId: req.ReplyId})
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -268,7 +268,7 @@ func (h *Handler) PinComment() http.HandlerFunc {
 			return
 		}
 
-		_, err = comment.Commenter().PinReply(r.Context(), &commentv1.PinReplyReq{
+		_, err = comment.Commenter().PinReply(r.Context(), &commentv1.PinReplyRequest{
 			Oid:    req.Oid,
 			Rid:    req.ReplyId,
 			Action: commentv1.ReplyAction(req.Action),
@@ -290,7 +290,7 @@ func (h *Handler) LikeComment() http.HandlerFunc {
 			return
 		}
 
-		_, err = comment.Commenter().LikeAction(r.Context(), &commentv1.LikeActionReq{
+		_, err = comment.Commenter().LikeAction(r.Context(), &commentv1.LikeActionRequest{
 			ReplyId: req.ReplyId,
 			Action:  commentv1.ReplyAction(req.Action),
 		})
@@ -311,7 +311,7 @@ func (h *Handler) DislikeComment() http.HandlerFunc {
 			return
 		}
 
-		_, err = comment.Commenter().DislikeAction(r.Context(), &commentv1.DislikeActionReq{
+		_, err = comment.Commenter().DislikeAction(r.Context(), &commentv1.DislikeActionRequest{
 			ReplyId: req.ReplyId,
 			Action:  commentv1.ReplyAction(req.Action),
 		})
@@ -333,7 +333,7 @@ func (h *Handler) GetCommentLikeCount() http.HandlerFunc {
 		}
 
 		res, err := comment.Commenter().GetReplyLikeCount(r.Context(),
-			&commentv1.GetReplyLikeCountReq{
+			&commentv1.GetReplyLikeCountRequest{
 				ReplyId: req.ReplyId,
 			})
 		if err != nil {

@@ -17,7 +17,7 @@ type Service struct {
 
 // 初始化一个service
 func NewService(c *config.Config) *Service {
-	ctx := &Service{
+	s := &Service{
 		Config: c,
 	}
 
@@ -26,9 +26,9 @@ func NewService(c *config.Config) *Service {
 	// 业务初始化
 	biz := biz.New()
 	// 各个子service初始化
-	ctx.NoteCreatorSrv = NewNoteCreatorSrv(ctx, biz)
-	ctx.NoteFeedSrv = NewNoteFeedSrv(ctx, biz)
-	ctx.NoteInteractSrv = NewNoteInteractSrv(ctx, biz)
+	s.NoteCreatorSrv = NewNoteCreatorSrv(s, biz)
+	s.NoteFeedSrv = NewNoteFeedSrv(s, biz)
+	s.NoteInteractSrv = NewNoteInteractSrv(s, biz)
 
-	return ctx
+	return s
 }

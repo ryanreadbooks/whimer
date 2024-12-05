@@ -17,8 +17,8 @@ type PubReq struct {
 	ReplyUid  uint64 `json:"reply_uid"`
 }
 
-func (r *PubReq) AsPb() *comment.AddReplyReq {
-	return &comment.AddReplyReq{
+func (r *PubReq) AsPb() *comment.AddReplyRequest {
+	return &comment.AddReplyRequest{
 		ReplyType: r.ReplyType,
 		Oid:       r.Oid,
 		Content:   r.Content,
@@ -38,13 +38,22 @@ type GetCommentsReq struct {
 	SortBy int    `form:"sort_by,optional"`
 }
 
-func (r *GetCommentsReq) AsPb() *comment.PageGetReplyReq {
-	return &comment.PageGetReplyReq{
+func (r *GetCommentsReq) AsPb() *comment.PageGetReplyRequest {
+	return &comment.PageGetReplyRequest{
 		Oid:    r.Oid,
 		Cursor: r.Cursor,
 		SortBy: comment.SortType(r.SortBy),
 	}
 }
+
+func (r *GetCommentsReq) AsDetailedPb() *comment.PageGetDetailedReplyRequest {
+	return &comment.PageGetDetailedReplyRequest{
+		Oid:    r.Oid,
+		Cursor: r.Cursor,
+		SortBy: comment.SortType(r.SortBy),
+	}
+}
+ 
 
 type CommentRes struct {
 	Replies    []*ReplyItem `json:"replies"`
@@ -58,8 +67,8 @@ type GetSubCommentsReq struct {
 	Cursor uint64 `form:"cursor,optional"`
 }
 
-func (r *GetSubCommentsReq) AsPb() *comment.PageGetSubReplyReq {
-	return &comment.PageGetSubReplyReq{
+func (r *GetSubCommentsReq) AsPb() *comment.PageGetSubReplyRequest {
+	return &comment.PageGetSubReplyRequest{
 		Oid:    r.Oid,
 		RootId: r.RootId,
 		Cursor: r.Cursor,
@@ -94,10 +103,10 @@ func NewDetailedReplyItemFromPb(item *comment.DetailedReplyItem, userMap map[str
 
 	details.SubReplies = &DetailedSubReply{
 		Items:      make([]*ReplyItem, 0),
-		HasNext:    item.Subreplies.HasNext,
-		NextCursor: item.Subreplies.NextCursor,
+		HasNext:    item.SubReplies.HasNext,
+		NextCursor: item.SubReplies.NextCursor,
 	}
-	for _, sub := range item.Subreplies.Items {
+	for _, sub := range item.SubReplies.Items {
 		item := &ReplyItem{
 			ReplyItem: sub,
 		}

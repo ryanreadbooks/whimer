@@ -1,4 +1,4 @@
-package comm
+package dao
 
 import (
 	"context"
@@ -8,12 +8,13 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 var (
-	repo *Repo
-	ctx  = context.TODO()
+	commentDao *CommentDao
+	ctx        = context.TODO()
 )
 
 func TestMain(m *testing.M) {
@@ -24,19 +25,24 @@ func TestMain(m *testing.M) {
 		os.Getenv("ENV_DB_NAME"),
 	))
 
-	repo = New(db)
+	cache := redis.MustNewRedis(redis.RedisConf{
+		Host: "127.0.0.1:7542",
+		Type: "node",
+	})
+
+	commentDao = NewCommentDao(xsql.New(db), cache)
 	m.Run()
 }
 
 func TestRepo_GetRootReplySortByCtime(t *testing.T) {
 	Convey("GetRootReplySortByCtime", t, func() {
-		res, err := repo.GetRootReplies(ctx, 13, 0, 10)
+		res, err := commentDao.GetRootReplies(ctx, 13, 0, 10)
 		So(err, ShouldBeNil)
 		So(res, ShouldNotBeNil)
 		for _, model := range res {
 			t.Logf("%+v\n", model)
 		}
-		res, err = repo.GetRootReplies(ctx, 13, 10124, 10)
+		res, err = commentDao.GetRootReplies(ctx, 13, 10124, 10)
 		So(err, ShouldBeNil)
 		So(res, ShouldNotBeNil)
 		for _, model := range res {
@@ -48,7 +54,7 @@ func TestRepo_GetRootReplySortByCtime(t *testing.T) {
 
 func TestRepo_CountByOid(t *testing.T) {
 	Convey("CountByOid", t, func() {
-		cnt, err := repo.CountByOid(ctx, 13)
+		cnt, err := commentDao.CountByOid(ctx, 13)
 		So(err, ShouldBeNil)
 		So(cnt, ShouldNotBeZeroValue)
 		t.Logf("cnt = %d\n", cnt)
@@ -57,7 +63,7 @@ func TestRepo_CountByOid(t *testing.T) {
 
 func TestRepo_CountGroupByOid(t *testing.T) {
 	Convey("CountGroupByOid", t, func() {
-		res, err := repo.CountGroupByOid(ctx)
+		res, err := commentDao.CountGroupByOid(ctx)
 		So(err, ShouldBeNil)
 		So(res, ShouldNotBeNil)
 		t.Logf("res = %v\n", res)
@@ -66,7 +72,7 @@ func TestRepo_CountGroupByOid(t *testing.T) {
 
 func TestRepo_CountGroupByOidLimit(t *testing.T) {
 	Convey("CountGroupByOidLimit", t, func() {
-		res, err := repo.CountGroupByOidLimit(ctx, 1, 2)
+		res, err := commentDao.CountGroupByOidLimit(ctx, 1, 2)
 		So(err, ShouldBeNil)
 		So(res, ShouldNotBeNil)
 		t.Logf("res = %v\n", res)
