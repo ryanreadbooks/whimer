@@ -9,6 +9,7 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/infra/dao"
 	"github.com/ryanreadbooks/whimer/comment/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/comment/internal/model"
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
@@ -124,7 +125,9 @@ func (b *commentBiz) AddReply(ctx context.Context, req *model.AddReplyReq) (*mod
 		}
 	}
 
-	// TODO 更新评论数量
+	concurrent.DoneIn(10*time.Second, func(ctx context.Context) {
+		infra.Dao().CommentDao.IncrReplyCount(ctx, oid)
+	})
 
 	return &model.AddReplyRes{Uid: uid, ReplyId: replyId}, nil
 }
@@ -212,8 +215,9 @@ func (b *commentBiz) DelReply(ctx context.Context, rid uint64) error {
 		}
 	}
 
-	// TODO 更新评论数
-
+	concurrent.DoneIn(10*time.Second, func(ctx context.Context) {
+		infra.Dao().CommentDao.DecrReplyCount(ctx, reply.Oid)
+	})
 	return nil
 }
 
