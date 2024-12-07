@@ -42,33 +42,33 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ReplyServiceClient interface {
 	// 发表评论
-	AddReply(ctx context.Context, in *AddReplyReq, opts ...grpc.CallOption) (*AddReplyRes, error)
+	AddReply(ctx context.Context, in *AddReplyRequest, opts ...grpc.CallOption) (*AddReplyResponse, error)
 	// 删除评论
-	DelReply(ctx context.Context, in *DelReplyReq, opts ...grpc.CallOption) (*DelReplyRes, error)
+	DelReply(ctx context.Context, in *DelReplyRequest, opts ...grpc.CallOption) (*DelReplyResponse, error)
 	// 赞
-	LikeAction(ctx context.Context, in *LikeActionReq, opts ...grpc.CallOption) (*LikeActionRes, error)
+	LikeAction(ctx context.Context, in *LikeActionRequest, opts ...grpc.CallOption) (*LikeActionResponse, error)
 	// 踩
-	DislikeAction(ctx context.Context, in *DislikeActionReq, opts ...grpc.CallOption) (*DislikeActionRes, error)
+	DislikeAction(ctx context.Context, in *DislikeActionRequest, opts ...grpc.CallOption) (*DislikeActionResponse, error)
 	// 举报
-	ReportReply(ctx context.Context, in *ReportReplyReq, opts ...grpc.CallOption) (*ReportReplyRes, error)
+	ReportReply(ctx context.Context, in *ReportReplyRequest, opts ...grpc.CallOption) (*ReportReplyResponse, error)
 	// 置顶评论
-	PinReply(ctx context.Context, in *PinReplyReq, opts ...grpc.CallOption) (*PinReplyRes, error)
+	PinReply(ctx context.Context, in *PinReplyRequest, opts ...grpc.CallOption) (*PinReplyResponse, error)
 	// 获取主评论信息
-	PageGetReply(ctx context.Context, in *PageGetReplyReq, opts ...grpc.CallOption) (*PageGetReplyRes, error)
+	PageGetReply(ctx context.Context, in *PageGetReplyRequest, opts ...grpc.CallOption) (*PageGetReplyResponse, error)
 	// 获取子评论信息
-	PageGetSubReply(ctx context.Context, in *PageGetSubReplyReq, opts ...grpc.CallOption) (*PageGetSubReplyRes, error)
+	PageGetSubReply(ctx context.Context, in *PageGetSubReplyRequest, opts ...grpc.CallOption) (*PageGetSubReplyResponse, error)
 	// 获取主评论详细信息
-	PageGetDetailedReply(ctx context.Context, in *PageGetReplyReq, opts ...grpc.CallOption) (*PageGetDetailedReplyRes, error)
+	PageGetDetailedReply(ctx context.Context, in *PageGetDetailedReplyRequest, opts ...grpc.CallOption) (*PageGetDetailedReplyResponse, error)
 	// 获取置顶评论
-	GetPinnedReply(ctx context.Context, in *GetPinnedReplyReq, opts ...grpc.CallOption) (*GetPinnedReplyRes, error)
+	GetPinnedReply(ctx context.Context, in *GetPinnedReplyRequest, opts ...grpc.CallOption) (*GetPinnedReplyResponse, error)
 	// 获取某个被评对象的评论数
-	CountReply(ctx context.Context, in *CountReplyReq, opts ...grpc.CallOption) (*CountReplyRes, error)
+	CountReply(ctx context.Context, in *CountReplyRequest, opts ...grpc.CallOption) (*CountReplyResponse, error)
 	// 获取多个被评论对象的评论数
 	BatchCountReply(ctx context.Context, in *BatchCountReplyRequest, opts ...grpc.CallOption) (*BatchCountReplyResponse, error)
 	// 获取某条评论的点赞数
-	GetReplyLikeCount(ctx context.Context, in *GetReplyLikeCountReq, opts ...grpc.CallOption) (*GetReplyLikeCountRes, error)
+	GetReplyLikeCount(ctx context.Context, in *GetReplyLikeCountRequest, opts ...grpc.CallOption) (*GetReplyLikeCountResponse, error)
 	// 获取某条评论的点踩数
-	GetReplyDislikeCount(ctx context.Context, in *GetReplyDislikeCountReq, opts ...grpc.CallOption) (*GetReplyDislikeCountRes, error)
+	GetReplyDislikeCount(ctx context.Context, in *GetReplyDislikeCountRequest, opts ...grpc.CallOption) (*GetReplyDislikeCountResponse, error)
 	// 获取某个用户是否评论了某个对象
 	CheckUserOnObject(ctx context.Context, in *CheckUserOnObjectRequest, opts ...grpc.CallOption) (*CheckUserOnObjectResponse, error)
 	BatchCheckUserOnObject(ctx context.Context, in *BatchCheckUserOnObjectRequest, opts ...grpc.CallOption) (*BatchCheckUserOnObjectResponse, error)
@@ -82,9 +82,9 @@ func NewReplyServiceClient(cc grpc.ClientConnInterface) ReplyServiceClient {
 	return &replyServiceClient{cc}
 }
 
-func (c *replyServiceClient) AddReply(ctx context.Context, in *AddReplyReq, opts ...grpc.CallOption) (*AddReplyRes, error) {
+func (c *replyServiceClient) AddReply(ctx context.Context, in *AddReplyRequest, opts ...grpc.CallOption) (*AddReplyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AddReplyRes)
+	out := new(AddReplyResponse)
 	err := c.cc.Invoke(ctx, ReplyService_AddReply_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -92,9 +92,9 @@ func (c *replyServiceClient) AddReply(ctx context.Context, in *AddReplyReq, opts
 	return out, nil
 }
 
-func (c *replyServiceClient) DelReply(ctx context.Context, in *DelReplyReq, opts ...grpc.CallOption) (*DelReplyRes, error) {
+func (c *replyServiceClient) DelReply(ctx context.Context, in *DelReplyRequest, opts ...grpc.CallOption) (*DelReplyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DelReplyRes)
+	out := new(DelReplyResponse)
 	err := c.cc.Invoke(ctx, ReplyService_DelReply_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -102,9 +102,9 @@ func (c *replyServiceClient) DelReply(ctx context.Context, in *DelReplyReq, opts
 	return out, nil
 }
 
-func (c *replyServiceClient) LikeAction(ctx context.Context, in *LikeActionReq, opts ...grpc.CallOption) (*LikeActionRes, error) {
+func (c *replyServiceClient) LikeAction(ctx context.Context, in *LikeActionRequest, opts ...grpc.CallOption) (*LikeActionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(LikeActionRes)
+	out := new(LikeActionResponse)
 	err := c.cc.Invoke(ctx, ReplyService_LikeAction_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -112,9 +112,9 @@ func (c *replyServiceClient) LikeAction(ctx context.Context, in *LikeActionReq, 
 	return out, nil
 }
 
-func (c *replyServiceClient) DislikeAction(ctx context.Context, in *DislikeActionReq, opts ...grpc.CallOption) (*DislikeActionRes, error) {
+func (c *replyServiceClient) DislikeAction(ctx context.Context, in *DislikeActionRequest, opts ...grpc.CallOption) (*DislikeActionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DislikeActionRes)
+	out := new(DislikeActionResponse)
 	err := c.cc.Invoke(ctx, ReplyService_DislikeAction_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -122,9 +122,9 @@ func (c *replyServiceClient) DislikeAction(ctx context.Context, in *DislikeActio
 	return out, nil
 }
 
-func (c *replyServiceClient) ReportReply(ctx context.Context, in *ReportReplyReq, opts ...grpc.CallOption) (*ReportReplyRes, error) {
+func (c *replyServiceClient) ReportReply(ctx context.Context, in *ReportReplyRequest, opts ...grpc.CallOption) (*ReportReplyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ReportReplyRes)
+	out := new(ReportReplyResponse)
 	err := c.cc.Invoke(ctx, ReplyService_ReportReply_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -132,9 +132,9 @@ func (c *replyServiceClient) ReportReply(ctx context.Context, in *ReportReplyReq
 	return out, nil
 }
 
-func (c *replyServiceClient) PinReply(ctx context.Context, in *PinReplyReq, opts ...grpc.CallOption) (*PinReplyRes, error) {
+func (c *replyServiceClient) PinReply(ctx context.Context, in *PinReplyRequest, opts ...grpc.CallOption) (*PinReplyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PinReplyRes)
+	out := new(PinReplyResponse)
 	err := c.cc.Invoke(ctx, ReplyService_PinReply_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -142,9 +142,9 @@ func (c *replyServiceClient) PinReply(ctx context.Context, in *PinReplyReq, opts
 	return out, nil
 }
 
-func (c *replyServiceClient) PageGetReply(ctx context.Context, in *PageGetReplyReq, opts ...grpc.CallOption) (*PageGetReplyRes, error) {
+func (c *replyServiceClient) PageGetReply(ctx context.Context, in *PageGetReplyRequest, opts ...grpc.CallOption) (*PageGetReplyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PageGetReplyRes)
+	out := new(PageGetReplyResponse)
 	err := c.cc.Invoke(ctx, ReplyService_PageGetReply_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -152,9 +152,9 @@ func (c *replyServiceClient) PageGetReply(ctx context.Context, in *PageGetReplyR
 	return out, nil
 }
 
-func (c *replyServiceClient) PageGetSubReply(ctx context.Context, in *PageGetSubReplyReq, opts ...grpc.CallOption) (*PageGetSubReplyRes, error) {
+func (c *replyServiceClient) PageGetSubReply(ctx context.Context, in *PageGetSubReplyRequest, opts ...grpc.CallOption) (*PageGetSubReplyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PageGetSubReplyRes)
+	out := new(PageGetSubReplyResponse)
 	err := c.cc.Invoke(ctx, ReplyService_PageGetSubReply_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -162,9 +162,9 @@ func (c *replyServiceClient) PageGetSubReply(ctx context.Context, in *PageGetSub
 	return out, nil
 }
 
-func (c *replyServiceClient) PageGetDetailedReply(ctx context.Context, in *PageGetReplyReq, opts ...grpc.CallOption) (*PageGetDetailedReplyRes, error) {
+func (c *replyServiceClient) PageGetDetailedReply(ctx context.Context, in *PageGetDetailedReplyRequest, opts ...grpc.CallOption) (*PageGetDetailedReplyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PageGetDetailedReplyRes)
+	out := new(PageGetDetailedReplyResponse)
 	err := c.cc.Invoke(ctx, ReplyService_PageGetDetailedReply_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -172,9 +172,9 @@ func (c *replyServiceClient) PageGetDetailedReply(ctx context.Context, in *PageG
 	return out, nil
 }
 
-func (c *replyServiceClient) GetPinnedReply(ctx context.Context, in *GetPinnedReplyReq, opts ...grpc.CallOption) (*GetPinnedReplyRes, error) {
+func (c *replyServiceClient) GetPinnedReply(ctx context.Context, in *GetPinnedReplyRequest, opts ...grpc.CallOption) (*GetPinnedReplyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetPinnedReplyRes)
+	out := new(GetPinnedReplyResponse)
 	err := c.cc.Invoke(ctx, ReplyService_GetPinnedReply_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -182,9 +182,9 @@ func (c *replyServiceClient) GetPinnedReply(ctx context.Context, in *GetPinnedRe
 	return out, nil
 }
 
-func (c *replyServiceClient) CountReply(ctx context.Context, in *CountReplyReq, opts ...grpc.CallOption) (*CountReplyRes, error) {
+func (c *replyServiceClient) CountReply(ctx context.Context, in *CountReplyRequest, opts ...grpc.CallOption) (*CountReplyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CountReplyRes)
+	out := new(CountReplyResponse)
 	err := c.cc.Invoke(ctx, ReplyService_CountReply_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -202,9 +202,9 @@ func (c *replyServiceClient) BatchCountReply(ctx context.Context, in *BatchCount
 	return out, nil
 }
 
-func (c *replyServiceClient) GetReplyLikeCount(ctx context.Context, in *GetReplyLikeCountReq, opts ...grpc.CallOption) (*GetReplyLikeCountRes, error) {
+func (c *replyServiceClient) GetReplyLikeCount(ctx context.Context, in *GetReplyLikeCountRequest, opts ...grpc.CallOption) (*GetReplyLikeCountResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetReplyLikeCountRes)
+	out := new(GetReplyLikeCountResponse)
 	err := c.cc.Invoke(ctx, ReplyService_GetReplyLikeCount_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -212,9 +212,9 @@ func (c *replyServiceClient) GetReplyLikeCount(ctx context.Context, in *GetReply
 	return out, nil
 }
 
-func (c *replyServiceClient) GetReplyDislikeCount(ctx context.Context, in *GetReplyDislikeCountReq, opts ...grpc.CallOption) (*GetReplyDislikeCountRes, error) {
+func (c *replyServiceClient) GetReplyDislikeCount(ctx context.Context, in *GetReplyDislikeCountRequest, opts ...grpc.CallOption) (*GetReplyDislikeCountResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetReplyDislikeCountRes)
+	out := new(GetReplyDislikeCountResponse)
 	err := c.cc.Invoke(ctx, ReplyService_GetReplyDislikeCount_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -247,33 +247,33 @@ func (c *replyServiceClient) BatchCheckUserOnObject(ctx context.Context, in *Bat
 // for forward compatibility.
 type ReplyServiceServer interface {
 	// 发表评论
-	AddReply(context.Context, *AddReplyReq) (*AddReplyRes, error)
+	AddReply(context.Context, *AddReplyRequest) (*AddReplyResponse, error)
 	// 删除评论
-	DelReply(context.Context, *DelReplyReq) (*DelReplyRes, error)
+	DelReply(context.Context, *DelReplyRequest) (*DelReplyResponse, error)
 	// 赞
-	LikeAction(context.Context, *LikeActionReq) (*LikeActionRes, error)
+	LikeAction(context.Context, *LikeActionRequest) (*LikeActionResponse, error)
 	// 踩
-	DislikeAction(context.Context, *DislikeActionReq) (*DislikeActionRes, error)
+	DislikeAction(context.Context, *DislikeActionRequest) (*DislikeActionResponse, error)
 	// 举报
-	ReportReply(context.Context, *ReportReplyReq) (*ReportReplyRes, error)
+	ReportReply(context.Context, *ReportReplyRequest) (*ReportReplyResponse, error)
 	// 置顶评论
-	PinReply(context.Context, *PinReplyReq) (*PinReplyRes, error)
+	PinReply(context.Context, *PinReplyRequest) (*PinReplyResponse, error)
 	// 获取主评论信息
-	PageGetReply(context.Context, *PageGetReplyReq) (*PageGetReplyRes, error)
+	PageGetReply(context.Context, *PageGetReplyRequest) (*PageGetReplyResponse, error)
 	// 获取子评论信息
-	PageGetSubReply(context.Context, *PageGetSubReplyReq) (*PageGetSubReplyRes, error)
+	PageGetSubReply(context.Context, *PageGetSubReplyRequest) (*PageGetSubReplyResponse, error)
 	// 获取主评论详细信息
-	PageGetDetailedReply(context.Context, *PageGetReplyReq) (*PageGetDetailedReplyRes, error)
+	PageGetDetailedReply(context.Context, *PageGetDetailedReplyRequest) (*PageGetDetailedReplyResponse, error)
 	// 获取置顶评论
-	GetPinnedReply(context.Context, *GetPinnedReplyReq) (*GetPinnedReplyRes, error)
+	GetPinnedReply(context.Context, *GetPinnedReplyRequest) (*GetPinnedReplyResponse, error)
 	// 获取某个被评对象的评论数
-	CountReply(context.Context, *CountReplyReq) (*CountReplyRes, error)
+	CountReply(context.Context, *CountReplyRequest) (*CountReplyResponse, error)
 	// 获取多个被评论对象的评论数
 	BatchCountReply(context.Context, *BatchCountReplyRequest) (*BatchCountReplyResponse, error)
 	// 获取某条评论的点赞数
-	GetReplyLikeCount(context.Context, *GetReplyLikeCountReq) (*GetReplyLikeCountRes, error)
+	GetReplyLikeCount(context.Context, *GetReplyLikeCountRequest) (*GetReplyLikeCountResponse, error)
 	// 获取某条评论的点踩数
-	GetReplyDislikeCount(context.Context, *GetReplyDislikeCountReq) (*GetReplyDislikeCountRes, error)
+	GetReplyDislikeCount(context.Context, *GetReplyDislikeCountRequest) (*GetReplyDislikeCountResponse, error)
 	// 获取某个用户是否评论了某个对象
 	CheckUserOnObject(context.Context, *CheckUserOnObjectRequest) (*CheckUserOnObjectResponse, error)
 	BatchCheckUserOnObject(context.Context, *BatchCheckUserOnObjectRequest) (*BatchCheckUserOnObjectResponse, error)
@@ -287,46 +287,46 @@ type ReplyServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedReplyServiceServer struct{}
 
-func (UnimplementedReplyServiceServer) AddReply(context.Context, *AddReplyReq) (*AddReplyRes, error) {
+func (UnimplementedReplyServiceServer) AddReply(context.Context, *AddReplyRequest) (*AddReplyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddReply not implemented")
 }
-func (UnimplementedReplyServiceServer) DelReply(context.Context, *DelReplyReq) (*DelReplyRes, error) {
+func (UnimplementedReplyServiceServer) DelReply(context.Context, *DelReplyRequest) (*DelReplyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DelReply not implemented")
 }
-func (UnimplementedReplyServiceServer) LikeAction(context.Context, *LikeActionReq) (*LikeActionRes, error) {
+func (UnimplementedReplyServiceServer) LikeAction(context.Context, *LikeActionRequest) (*LikeActionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LikeAction not implemented")
 }
-func (UnimplementedReplyServiceServer) DislikeAction(context.Context, *DislikeActionReq) (*DislikeActionRes, error) {
+func (UnimplementedReplyServiceServer) DislikeAction(context.Context, *DislikeActionRequest) (*DislikeActionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DislikeAction not implemented")
 }
-func (UnimplementedReplyServiceServer) ReportReply(context.Context, *ReportReplyReq) (*ReportReplyRes, error) {
+func (UnimplementedReplyServiceServer) ReportReply(context.Context, *ReportReplyRequest) (*ReportReplyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReportReply not implemented")
 }
-func (UnimplementedReplyServiceServer) PinReply(context.Context, *PinReplyReq) (*PinReplyRes, error) {
+func (UnimplementedReplyServiceServer) PinReply(context.Context, *PinReplyRequest) (*PinReplyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PinReply not implemented")
 }
-func (UnimplementedReplyServiceServer) PageGetReply(context.Context, *PageGetReplyReq) (*PageGetReplyRes, error) {
+func (UnimplementedReplyServiceServer) PageGetReply(context.Context, *PageGetReplyRequest) (*PageGetReplyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PageGetReply not implemented")
 }
-func (UnimplementedReplyServiceServer) PageGetSubReply(context.Context, *PageGetSubReplyReq) (*PageGetSubReplyRes, error) {
+func (UnimplementedReplyServiceServer) PageGetSubReply(context.Context, *PageGetSubReplyRequest) (*PageGetSubReplyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PageGetSubReply not implemented")
 }
-func (UnimplementedReplyServiceServer) PageGetDetailedReply(context.Context, *PageGetReplyReq) (*PageGetDetailedReplyRes, error) {
+func (UnimplementedReplyServiceServer) PageGetDetailedReply(context.Context, *PageGetDetailedReplyRequest) (*PageGetDetailedReplyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PageGetDetailedReply not implemented")
 }
-func (UnimplementedReplyServiceServer) GetPinnedReply(context.Context, *GetPinnedReplyReq) (*GetPinnedReplyRes, error) {
+func (UnimplementedReplyServiceServer) GetPinnedReply(context.Context, *GetPinnedReplyRequest) (*GetPinnedReplyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPinnedReply not implemented")
 }
-func (UnimplementedReplyServiceServer) CountReply(context.Context, *CountReplyReq) (*CountReplyRes, error) {
+func (UnimplementedReplyServiceServer) CountReply(context.Context, *CountReplyRequest) (*CountReplyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CountReply not implemented")
 }
 func (UnimplementedReplyServiceServer) BatchCountReply(context.Context, *BatchCountReplyRequest) (*BatchCountReplyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchCountReply not implemented")
 }
-func (UnimplementedReplyServiceServer) GetReplyLikeCount(context.Context, *GetReplyLikeCountReq) (*GetReplyLikeCountRes, error) {
+func (UnimplementedReplyServiceServer) GetReplyLikeCount(context.Context, *GetReplyLikeCountRequest) (*GetReplyLikeCountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetReplyLikeCount not implemented")
 }
-func (UnimplementedReplyServiceServer) GetReplyDislikeCount(context.Context, *GetReplyDislikeCountReq) (*GetReplyDislikeCountRes, error) {
+func (UnimplementedReplyServiceServer) GetReplyDislikeCount(context.Context, *GetReplyDislikeCountRequest) (*GetReplyDislikeCountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetReplyDislikeCount not implemented")
 }
 func (UnimplementedReplyServiceServer) CheckUserOnObject(context.Context, *CheckUserOnObjectRequest) (*CheckUserOnObjectResponse, error) {
@@ -357,7 +357,7 @@ func RegisterReplyServiceServer(s grpc.ServiceRegistrar, srv ReplyServiceServer)
 }
 
 func _ReplyService_AddReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddReplyReq)
+	in := new(AddReplyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -369,13 +369,13 @@ func _ReplyService_AddReply_Handler(srv interface{}, ctx context.Context, dec fu
 		FullMethod: ReplyService_AddReply_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).AddReply(ctx, req.(*AddReplyReq))
+		return srv.(ReplyServiceServer).AddReply(ctx, req.(*AddReplyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ReplyService_DelReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DelReplyReq)
+	in := new(DelReplyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -387,13 +387,13 @@ func _ReplyService_DelReply_Handler(srv interface{}, ctx context.Context, dec fu
 		FullMethod: ReplyService_DelReply_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).DelReply(ctx, req.(*DelReplyReq))
+		return srv.(ReplyServiceServer).DelReply(ctx, req.(*DelReplyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ReplyService_LikeAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LikeActionReq)
+	in := new(LikeActionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -405,13 +405,13 @@ func _ReplyService_LikeAction_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: ReplyService_LikeAction_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).LikeAction(ctx, req.(*LikeActionReq))
+		return srv.(ReplyServiceServer).LikeAction(ctx, req.(*LikeActionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ReplyService_DislikeAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DislikeActionReq)
+	in := new(DislikeActionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -423,13 +423,13 @@ func _ReplyService_DislikeAction_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: ReplyService_DislikeAction_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).DislikeAction(ctx, req.(*DislikeActionReq))
+		return srv.(ReplyServiceServer).DislikeAction(ctx, req.(*DislikeActionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ReplyService_ReportReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReportReplyReq)
+	in := new(ReportReplyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -441,13 +441,13 @@ func _ReplyService_ReportReply_Handler(srv interface{}, ctx context.Context, dec
 		FullMethod: ReplyService_ReportReply_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).ReportReply(ctx, req.(*ReportReplyReq))
+		return srv.(ReplyServiceServer).ReportReply(ctx, req.(*ReportReplyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ReplyService_PinReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PinReplyReq)
+	in := new(PinReplyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -459,13 +459,13 @@ func _ReplyService_PinReply_Handler(srv interface{}, ctx context.Context, dec fu
 		FullMethod: ReplyService_PinReply_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).PinReply(ctx, req.(*PinReplyReq))
+		return srv.(ReplyServiceServer).PinReply(ctx, req.(*PinReplyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ReplyService_PageGetReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PageGetReplyReq)
+	in := new(PageGetReplyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -477,13 +477,13 @@ func _ReplyService_PageGetReply_Handler(srv interface{}, ctx context.Context, de
 		FullMethod: ReplyService_PageGetReply_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).PageGetReply(ctx, req.(*PageGetReplyReq))
+		return srv.(ReplyServiceServer).PageGetReply(ctx, req.(*PageGetReplyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ReplyService_PageGetSubReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PageGetSubReplyReq)
+	in := new(PageGetSubReplyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -495,13 +495,13 @@ func _ReplyService_PageGetSubReply_Handler(srv interface{}, ctx context.Context,
 		FullMethod: ReplyService_PageGetSubReply_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).PageGetSubReply(ctx, req.(*PageGetSubReplyReq))
+		return srv.(ReplyServiceServer).PageGetSubReply(ctx, req.(*PageGetSubReplyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ReplyService_PageGetDetailedReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PageGetReplyReq)
+	in := new(PageGetDetailedReplyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -513,13 +513,13 @@ func _ReplyService_PageGetDetailedReply_Handler(srv interface{}, ctx context.Con
 		FullMethod: ReplyService_PageGetDetailedReply_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).PageGetDetailedReply(ctx, req.(*PageGetReplyReq))
+		return srv.(ReplyServiceServer).PageGetDetailedReply(ctx, req.(*PageGetDetailedReplyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ReplyService_GetPinnedReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetPinnedReplyReq)
+	in := new(GetPinnedReplyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -531,13 +531,13 @@ func _ReplyService_GetPinnedReply_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: ReplyService_GetPinnedReply_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).GetPinnedReply(ctx, req.(*GetPinnedReplyReq))
+		return srv.(ReplyServiceServer).GetPinnedReply(ctx, req.(*GetPinnedReplyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ReplyService_CountReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CountReplyReq)
+	in := new(CountReplyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -549,7 +549,7 @@ func _ReplyService_CountReply_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: ReplyService_CountReply_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).CountReply(ctx, req.(*CountReplyReq))
+		return srv.(ReplyServiceServer).CountReply(ctx, req.(*CountReplyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -573,7 +573,7 @@ func _ReplyService_BatchCountReply_Handler(srv interface{}, ctx context.Context,
 }
 
 func _ReplyService_GetReplyLikeCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetReplyLikeCountReq)
+	in := new(GetReplyLikeCountRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -585,13 +585,13 @@ func _ReplyService_GetReplyLikeCount_Handler(srv interface{}, ctx context.Contex
 		FullMethod: ReplyService_GetReplyLikeCount_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).GetReplyLikeCount(ctx, req.(*GetReplyLikeCountReq))
+		return srv.(ReplyServiceServer).GetReplyLikeCount(ctx, req.(*GetReplyLikeCountRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ReplyService_GetReplyDislikeCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetReplyDislikeCountReq)
+	in := new(GetReplyDislikeCountRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -603,7 +603,7 @@ func _ReplyService_GetReplyDislikeCount_Handler(srv interface{}, ctx context.Con
 		FullMethod: ReplyService_GetReplyDislikeCount_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReplyServiceServer).GetReplyDislikeCount(ctx, req.(*GetReplyDislikeCountReq))
+		return srv.(ReplyServiceServer).GetReplyDislikeCount(ctx, req.(*GetReplyDislikeCountRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

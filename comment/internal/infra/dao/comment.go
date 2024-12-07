@@ -1,19 +1,12 @@
-package comm
+package dao
 
-import "github.com/zeromicro/go-zero/core/stores/sqlx"
-
-type Repo struct {
-	db sqlx.SqlConn
-}
-
-func New(db sqlx.SqlConn) *Repo {
-	return &Repo{
-		db: db,
-	}
-}
+const (
+	AlreadyPinned = 1
+	NotPinned     = 0
+)
 
 // comment表
-type Model struct {
+type Comment struct {
 	Id       uint64 `json:"id" db:"id"`
 	Oid      uint64 `json:"oid" db:"oid"`
 	CType    int8   `json:"ctype" db:"ctype"`
@@ -40,7 +33,12 @@ type RootParent struct {
 	IsPin    int8   `json:"is_pin" db:"pin"`
 }
 
-const (
-	AlreadyPinned = 1
-	NotPinned     = 0
-)
+type UidOid struct {
+	Uid uint64
+	Oid uint64
+}
+
+type RootCnt struct {
+	Root uint64 `db:"root"`
+	Cnt  uint64 `db:"cnt"`
+}

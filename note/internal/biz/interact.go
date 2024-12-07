@@ -228,7 +228,7 @@ func (b *noteInteractBiz) GetNoteReplyCount(ctx context.Context, noteId uint64) 
 		return 0, global.ErrNoteNotFound
 	}
 
-	resp, err := dep.GetCommenter().CountReply(ctx, &commentv1.CountReplyReq{
+	resp, err := dep.GetCommenter().CountReply(ctx, &commentv1.CountReplyRequest{
 		Oid: noteId,
 	})
 	if err != nil {

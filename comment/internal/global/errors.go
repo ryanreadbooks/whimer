@@ -18,6 +18,7 @@ var (
 	ErrPermDenied = ErrBizCommentDenied.Msg("操作权限不足")
 
 	ErrNilReq             = ErrArgs.Msg("请求参数为空")
+	ErrNoNote             = ErrNotFound.Msg("内容不存在")
 	ErrUnsupportedType    = ErrArgs.Msg("内容类型不支持")
 	ErrObjectIdEmpty      = ErrArgs.Msg("对象id为空")
 	ErrReplyUidEmpty      = ErrArgs.Msg("回复用户id为空")
@@ -37,4 +38,5 @@ var (
 	ErrCountReplyInternal   = ErrArgs.Msg("获取评论数量失败")
 	ErrGetReplyLikeCount    = ErrArgs.Msg("获取评论点赞失败")
 	ErrGetReplyDislikeCount = ErrArgs.Msg("获取评论点踩失败")
+	ErrUnsupportedAction    = ErrArgs.Msg("不支持的操作")
 )

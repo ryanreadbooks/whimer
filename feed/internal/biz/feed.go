@@ -13,6 +13,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
+	
 	"golang.org/x/sync/errgroup"
 )
 
@@ -114,7 +115,6 @@ func (b *feedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.Fe
 	}
 
 	var (
-		eg           errgroup.Group
 		authorInfos  map[uint64]*userv1.UserInfo // uid -> author info
 		oidCommented map[uint64]bool             // oid -> reqUid commented or not
 		oidLiked     map[uint64]bool             // oid -> reqUid liked or not
@@ -126,6 +126,7 @@ func (b *feedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.Fe
 		noteIds = append(noteIds, n.NoteId)
 	}
 
+	eg, ctx := errgroup.WithContext(ctx)
 	// 2. 获取各篇笔记的作者信息
 	eg.Go(func() error {
 		return recovery.Do(func() error {
