@@ -38,6 +38,10 @@ type CommentInteractBiz interface {
 	PopulateLike(ctx context.Context, reply *model.ReplyItem) error
 	// 填充评论的点赞数量
 	PopulateLikes(ctx context.Context, replies []*model.ReplyItem) error
+	// 填充评论的点踩数量
+	PopulateHate(ctx context.Context, reply *model.ReplyItem) error
+	// 批量填充评论的点踩数量
+	PopulateHates(ctx context.Context, replies []*model.ReplyItem) error
 }
 
 type commentInteractBiz struct{}
@@ -185,6 +189,22 @@ func (b *commentInteractBiz) PopulateLike(ctx context.Context, reply *model.Repl
 
 // 填充评论的点赞数量
 func (b *commentInteractBiz) PopulateLikes(ctx context.Context, replies []*model.ReplyItem) error {
+	return b.populateLikesOrHates(ctx, replies, global.CommentLikeBizcode)
+}
+
+// 填充评论的点踩数量
+func (b *commentInteractBiz) PopulateHate(ctx context.Context, reply *model.ReplyItem) error {
+	replies := []*model.ReplyItem{reply}
+	return b.PopulateHates(ctx, replies)
+}
+
+// 批量填充评论的点踩数量
+func (b *commentInteractBiz) PopulateHates(ctx context.Context, replies []*model.ReplyItem) error {
+	return b.populateLikesOrHates(ctx, replies, global.CommentDislikeBizcode)
+}
+
+// 填充评论的点赞/点踩数量
+func (b *commentInteractBiz) populateLikesOrHates(ctx context.Context, replies []*model.ReplyItem, biz int32) error {
 	if len(replies) == 0 {
 		return nil
 	}
@@ -192,12 +212,12 @@ func (b *commentInteractBiz) PopulateLikes(ctx context.Context, replies []*model
 	requests := make([]*counterv1.GetSummaryRequest, 0, 16)
 	for _, reply := range replies {
 		requests = append(requests, &counterv1.GetSummaryRequest{
-			BizCode: global.CommentLikeBizcode,
+			BizCode: biz,
 			Oid:     reply.Id,
 		})
 	}
-	resp, err := dep.GetCounter().BatchGetSummary(ctx,
-		&counterv1.BatchGetSummaryRequest{
+	resp, err := dep.GetCounter().BatchGetSummary(
+		ctx, &counterv1.BatchGetSummaryRequest{
 			Requests: requests,
 		})
 	if err != nil {
@@ -216,9 +236,13 @@ func (b *commentInteractBiz) PopulateLikes(ctx context.Context, replies []*model
 	}
 
 	for _, reply := range replies {
-		k := key{global.CommentLikeBizcode, reply.Id}
+		k := key{biz, reply.Id}
 		if cnt, ok := mapping[k]; ok {
-			reply.LikeCount = cnt
+			if biz == global.CommentLikeBizcode {
+				reply.LikeCount = cnt
+			} else if biz == global.CommentDislikeBizcode {
+				reply.HateCount = cnt
+			}
 		}
 	}
 

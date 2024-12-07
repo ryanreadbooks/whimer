@@ -1,5 +1,10 @@
 package dao
 
+const (
+	AlreadyPinned = 1
+	NotPinned     = 0
+)
+
 // comment表
 type Comment struct {
 	Id       uint64 `json:"id" db:"id"`
@@ -28,7 +33,12 @@ type RootParent struct {
 	IsPin    int8   `json:"is_pin" db:"pin"`
 }
 
-const (
-	AlreadyPinned = 1
-	NotPinned     = 0
-)
+type UidOid struct {
+	Uid uint64
+	Oid uint64
+}
+
+type RootCnt struct {
+	Root uint64 `db:"root"`
+	Cnt  uint64 `db:"cnt"`
+}

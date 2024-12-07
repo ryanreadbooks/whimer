@@ -43,12 +43,15 @@ type ReplyItem struct {
 	RootId     uint64 `json:"root_id"`
 	ParentId   uint64 `json:"parent_id"`
 	RepliedUid uint64 `json:"replied_uid"`
-	LikeCount  uint64 `json:"like_count"`
-	HateCount  uint64 `json:"hate_count"`
 	Ctime      int64  `json:"ctime"`
 	Mtime      int64  `json:"mtime"`
 	Ip         string `json:"ip"`
 	IsPin      bool   `json:"is_pin"`
+
+	// 下面的字段需要额外填充
+	LikeCount uint64 `json:"like_count"`
+	HateCount uint64 `json:"hate_count"`
+	SubsCount uint64 `json:"subs_count"` // 其下子评论的数量
 }
 
 func NewReplyItem(d *dao.Comment) *ReplyItem {
@@ -90,6 +93,7 @@ func (r *ReplyItem) AsPb() *commentv1.ReplyItem {
 		Mtime:     r.Mtime,
 		Ip:        r.Ip,
 		IsPin:     r.IsPin,
+		SubsCount: r.SubsCount,
 	}
 }
 

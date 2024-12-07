@@ -76,8 +76,9 @@ var (
 	sqlSelByRoot         = fmt.Sprintf("SELECT %s FROM comment WHERE root=? %%s", fields)
 	sqlInsert            = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fields)
 
-	sqlSelRoots = fmt.Sprintf("SELECT %s FROM comment WHERE %%s oid=? AND root=0 AND pin=0 ORDER BY ctime DESC LIMIT ?", fields)
-	sqlSelSubs  = fmt.Sprintf("SELECT %s FROM comment WHERE id>? AND oid=? AND root=? ORDER BY ctime ASC LIMIT ?", fields)
+	sqlSelRoots  = fmt.Sprintf("SELECT %s FROM comment WHERE %%s oid=? AND root=0 AND pin=0 ORDER BY ctime DESC LIMIT ?", fields)
+	sqlSelSubs   = fmt.Sprintf("SELECT %s FROM comment WHERE id>? AND oid=? AND root=? ORDER BY ctime ASC LIMIT ?", fields)
+	sqlCountSubs = "SELECT root, COUNT(id) cnt FROM comment WHERE root!=0 AND root IN (%s) GROUP BY root"
 )
 
 func (r *CommentDao) FindByIdForUpdate(ctx context.Context, id uint64) (*Comment, error) {
@@ -268,9 +269,32 @@ func (r *CommentDao) GetRootReplies(ctx context.Context, oid, cursor uint64, wan
 	} else {
 		args = []any{oid, want}
 	}
+	// 按照创建时间从大到小排序 较新的评论在上面
 	err := r.db.QueryRowsCtx(ctx, &res, fmt.Sprintf(sqlSelRoots, hasCursor), args...)
 	if err != nil {
 		return nil, xsql.ConvertError(err)
+	}
+
+	return res, nil
+}
+
+// 获取主评论下的子评论的数量
+// rootId -> cnt
+func (r *CommentDao) BatchCountSubReplies(ctx context.Context, rootIds []uint64) (map[uint64]uint64, error) {
+	var res = make(map[uint64]uint64, 0)
+	if len(rootIds) == 0 {
+		return res, nil
+	}
+
+	batchRes := make([]RootCnt, 0)
+
+	err := r.db.QueryRowsCtx(ctx, &batchRes, fmt.Sprintf(sqlCountSubs, slices.JoinInts(rootIds)))
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	for _, r := range batchRes {
+		res[r.Root] = r.Cnt
 	}
 
 	return res, nil
@@ -340,12 +364,12 @@ func (r *CommentDao) CountByOid(ctx context.Context, oid uint64) (uint64, error)
 }
 
 func (r *CommentDao) IncrReplyCount(ctx context.Context, oid uint64) error {
-	return r.cache.IncrReplyCount(ctx, oid, 1)
+	return r.cache.IncrReplyCountWhenExist(ctx, oid, 1)
 }
 
 // TODO 注意小于0的情况发生
 func (r *CommentDao) DecrReplyCount(ctx context.Context, oid uint64) error {
-	return r.cache.DecrReplyCount(ctx, oid, 1)
+	return r.cache.DecrReplyCountWhenExist(ctx, oid, 1)
 }
 
 func (r *CommentDao) BatchCountByOid(ctx context.Context, oids []uint64) (map[uint64]uint64, error) {
@@ -365,7 +389,9 @@ func (r *CommentDao) BatchCountByOid(ctx context.Context, oids []uint64) (map[ui
 		result[r.Oid] = r.Cnt
 	}
 
-	r.cache.BatchSetReplyCount(ctx, result)
+	if err := r.cache.BatchSetReplyCount(ctx, result); err != nil{
+		xlog.Msg("comment dao batch set reply count failed").Err(err).Errorx(ctx)
+	}
 
 	return result, nil
 }
@@ -395,7 +421,9 @@ func (r *CommentDao) CountGroupByOid(ctx context.Context) (map[uint64]uint64, er
 		ret[item.Oid] = item.Cnt
 	}
 
-	r.cache.BatchSetReplyCount(ctx, ret)
+	if err := r.cache.BatchSetReplyCount(ctx, ret); err != nil {
+		xlog.Msg("comment dao cache batch set reply count failed").Err(err).Errorx(ctx)
+	}
 
 	return ret, nil
 }
@@ -415,14 +443,11 @@ func (r *CommentDao) CountGroupByOidLimit(ctx context.Context, offset, limit int
 		ret[item.Oid] = item.Cnt
 	}
 
-	r.cache.BatchSetReplyCount(ctx, ret)
+	if err := r.cache.BatchSetReplyCount(ctx, ret); err != nil {
+		xlog.Msg("comment dao cache batch set reply count failed").Err(err).Errorx(ctx)
+	}
 
 	return ret, nil
-}
-
-type UidOid struct {
-	Uid uint64
-	Oid uint64
 }
 
 // uid -> []oids

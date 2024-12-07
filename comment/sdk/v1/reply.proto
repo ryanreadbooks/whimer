@@ -90,6 +90,7 @@ message ReplyItem {
   int64 mtime = 12;       // 修改时间
   string ip = 13;         // 发布时ip地址
   bool is_pin = 14;       // 是否为置顶评论
+  uint64 subs_count = 15; // 子评论数
 }
 
 message PageGetReplyResponse {

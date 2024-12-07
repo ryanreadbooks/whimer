@@ -100,6 +100,7 @@ func (s *CommentSrv) PinReply(ctx context.Context, oid, rid uint64, action int8)
 	}
 
 	// 检查用户是否有权置顶评论
+	// 只有oid的作者才可以指定评论
 	resp, err := dep.GetNoter().IsUserOwnNote(ctx, &notev1.IsUserOwnNoteRequest{
 		Uid:    uid,
 		NoteId: reply.Oid,
@@ -109,7 +110,7 @@ func (s *CommentSrv) PinReply(ctx context.Context, oid, rid uint64, action int8)
 	}
 
 	if !resp.GetResult() {
-		return xerror.Wrap(global.ErrYouCantPinReply)
+		return xerror.Wrap(global.ErrYouCantPinReply).WithExtras("replyId", reply.Oid, "uid", uid).WithCtx(ctx)
 	}
 
 	err = s.CommentInteractBiz.PinReply(ctx, oid, rid, action)
@@ -124,7 +125,7 @@ func (s *CommentSrv) PinReply(ctx context.Context, oid, rid uint64, action int8)
 // 分页获取主评论
 func (s *CommentSrv) PageGetRootReplies(ctx context.Context, oid, cursor uint64, sortBy int8) (*model.PageReplies, error) {
 	const (
-		want = 8
+		want = 18
 	)
 
 	rootReplies, err := s.CommentBiz.GetRootReplies(ctx, oid, cursor, want, sortBy)

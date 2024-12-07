@@ -12,6 +12,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
@@ -39,6 +40,8 @@ type CommentBiz interface {
 	BatchCheckUserIsReplied(ctx context.Context, uidOids map[uint64][]uint64) ([]model.UidCommentOnOid, error)
 	// 获取置顶评论
 	GetPinnedReply(ctx context.Context, oid uint64) (*model.ReplyItem, error)
+	// 填充评论的子评论数量
+	PopulateSubRepliesCount(ctx context.Context, replies []*model.ReplyItem) error
 }
 
 const (
@@ -215,6 +218,7 @@ func (b *commentBiz) DelReply(ctx context.Context, rid uint64) error {
 		}
 	}
 
+	// 缓存中减少一个
 	concurrent.DoneIn(10*time.Second, func(ctx context.Context) {
 		infra.Dao().CommentDao.DecrReplyCount(ctx, reply.Oid)
 	})
@@ -265,7 +269,7 @@ func (b *commentBiz) isReplyDeletable(ctx context.Context, uid uint64, reply *mo
 // 每次返回10条
 func (b *commentBiz) GetRootReplies(ctx context.Context, oid uint64, cursor uint64, want int, sortBy int8) (*model.PageReplies, error) {
 	if want <= 0 {
-		want = 10
+		want = 18
 	}
 
 	data, err := infra.Dao().CommentDao.GetRootReplies(ctx, oid, cursor, want)
@@ -281,10 +285,22 @@ func (b *commentBiz) GetRootReplies(ctx context.Context, oid uint64, cursor uint
 	if dataLen > 0 {
 		nextCursor = data[dataLen-1].Id
 	}
+	if !hasNext {
+		nextCursor = 0
+	}
 
 	items := make([]*model.ReplyItem, 0, dataLen)
+	rootIds := make([]uint64, 0, dataLen)
 	for _, item := range data {
 		items = append(items, model.NewReplyItem(item))
+		rootIds = append(rootIds, item.Id)
+	}
+
+	// 填充主评论的子评论数量
+	err = b.PopulateSubRepliesCount(ctx, items)
+	if err != nil {
+		// 获取子评论失败不返回错误
+		xlog.Msg("comment biz batch count sub replies failed").Extras("rootIds", rootIds).Errorx(ctx)
 	}
 
 	return &model.PageReplies{
@@ -299,7 +315,7 @@ func (b *commentBiz) GetRootReplies(ctx context.Context, oid uint64, cursor uint
 // 每次返回5条
 func (b *commentBiz) GetSubReplies(ctx context.Context, oid, rootId uint64, want int, cursor uint64) (*model.PageReplies, error) {
 	if want <= 0 {
-		want = 5
+		want = 10
 	}
 
 	data, err := infra.Dao().CommentDao.GetSubReplies(ctx, oid, rootId, cursor, want)
@@ -312,6 +328,9 @@ func (b *commentBiz) GetSubReplies(ctx context.Context, oid, rootId uint64, want
 	hasNext := dataLen == want
 	if dataLen > 0 {
 		nextCursor = data[dataLen-1].Id
+	}
+	if !hasNext {
+		nextCursor = 0
 	}
 
 	items := make([]*model.ReplyItem, 0, dataLen)
@@ -400,4 +419,27 @@ func (b *commentBiz) GetPinnedReply(ctx context.Context, oid uint64) (*model.Rep
 	}
 
 	return model.NewReplyItem(pinned), nil
+}
+
+func (b *commentBiz) PopulateSubRepliesCount(ctx context.Context, replies []*model.ReplyItem) error {
+	rootIds := make([]uint64, 0, len(replies))
+	for _, r := range replies {
+		rootIds = append(rootIds, r.Id)
+	}
+	if len(rootIds) == 0 {
+		return nil
+	}
+
+	resp, err := infra.Dao().CommentDao.BatchCountSubReplies(ctx, rootIds)
+	if err != nil {
+		return xerror.Wrapf(err, "comment biz failed to batch count sub replies").
+			WithExtra("roots", rootIds).
+			WithCtx(ctx)
+	}
+
+	for _, reply := range replies {
+		reply.SubsCount = resp[reply.Id]
+	}
+
+	return nil
 }

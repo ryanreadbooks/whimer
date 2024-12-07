@@ -9,6 +9,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/comment/internal/global"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/misc/xtime"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -97,6 +98,7 @@ func (c *CommentCache) BatchSetReplyCount(ctx context.Context, batch map[uint64]
 	err := c.rd.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
 		for oid, cnt := range batch {
 			p.Set(ctx, getCountCmtKey(oid), strconv.FormatUint(cnt, 10), 0)
+			p.Expire(ctx, getCountCmtKey(oid), xtime.HourJitter(time.Hour*2))
 		}
 		return nil
 	})
@@ -118,12 +120,14 @@ func (c *CommentCache) DelReplyCount(ctx context.Context, oid uint64) error {
 	return err
 }
 
+// 已经存在缓存才执行操作，否则不执行，尽可能防止数据出错
 func (c *CommentCache) IncrReplyCountWhenExist(ctx context.Context, oid uint64, increment int64) error {
 	const script = `
 		local key = KEYS[1]
-		local value
-		if redis.call('exists', key) == 1 then
-    	value = redis.call('incr', key)
+		loval value = 1
+		local exists = redis.call('EXISTS', key)
+		if exists == 1 then
+			value = redis.call('INCR', key)
 		end
 		return value`
 	var err error
@@ -140,12 +144,14 @@ func (c *CommentCache) IncrReplyCountWhenExist(ctx context.Context, oid uint64, 
 	return err
 }
 
+// 已经存在缓存才执行操作，否则不执行，尽可能防止数据出错
 func (c *CommentCache) DecrReplyCountWhenExist(ctx context.Context, oid uint64, decrement int64) error {
 	const script = `
 		local key = KEYS[1]
-		local value
-		if redis.call('exists', key) == 1 then
-    	value = redis.call('decr', key)
+		loval value = 1
+		local exists = redis.call('EXISTS', key)
+		if exists == 1 then
+			value = redis.call('DECR', key)
 		end
 		return value`
 	var err error
