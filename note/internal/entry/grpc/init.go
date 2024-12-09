@@ -22,7 +22,7 @@ func Init(c zrpc.RpcServerConf, service *srv.Service) *zrpc.RpcServer {
 	interceptor.InstallUnaryServerInterceptors(grpcServer,
 		interceptor.WithUnaryChecker(
 			checker.UidExistenceWithOpt(
-				checker.WithIgnore(NoteFeedServiceName),
+				checker.WithServicesIgnore(NoteFeedServiceName),
 			),
 		),
 	)
