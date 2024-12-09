@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/util"
@@ -22,15 +23,33 @@ func UidExistence(ctx context.Context, info *grpc.UnaryServerInfo) error {
 	return nil
 }
 
+func UidExistenceLoose(ctx context.Context, info *grpc.UnaryServerInfo) error {
+	uid := metadata.Uid(ctx)
+	if uid <= 0 {
+		xlog.Msg("uid not found in grpc incoming metadata").Info()
+	}
+
+	return nil
+}
+
 type option struct {
-	ignores []string
+	ignoredServices []string // 不生效的服务
+	ignoredMethods  []string // 不生效的方法
 }
 
 type Option func(o *option)
 
-func WithIgnore(ignores ...string) Option {
+// 拦截器对某些grpc服务不生效
+func WithServicesIgnore(ignores ...string) Option {
 	return func(o *option) {
-		o.ignores = ignores
+		o.ignoredServices = ignores
+	}
+}
+
+// 拦截器对某给grpc方法不生效
+func WithMethodsIgnore(methods ...string) Option {
+	return func(o *option) {
+		o.ignoredMethods = methods
 	}
 }
 
@@ -41,15 +60,25 @@ func UidExistenceWithOpt(opts ...Option) UnaryServerMetadataChecker {
 		o(&opt)
 	}
 
-	var ignoreMap = make(map[string]struct{}, len(opt.ignores))
-	for _, e := range opt.ignores {
-		ignoreMap[e] = struct{}{}
+	var ignoreServiceMap = make(map[string]struct{}, len(opt.ignoredServices))
+	for _, e := range opt.ignoredServices {
+		ignoreServiceMap[e] = struct{}{}
+	}
+	var ignoreMethodMap = make(map[string]struct{}, len(opt.ignoredMethods))
+	for _, e := range opt.ignoredMethods {
+		ignoreMethodMap[e] = struct{}{}
 	}
 
 	// true: should ignore; false should not ignore
 	shouldIgnore := func(info *grpc.UnaryServerInfo) bool {
+		// rules: 1. service first; 2. if service is not ignored then check method
 		svcName := util.SplitUnaryServerName(info)
-		_, ok := ignoreMap[svcName]
+		_, ok := ignoreServiceMap[svcName]
+		if ok {
+			return ok
+		}
+
+		_, ok = ignoreMethodMap[info.FullMethod]
 		return ok
 	}
 
