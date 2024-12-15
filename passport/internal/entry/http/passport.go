@@ -53,6 +53,7 @@ func CheckInWithSmsHandler(serv *srv.Service) http.HandlerFunc {
 
 		sessCookie := data.Session.Cookie()
 		http.SetCookie(w, sessCookie)
+		http.SetCookie(w, data.Session.UidCookie())
 		http.SetCookie(w, csrf.GetToken().Cookie(config.Conf.Domain, sessCookie.Expires))
 		w.Header().Add("Vary", "Cookie")
 		httpx.OkJson(w, data)

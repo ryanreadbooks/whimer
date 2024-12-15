@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/vmihailenco/msgpack/v5"
@@ -11,6 +12,7 @@ import (
 const (
 	// do not easily change this constant
 	WhimerSessId = "WHIMERSESSID"
+	WhimerUid    = "uid"
 )
 
 const (
@@ -57,6 +59,15 @@ func (s *Session) Cookie() *http.Cookie {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
+	}
+}
+
+func (s *Session) UidCookie() *http.Cookie {
+	return &http.Cookie{
+		Name:     WhimerUid,
+		Value:    strconv.FormatUint(s.Uid, 10),
+		Path:     "/",
+		Expires:  time.Unix(s.Meta.ExpireAt, 0),
 	}
 }
 
