@@ -90,6 +90,8 @@ func (s *AccessSrv) SmsCheckIn(ctx context.Context, req *model.SmsCheckInRequest
 
 	// TODO 将当前平台中已经生效的会话清除
 
+	resp.Avatar = s.userBiz.ReplaceAvatarUrl(resp.Avatar)
+
 	return resp, nil
 }
 
