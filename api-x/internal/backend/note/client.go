@@ -1,49 +1,38 @@
 package note
 
 import (
-	"sync/atomic"
-
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
-	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
-
-	"github.com/zeromicro/go-zero/core/logx"
+	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
 var (
 	// 笔记服务
-	noteCreator  notesdk.NoteCreatorServiceClient
-	noteFeed     notesdk.NoteFeedServiceClient
-	noteInteract notesdk.NoteInteractServiceClient
-
-	// 是否可用
-	available atomic.Bool
+	noteCreator  notev1.NoteCreatorServiceClient
+	noteFeed     notev1.NoteFeedServiceClient
+	noteInteract notev1.NoteInteractServiceClient
 )
 
 func Init(c *config.Config) {
-	conn, err := xgrpc.NewClientConn(c.Backend.Note)
-	if err != nil {
-		logx.Errorf("external init: can not init note")
-	} else {
-		noteCreator = notesdk.NewNoteCreatorServiceClient(conn)
-		noteFeed = notesdk.NewNoteFeedServiceClient(conn)
-		noteInteract = notesdk.NewNoteInteractServiceClient(conn)
-		available.Store(true)
-	}
+	noteCreator = xgrpc.NewRecoverableClient(c.Backend.Note,
+		notev1.NewNoteCreatorServiceClient,
+		func(cc notev1.NoteCreatorServiceClient) { noteCreator = cc })
+	noteFeed = xgrpc.NewRecoverableClient(c.Backend.Note,
+		notev1.NewNoteFeedServiceClient,
+		func(cc notev1.NoteFeedServiceClient) { noteFeed = cc })
+	noteInteract = xgrpc.NewRecoverableClient(c.Backend.Note,
+		notev1.NewNoteInteractServiceClient,
+		func(cc notev1.NoteInteractServiceClient) { noteInteract = cc })
 }
 
-func NoteCreatorServer() notesdk.NoteCreatorServiceClient {
+func NoteCreatorServer() notev1.NoteCreatorServiceClient {
 	return noteCreator
 }
 
-func NoteInteractServer() notesdk.NoteInteractServiceClient {
+func NoteInteractServer() notev1.NoteInteractServiceClient {
 	return noteInteract
 }
 
-func NoteFeedServer() notesdk.NoteFeedServiceClient {
+func NoteFeedServer() notev1.NoteFeedServiceClient {
 	return noteFeed
-}
-
-func Available() bool {
-	return available.Load()
 }
