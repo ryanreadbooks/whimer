@@ -161,7 +161,7 @@ func (s *NoteCreatorServiceServer) GetNote(ctx context.Context, in *notev1.GetNo
 // 列出笔记
 func (s *NoteCreatorServiceServer) ListNote(ctx context.Context, in *notev1.ListNoteRequest) (
 	*notev1.ListNoteResponse, error) {
-	data, err := s.Srv.NoteCreatorSrv.List(ctx)
+	data, nextPage, err := s.Srv.NoteCreatorSrv.List(ctx, in.Cursor, in.Count)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,10 @@ func (s *NoteCreatorServiceServer) ListNote(ctx context.Context, in *notev1.List
 		items = append(items, item.AsPb())
 	}
 
-	return &notev1.ListNoteResponse{Items: items}, nil
+	return &notev1.ListNoteResponse{
+		Items:      items,
+		NextCursor: nextPage.NextCursor,
+		HasNext:    nextPage.HasNext}, nil
 }
 
 func (s *NoteCreatorServiceServer) GetUploadAuth(ctx context.Context, in *notev1.GetUploadAuthRequest) (

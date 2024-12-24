@@ -75,6 +75,22 @@ func (r *NoteIdReq) Validate() error {
 	return nil
 }
 
+type ListReq struct {
+	Cursor uint64 `form:"cursor,optional"`
+	Count  int32  `form:"count,optional"`
+}
+
+func (r *ListReq) Validate() error {
+	if r.Count == 0 {
+		r.Count = 15
+	}
+	if r.Count >= 15 {
+		r.Count = 15
+	}
+
+	return nil
+}
+
 type NoteItemImage struct {
 	Url  string `json:"url"`
 	Type int    `json:"type"`
@@ -119,7 +135,9 @@ func NewAdminNoteItemFromPb(pb *notesdk.NoteItem) *AdminNoteItem {
 }
 
 type AdminListRes struct {
-	Items []*AdminNoteItem `json:"items"`
+	Items      []*AdminNoteItem `json:"items"`
+	NextCursor uint64           `json:"next_cursor"`
+	HasNext    bool             `json:"has_next"`
 }
 
 func NewListResFromPb(pb *notesdk.ListNoteResponse) *AdminListRes {
@@ -132,7 +150,11 @@ func NewListResFromPb(pb *notesdk.ListNoteResponse) *AdminListRes {
 		items = append(items, NewAdminNoteItemFromPb(item))
 	}
 
-	return &AdminListRes{Items: items}
+	return &AdminListRes{
+		Items:      items,
+		NextCursor: pb.NextCursor,
+		HasNext:    pb.HasNext,
+	}
 }
 
 type UploadAuthReq struct {

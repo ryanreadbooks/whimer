@@ -16,15 +16,16 @@ import (
 
 // all sqls here
 const (
-	sqlFind        = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE id=?"
-	sqlInsertAll   = "INSERT INTO note(title,`desc`,privacy,owner,create_at,update_at) VALUES(?,?,?,?,?,?)"
-	sqlUpdateAll   = "UPDATE note SET title=?,`desc`=?,privacy=?,owner=?,update_at=? WHERE id=?"
-	sqlDeleteById  = "DELETE FROM note WHERE id=?"
-	sqlListByOwner = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE owner=?"
-	sqlGetByCursor = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE id>=? AND privacy=? LIMIT ?"
-	sqlGetLastId   = "SELECT id FROM note WHERE privacy=? ORDER BY id DESC LIMIT 1"
-	sqlGetAll      = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE privacy=?"
-	sqlGetCount    = "SELECT COUNT(*) FROM note WHERE privacy=?"
+	sqlFind                = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE id=?"
+	sqlInsertAll           = "INSERT INTO note(title,`desc`,privacy,owner,create_at,update_at) VALUES(?,?,?,?,?,?)"
+	sqlUpdateAll           = "UPDATE note SET title=?,`desc`=?,privacy=?,owner=?,update_at=? WHERE id=?"
+	sqlDeleteById          = "DELETE FROM note WHERE id=?"
+	sqlListByOwner         = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE owner=?"
+	sqlListByOwnerByCursor = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE owner=? AND id<? ORDER BY create_at DESC, id DESC LIMIT ?"
+	sqlGetByCursor         = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE id>=? AND privacy=? LIMIT ?"
+	sqlGetLastId           = "SELECT id FROM note WHERE privacy=? ORDER BY id DESC LIMIT 1"
+	sqlGetAll              = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE privacy=?"
+	sqlGetCount            = "SELECT COUNT(*) FROM note WHERE privacy=?"
 )
 
 type NoteDao struct {
@@ -72,6 +73,16 @@ func (r *NoteDao) ListByOwner(ctx context.Context, uid uint64) ([]*Note, error) 
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
+	return res, nil
+}
+
+func (r *NoteDao) ListByOwnerByCursor(ctx context.Context, uid uint64, cursor uint64, limit int32) ([]*Note, error) {
+	res := make([]*Note, 0, limit)
+	err := r.db.QueryRowsCtx(ctx, &res, sqlListByOwnerByCursor, uid, cursor, limit)
+	if err != nil {
+		return nil, xerror.Wrap(xsql.ConvertError(err))
+	}
+
 	return res, nil
 }
 

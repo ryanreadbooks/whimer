@@ -3,6 +3,7 @@ package biz
 import (
 	"context"
 	"errors"
+	"math"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
@@ -25,6 +26,7 @@ type NoteCreatorBiz interface {
 	CreatorDeleteNote(ctx context.Context, note *model.DeleteNoteRequest) error
 	CreatorGetNote(ctx context.Context, noteId uint64) (*model.Note, error)
 	CreatorListNote(ctx context.Context) (*model.Notes, error)
+	CreatorPageListNote(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error)
 	CreatorGetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error)
 }
 
@@ -200,6 +202,45 @@ func (b *noteCreatorBiz) CreatorListNote(ctx context.Context) (*model.Notes, err
 	}
 
 	return b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
+}
+
+func (b *noteCreatorBiz) CreatorPageListNote(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
+	var (
+		uid      uint64 = metadata.Uid(ctx)
+		nextPage        = model.PageResult{}
+	)
+
+	if cursor == 0 {
+		cursor = math.MaxUint64
+	}
+	notes, err := infra.Dao().NoteDao.ListByOwnerByCursor(ctx, uid, cursor, count)
+	if errors.Is(xsql.ErrNoRecord, err) {
+		return &model.Notes{}, nextPage, nil
+	}
+	if err != nil {
+		return nil, nextPage,
+			xerror.Wrapf(err, "biz note list by owner with cursor failed").
+				WithCtx(ctx).
+				WithExtras("cursor", cursor, "count", count)
+	}
+
+	// 计算下一次请求的游标位置
+	if len(notes) > 0 {
+		nextPage.NextCursor = notes[len(notes)-1].Id
+		if len(notes) == int(count) {
+			nextPage.HasNext = true
+		}
+	}
+
+	notesResp, err := b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
+	if err != nil {
+		return nil, nextPage,
+			xerror.Wrapf(err, "biz note failed to assemble notes when page list notes").
+				WithCtx(ctx).
+				WithExtras("cursor", cursor, "count", count)
+	}
+
+	return notesResp, nextPage, nil
 }
 
 func (b *noteCreatorBiz) CreatorGetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {

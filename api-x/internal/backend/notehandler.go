@@ -80,7 +80,15 @@ func (h *Handler) AdminDeleteNote() http.HandlerFunc {
 
 func (h *Handler) AdminListNotes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		resp, err := note.NoteCreatorServer().ListNote(r.Context(), &notev1.ListNoteRequest{})
+		req, err := xhttp.ParseValidate[note.ListReq](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
+			return
+		}
+		resp, err := note.NoteCreatorServer().ListNote(r.Context(), &notev1.ListNoteRequest{
+			Cursor: req.Cursor,
+			Count:  req.Count,
+		})
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

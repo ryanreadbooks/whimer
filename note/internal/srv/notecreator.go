@@ -46,16 +46,16 @@ func (s *NoteCreatorSrv) Delete(ctx context.Context, req *model.DeleteNoteReques
 }
 
 // 列出某用户所有笔记
-func (s *NoteCreatorSrv) List(ctx context.Context) (*model.Notes, error) {
-	resp, err := s.noteCreatorBiz.CreatorListNote(ctx)
+func (s *NoteCreatorSrv) List(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
+	resp, nextPage, err := s.noteCreatorBiz.CreatorPageListNote(ctx, cursor, count)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "srv creator list note failed").WithCtx(ctx)
+		return nil, nextPage, xerror.Wrapf(err, "srv creator list note failed").WithCtx(ctx)
 	}
 
 	resp, _ = s.noteInteractBiz.AssignNoteLikes(ctx, resp)
 	resp, _ = s.noteInteractBiz.AssignNoteReplies(ctx, resp)
 
-	return resp, nil
+	return resp, nextPage, nil
 }
 
 // 用于笔记作者获取笔记的详细信息

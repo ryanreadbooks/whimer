@@ -57,9 +57,16 @@ message GetNoteRequest {
 
 message GetNoteResponse { NoteItem note = 1; }
 
-message ListNoteRequest {}
+message ListNoteRequest {
+  uint64 cursor = 1;
+  int32 count = 2;
+}
 
-message ListNoteResponse { repeated NoteItem items = 1; }
+message ListNoteResponse {
+  repeated NoteItem items = 1;
+  uint64 next_cursor = 2;
+  bool has_next = 3;
+}
 
 message GetUploadAuthRequest {
   string resource = 1;
