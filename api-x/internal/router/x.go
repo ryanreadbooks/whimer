@@ -17,6 +17,7 @@ func RegX(engine *rest.Server, svc *backend.Handler) {
 	regNoteRoutes(xGroup, svc)
 	// comment routes
 	regCommentRoutes(xGroup, svc)
+	regProfileRouter(xGroup, svc)
 
 	mod := svc.Config.Http.Mode
 	if mod == zeroservice.DevMode || mod == zeroservice.TestMode {

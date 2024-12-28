@@ -4,6 +4,7 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/comment"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/note"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
+	"github.com/ryanreadbooks/whimer/api-x/internal/backend/relation"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 )
 
@@ -18,6 +19,7 @@ func NewHandler(c *config.Config) *Handler {
 	passport.Init(c)
 	note.Init(c)
 	comment.Init(c)
+	relation.Init(c)
 
 	return h
 }

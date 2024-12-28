@@ -26,6 +26,7 @@ const (
 	sqlGetLastId           = "SELECT id FROM note WHERE privacy=? ORDER BY id DESC LIMIT 1"
 	sqlGetAll              = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE privacy=?"
 	sqlGetCount            = "SELECT COUNT(*) FROM note WHERE privacy=?"
+	sqlCountByUid          = "SELECT COUNT(*) FROM note WHERE owner=?"
 )
 
 type NoteDao struct {
@@ -213,5 +214,11 @@ func (r *NoteDao) GetPrivateCount(ctx context.Context) (uint64, error) {
 func (r *NoteDao) getCount(ctx context.Context, privacy int) (uint64, error) {
 	var cnt uint64
 	err := r.db.QueryRowCtx(ctx, &cnt, sqlGetCount, privacy)
+	return cnt, xerror.Wrap(xsql.ConvertError(err))
+}
+
+func (r *NoteDao) GetPostedCountByOwner(ctx context.Context, uid uint64) (uint64, error) {
+	var cnt uint64
+	err := r.db.QueryRowCtx(ctx, &cnt, sqlCountByUid, uid)
 	return cnt, xerror.Wrap(xsql.ConvertError(err))
 }

@@ -19,14 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NoteCreatorService_IsUserOwnNote_FullMethodName = "/note.sdk.v1.NoteCreatorService/IsUserOwnNote"
-	NoteCreatorService_IsNoteExist_FullMethodName   = "/note.sdk.v1.NoteCreatorService/IsNoteExist"
-	NoteCreatorService_CreateNote_FullMethodName    = "/note.sdk.v1.NoteCreatorService/CreateNote"
-	NoteCreatorService_UpdateNote_FullMethodName    = "/note.sdk.v1.NoteCreatorService/UpdateNote"
-	NoteCreatorService_DeleteNote_FullMethodName    = "/note.sdk.v1.NoteCreatorService/DeleteNote"
-	NoteCreatorService_GetNote_FullMethodName       = "/note.sdk.v1.NoteCreatorService/GetNote"
-	NoteCreatorService_ListNote_FullMethodName      = "/note.sdk.v1.NoteCreatorService/ListNote"
-	NoteCreatorService_GetUploadAuth_FullMethodName = "/note.sdk.v1.NoteCreatorService/GetUploadAuth"
+	NoteCreatorService_IsUserOwnNote_FullMethodName  = "/note.sdk.v1.NoteCreatorService/IsUserOwnNote"
+	NoteCreatorService_IsNoteExist_FullMethodName    = "/note.sdk.v1.NoteCreatorService/IsNoteExist"
+	NoteCreatorService_CreateNote_FullMethodName     = "/note.sdk.v1.NoteCreatorService/CreateNote"
+	NoteCreatorService_UpdateNote_FullMethodName     = "/note.sdk.v1.NoteCreatorService/UpdateNote"
+	NoteCreatorService_DeleteNote_FullMethodName     = "/note.sdk.v1.NoteCreatorService/DeleteNote"
+	NoteCreatorService_GetNote_FullMethodName        = "/note.sdk.v1.NoteCreatorService/GetNote"
+	NoteCreatorService_ListNote_FullMethodName       = "/note.sdk.v1.NoteCreatorService/ListNote"
+	NoteCreatorService_GetUploadAuth_FullMethodName  = "/note.sdk.v1.NoteCreatorService/GetUploadAuth"
+	NoteCreatorService_GetPostedCount_FullMethodName = "/note.sdk.v1.NoteCreatorService/GetPostedCount"
 )
 
 // NoteCreatorServiceClient is the client API for NoteCreatorService service.
@@ -52,6 +53,8 @@ type NoteCreatorServiceClient interface {
 	ListNote(ctx context.Context, in *ListNoteRequest, opts ...grpc.CallOption) (*ListNoteResponse, error)
 	// 获取上传凭证
 	GetUploadAuth(ctx context.Context, in *GetUploadAuthRequest, opts ...grpc.CallOption) (*GetUploadAuthResponse, error)
+	// 获取用户投稿数量
+	GetPostedCount(ctx context.Context, in *GetPostedCountRequest, opts ...grpc.CallOption) (*GetPostedCountResponse, error)
 }
 
 type noteCreatorServiceClient struct {
@@ -142,6 +145,16 @@ func (c *noteCreatorServiceClient) GetUploadAuth(ctx context.Context, in *GetUpl
 	return out, nil
 }
 
+func (c *noteCreatorServiceClient) GetPostedCount(ctx context.Context, in *GetPostedCountRequest, opts ...grpc.CallOption) (*GetPostedCountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPostedCountResponse)
+	err := c.cc.Invoke(ctx, NoteCreatorService_GetPostedCount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NoteCreatorServiceServer is the server API for NoteCreatorService service.
 // All implementations must embed UnimplementedNoteCreatorServiceServer
 // for forward compatibility.
@@ -165,6 +178,8 @@ type NoteCreatorServiceServer interface {
 	ListNote(context.Context, *ListNoteRequest) (*ListNoteResponse, error)
 	// 获取上传凭证
 	GetUploadAuth(context.Context, *GetUploadAuthRequest) (*GetUploadAuthResponse, error)
+	// 获取用户投稿数量
+	GetPostedCount(context.Context, *GetPostedCountRequest) (*GetPostedCountResponse, error)
 	mustEmbedUnimplementedNoteCreatorServiceServer()
 }
 
@@ -198,6 +213,9 @@ func (UnimplementedNoteCreatorServiceServer) ListNote(context.Context, *ListNote
 }
 func (UnimplementedNoteCreatorServiceServer) GetUploadAuth(context.Context, *GetUploadAuthRequest) (*GetUploadAuthResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUploadAuth not implemented")
+}
+func (UnimplementedNoteCreatorServiceServer) GetPostedCount(context.Context, *GetPostedCountRequest) (*GetPostedCountResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPostedCount not implemented")
 }
 func (UnimplementedNoteCreatorServiceServer) mustEmbedUnimplementedNoteCreatorServiceServer() {}
 func (UnimplementedNoteCreatorServiceServer) testEmbeddedByValue()                            {}
@@ -364,6 +382,24 @@ func _NoteCreatorService_GetUploadAuth_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NoteCreatorService_GetPostedCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPostedCountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteCreatorServiceServer).GetPostedCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteCreatorService_GetPostedCount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteCreatorServiceServer).GetPostedCount(ctx, req.(*GetPostedCountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NoteCreatorService_ServiceDesc is the grpc.ServiceDesc for NoteCreatorService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -402,6 +438,10 @@ var NoteCreatorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUploadAuth",
 			Handler:    _NoteCreatorService_GetUploadAuth_Handler,
+		},
+		{
+			MethodName: "GetPostedCount",
+			Handler:    _NoteCreatorService_GetPostedCount_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

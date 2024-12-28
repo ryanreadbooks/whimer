@@ -5,6 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
+	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
 
@@ -79,4 +80,16 @@ func (s *NoteCreatorSrv) GetNoteOwner(ctx context.Context, noteId uint64) (uint6
 // 判断笔记是否存在
 func (s *NoteCreatorSrv) IsNoteExist(ctx context.Context, noteId uint64) (bool, error) {
 	return s.noteBiz.IsNoteExist(ctx, noteId)
+}
+
+// 获取用户发布的笔记数量
+func (s *NoteCreatorSrv) GetPostedCount(ctx context.Context, uid uint64) (uint64, error) {
+	cnt, err := infra.Dao().NoteDao.GetPostedCountByOwner(ctx, uid)
+	if err != nil {
+		return 0, xerror.Wrapf(err, "srv creator get posted count failed").
+			WithExtra("uid", uid).
+			WithCtx(ctx)
+	}
+
+	return cnt, nil
 }

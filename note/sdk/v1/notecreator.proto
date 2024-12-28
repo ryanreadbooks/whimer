@@ -89,6 +89,12 @@ message GetUploadAuthResponse {
   UploadAuthResponseHeaders headers = 5;
 }
 
+message GetPostedCountRequest {
+  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 用户id
+}
+
+message GetPostedCountResponse { uint64 count = 1; }
+
 // 和笔记管理相关的服务
 // 比如发布笔记，修改笔记，删除笔记等管理笔记的功能
 service NoteCreatorService {
@@ -108,4 +114,6 @@ service NoteCreatorService {
   rpc ListNote(ListNoteRequest) returns (ListNoteResponse);
   // 获取上传凭证
   rpc GetUploadAuth(GetUploadAuthRequest) returns (GetUploadAuthResponse);
+  // 获取用户投稿数量
+  rpc GetPostedCount(GetPostedCountRequest) returns (GetPostedCountResponse);
 }

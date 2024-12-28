@@ -196,3 +196,13 @@ func (s *NoteCreatorServiceServer) GetUploadAuth(ctx context.Context, in *notev1
 
 	return data.AsPb(), nil
 }
+
+func (s *NoteCreatorServiceServer) GetPostedCount(ctx context.Context, in *notev1.GetPostedCountRequest) (
+	*notev1.GetPostedCountResponse, error) {
+	cnt, err := s.Srv.NoteCreatorSrv.GetPostedCount(ctx, in.Uid)
+	if err != nil {
+		return nil, err
+	}
+	
+	return &notev1.GetPostedCountResponse{Count: cnt}, nil
+}

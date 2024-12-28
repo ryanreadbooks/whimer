@@ -10,9 +10,10 @@ import (
 func regNoteRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 	g := group.Group("/note")
 	{
-		admin := g.Group("/creator", middleware.MustLogin())
+		// 笔记作者相关
+		creator := g.Group("/creator", middleware.MustLogin())
 		{
-			v1g := admin.Group("/v1")
+			v1g := creator.Group("/v1")
 			// 发布笔记
 			v1g.Post("/create", svc.AdminCreateNote())
 			// 更新笔记
@@ -27,6 +28,7 @@ func regNoteRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 			v1g.Get("/upload/auth", svc.AdminUploadNoteAuth())
 		}
 
+		// 笔记互动相关接口
 		interact := g.Group("/interact", middleware.MustLogin())
 		{
 			v1g := interact.Group("/v1")
@@ -34,6 +36,8 @@ func regNoteRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 			v1g.Post("/like", svc.LikeNote())
 			// 获取笔记点赞数量
 			v1g.Get("/likes/:note_id", svc.GetNoteLikeCount())
+			// 获取点赞过的笔记
+			v1g.Get("/like/notes", svc.GetLikeNotes())
 		}
 	}
 }
