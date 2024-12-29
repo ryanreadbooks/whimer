@@ -12,11 +12,15 @@ var (
 	}
 )
 
+const (
+	maxRequiredUpload = 8
+)
+
 // 请求获取资源上传凭证
 type UploadAuthRequest struct {
 	Resource string `json:"resource" form:"resource"`
 	Source   string `json:"source" form:"source,optional"`
-	MimeType string `json:"mime" form:"mime"`
+	Count    int32  `json:"count" form:"count"`
 }
 
 func (r *UploadAuthRequest) Validate() error {
@@ -27,6 +31,10 @@ func (r *UploadAuthRequest) Validate() error {
 	_, ok := uploadResourceAllowed[r.Resource]
 	if !ok {
 		return global.ErrUnsupportedResource
+	}
+
+	if r.Count > maxRequiredUpload {
+		return global.ErrArgs.Msg("最多上传8张图片")
 	}
 
 	return nil
@@ -50,10 +58,10 @@ func (h *UploadAuthResponseHeaders) AsPb() *notev1.UploadAuthResponseHeaders {
 
 // 上传凭证响应
 type UploadAuthResponse struct {
-	FildId      string               `json:"fild_id"`
-	CurrentTime int64                `json:"current_time"`
-	ExpireTime  int64                `json:"expire_time"`
-	UploadAddr  string               `json:"upload_addr"`
+	FildId      string                    `json:"fild_id"`
+	CurrentTime int64                     `json:"current_time"`
+	ExpireTime  int64                     `json:"expire_time"`
+	UploadAddr  string                    `json:"upload_addr"`
 	Headers     UploadAuthResponseHeaders `json:"headers"`
 }
 

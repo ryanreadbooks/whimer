@@ -158,16 +158,28 @@ func NewListResFromPb(pb *notesdk.ListNoteResponse) *AdminListRes {
 }
 
 type UploadAuthReq struct {
-	Resource string `json:"resource" form:"resource"`
-	Source   string `json:"source" form:"source,optional"`
-	MimeType string `json:"mime" form:"mime"`
+	Resource string `form:"resource"`
+	Source   string `form:"source,optional"`
+	Count    int32  `form:"count,optional"`
 }
 
-func (r *UploadAuthReq) AsPb() *notesdk.GetUploadAuthRequest {
-	return &notesdk.GetUploadAuthRequest{
+func (r *UploadAuthReq) Validate() error {
+	if r.Count <= 0 {
+		r.Count = 1
+	}
+
+	if r.Count > 8 {
+		return xerror.ErrInvalidArgs.Msg("不支持请求这么多上传凭证")
+	}
+
+	return nil
+}
+
+func (r *UploadAuthReq) AsPb() *notesdk.BatchGetUploadAuthRequest {
+	return &notesdk.BatchGetUploadAuthRequest{
 		Resource: r.Resource,
 		Source:   r.Source,
-		MimeType: r.MimeType,
+		Count:    r.Count,
 	}
 }
 

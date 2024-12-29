@@ -126,7 +126,7 @@ func (h *Handler) AdminUploadNoteAuth() http.HandlerFunc {
 			return
 		}
 
-		resp, err := note.NoteCreatorServer().GetUploadAuth(r.Context(), req.AsPb())
+		resp, err := note.NoteCreatorServer().BatchGetUploadAuth(r.Context(), req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

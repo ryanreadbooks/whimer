@@ -71,7 +71,12 @@ message ListNoteResponse {
 message GetUploadAuthRequest {
   string resource = 1;
   string source = 2;
-  string mime_type = 3;
+}
+
+message BatchGetUploadAuthRequest {
+  string resource = 1;
+  string source = 2;
+  int32 count = 3 [ (buf.validate.field).int32.gt = 0 ];
 }
 
 message UploadAuthResponseHeaders {
@@ -87,6 +92,10 @@ message GetUploadAuthResponse {
   int64 expire_time = 3;
   string upload_addr = 4;
   UploadAuthResponseHeaders headers = 5;
+}
+
+message BatchGetUploadAuthResponse {
+  repeated GetUploadAuthResponse tickets = 1;
 }
 
 message GetPostedCountRequest {
@@ -114,6 +123,9 @@ service NoteCreatorService {
   rpc ListNote(ListNoteRequest) returns (ListNoteResponse);
   // 获取上传凭证
   rpc GetUploadAuth(GetUploadAuthRequest) returns (GetUploadAuthResponse);
+  // 批量获取上传凭证
+  rpc BatchGetUploadAuth(BatchGetUploadAuthRequest)
+      returns (BatchGetUploadAuthResponse);
   // 获取用户投稿数量
   rpc GetPostedCount(GetPostedCountRequest) returns (GetPostedCountResponse);
 }

@@ -251,7 +251,7 @@ func (b *noteCreatorBiz) CreatorGetUploadAuth(ctx context.Context, req *model.Up
 	currentTime := now.Unix()
 
 	// 生成签名
-	info, err := b.OssSigner.Sign(fileId, req.MimeType)
+	info, err := b.OssSigner.Sign(fileId)
 	if err != nil {
 		return nil, xerror.Wrapf(global.ErrPermDenied.Msg("服务器签名失败"), "%s", err.Error()).WithExtra("fileId", fileId).WithCtx(ctx)
 	}

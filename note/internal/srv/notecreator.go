@@ -7,6 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
+	"golang.org/x/sync/errgroup"
 )
 
 type NoteCreatorSrv struct {
@@ -39,6 +40,29 @@ func (s *NoteCreatorSrv) Update(ctx context.Context, req *model.UpdateNoteReques
 // 获取上传凭证
 func (s *NoteCreatorSrv) UploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {
 	return s.noteCreatorBiz.CreatorGetUploadAuth(ctx, req)
+}
+
+// 批量获取上传凭证
+func (s *NoteCreatorSrv) BatchGetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) ([]*model.UploadAuthResponse, error) {
+	eg, ctx := errgroup.WithContext(ctx)
+	var resps = make([]*model.UploadAuthResponse, req.Count)
+	for i := range req.Count {
+		eg.Go(func() error {
+			resp, err := s.noteCreatorBiz.CreatorGetUploadAuth(ctx, req)
+			if err != nil {
+				return xerror.Wrapf(err, "get upload auth failed").WithExtra("req", req)
+			}
+
+			resps[i] = resp
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	return resps, nil
 }
 
 // 删除笔记
