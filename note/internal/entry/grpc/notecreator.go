@@ -161,7 +161,7 @@ func (s *NoteCreatorServiceServer) GetNote(ctx context.Context, in *notev1.GetNo
 // 列出笔记
 func (s *NoteCreatorServiceServer) ListNote(ctx context.Context, in *notev1.ListNoteRequest) (
 	*notev1.ListNoteResponse, error) {
-	data, err := s.Srv.NoteCreatorSrv.List(ctx)
+	data, nextPage, err := s.Srv.NoteCreatorSrv.List(ctx, in.Cursor, in.Count)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,10 @@ func (s *NoteCreatorServiceServer) ListNote(ctx context.Context, in *notev1.List
 		items = append(items, item.AsPb())
 	}
 
-	return &notev1.ListNoteResponse{Items: items}, nil
+	return &notev1.ListNoteResponse{
+		Items:      items,
+		NextCursor: nextPage.NextCursor,
+		HasNext:    nextPage.HasNext}, nil
 }
 
 func (s *NoteCreatorServiceServer) GetUploadAuth(ctx context.Context, in *notev1.GetUploadAuthRequest) (
@@ -179,7 +182,6 @@ func (s *NoteCreatorServiceServer) GetUploadAuth(ctx context.Context, in *notev1
 	var req = model.UploadAuthRequest{
 		Resource: in.Resource,
 		Source:   in.Source,
-		MimeType: in.MimeType,
 	}
 
 	if err := req.Validate(); err != nil {
@@ -192,4 +194,41 @@ func (s *NoteCreatorServiceServer) GetUploadAuth(ctx context.Context, in *notev1
 	}
 
 	return data.AsPb(), nil
+}
+
+// 批量获取上传凭证
+func (s *NoteCreatorServiceServer) BatchGetUploadAuth(ctx context.Context, in *notev1.BatchGetUploadAuthRequest) (
+	*notev1.BatchGetUploadAuthResponse, error,
+) {
+	var req = model.UploadAuthRequest{
+		Resource: in.Resource,
+		Source:   in.Source,
+		Count:    in.Count,
+	}
+
+	if err := req.Validate(); err != nil {
+		return nil, err
+	}
+
+	data, err := s.Srv.NoteCreatorSrv.BatchGetUploadAuth(ctx, &req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := notev1.BatchGetUploadAuthResponse{}
+	for _, d := range data {
+		resp.Tickets = append(resp.Tickets, d.AsPb())
+	}
+
+	return &resp, nil
+}
+
+func (s *NoteCreatorServiceServer) GetPostedCount(ctx context.Context, in *notev1.GetPostedCountRequest) (
+	*notev1.GetPostedCountResponse, error) {
+	cnt, err := s.Srv.NoteCreatorSrv.GetPostedCount(ctx, in.Uid)
+	if err != nil {
+		return nil, err
+	}
+
+	return &notev1.GetPostedCountResponse{Count: cnt}, nil
 }

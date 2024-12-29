@@ -4,31 +4,24 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/passport/sdk/middleware/auth"
-	user "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
-	"github.com/zeromicro/go-zero/core/logx"
+	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 )
 
 var (
 	auther *auth.Auth
-	userer user.UserServiceClient
+	userer userv1.UserServiceClient
 	err    error
 )
 
 func Init(c *config.Config) {
 	auther = auth.MustAuther(c.Backend.Passport)
-
-	conn, err := xgrpc.NewClientConn(c.Backend.Passport)
-	if err != nil {
-		logx.Errorf("external init: can not init passport user")
-	} else {
-		userer = user.NewUserServiceClient(conn)
-	}
+	userer = xgrpc.NewRecoverableClient(c.Backend.Passport, userv1.NewUserServiceClient, func(cc userv1.UserServiceClient) { userer = cc })
 }
 
 func Auther() *auth.Auth {
 	return auther
 }
 
-func Userer() user.UserServiceClient {
+func Userer() userv1.UserServiceClient {
 	return userer
 }

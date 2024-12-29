@@ -80,7 +80,15 @@ func (h *Handler) AdminDeleteNote() http.HandlerFunc {
 
 func (h *Handler) AdminListNotes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		resp, err := note.NoteCreatorServer().ListNote(r.Context(), &notev1.ListNoteRequest{})
+		req, err := xhttp.ParseValidate[note.ListReq](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
+			return
+		}
+		resp, err := note.NoteCreatorServer().ListNote(r.Context(), &notev1.ListNoteRequest{
+			Cursor: req.Cursor,
+			Count:  req.Count,
+		})
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -118,7 +126,7 @@ func (h *Handler) AdminUploadNoteAuth() http.HandlerFunc {
 			return
 		}
 
-		resp, err := note.NoteCreatorServer().GetUploadAuth(r.Context(), req.AsPb())
+		resp, err := note.NoteCreatorServer().BatchGetUploadAuth(r.Context(), req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -175,5 +183,12 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 			Count:  resp.Likes,
 			NoteId: resp.NoteId,
 		})
+	}
+}
+
+// TODO 获取点赞过的笔记
+func (h *Handler) GetLikeNotes() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
 	}
 }

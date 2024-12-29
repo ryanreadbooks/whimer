@@ -57,14 +57,26 @@ message GetNoteRequest {
 
 message GetNoteResponse { NoteItem note = 1; }
 
-message ListNoteRequest {}
+message ListNoteRequest {
+  uint64 cursor = 1;
+  int32 count = 2;
+}
 
-message ListNoteResponse { repeated NoteItem items = 1; }
+message ListNoteResponse {
+  repeated NoteItem items = 1;
+  uint64 next_cursor = 2;
+  bool has_next = 3;
+}
 
 message GetUploadAuthRequest {
   string resource = 1;
   string source = 2;
-  string mime_type = 3;
+}
+
+message BatchGetUploadAuthRequest {
+  string resource = 1;
+  string source = 2;
+  int32 count = 3 [ (buf.validate.field).int32.gt = 0 ];
 }
 
 message UploadAuthResponseHeaders {
@@ -81,6 +93,16 @@ message GetUploadAuthResponse {
   string upload_addr = 4;
   UploadAuthResponseHeaders headers = 5;
 }
+
+message BatchGetUploadAuthResponse {
+  repeated GetUploadAuthResponse tickets = 1;
+}
+
+message GetPostedCountRequest {
+  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 用户id
+}
+
+message GetPostedCountResponse { uint64 count = 1; }
 
 // 和笔记管理相关的服务
 // 比如发布笔记，修改笔记，删除笔记等管理笔记的功能
@@ -101,4 +123,9 @@ service NoteCreatorService {
   rpc ListNote(ListNoteRequest) returns (ListNoteResponse);
   // 获取上传凭证
   rpc GetUploadAuth(GetUploadAuthRequest) returns (GetUploadAuthResponse);
+  // 批量获取上传凭证
+  rpc BatchGetUploadAuth(BatchGetUploadAuthRequest)
+      returns (BatchGetUploadAuthResponse);
+  // 获取用户投稿数量
+  rpc GetPostedCount(GetPostedCountRequest) returns (GetPostedCountResponse);
 }

@@ -59,7 +59,7 @@ func NewSigner(user, pass string, c Config) *Signer {
 	return s
 }
 
-func (s *Signer) Sign(path string, mimeType string) (*SignInfo, error) {
+func (s *Signer) Sign(path string) (*SignInfo, error) {
 	req := http.Request{
 		Header: make(http.Header, 0),
 		Method: http.MethodPut,
@@ -72,7 +72,6 @@ func (s *Signer) Sign(path string, mimeType string) (*SignInfo, error) {
 		Path: path,
 	}
 	// 不签名body
-	req.Header.Add("Content-Type", mimeType)
 	req.Header.Add("X-Amz-Content-Sha256", "UNSIGNED-PAYLOAD")
 
 	val, err := s.cred.Get()

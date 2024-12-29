@@ -75,6 +75,22 @@ func (r *NoteIdReq) Validate() error {
 	return nil
 }
 
+type ListReq struct {
+	Cursor uint64 `form:"cursor,optional"`
+	Count  int32  `form:"count,optional"`
+}
+
+func (r *ListReq) Validate() error {
+	if r.Count == 0 {
+		r.Count = 15
+	}
+	if r.Count >= 15 {
+		r.Count = 15
+	}
+
+	return nil
+}
+
 type NoteItemImage struct {
 	Url  string `json:"url"`
 	Type int    `json:"type"`
@@ -119,7 +135,9 @@ func NewAdminNoteItemFromPb(pb *notesdk.NoteItem) *AdminNoteItem {
 }
 
 type AdminListRes struct {
-	Items []*AdminNoteItem `json:"items"`
+	Items      []*AdminNoteItem `json:"items"`
+	NextCursor uint64           `json:"next_cursor"`
+	HasNext    bool             `json:"has_next"`
 }
 
 func NewListResFromPb(pb *notesdk.ListNoteResponse) *AdminListRes {
@@ -132,20 +150,36 @@ func NewListResFromPb(pb *notesdk.ListNoteResponse) *AdminListRes {
 		items = append(items, NewAdminNoteItemFromPb(item))
 	}
 
-	return &AdminListRes{Items: items}
+	return &AdminListRes{
+		Items:      items,
+		NextCursor: pb.NextCursor,
+		HasNext:    pb.HasNext,
+	}
 }
 
 type UploadAuthReq struct {
-	Resource string `json:"resource" form:"resource"`
-	Source   string `json:"source" form:"source,optional"`
-	MimeType string `json:"mime" form:"mime"`
+	Resource string `form:"resource"`
+	Source   string `form:"source,optional"`
+	Count    int32  `form:"count,optional"`
 }
 
-func (r *UploadAuthReq) AsPb() *notesdk.GetUploadAuthRequest {
-	return &notesdk.GetUploadAuthRequest{
+func (r *UploadAuthReq) Validate() error {
+	if r.Count <= 0 {
+		r.Count = 1
+	}
+
+	if r.Count > 8 {
+		return xerror.ErrInvalidArgs.Msg("不支持请求这么多上传凭证")
+	}
+
+	return nil
+}
+
+func (r *UploadAuthReq) AsPb() *notesdk.BatchGetUploadAuthRequest {
+	return &notesdk.BatchGetUploadAuthRequest{
 		Resource: r.Resource,
 		Source:   r.Source,
-		MimeType: r.MimeType,
+		Count:    r.Count,
 	}
 }
 

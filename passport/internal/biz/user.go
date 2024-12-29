@@ -31,6 +31,9 @@ type UserBiz interface {
 	UpdateAvatar(ctx context.Context, uid uint64, req *model.AvatarInfoRequest) (string, error)
 	// 通过手机号获取用户
 	GetUserByTel(ctx context.Context, tel string) (*model.UserInfo, error)
+	// 获取头像链接
+	ReplaceAvatar(u *model.UserInfo)
+	ReplaceAvatarUrl(url string) string
 }
 
 type userBiz struct {
@@ -80,7 +83,7 @@ func (b *userBiz) GetUser(ctx context.Context, uid uint64) (*model.UserInfo, err
 	if err != nil {
 		return nil, err
 	}
-	b.replaceAvatar(user)
+	b.ReplaceAvatar(user)
 
 	return user, nil
 }
@@ -155,11 +158,19 @@ func (b *userBiz) UpdateAvatar(ctx context.Context, uid uint64, req *model.Avata
 	return visitUrl, nil
 }
 
-func (b *userBiz) replaceAvatar(u *model.UserInfo) {
+func (b *userBiz) ReplaceAvatar(u *model.UserInfo) {
 	if len(u.Avatar) > 0 {
 		visitUrl := b.avatarUploader.GetPublicVisitUrl(config.Conf.Oss.Bucket, u.Avatar, config.Conf.Oss.DisplayEndpoint)
 		u.Avatar = visitUrl
 	}
+}
+
+func (b *userBiz) ReplaceAvatarUrl(url string) string {
+	if len(url) > 0 {
+		return b.avatarUploader.GetPublicVisitUrl(config.Conf.Oss.Bucket, url, config.Conf.Oss.DisplayEndpoint)
+	}
+
+	return url
 }
 
 func (b *userBiz) BatchGetUser(ctx context.Context, uids []uint64) (map[uint64]*model.UserInfo, error) {
@@ -171,7 +182,7 @@ func (b *userBiz) BatchGetUser(ctx context.Context, uids []uint64) (map[uint64]*
 	resp := make(map[uint64]*model.UserInfo, len(users))
 	for _, user := range users {
 		info := model.NewUserInfoFromUserBase(user)
-		b.replaceAvatar(info)
+		b.ReplaceAvatar(info)
 		resp[info.Uid] = info
 	}
 

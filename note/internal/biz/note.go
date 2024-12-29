@@ -95,6 +95,7 @@ func (b *noteBiz) GetNoteOwner(ctx context.Context, noteId uint64) (uint64, erro
 }
 
 // 组装笔记信息
+// 笔记的资源数据，点赞等
 func (b *noteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*model.Notes, error) {
 	var noteIds = make([]uint64, 0, len(notes))
 	likesReq := make([]*counterv1.GetSummaryRequest, 0, len(notes))
