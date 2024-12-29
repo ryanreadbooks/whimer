@@ -101,7 +101,11 @@ func (r *NoteDao) insert(ctx context.Context, sess sqlx.Session, note *Note) (ui
 	if err != nil {
 		return 0, xerror.Wrap(xsql.ConvertError(err))
 	}
-	newId, _ := res.LastInsertId()
+	newId, err:= res.LastInsertId()
+	if err != nil {
+		return 0, xerror.Wrap(xsql.ConvertError(err))
+	}
+	
 	return uint64(newId), nil
 }
 

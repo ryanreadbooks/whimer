@@ -24,9 +24,13 @@ func (d *Dao) CreateNote(ctx context.Context, note *Note, assets []*NoteAsset) (
 			return xerror.Wrapf(errTx, "note dao insert tx failed")
 		}
 
+		// 填充noteId
+		for _, a := range assets {
+			a.NoteId = noteId
+		}
+
 		// 插入笔记资源数据
-		var noteAssets = make([]*NoteAsset, 0, len(assets))
-		errTx = d.NoteAssetRepo.BatchInsertTx(ctx, tx, noteAssets)
+		errTx = d.NoteAssetRepo.BatchInsertTx(ctx, tx, assets)
 		if errTx != nil {
 			return xerror.Wrapf(errTx, "note asset dao batch insert tx failed")
 		}
