@@ -20,8 +20,12 @@ type CreateNoteRequestBasic struct {
 	Desc    string `json:"desc"`
 	Privacy int    `json:"privacy"`
 }
+
 type CreateNoteRequestImage struct {
 	FileId string `json:"file_id"`
+	Width  uint32  `json:"width"`
+	Height uint32  `json:"height"`
+	Format string `json:"format"`
 }
 
 type CreateNoteRequest struct {

@@ -3,6 +3,7 @@ go 1.22.2
 use (
 	./analysis
 	./api-x
+	./asset-job
 	./comment
 	./counter
 	./feed

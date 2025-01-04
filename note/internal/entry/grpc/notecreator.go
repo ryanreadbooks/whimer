@@ -53,6 +53,9 @@ func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.Cr
 	for _, img := range in.Images {
 		images = append(images, model.CreateNoteRequestImage{
 			FileId: img.FileId,
+			Width:  img.Width,
+			Height: img.Height,
+			Format: img.Format,
 		})
 	}
 

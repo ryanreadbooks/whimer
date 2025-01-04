@@ -5,9 +5,16 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
+type NoteImageMeta struct {
+	Width  uint32 `json:"width"`
+	Height uint32 `json:"height"`
+	Format string `json:"format"`
+}
+
 type NoteImage struct {
-	Url  string `json:"url"`
-	Type int    `json:"type"`
+	Url  string        `json:"url"`
+	Type int           `json:"type"`
+	Meta NoteImageMeta `json:"meta"`
 }
 
 type NoteImageList []*NoteImage
@@ -18,6 +25,11 @@ func (l NoteImageList) AsPb() []*notev1.NoteImage {
 		images = append(images, &notev1.NoteImage{
 			Url:  img.Url,
 			Type: int32(img.Type),
+			Meta: &notev1.NoteImageMeta{
+				Width:  img.Meta.Width,
+				Height: img.Meta.Height,
+				Format: img.Meta.Format,
+			},
 		})
 	}
 	return images

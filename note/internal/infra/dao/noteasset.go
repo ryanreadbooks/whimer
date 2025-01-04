@@ -15,12 +15,12 @@ import (
 
 // all sqls here
 const (
-	sqlFindAll               = `select id,asset_key,asset_type,note_id,create_at from note_asset where id=?`
-	sqlInsert                = `insert into note_asset(asset_key,asset_type,note_id,create_at) values (?,?,?,?)`
-	sqlFindByNoteId          = `select id,asset_key,asset_type,note_id,create_at from note_asset where note_id=?`
+	sqlFindAll               = `select id,asset_key,asset_type,note_id,create_at,asset_meta from note_asset where id=?`
+	sqlInsert                = `insert into note_asset(asset_key,asset_type,note_id,create_at,asset_meta) values (?,?,?,?,?)`
+	sqlFindByNoteId          = `select id,asset_key,asset_type,note_id,create_at,asset_meta from note_asset where note_id=?`
 	sqlDeleteByNoteId        = `delete from note_asset where note_id=?`
-	sqlBatchInsert           = `insert into note_asset(asset_key,asset_type,note_id,create_at) values %s`
-	sqlFindByNoteIds         = `select id,asset_key,asset_type,note_id,create_at from note_asset where note_id in (%s)`
+	sqlBatchInsert           = `insert into note_asset(asset_key,asset_type,note_id,create_at,asset_meta) values %s`
+	sqlFindByNoteIds         = `select id,asset_key,asset_type,note_id,create_at,asset_meta from note_asset where note_id in (%s)`
 	sqlExcludeDeleteByNoteId = `delete from note_asset where note_id=?`
 )
 
@@ -40,6 +40,7 @@ type NoteAsset struct {
 	AssetType int8   `db:"asset_type"` // 资源类型
 	NoteId    uint64 `db:"note_id"`    // 所属笔记id
 	CreateAt  int64  `db:"create_at"`  // 创建时间
+	AssetMeta string `db:"asset_meta"` // 资源的元数据 存储格式为一个json字符串
 }
 
 func (r *NoteAssetDao) FindOne(ctx context.Context, id uint64) (*NoteAsset, error) {
@@ -50,6 +51,7 @@ func (r *NoteAssetDao) FindOne(ctx context.Context, id uint64) (*NoteAsset, erro
 	}
 	return model, nil
 }
+
 func (r *NoteAssetDao) insert(ctx context.Context, sess sqlx.Session, asset *NoteAsset) error {
 	now := time.Now().Unix()
 	_, err := sess.ExecCtx(ctx,
@@ -57,7 +59,8 @@ func (r *NoteAssetDao) insert(ctx context.Context, sess sqlx.Session, asset *Not
 		asset.AssetKey,
 		asset.AssetType,
 		asset.NoteId,
-		now)
+		now,
+		asset.AssetMeta)
 
 	return xerror.Wrap(xsql.ConvertError(err))
 }
@@ -134,18 +137,18 @@ func (r *NoteAssetDao) batchInsert(ctx context.Context, sess sqlx.Session, asset
 		return nil
 	}
 
-	tmpl := "(?, ?, ?, ?)"
+	tmpl := "(?, ?, ?, ?, ?)"
 	var builder strings.Builder
 	var args []any = make([]any, 0, len(assets)*4)
 	for i, data := range assets {
 		builder.WriteString(tmpl)
-		args = append(args, data.AssetKey, data.AssetType, data.NoteId, data.CreateAt)
+		args = append(args, data.AssetKey, data.AssetType, data.NoteId, data.CreateAt, data.AssetMeta)
 		if i != len(assets)-1 {
 			builder.WriteByte(',')
 		}
 	}
 
-	// insert into %s (%s) values (?,?,?,?),(?,?,?,?)
+	// insert into %s (%s) values (?,?,?,?,?),(?,?,?,?,?)
 	query := fmt.Sprintf(sqlBatchInsert, builder.String())
 	_, err := sess.ExecCtx(ctx, query, args...)
 	return xerror.Wrap(xsql.ConvertError(err))

@@ -126,6 +126,7 @@ func (b *noteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 			Owner:    note.Owner,
 		}
 		for _, asset := range noteAssets {
+			assetMeta := model.NewAssetImageMetaFromJson(asset.AssetMeta)
 			if note.NoteId == asset.NoteId {
 				item.Images = append(item.Images, &model.NoteImage{
 					Url: oss.GetPublicVisitUrl(
@@ -134,6 +135,11 @@ func (b *noteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 						config.Conf.Oss.DisplayEndpoint,
 					),
 					Type: int(asset.AssetType),
+					Meta: model.NoteImageMeta{
+						Width:  assetMeta.Width,
+						Height: assetMeta.Height,
+						Format: assetMeta.Format,
+					},
 				})
 			}
 		}

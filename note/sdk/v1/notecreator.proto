@@ -29,7 +29,12 @@ message CreateReqBasic {
   int32 privacy = 3;
 }
 
-message CreateReqImage { string file_id = 1; }
+message CreateReqImage {
+  string file_id = 1;
+  uint32 width = 2;
+  uint32 height = 3;
+  string format = 4;
+}
 
 message CreateNoteRequest {
   CreateReqBasic basic = 1;
