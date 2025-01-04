@@ -129,8 +129,7 @@ func (b *noteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 			assetMeta := model.NewAssetImageMetaFromJson(asset.AssetMeta)
 			if note.NoteId == asset.NoteId {
 				item.Images = append(item.Images, &model.NoteImage{
-					Url: oss.GetPublicVisitUrl(
-						config.Conf.Oss.Bucket,
+					Url: oss.GetPublicVisitUrl2(
 						asset.AssetKey,
 						config.Conf.Oss.DisplayEndpoint,
 					),

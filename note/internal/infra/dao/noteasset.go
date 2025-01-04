@@ -36,7 +36,7 @@ func NewNoteAssetDao(db sqlx.SqlConn) *NoteAssetDao {
 
 type NoteAsset struct {
 	Id        uint64 `db:"id"`
-	AssetKey  string `db:"asset_key"`  // 资源key 不包含bucket name
+	AssetKey  string `db:"asset_key"`  // 资源key 包含bucket name
 	AssetType int8   `db:"asset_type"` // 资源类型
 	NoteId    uint64 `db:"note_id"`    // 所属笔记id
 	CreateAt  int64  `db:"create_at"`  // 创建时间

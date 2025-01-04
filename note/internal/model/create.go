@@ -10,7 +10,10 @@ const (
 	maxTitleLen = 20
 	maxDescLen  = 1000
 	maxImageLen = 9
+)
 
+const (
+	// 笔记可见范围
 	PrivacyPublic  = global.PrivacyPublic
 	PrivacyPrivate = global.PrivacyPrivate
 )
@@ -23,8 +26,8 @@ type CreateNoteRequestBasic struct {
 
 type CreateNoteRequestImage struct {
 	FileId string `json:"file_id"`
-	Width  uint32  `json:"width"`
-	Height uint32  `json:"height"`
+	Width  uint32 `json:"width"`
+	Height uint32 `json:"height"`
 	Format string `json:"format"`
 }
 
