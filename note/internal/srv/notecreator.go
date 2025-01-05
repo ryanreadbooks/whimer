@@ -7,6 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
+
 	"golang.org/x/sync/errgroup"
 )
 

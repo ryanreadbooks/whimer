@@ -8,3 +8,6 @@ import (
 func Init(c *config.Config) {
 	oss.Init(c)
 }
+
+func Close() {
+}

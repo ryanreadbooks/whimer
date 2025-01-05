@@ -1,6 +1,8 @@
 package config
 
-import "github.com/ryanreadbooks/whimer/misc/xconf"
+import (
+	"github.com/ryanreadbooks/whimer/misc/xconf"
+)
 
 // 全局变量
 var Conf Config

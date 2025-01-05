@@ -25,3 +25,11 @@ func NewService(c *config.Config) *Service {
 	return s
 }
 
+func Close() {
+	infra.Close()
+}
+
+type AsService struct{}
+
+func (s AsService) Start() {}
+func (s AsService) Stop()  { Close() }

@@ -32,7 +32,7 @@ func ConvertError(err error) error {
 		}
 
 		// 其它db错误全部视为5xx
-		return xerror.Wrapf(xerror.ErrInternal, err.Error())
+		return xerror.Wrapf(xerror.ErrInternal, "%s", err.Error())
 	}
 }
 

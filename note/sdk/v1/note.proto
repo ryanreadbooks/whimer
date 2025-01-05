@@ -25,5 +25,6 @@ message NoteImageMeta {
 message NoteImage {
   string url = 1;
   int32 type = 2;
-  NoteImageMeta meta = 3;
+  string url_prv = 3;
+  NoteImageMeta meta = 4;
 }

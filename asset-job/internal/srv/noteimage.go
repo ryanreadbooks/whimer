@@ -8,6 +8,7 @@ import (
 	"github.com/ryanreadbooks/whimer/asset-job/internal/config"
 	"github.com/ryanreadbooks/whimer/asset-job/internal/infra/oss"
 	"github.com/ryanreadbooks/whimer/asset-job/internal/model"
+	"github.com/ryanreadbooks/whimer/asset-job/sdk/rules"
 	"github.com/ryanreadbooks/whimer/misc/oss/uploader"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
@@ -42,8 +43,8 @@ func (s *NoteImageService) OnImageUploaded(ctx context.Context, event *model.Min
 	}
 
 	// do something with image
-	x, y := image.Bounds().Max.X, image.Bounds().Max.Y
-	buf := make([]byte, 0, x*y)
+	imgWidth, imgHeight := image.Bounds().Max.X, image.Bounds().Max.Y
+	buf := make([]byte, 0, imgWidth*imgHeight)
 	var writer = bytes.NewBuffer(buf)
 	err = webp.Encode(writer, image, &webp.Options{
 		Lossless: false,
@@ -51,21 +52,22 @@ func (s *NoteImageService) OnImageUploaded(ctx context.Context, event *model.Min
 		Exact:    true,
 	})
 	if err != nil {
-		return xerror.Wrapf(err, "OnImageUploaded webp Encode failed")
+		return xerror.Wrapf(err, "OnImageUploaded webp Encode failed").WithCtx(ctx)
 	}
 
 	// upload back to oss again
+	previewKey := rules.PreviewKey(pureKey)
 	err = oss.Uploader().Upload(ctx, &uploader.UploadMeta{
 		Bucket:      config.Conf.NoteOss.PrvBucket,
-		Name:        pureKey + previewSuffix,
+		Name:        previewKey,
 		Buf:         writer.Bytes(),
 		ContentType: "image/webp",
 	})
 	if err != nil {
-		return xerror.Wrapf(err, "OnImageUploaded failed to upload preview webp image to oss")
+		return xerror.Wrapf(err, "OnImageUploaded failed to upload preview webp image to oss").WithCtx(ctx)
 	}
 
-	xlog.Msg("OnImageUploaded handled ok").Extras("bucket", bucket, "key", pureKey, "x", x, "y", y).Infox(ctx)
+	xlog.Msg("OnImageUploaded handled ok").Extras("bucket", bucket, "key", pureKey, "x", imgWidth, "y", imgHeight).Infox(ctx)
 
 	return nil
 }

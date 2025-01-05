@@ -11,9 +11,17 @@ type Interaction struct {
 	Commented bool `json:"commented"` // 用户是否评论过该笔记
 }
 
+type NoteItemImageMeta struct {
+	Width  uint32 `json:"width"`
+	Height uint32 `json:"height"`
+	Format string `json:"format"`
+}
+
 type NoteItemImage struct {
-	Url  string `json:"url"`
-	Type int    `json:"type"`
+	Url      string            `json:"url"`
+	Type     int               `json:"type"`
+	UrlPrv   string            `json:"url_prv"`
+	Metadata NoteItemImageMeta `json:"metadata"`
 }
 
 type NoteItemImageList []*NoteItemImage
@@ -54,8 +62,14 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 	images := make(NoteItemImageList, 0, len(pb.Images))
 	for _, img := range pb.Images {
 		images = append(images, &NoteItemImage{
-			Url:  img.Url,
-			Type: int(img.Type),
+			Url:    img.Url,
+			Type:   int(img.Type),
+			UrlPrv: img.UrlPrv,
+			Metadata: NoteItemImageMeta{
+				Width:  img.Meta.Width,
+				Height: img.Meta.Height,
+				Format: img.Meta.Format,
+			},
 		})
 	}
 

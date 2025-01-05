@@ -8,17 +8,17 @@ import (
 	"github.com/ryanreadbooks/whimer/asset-job/internal/srv"
 	"github.com/ryanreadbooks/whimer/misc/xkq"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	
+
 	"github.com/zeromicro/go-queue/kq"
 	"github.com/zeromicro/go-zero/core/queue"
 )
 
-func regNoteImageUploadedEventConsumer(c kq.KqConf, svc *srv.Service) queue.MessageQueue {
-	return kq.MustNewQueue(c, noteImageUploadedEventHandler(svc))
+func regNoteImageUploadedEventQueue(c kq.KqConf, svc *srv.Service) queue.MessageQueue {
+	return kq.MustNewQueue(c, noteImageUploadedEventConsumer(svc))
 }
 
 // 图片上传成功的处理动作
-func noteImageUploadedEventHandler(svc *srv.Service) xkq.Consumer {
+func noteImageUploadedEventConsumer(svc *srv.Service) xkq.Consumer {
 	return func(ctx context.Context, key, value string) error {
 		var event model.MinioEvent
 		err := json.Unmarshal([]byte(value), &event)

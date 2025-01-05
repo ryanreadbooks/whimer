@@ -123,9 +123,10 @@ type NoteItemImageMeta struct {
 }
 
 type NoteItemImage struct {
-	Url  string            `json:"url"`
-	Type int               `json:"type"`
-	Meta NoteItemImageMeta `json:"meta"`
+	Url    string            `json:"url"`
+	Type   int               `json:"type"`
+	Meta   NoteItemImageMeta `json:"meta"`
+	UrlPrv string            `json:"url_prv"`
 }
 
 type NoteItemImageList []*NoteItemImage
@@ -149,8 +150,9 @@ func NewAdminNoteItemFromPb(pb *notesdk.NoteItem) *AdminNoteItem {
 	images := make(NoteItemImageList, 0, len(pb.Images))
 	for _, img := range pb.Images {
 		images = append(images, &NoteItemImage{
-			Url:  img.Url,
-			Type: int(img.Type),
+			Url:    img.Url,
+			Type:   int(img.Type),
+			UrlPrv: img.UrlPrv,
 			Meta: NoteItemImageMeta{
 				Width:  img.Meta.Width,
 				Height: img.Meta.Height,

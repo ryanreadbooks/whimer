@@ -30,6 +30,7 @@ func main() {
 	for _, q := range eventQs {
 		group.Add(q)
 	}
+	group.Add(srv.AsService{})
 
 	group.Start()
 }

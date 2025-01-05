@@ -12,9 +12,10 @@ type NoteImageMeta struct {
 }
 
 type NoteImage struct {
-	Url  string        `json:"url"`
-	Type int           `json:"type"`
-	Meta NoteImageMeta `json:"meta"`
+	Url    string        `json:"url"`
+	Type   int           `json:"type"`
+	Meta   NoteImageMeta `json:"meta"`
+	UrlPrv string        `json:"url_prv"`
 }
 
 type NoteImageList []*NoteImage
@@ -23,8 +24,9 @@ func (l NoteImageList) AsPb() []*notev1.NoteImage {
 	images := make([]*notev1.NoteImage, 0, len(l))
 	for _, img := range l {
 		images = append(images, &notev1.NoteImage{
-			Url:  img.Url,
-			Type: int32(img.Type),
+			Url:    img.Url,
+			Type:   int32(img.Type),
+			UrlPrv: img.UrlPrv,
 			Meta: &notev1.NoteImageMeta{
 				Width:  img.Meta.Width,
 				Height: img.Meta.Height,
