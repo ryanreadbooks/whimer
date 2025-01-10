@@ -8,7 +8,7 @@ import (
 
 func Init(c *config.Config, svc *srv.Service) []queue.MessageQueue {
 	var qs []queue.MessageQueue
-	qs = append(qs, regNoteImageUploadedEventQueue(c.NoteAssetEventKafka.AsKqConf(), svc))
+	qs = append(qs, registerNoteImageEvent(c.NoteAssetEventKafka.AsKqConf(), svc))
 
 	return qs
 }

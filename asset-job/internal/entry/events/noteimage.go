@@ -13,12 +13,12 @@ import (
 	"github.com/zeromicro/go-zero/core/queue"
 )
 
-func regNoteImageUploadedEventQueue(c kq.KqConf, svc *srv.Service) queue.MessageQueue {
-	return kq.MustNewQueue(c, noteImageUploadedEventConsumer(svc))
+func registerNoteImageEvent(c kq.KqConf, svc *srv.Service) queue.MessageQueue {
+	return kq.MustNewQueue(c, noteImageEventConsumer(svc))
 }
 
 // 图片上传成功的处理动作
-func noteImageUploadedEventConsumer(svc *srv.Service) xkq.Consumer {
+func noteImageEventConsumer(svc *srv.Service) xkq.Consumer {
 	return func(ctx context.Context, key, value string) error {
 		var event model.MinioEvent
 		err := json.Unmarshal([]byte(value), &event)
