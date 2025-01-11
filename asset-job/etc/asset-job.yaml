@@ -13,3 +13,5 @@ note_oss:
   location: local
   bucket: nota
   prv_bucket: nota-prv
+
+encode_quality: 90

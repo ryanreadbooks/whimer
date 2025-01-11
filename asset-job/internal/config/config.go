@@ -18,4 +18,6 @@ type Config struct {
 		Bucket    string `json:"bucket"`
 		PrvBucket string `json:"prv_bucket"`
 	} `json:"note_oss"`
+
+	EncodeQuality float32 `json:"encode_quality"`
 }

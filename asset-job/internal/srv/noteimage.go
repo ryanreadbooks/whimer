@@ -48,7 +48,7 @@ func (s *NoteImageService) OnImageUploaded(ctx context.Context, event *model.Min
 	var writer = bytes.NewBuffer(buf)
 	err = webp.Encode(writer, image, &webp.Options{
 		Lossless: false,
-		Quality:  50,
+		Quality:  config.Conf.EncodeQuality,
 		Exact:    true,
 	})
 	if err != nil {
