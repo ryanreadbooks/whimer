@@ -356,6 +356,9 @@ func (b *commentBiz) CountReply(ctx context.Context, oid uint64) (uint64, error)
 
 // 批量获取评论数量
 func (b *commentBiz) BatchCountReply(ctx context.Context, oids []uint64) (map[uint64]uint64, error) {
+	if len(oids) == 0 {
+		return nil, xerror.ErrArgs.Msg("invalid number of oids")
+	}
 	resp, err := infra.Dao().CommentDao.BatchCountByOid(ctx, oids)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "comment biz failed to batch get replies count").WithCtx(ctx)

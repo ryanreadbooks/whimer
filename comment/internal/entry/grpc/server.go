@@ -239,7 +239,8 @@ func (s *ReplyServiceServer) CheckUserOnObject(ctx context.Context,
 // 获取多个被评论对象的评论数
 func (s *ReplyServiceServer) BatchCountReply(ctx context.Context, in *commentv1.BatchCountReplyRequest) (
 	*commentv1.BatchCountReplyResponse, error) {
-	resp, err := s.Svc.CommentSrv.BatchGetCountReply(ctx, in.GetOids())
+	oids := in.GetOids()
+	resp, err := s.Svc.CommentSrv.BatchGetCountReply(ctx, oids)
 	if err != nil {
 		return nil, err
 	}

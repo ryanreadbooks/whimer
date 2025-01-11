@@ -201,6 +201,10 @@ func (b *feedBiz) RandomFeed(ctx context.Context, req *model.FeedRecommendReques
 	}
 
 	notes := resp.GetItems()
+	if len(notes) == 0 {
+		return []*model.FeedNoteItem{}, nil
+	}
+
 	// 2. 组装所有需要的信息
 	return b.assembleNoteFeedReturn(ctx, notes)
 }

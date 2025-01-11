@@ -291,6 +291,10 @@ func (s *CommentSrv) CheckUserIsReplied(ctx context.Context, uid, oid uint64) (b
 
 // 获取多个对象的评论数
 func (s *CommentSrv) BatchGetCountReply(ctx context.Context, oids []uint64) (map[uint64]uint64, error) {
+	if len(oids) == 0 {
+		return nil, xerror.ErrArgs.Msg("invalid number of oids")
+	}
+
 	cnts, err := s.CommentBiz.BatchCountReply(ctx, oids)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "comment srv failed to batch count reply").WithCtx(ctx)
