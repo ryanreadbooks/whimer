@@ -7,6 +7,7 @@ require (
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/note v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000
+	github.com/ryanreadbooks/whimer/relation v0.0.0-00010101000000-000000000000
 	github.com/zeromicro/go-zero v1.7.3
 	golang.org/x/sync v0.8.0
 )
@@ -110,3 +111,4 @@ replace github.com/ryanreadbooks/whimer/passport => ../passport
 replace github.com/ryanreadbooks/whimer/note => ../note
 
 replace github.com/ryanreadbooks/whimer/comment => ../comment
+replace github.com/ryanreadbooks/whimer/relation => ../relation

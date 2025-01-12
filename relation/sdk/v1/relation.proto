@@ -68,6 +68,20 @@ message GetUserFollowingCountRequest {
 
 message GetUserFollowingCountResponse { uint64 count = 1; }
 
+message BatchCheckUserFollowedRequest {
+  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 用户uid
+  repeated uint64 targets = 2;                           // 查找的目标uid
+}
+
+message BatchCheckUserFollowedResponse { map<uint64, bool> status = 1; }
+
+message CheckUserFollowedRequest {
+  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ];   // 用户uid
+  uint64 other = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 用户uid
+}
+
+message CheckUserFollowedResponse { bool followed = 1; }
+
 service RelationService {
   // 关注/取消关注某个用户
   rpc FollowUser(FollowUserRequest) returns (FollowUserResponse);
@@ -83,4 +97,9 @@ service RelationService {
   // 获取用户的关注数量
   rpc GetUserFollowingCount(GetUserFollowingCountRequest)
       returns (GetUserFollowingCountResponse);
+  // 判断某个用户是否关注了某些用户
+  rpc BatchCheckUserFollowed(BatchCheckUserFollowedRequest)
+      returns (BatchCheckUserFollowedResponse);
+  rpc CheckUserFollowed(CheckUserFollowedRequest)
+      returns (CheckUserFollowedResponse);
 }

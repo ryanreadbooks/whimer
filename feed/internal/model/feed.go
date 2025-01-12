@@ -9,6 +9,7 @@ import (
 type Interaction struct {
 	Liked     bool `json:"liked"`     // 用户是否点赞过该笔记
 	Commented bool `json:"commented"` // 用户是否评论过该笔记
+	Followed  bool `json:"followed"`  // 用户是否关注了笔记作者
 }
 
 type NoteItemImageMeta struct {
@@ -45,10 +46,11 @@ type FeedNoteItem struct {
 	Title    string            `json:"title"`
 	Desc     string            `json:"desc"`
 	CreateAt int64             `json:"create_at"`
+	UpdateAt int64             `json:"update_at"`
 	Images   NoteItemImageList `json:"images"`
 	Likes    uint64            `json:"likes"` // 笔记总点赞数
 
-	// 下面这些字段要额外设置
+	// 下面这些字段要单独设置 不从note grpc接口中拿
 	Author   *Author     `json:"author"`   // 作者信息
 	Comments uint64      `json:"comments"` // 笔记总评论数
 	Interact Interaction `json:"interact"` // 当前请求的用户与该笔记的交互记录，比如点赞、评论、收藏等动作
@@ -78,6 +80,7 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 		Title:    pb.Title,
 		Desc:     pb.Desc,
 		CreateAt: pb.CreatedAt,
+		UpdateAt: pb.UpdatedAt,
 		Images:   images,
 		Likes:    pb.Likes,
 	}

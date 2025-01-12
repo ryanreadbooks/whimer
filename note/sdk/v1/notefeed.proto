@@ -30,6 +30,7 @@ message FeedNoteItem {
   uint64 author = 7;  // 笔记作者
   uint64 replies = 8; // 点赞数
   // NoteInteraction interaction = 7; // 用户与笔记的交互状态
+  int64 updated_at = 9;
 }
 
 message GetFeedNoteRequest {

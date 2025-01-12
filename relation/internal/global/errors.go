@@ -23,4 +23,6 @@ var (
 	ErrAlreadyFollow              = ErrArgs.Msg("无需重复关注")
 	ErrNotAllowedGetFanList       = ErrPermDenied.Msg("不能获取他人的粉丝列表")
 	ErrNotAllowedGetFollowingList = ErrPermDenied.Msg("不能获取他人的关注列表")
+	ErrFollowReachMaxCount        = ErrPermDenied.Msg("关注已达上限")
+	ErrUserNotFound               = ErrArgs.Msg("用户不存在")
 )

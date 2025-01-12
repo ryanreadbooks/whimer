@@ -210,10 +210,11 @@ func TestRelation_FindUidGotLinked(t *testing.T) {
 	Convey("FindUidGotLinked", t, func() {
 		for idx, c := range cases {
 			res, _, _, err := relationDao.FindUidGotLinked(ctx, c.uid, 0, 10)
-			So(err, ShouldBeNil)
-			So(res, ShouldHaveLength, len(c.wants))
+			debug := fmt.Sprintf("uid: %d, got: %v, want: %v", c.uid, res, c.wants)
+			SoMsg(debug, err, ShouldBeNil)
+			SoMsg(debug, res, ShouldHaveLength, len(c.wants))
 			sort.Slice(res, func(i, j int) bool { return res[i] < res[j] })
-			So(res, ShouldResemble, c.wants)
+			SoMsg(debug, res, ShouldResemble, c.wants)
 
 			// 查两次的结果应该和一次性查出来的结果是一样的
 			s1, err := relationDao.FindAlphaGotLinked(ctx, c.uid)
@@ -229,14 +230,22 @@ func TestRelation_FindUidGotLinked(t *testing.T) {
 
 func TestRelation_Count(t *testing.T) {
 	Convey("CountFans", t, func() {
-		cnt, err :=relationDao.CountUidFans(ctx, 1001)	
+		cnt, err := relationDao.CountUidFans(ctx, 1001)
 		So(err, ShouldBeNil)
 		t.Log(cnt)
 	})
 
 	Convey("CountFollowings", t, func() {
-		cnt, err :=relationDao.CountUidFollowings(ctx, 1001)	
+		cnt, err := relationDao.CountUidFollowings(ctx, 1001)
 		So(err, ShouldBeNil)
 		t.Log(cnt)
+	})
+}
+
+func TestRelation_FindAllUidLinkTo(t *testing.T) {
+	Convey("FindAllUidLinkTo", t, func() {
+		res, err := relationDao.FindAllUidLinkTo(ctx, 1005)
+		So(err, ShouldBeNil)
+		t.Log(res)
 	})
 }

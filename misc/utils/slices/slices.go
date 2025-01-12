@@ -63,3 +63,12 @@ func Concat[T any](a, b []T) []T {
 func ConcatUniq[T comparable](a, b []T) []T {
 	return Uniq(Concat(a, b))
 }
+
+func AsMap[T comparable](a []T) map[T]struct{} {
+	m := make(map[T]struct{}, len(a))
+	for idx := range a {
+		m[a[idx]] = struct{}{}
+	}
+
+	return m
+}

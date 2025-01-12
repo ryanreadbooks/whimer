@@ -102,6 +102,7 @@ func (i *Note) AsFeedPb() *notev1.FeedNoteItem {
 		Title:     i.Title,
 		Desc:      i.Desc,
 		CreatedAt: i.CreateAt,
+		UpdatedAt: i.UpdateAt,
 		Images:    i.Images.AsPb(),
 		Likes:     i.Likes,
 		Author:    i.Owner,

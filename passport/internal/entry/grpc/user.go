@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	global "github.com/ryanreadbooks/whimer/passport/internal/global"
@@ -61,4 +62,16 @@ func (s *UserServiceServer) GetUser(ctx context.Context, in *user.GetUserRequest
 	}
 
 	return &user.GetUserResponse{User: resp.ToPb()}, nil
+}
+
+func (s *UserServiceServer) HasUser(ctx context.Context, in *user.HasUserRequest) (*user.HasUserResponse, error) {
+	resp, err := s.Svc.UserSrv.GetUser(ctx, in.Uid)
+	if err != nil {
+		if errors.Is(err, global.ErrUserNotFound) {
+			return &user.HasUserResponse{Has: false}, nil
+		}
+		return nil, err
+	}
+
+	return &user.HasUserResponse{Has: resp.Uid == in.Uid}, nil
 }

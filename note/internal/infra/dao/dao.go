@@ -60,5 +60,7 @@ func (d *Dao) DB() sqlx.SqlConn {
 }
 
 func (d *Dao) Close() {
-	d.Close()
+	if rd, _ := d.db.RawDB(); rd != nil {
+		rd.Close()
+	}
 }
