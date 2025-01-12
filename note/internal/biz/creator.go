@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
@@ -72,11 +71,13 @@ func (b *noteCreatorBiz) CreatorCreateNote(ctx context.Context, note *model.Crea
 
 	var noteAssets = make([]*dao.NoteAsset, 0, len(note.Images))
 	for _, img := range note.Images {
+		imgMeta := model.NewAssetImageMeta(img.Width, img.Height, img.Format).String()
 		noteAssets = append(noteAssets, &dao.NoteAsset{
-			AssetKey:  strings.TrimLeft(img.FileId, config.Conf.Oss.Bucket+"/"), // 不需要桶前缀
+			AssetKey:  img.FileId, // 包含桶名称
 			AssetType: global.AssetTypeImage,
 			NoteId:    noteId,
 			CreateAt:  now,
+			AssetMeta: imgMeta,
 		})
 	}
 

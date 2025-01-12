@@ -4,4 +4,5 @@ buf:
 
 .PHONY: dev-run
 dev-run:
+	cd .bootstrap/docker && make up
 	goreman start

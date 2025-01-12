@@ -41,3 +41,11 @@ func New(c *config.Config, cache *redis.Redis) *Dao {
 func (d *Dao) DB() *xsql.DB {
 	return d.db
 }
+
+func (d *Dao) Close() {
+	if c := d.db.Conn(); c != nil {
+		if rd, _ := c.RawDB(); rd != nil {
+			rd.Close()
+		}
+	}
+}

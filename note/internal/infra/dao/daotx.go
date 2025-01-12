@@ -13,7 +13,7 @@ import (
 
 // 多表涉及事务的操作
 
-// 事务插入
+// 事务插入一条笔记
 func (d *Dao) CreateNote(ctx context.Context, note *Note, assets []*NoteAsset) (uint64, error) {
 	var noteId uint64
 	err := d.db.TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
@@ -45,7 +45,7 @@ func (d *Dao) CreateNote(ctx context.Context, note *Note, assets []*NoteAsset) (
 	return noteId, nil
 }
 
-// 事务更新
+// 事务更新一条笔记，包括更新笔记基础信息和笔记资源
 func (d *Dao) UpdateNote(ctx context.Context, note *Note, assets []*NoteAsset) error {
 	var now = time.Now().Unix()
 
@@ -56,18 +56,21 @@ func (d *Dao) UpdateNote(ctx context.Context, note *Note, assets []*NoteAsset) e
 			return xerror.Wrapf(err, "note dao update tx failed")
 		}
 
-		oldAssets, err := d.NoteAssetRepo.FindByNoteIdTx(ctx, tx, note.Id)
+		// 找出旧资源
+		oldAssets, err := d.NoteAssetRepo.FindImageByNoteIdTx(ctx, tx, note.Id)
 		if err != nil && !errors.Is(xsql.ErrNoRecord, err) {
 			return xerror.Wrapf(err, "noteasset dao find failed")
 		}
 
+		// 笔记的新资源
 		newAssetKeys := make([]string, 0, len(assets))
 		for _, asset := range assets {
 			newAssetKeys = append(newAssetKeys, asset.AssetKey)
 		}
 
 		// 随后删除旧资源
-		err = d.NoteAssetRepo.ExcludeDeleteByNoteIdTx(ctx, tx, note.Id, newAssetKeys)
+		// 删除除了newAssetKeys之外的其它
+		err = d.NoteAssetRepo.ExcludeDeleteImageByNoteIdTx(ctx, tx, note.Id, newAssetKeys)
 		if err != nil {
 			return xerror.Wrapf(err, "noteasset dao delete tx failed")
 		}
@@ -105,7 +108,7 @@ func (d *Dao) UpdateNote(ctx context.Context, note *Note, assets []*NoteAsset) e
 	return xerror.Wrapf(err, "dao transact update note failed")
 }
 
-// 事务删除
+// 事务删除一条笔记，包括删除笔记基本信息和笔记资源
 func (d *Dao) DeleteNote(ctx context.Context, noteId uint64) error {
 	err := d.db.TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
 		err := d.NoteDao.DeleteTx(ctx, tx, noteId)

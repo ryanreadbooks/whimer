@@ -19,12 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RelationService_FollowUser_FullMethodName            = "/relation.sdk.v1.RelationService/FollowUser"
-	RelationService_GetUserFanList_FullMethodName        = "/relation.sdk.v1.RelationService/GetUserFanList"
-	RelationService_GetUserFollowingList_FullMethodName  = "/relation.sdk.v1.RelationService/GetUserFollowingList"
-	RelationService_RemoveUserFan_FullMethodName         = "/relation.sdk.v1.RelationService/RemoveUserFan"
-	RelationService_GetUserFanCount_FullMethodName       = "/relation.sdk.v1.RelationService/GetUserFanCount"
-	RelationService_GetUserFollowingCount_FullMethodName = "/relation.sdk.v1.RelationService/GetUserFollowingCount"
+	RelationService_FollowUser_FullMethodName             = "/relation.sdk.v1.RelationService/FollowUser"
+	RelationService_GetUserFanList_FullMethodName         = "/relation.sdk.v1.RelationService/GetUserFanList"
+	RelationService_GetUserFollowingList_FullMethodName   = "/relation.sdk.v1.RelationService/GetUserFollowingList"
+	RelationService_RemoveUserFan_FullMethodName          = "/relation.sdk.v1.RelationService/RemoveUserFan"
+	RelationService_GetUserFanCount_FullMethodName        = "/relation.sdk.v1.RelationService/GetUserFanCount"
+	RelationService_GetUserFollowingCount_FullMethodName  = "/relation.sdk.v1.RelationService/GetUserFollowingCount"
+	RelationService_BatchCheckUserFollowed_FullMethodName = "/relation.sdk.v1.RelationService/BatchCheckUserFollowed"
+	RelationService_CheckUserFollowed_FullMethodName      = "/relation.sdk.v1.RelationService/CheckUserFollowed"
 )
 
 // RelationServiceClient is the client API for RelationService service.
@@ -43,6 +45,9 @@ type RelationServiceClient interface {
 	GetUserFanCount(ctx context.Context, in *GetUserFanCountRequest, opts ...grpc.CallOption) (*GetUserFanCountResponse, error)
 	// 获取用户的关注数量
 	GetUserFollowingCount(ctx context.Context, in *GetUserFollowingCountRequest, opts ...grpc.CallOption) (*GetUserFollowingCountResponse, error)
+	// 判断某个用户是否关注了某些用户
+	BatchCheckUserFollowed(ctx context.Context, in *BatchCheckUserFollowedRequest, opts ...grpc.CallOption) (*BatchCheckUserFollowedResponse, error)
+	CheckUserFollowed(ctx context.Context, in *CheckUserFollowedRequest, opts ...grpc.CallOption) (*CheckUserFollowedResponse, error)
 }
 
 type relationServiceClient struct {
@@ -113,6 +118,26 @@ func (c *relationServiceClient) GetUserFollowingCount(ctx context.Context, in *G
 	return out, nil
 }
 
+func (c *relationServiceClient) BatchCheckUserFollowed(ctx context.Context, in *BatchCheckUserFollowedRequest, opts ...grpc.CallOption) (*BatchCheckUserFollowedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchCheckUserFollowedResponse)
+	err := c.cc.Invoke(ctx, RelationService_BatchCheckUserFollowed_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *relationServiceClient) CheckUserFollowed(ctx context.Context, in *CheckUserFollowedRequest, opts ...grpc.CallOption) (*CheckUserFollowedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckUserFollowedResponse)
+	err := c.cc.Invoke(ctx, RelationService_CheckUserFollowed_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RelationServiceServer is the server API for RelationService service.
 // All implementations must embed UnimplementedRelationServiceServer
 // for forward compatibility.
@@ -129,6 +154,9 @@ type RelationServiceServer interface {
 	GetUserFanCount(context.Context, *GetUserFanCountRequest) (*GetUserFanCountResponse, error)
 	// 获取用户的关注数量
 	GetUserFollowingCount(context.Context, *GetUserFollowingCountRequest) (*GetUserFollowingCountResponse, error)
+	// 判断某个用户是否关注了某些用户
+	BatchCheckUserFollowed(context.Context, *BatchCheckUserFollowedRequest) (*BatchCheckUserFollowedResponse, error)
+	CheckUserFollowed(context.Context, *CheckUserFollowedRequest) (*CheckUserFollowedResponse, error)
 	mustEmbedUnimplementedRelationServiceServer()
 }
 
@@ -156,6 +184,12 @@ func (UnimplementedRelationServiceServer) GetUserFanCount(context.Context, *GetU
 }
 func (UnimplementedRelationServiceServer) GetUserFollowingCount(context.Context, *GetUserFollowingCountRequest) (*GetUserFollowingCountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserFollowingCount not implemented")
+}
+func (UnimplementedRelationServiceServer) BatchCheckUserFollowed(context.Context, *BatchCheckUserFollowedRequest) (*BatchCheckUserFollowedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchCheckUserFollowed not implemented")
+}
+func (UnimplementedRelationServiceServer) CheckUserFollowed(context.Context, *CheckUserFollowedRequest) (*CheckUserFollowedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckUserFollowed not implemented")
 }
 func (UnimplementedRelationServiceServer) mustEmbedUnimplementedRelationServiceServer() {}
 func (UnimplementedRelationServiceServer) testEmbeddedByValue()                         {}
@@ -286,6 +320,42 @@ func _RelationService_GetUserFollowingCount_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RelationService_BatchCheckUserFollowed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchCheckUserFollowedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RelationServiceServer).BatchCheckUserFollowed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RelationService_BatchCheckUserFollowed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RelationServiceServer).BatchCheckUserFollowed(ctx, req.(*BatchCheckUserFollowedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RelationService_CheckUserFollowed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckUserFollowedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RelationServiceServer).CheckUserFollowed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RelationService_CheckUserFollowed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RelationServiceServer).CheckUserFollowed(ctx, req.(*CheckUserFollowedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RelationService_ServiceDesc is the grpc.ServiceDesc for RelationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -316,6 +386,14 @@ var RelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserFollowingCount",
 			Handler:    _RelationService_GetUserFollowingCount_Handler,
+		},
+		{
+			MethodName: "BatchCheckUserFollowed",
+			Handler:    _RelationService_BatchCheckUserFollowed_Handler,
+		},
+		{
+			MethodName: "CheckUserFollowed",
+			Handler:    _RelationService_CheckUserFollowed_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

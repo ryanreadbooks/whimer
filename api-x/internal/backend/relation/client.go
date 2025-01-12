@@ -7,7 +7,6 @@ import (
 )
 
 var (
-	// 笔记服务
 	relationer relationv1.RelationServiceClient
 )
 

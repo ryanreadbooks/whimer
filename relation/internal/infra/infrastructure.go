@@ -5,6 +5,7 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 
 	infradao "github.com/ryanreadbooks/whimer/relation/internal/infra/dao"
+	"github.com/ryanreadbooks/whimer/relation/internal/infra/dep"
 )
 
 // 基础设施集合
@@ -17,6 +18,7 @@ var (
 func Init(c *config.Config) {
 	cache = redis.MustNewRedis(c.Redis)
 	dao = infradao.New(c, cache)
+	dep.Init(c)
 }
 
 func Dao() *infradao.Dao {
@@ -25,4 +27,8 @@ func Dao() *infradao.Dao {
 
 func Cache() *redis.Redis {
 	return cache
+}
+
+func Close() {
+	dao.Close()
 }

@@ -99,3 +99,23 @@ func (s *RelationServiceServer) GetUserFollowingCount(ctx context.Context, req *
 	}
 	return &relationv1.GetUserFollowingCountResponse{Count: cnt}, nil
 }
+
+func (s *RelationServiceServer) BatchCheckUserFollowed(ctx context.Context, req *relationv1.BatchCheckUserFollowedRequest) (
+	*relationv1.BatchCheckUserFollowedResponse, error) {
+	res, err := s.Srv.RelationSrv.BatchCheckUserFollowStatus(ctx, req.Uid, req.Targets)
+	if err != nil {
+		return nil, err
+	}
+
+	return &relationv1.BatchCheckUserFollowedResponse{Status: res}, nil
+}
+
+func (s *RelationServiceServer) CheckUserFollowed(ctx context.Context, req *relationv1.CheckUserFollowedRequest) (
+	*relationv1.CheckUserFollowedResponse, error) {
+	res, err := s.Srv.RelationSrv.CheckUserFollowStatus(ctx, req.Uid, req.Other)
+	if err != nil {
+		return nil, err
+	}
+
+	return &relationv1.CheckUserFollowedResponse{Followed: res}, nil
+}

@@ -7,6 +7,7 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 	"github.com/ryanreadbooks/whimer/passport/sdk/middleware/auth"
 	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
+	relationv1 "github.com/ryanreadbooks/whimer/relation/sdk/v1"
 )
 
 var (
@@ -20,7 +21,10 @@ var (
 
 	// 评论服务
 	commenter commentv1.ReplyServiceClient
-	err       error
+
+	// 用户关系服务
+	relationer relationv1.RelationServiceClient
+	err        error
 )
 
 func Init(c *config.Config) {
@@ -37,6 +41,9 @@ func Init(c *config.Config) {
 
 	commenter = xgrpc.NewRecoverableClient(c.Backend.Comment,
 		commentv1.NewReplyServiceClient, func(nc commentv1.ReplyServiceClient) { commenter = nc })
+
+	relationer = xgrpc.NewRecoverableClient(c.Backend.Relation,
+		relationv1.NewRelationServiceClient, func(rsc relationv1.RelationServiceClient) { relationer = rsc })
 }
 
 func Auther() *auth.Auth {
@@ -57,4 +64,8 @@ func NoteFeeder() notev1.NoteFeedServiceClient {
 
 func Commenter() commentv1.ReplyServiceClient {
 	return commenter
+}
+
+func Relationer() relationv1.RelationServiceClient {
+	return relationer
 }

@@ -32,6 +32,7 @@ oss:
   endpoint: localhost:9000
   location: local
   bucket: nota
+  bucket_prv: nota-prv
   prefix: assets
   display_endpoint: http://s1-file.whimer.com:9000
 

@@ -6,7 +6,6 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
-
 type Discovery struct {
 	Hosts []string `json:"hosts"`
 	Key   string   `json:"key"`
@@ -38,4 +37,9 @@ func (kc KfkConf) AsKqConf() kq.KqConf {
 		Offset:        kc.Offset,
 		CommitInOrder: true,
 	}
+}
+
+type KfkNotifyConf struct {
+	Brokers []string `json:"brokers"`
+	Topic   string   `json:"topic"`
 }

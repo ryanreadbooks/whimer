@@ -18,14 +18,15 @@ func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
-	srv := srv.NewService(&config.Conf)
+	svc := srv.NewService(&config.Conf)
 
-	grpcServer := grpc.Init(config.Conf.Grpc, srv)
+	grpcServer := grpc.Init(config.Conf.Grpc, svc)
 
 	group := service.NewServiceGroup()
 	defer group.Stop()
-
+	
 	group.Add(grpcServer)
+	group.Add(srv.AsService{})
 	logx.Info("note is serving...")
 	group.Start()
 }

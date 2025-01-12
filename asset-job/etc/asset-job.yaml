@@ -1,0 +1,17 @@
+note_asset_event_kafka:
+  brokers:
+    - 127.0.0.1:9094
+  topic: nota-bucket-uploaded-events
+  consume_group: asset-job-note-csmg
+  num_consumers: 16
+  offset: first
+
+note_oss:
+  ak: ${ENV_OSS_AK}
+  sk: ${ENV_OSS_SK}
+  endpoint: 127.0.0.1:9000
+  location: local
+  bucket: nota
+  prv_bucket: nota-prv
+
+encode_quality: 90

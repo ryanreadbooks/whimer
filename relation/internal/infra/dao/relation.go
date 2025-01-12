@@ -44,6 +44,13 @@ type Relation struct {
 	Bmtime    int64      `db:"bmtime"` // B改变对A的关注状态的时间，Unix时间戳
 }
 
+type RelationUser struct {
+	Id        uint64     `db:"id"`
+	UserAlpha uint64     `db:"alpha"` // 用户A
+	UserBeta  uint64     `db:"beta"`  // 用户B
+	Link      LinkStatus `db:"link"`  // 用户的关注关系
+}
+
 // 见[Relation]的uid规则
 func enforceUserRule(r *Relation) *Relation {
 	if r.UserAlpha > r.UserBeta {
@@ -110,8 +117,9 @@ func NewRelationDao(db *xsql.DB, c *redis.Redis) *RelationDao {
 const (
 	sqlForUpdate = "FOR UPDATE"
 
-	relationAllFields = "id,alpha,beta,link,actime,bctime,amtime,bmtime"
-	relationFields    = "alpha,beta,link,actime,bctime,amtime,bmtime"
+	relationAllFields  = "id,alpha,beta,link,actime,bctime,amtime,bmtime"
+	relationUserFields = "id,alpha,beta,link"
+	relationFields     = "alpha,beta,link,actime,bctime,amtime,bmtime"
 )
 
 var (
@@ -125,12 +133,20 @@ var (
 	unionBaseTemplate = fmt.Sprintf(`
 		(SELECT %s FROM relation WHERE id>? AND alpha=? AND link IN (%%d, %%d) LIMIT ?) 
 			UNION ALL 
-		(SELECT %s FROM relation WHERE id>? AND beta=? AND link IN (%%d, %%d) LIMIT ?) LIMIT ?`, relationAllFields, relationAllFields)
+		(SELECT %s FROM relation WHERE id>? AND beta=? AND link IN (%%d, %%d) LIMIT ?) LIMIT ?`, relationUserFields, relationUserFields)
 
-	sqlUnionTemplate = strings.ReplaceAll(strings.ReplaceAll(unionBaseTemplate, "\n", ""), "\t", "")
+	unionBaseTemplateAll = fmt.Sprintf(`
+		(SELECT %s FROM relation WHERE alpha=? AND link IN (%%d, %%d)) 
+			UNION ALL 
+		(SELECT %s FROM relation WHERE beta=? AND link IN (%%d, %%d))`, relationUserFields, relationUserFields)
+
+	sqlUnionTemplate    = strings.ReplaceAll(strings.ReplaceAll(unionBaseTemplate, "\n", ""), "\t", "")
+	sqlUnionTemplateAll = strings.ReplaceAll(strings.ReplaceAll(unionBaseTemplateAll, "\n", ""), "\t", "")
 
 	// 获取uid关注的人
 	sqlFindWhoUidFollows = fmt.Sprintf(sqlUnionTemplate, LinkForward, LinkMutual, LinkBackward, LinkMutual)
+	// 获取全部uid关注的人
+	sqlFindWhoUidFollowsAll = fmt.Sprintf(sqlUnionTemplateAll, LinkForward, LinkMutual, LinkBackward, LinkMutual)
 	// 获取关注uid的人
 	sqlFindWhoFollowsUid = fmt.Sprintf(sqlUnionTemplate, LinkBackward, LinkMutual, LinkForward, LinkMutual)
 
@@ -152,6 +168,8 @@ var (
 	sqlCountUidFollowings = fmt.Sprintf(sqlUnionCountTemplate, LinkForward, LinkMutual, LinkBackward, LinkMutual)
 	// 获取关注uid的人的数量
 	sqlCountUidFans = fmt.Sprintf(sqlUnionCountTemplate, LinkBackward, LinkMutual, LinkForward, LinkMutual)
+	// 检查是否关注了某人
+	sqlFindUidRelation = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=?", relationAllFields)
 )
 
 // 插入/更新一条记录
@@ -215,9 +233,10 @@ func (d *RelationDao) FindByAlphaBetaAndLink(ctx context.Context, a, b uint64, l
 //	alpha=uid and link=Forward/Mutual or beta=uid and link=Backward/Mutual
 func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid, offset uint64, limit int) (uids []uint64, next uint64, more bool, err error) {
 	var (
-		rs = make([]*Relation, 0, 16)
+		rs = make([]*RelationUser, 0, 50)
 	)
 
+	uids = []uint64{}
 	err = d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoUidFollows, offset, uid, limit, offset, uid, limit, limit)
 	if err != nil {
 		err = xsql.ConvertError(err)
@@ -250,6 +269,39 @@ func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid, offset uint64, lim
 	}
 
 	return
+}
+
+// 找出uid关注的全部人
+func (d *RelationDao) FindAllUidLinkTo(ctx context.Context, uid uint64) ([]uint64, error) {
+	var (
+		rs     = make([]*RelationUser, 0, 80)
+		others = []uint64{}
+	)
+
+	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoUidFollowsAll, uid, uid)
+	if err != nil {
+		err = xsql.ConvertError(err)
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return others, nil
+		}
+
+		return others, err
+	}
+
+	if len(rs) == 0 {
+		return others, nil
+	}
+
+	others = make([]uint64, 0, len(rs))
+	for _, r := range rs {
+		if r.UserAlpha == uid {
+			others = append(others, r.UserBeta)
+		} else {
+			others = append(others, r.UserAlpha)
+		}
+	}
+
+	return others, nil
 }
 
 // 找到alpha关注的人
@@ -293,9 +345,10 @@ func (d *RelationDao) FindBetaLinkTo(ctx context.Context, beta uint64) ([]uint64
 // 找到关注uid的人
 func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid, offset uint64, limit int) (uids []uint64, next uint64, more bool, err error) {
 	var (
-		rs = make([]*Relation, 0, 16)
+		rs = make([]*RelationUser, 0, 16)
 	)
 
+	uids = []uint64{}
 	err = d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoFollowsUid, offset, uid, limit, offset, uid, limit, limit)
 	if err != nil {
 		err = xsql.ConvertError(err)

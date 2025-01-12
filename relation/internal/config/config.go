@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -19,4 +20,8 @@ type Config struct {
 	} `json:"mysql"`
 
 	Redis redis.RedisConf `json:"redis"`
+
+	Backend struct {
+		Passport xconf.Discovery `json:"passport"`
+	} `json:"backend"`
 }

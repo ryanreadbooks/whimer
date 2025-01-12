@@ -16,7 +16,15 @@ message NoteItem {
   uint64 replies = 9; //评论数量
 }
 
+message NoteImageMeta {
+  uint32 width = 1;
+  uint32 height = 2;
+  string format = 3;
+}
+
 message NoteImage {
   string url = 1;
   int32 type = 2;
+  string url_prv = 3;
+  NoteImageMeta meta = 4;
 }

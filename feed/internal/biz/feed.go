@@ -11,9 +11,11 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/utils/maps"
 	"github.com/ryanreadbooks/whimer/misc/utils/slices"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
-	
+	relationv1 "github.com/ryanreadbooks/whimer/relation/sdk/v1"
+
 	"golang.org/x/sync/errgroup"
 )
 
@@ -103,11 +105,23 @@ func (b *feedBiz) collectLikeStatus(ctx context.Context, reqUid uint64, noteIds 
 	return oidLiked, nil
 }
 
+func (b *feedBiz) collectRelationStatus(ctx context.Context, reqUid uint64, authorUids []uint64) (map[uint64]bool, error) {
+	resp, err := dep.Relationer().BatchCheckUserFollowed(ctx, &relationv1.BatchCheckUserFollowedRequest{
+		Uid:     reqUid,
+		Targets: authorUids,
+	})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "feed biz failed to batch check user following authors status").WithCtx(ctx)
+	}
+
+	return resp.Status, nil
+}
+
 func (b *feedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.FeedNoteItem) ([]*model.FeedNoteItem, error) {
 	var (
 		err     error
 		reqUid  = metadata.Uid(ctx)
-		authors = make(map[uint64][]uint64, len(notes))
+		authors = make(map[uint64][]uint64, len(notes)) // 作者，一个作者可能对应多篇笔记
 	)
 
 	for _, note := range notes {
@@ -119,6 +133,7 @@ func (b *feedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.Fe
 		oidCommented map[uint64]bool             // oid -> reqUid commented or not
 		oidLiked     map[uint64]bool             // oid -> reqUid liked or not
 		commentNums  map[uint64]uint64           // oid -> comment count
+		userFollows  map[uint64]bool             // authorId -> isFollowed
 	)
 
 	noteIds := make([]uint64, 0, len(notes)) // 全部笔记id
@@ -127,10 +142,11 @@ func (b *feedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.Fe
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
+	authorUids := slices.Uniq(maps.Keys(authors))
 	// 2. 获取各篇笔记的作者信息
 	eg.Go(func() error {
 		return recovery.Do(func() error {
-			uids := slices.Uniq(maps.Keys(authors))
+			uids := authorUids
 			var err error
 			authorInfos, err = b.collectAuthor(ctx, uids)
 			return err
@@ -164,6 +180,24 @@ func (b *feedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.Fe
 		})
 	})
 
+	// 6. 获取reqUid对笔记作者的关注状态
+	eg.Go(func() error {
+		return recovery.Do(func() error {
+			var err error
+			userFollows, err = b.collectRelationStatus(ctx, reqUid, authorUids)
+			if err != nil {
+				xlog.Msg("feed biz failed to collect relation status").Extras("authors", authors).Err(err).Errorx(ctx)
+			}
+
+			// 非关键数据降级处理
+			if userFollows == nil {
+				userFollows = make(map[uint64]bool)
+			}
+
+			return nil
+		})
+	})
+
 	err = eg.Wait()
 	if err != nil {
 		return nil, err
@@ -184,6 +218,7 @@ func (b *feedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.Fe
 		feedNote.Comments = commentNums[noteId]
 		feedNote.Interact.Commented = oidCommented[noteId]
 		feedNote.Interact.Liked = oidLiked[noteId]
+		feedNote.Interact.Followed = userFollows[author.Uid]
 
 		feedNotes = append(feedNotes, feedNote)
 	}
@@ -201,6 +236,10 @@ func (b *feedBiz) RandomFeed(ctx context.Context, req *model.FeedRecommendReques
 	}
 
 	notes := resp.GetItems()
+	if len(notes) == 0 {
+		return []*model.FeedNoteItem{}, nil
+	}
+
 	// 2. 组装所有需要的信息
 	return b.assembleNoteFeedReturn(ctx, notes)
 }

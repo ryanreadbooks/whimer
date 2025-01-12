@@ -1,6 +1,7 @@
 package http
 
 import (
+	"math/rand"
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/feed/internal/model"
@@ -22,6 +23,9 @@ func feedRecommend() http.HandlerFunc {
 			xhttp.Error(r, w, err)
 			return
 		}
+
+		// make it random
+		rand.Shuffle(len(resp), func(i, j int) { resp[i], resp[j] = resp[j], resp[i] })
 
 		httpx.OkJson(w, resp)
 	}

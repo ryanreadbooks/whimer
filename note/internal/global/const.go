@@ -6,8 +6,8 @@ const (
 )
 
 const (
-	AssetTypeImage = 1
-	AssetTypeVideo = 2
+	AssetTypeImage = 1 // 完整图片
+	AssetTypeVideo = 2 // TODO 视频
 )
 
 // 计数服务的业务码

@@ -4,6 +4,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	infradao "github.com/ryanreadbooks/whimer/note/internal/infra/dao"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -26,4 +27,9 @@ func Dao() *infradao.Dao {
 
 func Cache() *redis.Redis {
 	return cache
+}
+
+func Close() {
+	logx.Info("closing infra")
+	dao.Close()
 }

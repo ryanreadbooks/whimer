@@ -20,9 +20,15 @@ message GetUserRequest { uint64 uid = 1; }
 
 message GetUserResponse { UserInfo user = 1; }
 
+message HasUserRequest { uint64 uid = 1; }
+
+message HasUserResponse { bool has = 1; }
+
 service UserService {
   // 批量获取用户信息
   rpc BatchGetUser(BatchGetUserRequest) returns (BatchGetUserResponse);
   // 获取用户信息
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  // 判断用户是否存在
+  rpc HasUser(HasUserRequest) returns (HasUserResponse);
 }

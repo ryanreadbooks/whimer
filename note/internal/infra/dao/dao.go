@@ -58,3 +58,9 @@ func (d *Dao) TransactCtx(ctx context.Context, fns ...xsql.TransactFunc) error {
 func (d *Dao) DB() sqlx.SqlConn {
 	return d.db
 }
+
+func (d *Dao) Close() {
+	if rd, _ := d.db.RawDB(); rd != nil {
+		rd.Close()
+	}
+}

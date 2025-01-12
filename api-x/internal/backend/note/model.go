@@ -21,6 +21,9 @@ func (b *CreateReqBasic) AsPb() *notesdk.CreateReqBasic {
 
 type CreateReqImage struct {
 	FileId string `json:"file_id"`
+	Width  uint32 `json:"width"`
+	Height uint32 `json:"height"`
+	Format string `json:"format"`
 }
 
 type CreateReqImageList []CreateReqImage
@@ -28,7 +31,12 @@ type CreateReqImageList []CreateReqImage
 func (r CreateReqImageList) AsPb() []*notesdk.CreateReqImage {
 	images := make([]*notesdk.CreateReqImage, 0, len(r))
 	for _, img := range r {
-		images = append(images, &notesdk.CreateReqImage{FileId: img.FileId})
+		images = append(images, &notesdk.CreateReqImage{
+			FileId: img.FileId,
+			Width:  img.Width,
+			Height: img.Height,
+			Format: img.Format,
+		})
 	}
 
 	return images
@@ -37,6 +45,24 @@ func (r CreateReqImageList) AsPb() []*notesdk.CreateReqImage {
 type CreateReq struct {
 	Basic  CreateReqBasic     `json:"basic"`
 	Images CreateReqImageList `json:"images"`
+}
+
+func (r *CreateReq) Validate() error {
+	if r == nil {
+		return xerror.ErrNilArg
+	}
+
+	for _, img := range r.Images {
+		if img.FileId == "" {
+			return xerror.ErrArgs.Msg("上传图片无名")
+		}
+
+		if img.Width == 0 || img.Height == 0 || img.Format == "" {
+			return xerror.ErrArgs.Msg("上传图片未指定图片信息")
+		}
+	}
+
+	return nil
 }
 
 func (r *CreateReq) AsPb() *notesdk.CreateNoteRequest {
@@ -91,9 +117,16 @@ func (r *ListReq) Validate() error {
 	return nil
 }
 
+type NoteItemImageMeta struct {
+	Width  uint32 `json:"width"`
+	Height uint32 `json:"height"`
+}
+
 type NoteItemImage struct {
-	Url  string `json:"url"`
-	Type int    `json:"type"`
+	Url    string            `json:"url"`
+	Type   int               `json:"type"`
+	Meta   NoteItemImageMeta `json:"meta"`
+	UrlPrv string            `json:"url_prv"`
 }
 
 type NoteItemImageList []*NoteItemImage
@@ -117,8 +150,13 @@ func NewAdminNoteItemFromPb(pb *notesdk.NoteItem) *AdminNoteItem {
 	images := make(NoteItemImageList, 0, len(pb.Images))
 	for _, img := range pb.Images {
 		images = append(images, &NoteItemImage{
-			Url:  img.Url,
-			Type: int(img.Type),
+			Url:    img.Url,
+			Type:   int(img.Type),
+			UrlPrv: img.UrlPrv,
+			Meta: NoteItemImageMeta{
+				Width:  img.Meta.Width,
+				Height: img.Meta.Height,
+			},
 		})
 	}
 
