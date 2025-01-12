@@ -1,8 +1,8 @@
 package model
 
 import (
+	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/comment/internal/infra/dao"
-	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 )
 

@@ -1,8 +1,8 @@
 package model
 
 import (
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
-	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
 var (

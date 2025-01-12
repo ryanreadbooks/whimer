@@ -3,9 +3,9 @@ package model
 import (
 	"unicode/utf8"
 
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	global "github.com/ryanreadbooks/whimer/passport/internal/global"
 	"github.com/ryanreadbooks/whimer/passport/internal/infra/dao"
-	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 )
 
 const (

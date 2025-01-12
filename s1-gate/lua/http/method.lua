@@ -1,0 +1,13 @@
+local _M = {}
+
+_M.GET = 'GET'
+_M.POST = 'POST'
+_M.PUT = 'PUT'
+_M.DELETE = 'DELETE'
+_M.HEAD = 'HEAD'
+_M.OPTIONS = 'OPTIONS'
+_M.PATCH = 'PATCH'
+_M.CONNECT = 'CONNECT'
+_M.TRACE = 'TRACE'
+
+return _M

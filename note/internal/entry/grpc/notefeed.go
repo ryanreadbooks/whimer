@@ -3,8 +3,8 @@ package grpc
 import (
 	"context"
 
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
-	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
 var (

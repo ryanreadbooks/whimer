@@ -3,9 +3,9 @@ package grpc
 import (
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/passport/internal/srv"
-	accessv1 "github.com/ryanreadbooks/whimer/passport/sdk/access/v1"
-	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
+	accessv1 "github.com/ryanreadbooks/whimer/passport/api/access/v1"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
 )

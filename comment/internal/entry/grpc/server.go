@@ -3,10 +3,10 @@ package grpc
 import (
 	"context"
 
+	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/comment/internal/global"
 	"github.com/ryanreadbooks/whimer/comment/internal/model"
 	"github.com/ryanreadbooks/whimer/comment/internal/srv"
-	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 
 	"github.com/bufbuild/protovalidate-go"
 )

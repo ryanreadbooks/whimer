@@ -3,8 +3,8 @@ package rpc
 import (
 	"context"
 
+	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/counter/internal/svc"
-	counterv1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
 
 	"github.com/bufbuild/protovalidate-go"
 )

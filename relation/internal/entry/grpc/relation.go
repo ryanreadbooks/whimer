@@ -3,9 +3,9 @@ package grpc
 import (
 	"context"
 
+	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 	"github.com/ryanreadbooks/whimer/relation/internal/global"
 	"github.com/ryanreadbooks/whimer/relation/internal/srv"
-	relationv1 "github.com/ryanreadbooks/whimer/relation/sdk/v1"
 )
 
 const (

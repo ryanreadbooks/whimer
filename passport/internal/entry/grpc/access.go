@@ -4,11 +4,11 @@ import (
 	"context"
 	"net/url"
 
+	user "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/passport/internal/global"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
 	"github.com/ryanreadbooks/whimer/passport/internal/srv"
-	access "github.com/ryanreadbooks/whimer/passport/sdk/access/v1"
-	user "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
+	access "github.com/ryanreadbooks/whimer/passport/api/access/v1"
 )
 
 type AccessServiceServer struct {

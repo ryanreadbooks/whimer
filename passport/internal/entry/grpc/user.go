@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strconv"
 
+	user "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	global "github.com/ryanreadbooks/whimer/passport/internal/global"
 	"github.com/ryanreadbooks/whimer/passport/internal/srv"
-	user "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
 )
 
 const (

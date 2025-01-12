@@ -3,8 +3,8 @@ package passport
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
-	"github.com/ryanreadbooks/whimer/passport/sdk/middleware/auth"
-	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+	"github.com/ryanreadbooks/whimer/passport/pkg/middleware/auth"
 )
 
 var (

@@ -2,7 +2,7 @@ package comment
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
-	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
+	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 )
 

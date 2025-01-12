@@ -2,7 +2,7 @@ package note
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	notesdk "github.com/ryanreadbooks/whimer/note/sdk/v1"
+	notesdk "github.com/ryanreadbooks/whimer/note/api/v1"
 )
 
 type CreateReqBasic struct {

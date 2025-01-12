@@ -1,8 +1,8 @@
 package grpc
 
 import (
+	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/comment/internal/srv"
-	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor/checker"

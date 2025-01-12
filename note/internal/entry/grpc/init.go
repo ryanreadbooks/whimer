@@ -4,8 +4,8 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor/checker"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
-	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 	"github.com/zeromicro/go-zero/zrpc"
 
 	"google.golang.org/grpc"

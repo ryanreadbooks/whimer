@@ -1,8 +1,8 @@
 package model
 
 import (
-	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
-	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 )
 
 // 包含发起请求的用户和该笔记的交互记录

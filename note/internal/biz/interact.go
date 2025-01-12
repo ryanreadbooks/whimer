@@ -3,8 +3,8 @@ package biz
 import (
 	"context"
 
-	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
-	counterv1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
+	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
+	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/note/internal/global"

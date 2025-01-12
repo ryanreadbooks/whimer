@@ -9,8 +9,8 @@ plugins:
     out: .
     opt: module=github.com/ryanreadbooks/whimer
 inputs:
-  - directory: comment/sdk
-  - directory: note/sdk
-  - directory: passport/sdk
-  - directory: counter/sdk
-  - directory: relation/sdk
+  - directory: comment/api
+  - directory: note/api
+  - directory: passport/api
+  - directory: counter/api
+  - directory: relation/api
