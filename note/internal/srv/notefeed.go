@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
+	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/utils/maps"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
@@ -109,12 +110,16 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 }
 
 func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId uint64) (*model.Note, error) {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
 	note, err := s.noteBiz.GetNote(ctx, noteId)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "get note detail failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
-	if note.Privacy == global.PrivacyPrivate {
+	if note.Privacy == global.PrivacyPrivate && note.Owner != uid {
 		return nil, global.ErrNoteNotPublic
 	}
 
