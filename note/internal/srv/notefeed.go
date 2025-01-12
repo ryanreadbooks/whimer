@@ -132,3 +132,7 @@ func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId uint64) (*model.
 	res, _ = s.noteInteractBiz.AssignNoteReplies(ctx, res)
 	return res.Items[0], nil
 }
+
+func (s *NoteFeedSrv) GetUserRecentNotes(ctx context.Context, user uint64, maxCount int32) (*model.Notes, error) {
+	return s.noteBiz.GetUserRecentNote(ctx, user, maxCount)
+}

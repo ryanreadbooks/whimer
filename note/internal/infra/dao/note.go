@@ -23,6 +23,7 @@ const (
 	sqlListByOwner         = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE owner=?"
 	sqlListByOwnerByCursor = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE owner=? AND id<? ORDER BY create_at DESC, id DESC LIMIT ?"
 	sqlGetByCursor         = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE id>=? AND privacy=? LIMIT ?"
+	sqlGetRecentPosted     = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE owner=? AND privacy=? ORDER BY create_at DESC LIMIT ?"
 	sqlGetLastId           = "SELECT id FROM note WHERE privacy=? ORDER BY id DESC LIMIT 1"
 	sqlGetAll              = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE privacy=?"
 	sqlGetCount            = "SELECT COUNT(*) FROM note WHERE privacy=?"
@@ -101,11 +102,11 @@ func (r *NoteDao) insert(ctx context.Context, sess sqlx.Session, note *Note) (ui
 	if err != nil {
 		return 0, xerror.Wrap(xsql.ConvertError(err))
 	}
-	newId, err:= res.LastInsertId()
+	newId, err := res.LastInsertId()
 	if err != nil {
 		return 0, xerror.Wrap(xsql.ConvertError(err))
 	}
-	
+
 	return uint64(newId), nil
 }
 
@@ -225,4 +226,10 @@ func (r *NoteDao) GetPostedCountByOwner(ctx context.Context, uid uint64) (uint64
 	var cnt uint64
 	err := r.db.QueryRowCtx(ctx, &cnt, sqlCountByUid, uid)
 	return cnt, xerror.Wrap(xsql.ConvertError(err))
+}
+
+func (r *NoteDao) GetRecentPublicPosted(ctx context.Context, uid uint64, count int32) ([]*Note, error) {
+	var res = make([]*Note, 0, count)
+	err := r.db.QueryRowsCtx(ctx, &res, sqlGetRecentPosted, uid, global.PrivacyPublic, count)
+	return res, xerror.Wrap(err)
 }

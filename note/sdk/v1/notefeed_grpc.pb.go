@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NoteFeedService_RandomGet_FullMethodName    = "/note.sdk.v1.NoteFeedService/RandomGet"
-	NoteFeedService_GetFeedNote_FullMethodName  = "/note.sdk.v1.NoteFeedService/GetFeedNote"
-	NoteFeedService_RecommendGet_FullMethodName = "/note.sdk.v1.NoteFeedService/RecommendGet"
+	NoteFeedService_RandomGet_FullMethodName         = "/note.sdk.v1.NoteFeedService/RandomGet"
+	NoteFeedService_GetFeedNote_FullMethodName       = "/note.sdk.v1.NoteFeedService/GetFeedNote"
+	NoteFeedService_RecommendGet_FullMethodName      = "/note.sdk.v1.NoteFeedService/RecommendGet"
+	NoteFeedService_GetUserRecentPost_FullMethodName = "/note.sdk.v1.NoteFeedService/GetUserRecentPost"
 )
 
 // NoteFeedServiceClient is the client API for NoteFeedService service.
@@ -36,6 +37,8 @@ type NoteFeedServiceClient interface {
 	GetFeedNote(ctx context.Context, in *GetFeedNoteRequest, opts ...grpc.CallOption) (*GetFeedNoteResponse, error)
 	// 按照推荐获取
 	RecommendGet(ctx context.Context, in *RecommendGetRequest, opts ...grpc.CallOption) (*RecommendGetResponse, error)
+	// 获取指定用户的最近的笔记内容
+	GetUserRecentPost(ctx context.Context, in *GetUserRecentPostRequest, opts ...grpc.CallOption) (*GetUserRecentPostResponse, error)
 }
 
 type noteFeedServiceClient struct {
@@ -76,6 +79,16 @@ func (c *noteFeedServiceClient) RecommendGet(ctx context.Context, in *RecommendG
 	return out, nil
 }
 
+func (c *noteFeedServiceClient) GetUserRecentPost(ctx context.Context, in *GetUserRecentPostRequest, opts ...grpc.CallOption) (*GetUserRecentPostResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserRecentPostResponse)
+	err := c.cc.Invoke(ctx, NoteFeedService_GetUserRecentPost_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NoteFeedServiceServer is the server API for NoteFeedService service.
 // All implementations must embed UnimplementedNoteFeedServiceServer
 // for forward compatibility.
@@ -88,6 +101,8 @@ type NoteFeedServiceServer interface {
 	GetFeedNote(context.Context, *GetFeedNoteRequest) (*GetFeedNoteResponse, error)
 	// 按照推荐获取
 	RecommendGet(context.Context, *RecommendGetRequest) (*RecommendGetResponse, error)
+	// 获取指定用户的最近的笔记内容
+	GetUserRecentPost(context.Context, *GetUserRecentPostRequest) (*GetUserRecentPostResponse, error)
 	mustEmbedUnimplementedNoteFeedServiceServer()
 }
 
@@ -106,6 +121,9 @@ func (UnimplementedNoteFeedServiceServer) GetFeedNote(context.Context, *GetFeedN
 }
 func (UnimplementedNoteFeedServiceServer) RecommendGet(context.Context, *RecommendGetRequest) (*RecommendGetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RecommendGet not implemented")
+}
+func (UnimplementedNoteFeedServiceServer) GetUserRecentPost(context.Context, *GetUserRecentPostRequest) (*GetUserRecentPostResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserRecentPost not implemented")
 }
 func (UnimplementedNoteFeedServiceServer) mustEmbedUnimplementedNoteFeedServiceServer() {}
 func (UnimplementedNoteFeedServiceServer) testEmbeddedByValue()                         {}
@@ -182,6 +200,24 @@ func _NoteFeedService_RecommendGet_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NoteFeedService_GetUserRecentPost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserRecentPostRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteFeedServiceServer).GetUserRecentPost(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteFeedService_GetUserRecentPost_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteFeedServiceServer).GetUserRecentPost(ctx, req.(*GetUserRecentPostRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NoteFeedService_ServiceDesc is the grpc.ServiceDesc for NoteFeedService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -200,6 +236,10 @@ var NoteFeedService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RecommendGet",
 			Handler:    _NoteFeedService_RecommendGet_Handler,
+		},
+		{
+			MethodName: "GetUserRecentPost",
+			Handler:    _NoteFeedService_GetUserRecentPost_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

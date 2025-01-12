@@ -152,6 +152,33 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 			})
 		})
 
+		// 用户最近发布的笔记信息
+		var postAssets = make([]profile.PostAsset, 0, 3)
+		eg.Go(func() error {
+			return recovery.Do(func() error {
+				resp, err := note.NoteFeedServer().GetUserRecentPost(ctx, &notev1.GetUserRecentPostRequest{
+					Uid:   req.UserId,
+					Count: 3,
+				})
+				if err != nil {
+					return err
+				}
+
+				for _, item := range resp.Items {
+					// 此处只需要封面
+					if len(item.Images) > 0 {
+						postAssets = append(postAssets, profile.PostAsset{
+							Url:    item.Images[0].Url,
+							UrlPrv: item.Images[0].UrlPrv,
+							Type:   int(item.Images[0].Type),
+						})
+					}
+				}
+
+				return nil
+			})
+		})
+
 		var (
 			followed bool
 		)
@@ -193,6 +220,8 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 		if followed {
 			res.Relation.Status = profile.RelationFollowing
 		}
+		res.RecentPosts = postAssets
+		
 		xhttp.OkJson(w, res)
 	}
 }

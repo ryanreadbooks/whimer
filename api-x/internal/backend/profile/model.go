@@ -29,6 +29,15 @@ type HoverRes struct {
 	Relation struct {
 		Status string `json:"status"`
 	} `json:"relation"`
+
+	// 返回最近的发布信息
+	RecentPosts []PostAsset `json:"recent_posts"`
+}
+
+type PostAsset struct {
+	Url    string `json:"url"`
+	Type   int    `json:"type"`
+	UrlPrv string `json:"url_prv"`
 }
 
 const (
@@ -55,16 +64,16 @@ func HideActualCount(cnt uint64) string {
 	}
 
 	if cnt >= 1000 && cnt < 10000 {
-		return "1K+"
+		return "1千+"
 	}
 
 	if cnt >= 10000 && cnt < 100000 {
-		return "1W+"
+		return "1万+"
 	}
 
 	if cnt >= 100000 && cnt < 1000000 {
-		return "10W+"
+		return "10万+"
 	}
 
-	return "100W+"
+	return "100万+"
 }

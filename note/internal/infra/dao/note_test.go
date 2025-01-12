@@ -37,3 +37,13 @@ func TestNote_GetByCursor(t *testing.T) {
 		}
 	})
 }
+
+func TestNote_GetRecentPost(t *testing.T) {
+	Convey("GetRecentPost", t, func() {
+		res, err := dao.GetRecentPublicPosted(ctx, 200, 3)
+		So(err, ShouldBeNil)
+		for _, r := range res {
+			t.Logf("%+v\n", r)
+		}
+	})
+}

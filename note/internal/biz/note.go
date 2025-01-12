@@ -21,6 +21,8 @@ import (
 type NoteBiz interface {
 	// 获取笔记基础信息
 	GetNote(ctx context.Context, noteId uint64) (*model.Note, error)
+	// 获取用户最近发布的笔记
+	GetUserRecentNote(ctx context.Context, uid uint64, count int32) (*model.Notes, error)
 	// 获取公开的笔记基础信息
 	GetPublicNote(ctx context.Context, noteId uint64) (*model.Note, error)
 	// 判断笔记是否存在
@@ -54,6 +56,25 @@ func (b *noteBiz) GetNote(ctx context.Context, noteId uint64) (*model.Note, erro
 	}
 
 	return resp.Items[0], nil
+}
+
+func (b *noteBiz) GetUserRecentNote(ctx context.Context, uid uint64, count int32) (*model.Notes, error) {
+	notes, err := infra.Dao().NoteDao.GetRecentPublicPosted(ctx, uid, count)
+	if err != nil {
+		if xsql.IsNotFound(err) {
+			return &model.Notes{}, nil
+		}
+
+		return nil, xerror.Wrapf(err, "biz find recent posted failed").WithExtras("uid", uid, "count", count).WithCtx(ctx)
+	}
+
+	resp, err := b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
+	if err != nil {
+		return nil, xerror.Wrapf(err, "biz assemble notes failed when get recent notes").
+			WithExtras("uid", uid, "count", count).WithCtx(ctx)
+	}
+
+	return resp, nil
 }
 
 func (b *noteBiz) GetPublicNote(ctx context.Context, noteId uint64) (*model.Note, error) {
