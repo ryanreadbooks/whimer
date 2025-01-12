@@ -49,6 +49,13 @@ message RecommendGetRequest {
 
 message RecommendGetResponse {}
 
+message GetUserRecentPostRequest {
+  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ];
+  int32 count = 2 [ (buf.validate.field).int32.lte = 5 ];
+}
+
+message GetUserRecentPostResponse { repeated FeedNoteItem items = 1; }
+
 // note相关非管理功能服务
 service NoteFeedService {
   // 随机获取笔记内容
@@ -57,4 +64,7 @@ service NoteFeedService {
   rpc GetFeedNote(GetFeedNoteRequest) returns (GetFeedNoteResponse);
   // 按照推荐获取
   rpc RecommendGet(RecommendGetRequest) returns (RecommendGetResponse);
+  // 获取指定用户的最近的笔记内容
+  rpc GetUserRecentPost(GetUserRecentPostRequest)
+      returns (GetUserRecentPostResponse);
 }
