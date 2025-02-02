@@ -3,7 +3,7 @@ package note
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
-	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 )
 
 var (

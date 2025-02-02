@@ -10,12 +10,12 @@ import (
 	"sync"
 
 	gcache "github.com/patrickmn/go-cache"
+	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/counter/internal/config"
 	"github.com/ryanreadbooks/whimer/counter/internal/global"
 	"github.com/ryanreadbooks/whimer/counter/internal/repo"
 	"github.com/ryanreadbooks/whimer/counter/internal/repo/record"
 	"github.com/ryanreadbooks/whimer/counter/internal/repo/summary"
-	counterv1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/utils/slices"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"

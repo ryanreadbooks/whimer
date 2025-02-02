@@ -67,7 +67,9 @@ func (s *NoteImageService) OnImageUploaded(ctx context.Context, event *model.Min
 		return xerror.Wrapf(err, "OnImageUploaded failed to upload preview webp image to oss").WithCtx(ctx)
 	}
 
-	xlog.Msg("OnImageUploaded handled ok").Extras("bucket", bucket, "key", pureKey, "x", imgWidth, "y", imgHeight).Infox(ctx)
+	xlog.Msg("OnImageUploaded handled ok").
+		Extras("bucket", bucket, "key", pureKey, "x", imgWidth, "y", imgHeight).
+		Infox(ctx)
 
 	return nil
 }

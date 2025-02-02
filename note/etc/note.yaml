@@ -29,6 +29,8 @@ redis:
 oss:
   user: ${ENV_OSS_USER}
   pass: ${ENV_OSS_PASS}
+  ak: ${ENV_OSS_AK}
+  sk: ${ENV_OSS_SK}
   endpoint: localhost:9000
   location: local
   bucket: nota

@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+import "user/v1/user.proto";
+
+package passport.api.access.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/passport/api/access/v1";
+
+message IsCheckedInRequest {
+  string sess_id = 1;
+  string platform = 2;
+}
+
+message IsCheckedInResponse {
+  bool signed = 1;
+  optional passport.api.user.v1.UserInfo user = 2;
+  string msg = 3;
+}
+
+service AccessService {
+  // 判断是否登录
+  rpc IsCheckedIn(IsCheckedInRequest) returns (IsCheckedInResponse);
+}

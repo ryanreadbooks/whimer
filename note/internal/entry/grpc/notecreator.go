@@ -3,10 +3,10 @@ package grpc
 import (
 	"context"
 
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
-	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
 type NoteCreatorServiceServer struct {

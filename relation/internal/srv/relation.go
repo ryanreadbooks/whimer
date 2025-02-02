@@ -5,7 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/relation/internal/biz"
 	"github.com/ryanreadbooks/whimer/relation/internal/global"
 	"github.com/ryanreadbooks/whimer/relation/internal/infra/dep"

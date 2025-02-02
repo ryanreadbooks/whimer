@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 
+	v1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/counter/internal/config"
 	"github.com/ryanreadbooks/whimer/counter/internal/job"
 	"github.com/ryanreadbooks/whimer/counter/internal/rpc"
 	"github.com/ryanreadbooks/whimer/counter/internal/svc"
-	v1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor/checker"

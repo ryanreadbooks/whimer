@@ -15,7 +15,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 )
 
 // 评论基础功能领域

@@ -1,6 +1,6 @@
 package grpc
 
-import commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
+import commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 
 // 定义不需要检查uid的方法
 var uidCheckIgnoredMethods = []string{

@@ -6,7 +6,7 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/relation"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	relationv1 "github.com/ryanreadbooks/whimer/relation/sdk/v1"
+	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 

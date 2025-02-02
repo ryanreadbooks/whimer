@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
-	counterv1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
+	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 
 	foliumsdk "github.com/ryanreadbooks/folium/sdk"
 )

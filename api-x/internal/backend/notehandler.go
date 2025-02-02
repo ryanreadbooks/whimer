@@ -8,7 +8,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 
-	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )

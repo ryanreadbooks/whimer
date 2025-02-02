@@ -3,7 +3,7 @@ package relation
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
-	relationv1 "github.com/ryanreadbooks/whimer/relation/sdk/v1"
+	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 )
 
 var (

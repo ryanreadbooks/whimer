@@ -7,7 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/infra"
 	"github.com/ryanreadbooks/whimer/comment/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/comment/internal/model"
-	counterv1 "github.com/ryanreadbooks/whimer/counter/sdk/v1"
+	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 )

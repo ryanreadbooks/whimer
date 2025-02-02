@@ -1,10 +1,10 @@
 package comment
 
 import (
-	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
+	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xconv"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 )
 
 type PubReq struct {

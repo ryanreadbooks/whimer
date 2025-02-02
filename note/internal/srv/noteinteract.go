@@ -5,10 +5,10 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
-	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
 )
 
 type NoteInteractSrv struct {

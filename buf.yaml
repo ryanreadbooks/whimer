@@ -1,11 +1,11 @@
 # For details on buf.yaml configuration, visit https://buf.build/docs/configuration/v2/buf-yaml
 version: v2
 modules:
-  - path: comment/sdk
-  - path: note/sdk
-  - path: passport/sdk
-  - path: counter/sdk
-  - path: relation/sdk
+  - path: comment/api
+  - path: note/api
+  - path: passport/api
+  - path: counter/api
+  - path: relation/api
 lint:
   use:
     - DEFAULT

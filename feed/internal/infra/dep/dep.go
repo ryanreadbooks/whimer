@@ -1,13 +1,13 @@
 package dep
 
 import (
-	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
+	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/feed/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
-	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
-	"github.com/ryanreadbooks/whimer/passport/sdk/middleware/auth"
-	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
-	relationv1 "github.com/ryanreadbooks/whimer/relation/sdk/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	"github.com/ryanreadbooks/whimer/passport/pkg/middleware/auth"
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 )
 
 var (

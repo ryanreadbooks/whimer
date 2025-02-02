@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
-	"github.com/ryanreadbooks/whimer/passport/sdk/middleware/auth"
+	"github.com/ryanreadbooks/whimer/passport/pkg/middleware/auth"
 	"github.com/zeromicro/go-zero/rest"
 )
 

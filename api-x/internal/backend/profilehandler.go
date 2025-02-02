@@ -11,11 +11,11 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
-	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/zeromicro/go-zero/rest/httpx"
 
-	relationv1 "github.com/ryanreadbooks/whimer/relation/sdk/v1"
+	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -221,7 +221,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 			res.Relation.Status = profile.RelationFollowing
 		}
 		res.RecentPosts = postAssets
-		
+
 		xhttp.OkJson(w, res)
 	}
 }

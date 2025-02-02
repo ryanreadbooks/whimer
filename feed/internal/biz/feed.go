@@ -3,7 +3,7 @@ package biz
 import (
 	"context"
 
-	commentv1 "github.com/ryanreadbooks/whimer/comment/sdk/v1"
+	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/feed/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/feed/internal/model"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
@@ -12,9 +12,9 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/utils/slices"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	notev1 "github.com/ryanreadbooks/whimer/note/sdk/v1"
-	userv1 "github.com/ryanreadbooks/whimer/passport/sdk/user/v1"
-	relationv1 "github.com/ryanreadbooks/whimer/relation/sdk/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 
 	"golang.org/x/sync/errgroup"
 )

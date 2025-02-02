@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package relation.api.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/ryanreadbooks/whimer/relation/api/v1";
+
+message FollowUserRequest {
+  uint64 follower = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 关注者
+  uint64 followee = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 被关注者
+  enum Action {
+    ACTION_UNSPECIFIED = 0;
+    ACTION_FOLLOW = 1;   // follower发起关注followee
+    ACTION_UNFOLLOW = 2; // follower取消对followee的关注
+  }
+  Action action = 3;
+}
+
+message QueryCondition {
+  uint64 offset = 1;
+  int32 count = 2 [
+    (buf.validate.field).int32.gt = 0,
+    (buf.validate.field).int32.lte = 20
+  ];
+}
+
+message FollowUserResponse {}
+
+message GetUserFanListRequest {
+  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
+  QueryCondition cond = 2;
+}
+
+message GetUserFanListResponse {
+  repeated uint64 fans = 1;
+  uint64 next_offset = 2;
+  bool has_more = 3;
+}
+
+message GetUserFollowingListRequest {
+  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
+  QueryCondition cond = 2;
+}
+
+message GetUserFollowingListResponse {
+  repeated uint64 followings = 1;
+  uint64 next_offset = 2;
+  bool has_more = 3;
+}
+
+message RemoveUserFanRequest {
+  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
+  repeated uint64 fans_id = 2; // 需要移除的粉丝id
+}
+
+message RemoveUserFanResponse {}
+
+message GetUserFanCountRequest {
+  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
+}
+
+message GetUserFanCountResponse { uint64 count = 1; }
+
+message GetUserFollowingCountRequest {
+  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
+}
+
+message GetUserFollowingCountResponse { uint64 count = 1; }
+
+message BatchCheckUserFollowedRequest {
+  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 用户uid
+  repeated uint64 targets = 2;                           // 查找的目标uid
+}
+
+message BatchCheckUserFollowedResponse { map<uint64, bool> status = 1; }
+
+message CheckUserFollowedRequest {
+  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ];   // 用户uid
+  uint64 other = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 用户uid
+}
+
+message CheckUserFollowedResponse { bool followed = 1; }
+
+service RelationService {
+  // 关注/取消关注某个用户
+  rpc FollowUser(FollowUserRequest) returns (FollowUserResponse);
+  // 获取某个用户的粉丝列表
+  rpc GetUserFanList(GetUserFanListRequest) returns (GetUserFanListResponse);
+  // 获取某个用户的关注列表
+  rpc GetUserFollowingList(GetUserFollowingListRequest)
+      returns (GetUserFollowingListResponse);
+  // 移除某个用户的粉丝
+  rpc RemoveUserFan(RemoveUserFanRequest) returns (RemoveUserFanResponse);
+  // 获取用户的粉丝数量
+  rpc GetUserFanCount(GetUserFanCountRequest) returns (GetUserFanCountResponse);
+  // 获取用户的关注数量
+  rpc GetUserFollowingCount(GetUserFollowingCountRequest)
+      returns (GetUserFollowingCountResponse);
+  // 判断某个用户是否关注了某些用户
+  rpc BatchCheckUserFollowed(BatchCheckUserFollowedRequest)
+      returns (BatchCheckUserFollowedResponse);
+  rpc CheckUserFollowed(CheckUserFollowedRequest)
+      returns (CheckUserFollowedResponse);
+}

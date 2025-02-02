@@ -1,6 +1,6 @@
 package grpc
 
-import relationv1 "github.com/ryanreadbooks/whimer/relation/sdk/v1"
+import relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 
 // 定义不需要检查uid的方法
 var uidCheckIgnoredMethods = []string{
