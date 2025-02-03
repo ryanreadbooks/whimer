@@ -7,13 +7,13 @@ import (
 )
 
 func TestAlgo(t *testing.T) {
-	req, _ := http.NewRequest("PUT", "/nota/rrv9", nil)
+	req, _ := http.NewRequest("PUT", "/nota/rrv10", nil)
 	req.Header.Set("Host", "s1-file.whimer.com")
 	req.Header.Set("X-Date", "20250203T085400Z")
 	req.Header.Set("Content-Length", "2035229")
-	req.Header.Set("X-Security-Token", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ3aG1fbm90ZSIsInN1YiI6InN0cyIsImV4cCI6MTczODU3NTkzNiwibmJmIjoxNzM4NTcyMzM2LCJpYXQiOjE3Mzg1NzIzMzYsImp0aSI6IndobV91bGFzIiwiYWNjZXNzX2tleSI6IjI1MDQzYTNjMzlkNTA5OGEyZWU3NjVhZmRlMTMzYWM0MDc5MjU0MWYiLCJyZXNvdXJjZSI6ImltYWdlIiwic291cmNlIjoid2ViIn0.j_vAWQS4kaNrFHPiT8ZRmIi0UNacLU2otjwzN8l6Bkg")
+	req.Header.Set("X-Security-Token", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ3aG1fbm90ZSIsInN1YiI6InN0cyIsImV4cCI6MTczODU5Mjk0NSwibmJmIjoxNzM4NTg5MzQ1LCJpYXQiOjE3Mzg1ODkzNDUsImp0aSI6IndobV91bGFzIiwiYWNjZXNzX2tleSI6ImMyYzVmM2Y4ZjVlMjAyMTQ5YzI5MWNhMWY4NDRkZjQzNjU3ZTQ5NjAiLCJyZXNvdXJjZSI6ImltYWdlIiwic291cmNlIjoid2ViIn0.5IFdveMYPjepTdyH__xRavKX4UUbNezjMoBsq-8D2Mk")
 
-	res, _ := WhmrSign("25043a3c39d5098a2ee765afde133ac40792541f", req)
+	res, _ := WhmrSign("c2c5f3f8f5e202149c291ca1f844df43657e4960", req)
 	t.Log(res)
 }
 

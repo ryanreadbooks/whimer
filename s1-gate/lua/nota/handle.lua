@@ -69,10 +69,9 @@ local function copy_req_header_except(key)
 end
 
 
-if ctx.is_upload_request() then                         -- the request is a upload request
-  local body = ngx.ctx.requests[ctx.REQUESTS_BODY_DATA] -- kv table
-  local body_arr = { body.header, body.rest }
-  if not body then
+if ctx.is_upload_request() then                             -- the request is a upload request
+  local req_body = ngx.ctx.requests[ctx.REQUESTS_BODY_DATA] -- kv table
+  if not req_body then
     ngx.log(ngx.ERROR, 'ctx content body data is nil' .. ngx.var.uri)
     resplib.make_400_err('empty body data')
     return
@@ -88,7 +87,7 @@ if ctx.is_upload_request() then                         -- the request is a uplo
   })
 
   if not ok then
-    ngx.log(ngx.ERROR,
+    ngx.log(ngx.ERR,
       string.format('connection to oss server at %s:%d failed, err: %s',
         oss_host,
         oss_port,
@@ -131,10 +130,12 @@ if ctx.is_upload_request() then                         -- the request is a uplo
 
   -- perform http PUT request to upload
   local res
+  local body = table.concat({ req_body.header, req_body.rest })
+
   res, err = httpc:request({
     path = obj_key,
     method = httpmethod.PUT,
-    body = body_arr,
+    body = body,
     headers = merged_headers
   })
 
@@ -158,9 +159,9 @@ else -- the request is not a upload request
   for k, v in pairs(auth_headers) do
     ngx.req.set_header(k:lower(), v)
   end
-  
+
   -- proxy pass to internal path
-  local res = ngx.location.capture('/minio-server' .. obj_key, {
+  local res = ngx.location.capture('/minioserver' .. obj_key, {
     method = ngx.HTTP_GET,
     ctx = ngx.ctx
   })
