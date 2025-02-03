@@ -30,26 +30,28 @@ func NewNoteCreatorSrv(p *Service, biz biz.Biz) *NoteCreatorSrv {
 
 // 新建笔记
 func (s *NoteCreatorSrv) Create(ctx context.Context, req *model.CreateNoteRequest) (uint64, error) {
-	return s.noteCreatorBiz.CreatorCreateNote(ctx, req)
+	return s.noteCreatorBiz.CreateNote(ctx, req)
 }
 
 // 更新笔记
 func (s *NoteCreatorSrv) Update(ctx context.Context, req *model.UpdateNoteRequest) error {
-	return s.noteCreatorBiz.CreatorUpdateNote(ctx, req)
+	return s.noteCreatorBiz.UpdateNote(ctx, req)
 }
 
 // 获取上传凭证
 func (s *NoteCreatorSrv) UploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {
-	return s.noteCreatorBiz.CreatorGetUploadAuth(ctx, req)
+	return s.noteCreatorBiz.GetUploadAuth(ctx, req)
 }
 
 // 批量获取上传凭证
-func (s *NoteCreatorSrv) BatchGetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) ([]*model.UploadAuthResponse, error) {
+func (s *NoteCreatorSrv) BatchGetUploadAuth(ctx context.Context,
+	req *model.UploadAuthRequest) ([]*model.UploadAuthResponse, error) {
+
 	eg, ctx := errgroup.WithContext(ctx)
 	var resps = make([]*model.UploadAuthResponse, req.Count)
 	for i := range req.Count {
 		eg.Go(func() error {
-			resp, err := s.noteCreatorBiz.CreatorGetUploadAuth(ctx, req)
+			resp, err := s.noteCreatorBiz.GetUploadAuth(ctx, req)
 			if err != nil {
 				return xerror.Wrapf(err, "get upload auth failed").WithExtra("req", req)
 			}
@@ -66,14 +68,29 @@ func (s *NoteCreatorSrv) BatchGetUploadAuth(ctx context.Context, req *model.Uplo
 	return resps, nil
 }
 
+// 获取零时上传凭证
+func (s *NoteCreatorSrv) BatchGetUploadAuthSTS(ctx context.Context,
+	req *model.UploadAuthRequest) (*model.UploadAuthSTSResponse, error) {
+	res, err := s.noteCreatorBiz.GetUploadAuthSTS(ctx, &model.UploadAuthRequest{
+		Resource: req.Resource,
+		Source:   req.Source,
+		Count:    req.Count,
+	})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "srv creator get upload auth sts failed").WithCtx(ctx)
+	}
+
+	return res, nil
+}
+
 // 删除笔记
 func (s *NoteCreatorSrv) Delete(ctx context.Context, req *model.DeleteNoteRequest) error {
-	return s.noteCreatorBiz.CreatorDeleteNote(ctx, req)
+	return s.noteCreatorBiz.DeleteNote(ctx, req)
 }
 
 // 列出某用户所有笔记
 func (s *NoteCreatorSrv) List(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
-	resp, nextPage, err := s.noteCreatorBiz.CreatorPageListNote(ctx, cursor, count)
+	resp, nextPage, err := s.noteCreatorBiz.PageListNote(ctx, cursor, count)
 	if err != nil {
 		return nil, nextPage, xerror.Wrapf(err, "srv creator list note failed").WithCtx(ctx)
 	}
@@ -86,7 +103,7 @@ func (s *NoteCreatorSrv) List(ctx context.Context, cursor uint64, count int32) (
 
 // 用于笔记作者获取笔记的详细信息
 func (s *NoteCreatorSrv) GetNote(ctx context.Context, noteId uint64) (*model.Note, error) {
-	note, err := s.noteCreatorBiz.CreatorGetNote(ctx, noteId)
+	note, err := s.noteCreatorBiz.GetNote(ctx, noteId)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "srv creator get note failed").WithCtx(ctx)
 	}

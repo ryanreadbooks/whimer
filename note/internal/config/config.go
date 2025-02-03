@@ -1,6 +1,8 @@
 package config
 
 import (
+	"time"
+
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -34,6 +36,15 @@ type Config struct {
 		Prefix          string `json:"prefix"`
 		DisplayEndpoint string `json:"display_endpoint"`
 	} `json:"oss"`
+
+	UploadAuthSign struct {
+		JwtId       string        `json:"jwt_id"`
+		JwtIssuer   string        `json:"jwt_issuer"`
+		JwtSubject  string        `json:"jwt_subject"`
+		JwtDuration time.Duration `json:"jwt_duration"`
+		Ak          string        `json:"ak"`
+		Sk          string        `json:"sk"`
+	} `json:"upload_auth_sign"`
 
 	External struct {
 		Grpc struct {

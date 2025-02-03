@@ -1,14 +1,14 @@
 local ctx = require('nota.ctx')
 local httpc = require('resty.http').new()
-local canonicalhd = require('common.header')
-local common = require('common.resp')
+local headerlib = require('common.header')
+local resplib = require('common.resp')
 local httpmethod = require('http.method')
-local aws = require('aws.v4_sign')
-local env = require('common.env')
+local aws = require('auth.awsv4')
+local envlib = require('common.env')
 
-local oss_host = env.get_oss_endpoint_host()
-local oss_port = env.get_oss_endpoint_port()
-local oss_location = env.get_oss_endpoint_location()
+local oss_host = envlib.get_oss_endpoint_host()
+local oss_port = envlib.get_oss_endpoint_port()
+local oss_location = envlib.get_oss_endpoint_location()
 local obj_key = ngx.var.uri
 
 -- generate auth header
@@ -58,7 +58,7 @@ end
 
 
 local function copy_req_header_except(key)
-  local copied = canonicalhd.canonical_header()
+  local copied = headerlib.canonical_header()
   for k, v in pairs(ngx.req.get_headers()) do
     if k:lower() ~= key:lower() then -- ignore this header cause we will replace it
       copied[k] = v
@@ -74,7 +74,7 @@ if ctx.is_upload_request() then                         -- the request is a uplo
   local body_arr = { body.header, body.rest }
   if not body then
     ngx.log(ngx.ERROR, 'ctx content body data is nil' .. ngx.var.uri)
-    common.make_400_err('empty body data')
+    resplib.make_400_err('empty body data')
     return
   end
 
@@ -95,7 +95,7 @@ if ctx.is_upload_request() then                         -- the request is a uplo
         err)
     )
 
-    common.make_500_err('oss server abnormal')
+    resplib.make_500_err('oss server abnormal')
     return
   end
 
@@ -107,13 +107,13 @@ if ctx.is_upload_request() then                         -- the request is a uplo
     headers = head_headers,
   })
   if err ~= nil then
-    common.make_500_err('can not connect to oss server head ' .. err)
+    resplib.make_500_err('can not connect to oss server head ' .. err)
     return
   end
 
   if head_res.status == 200 then
     -- object already exists
-    common.make_403_err('object already exists')
+    resplib.make_403_err('object already exists')
     return
   end
 
@@ -139,12 +139,12 @@ if ctx.is_upload_request() then                         -- the request is a uplo
   })
 
   if err ~= nil then
-    common.make_500_err('can not connect to oss server ' .. err)
+    resplib.make_500_err('can not connect to oss server ' .. err)
     return
   end
 
   if res.status ~= 200 then
-    common.make_status_resp(res.status, res.reason)
+    resplib.make_status_resp(res.status, res.reason)
     ngx.log(ngx.WARN,
       string.format('do oss request returns non 200, status=%d, reason=%s, body=%s',
         res.status, res.reason, read_oss_resp(res)
@@ -155,22 +155,11 @@ if ctx.is_upload_request() then                         -- the request is a uplo
 else -- the request is not a upload request
   -- for get method, we just add header and proxy pass
   local auth_headers = get_oss_auth_header(httpmethod.GET)
-  ngx.log(ngx.INFO, 'auth => ')
-  for k, v in pairs(auth_headers) do
-    ngx.log(ngx.INFO, 'auth: ', k, ' = ', v)
-  end
   for k, v in pairs(auth_headers) do
     ngx.req.set_header(k:lower(), v)
   end
-
-  ngx.log(ngx.INFO, 'raw => ')
-  for k, v in pairs(ngx.req.get_headers()) do
-    ngx.log(ngx.INFO, 'raw: ', k, ' = ', v)
-  end
-
-  ngx.log(ngx.INFO, 'obj key is ', obj_key)
   
-  -- proxy pass
+  -- proxy pass to internal path
   local res = ngx.location.capture('/minio-server' .. obj_key, {
     method = ngx.HTTP_GET,
     ctx = ngx.ctx
@@ -180,7 +169,7 @@ else -- the request is not a upload request
   for k, v in pairs(res.header) do
     ngx.header[k] = v
   end
-  ngx.print(res.body)
+  ngx.print(res.body) -- send response back
 
   -- -- if using resty-http to finish proxy pass
   -- local ok, err, session = httpc:connect({

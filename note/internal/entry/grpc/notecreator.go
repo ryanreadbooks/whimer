@@ -200,7 +200,8 @@ func (s *NoteCreatorServiceServer) GetUploadAuth(ctx context.Context, in *notev1
 }
 
 // 批量获取上传凭证
-func (s *NoteCreatorServiceServer) BatchGetUploadAuth(ctx context.Context, in *notev1.BatchGetUploadAuthRequest) (
+func (s *NoteCreatorServiceServer) BatchGetUploadAuth(ctx context.Context,
+	in *notev1.BatchGetUploadAuthRequest) (
 	*notev1.BatchGetUploadAuthResponse, error,
 ) {
 	var req = model.UploadAuthRequest{
@@ -234,4 +235,25 @@ func (s *NoteCreatorServiceServer) GetPostedCount(ctx context.Context, in *notev
 	}
 
 	return &notev1.GetPostedCountResponse{Count: cnt}, nil
+}
+
+func (s *NoteCreatorServiceServer) BatchGetUploadAuthV2(ctx context.Context,
+	in *notev1.BatchGetUploadAuthV2Request) (*notev1.BatchGetUploadAuthV2Response, error) {
+
+	var req = model.UploadAuthRequest{
+		Resource: in.Resource,
+		Source:   in.Source,
+		Count:    in.Count,
+	}
+
+	if err := req.Validate(); err != nil {
+		return nil, err
+	}
+
+	res, err := s.Srv.NoteCreatorSrv.BatchGetUploadAuthSTS(ctx, &req)
+	if err != nil {
+		return nil, err
+	}
+
+	return res.AsPb(), nil
 }

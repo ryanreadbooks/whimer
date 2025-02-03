@@ -1,8 +1,15 @@
-local common = require('common.resp')
+local cjson = require('cjson')
+local resplib = require('common.resp')
+local strlib = require('common.str')
+local headerlib = require('common.header')
 local httpstatus = require('http.status')
 local httpmethod = require('http.method')
 local imgsniff = require('mime.imgsniff')
 local ctx = require('nota.ctx')
+local env = require('common.env')
+local jwt = require('resty.jwt')
+local whmrauth = require('auth.whmr')
+local iso8601 = require('time.iso8601')
 
 -- constant
 local MAX_BODY_BYTES_ALLOWED = 10 * 1024 * 1024 -- 10M
@@ -14,9 +21,12 @@ local ALLOWED_CONTENT_TYPE = {
 local SOCK_TIMEOUT = 30 * 1000 -- 30s
 
 -- requests
-local req_method = string.upper(ngx.req.get_method())
-if req_method ~= httpmethod.PUT and req_method ~= httpmethod.GET then
-  common.make_status_resp(httpstatus.HTTP_METHOD_NOT_ALLOWED, 'method not allowed')
+local req_method = ngx.req.get_method():upper()
+if req_method ~= httpmethod.PUT and
+    req_method ~= httpmethod.GET and
+    req_method ~= httpmethod.HEAD and
+    req_method ~= httpmethod.OPTIONS then
+  resplib.make_status_resp(httpstatus.HTTP_METHOD_NOT_ALLOWED, 'method not allowed')
   return
 end
 
@@ -25,36 +35,80 @@ local req_headers = ngx.req.get_headers()
 -- this is considered as a upload request
 -- 1. check request method
 if req_method == httpmethod.PUT then
-  -- 1.1 content-length header is required
+  -- 1. make sure required headers are present
   local content_length = tonumber(req_headers['Content-Length']) or 0
   if content_length == 0 then
-    common.make_status_resp(httpstatus.HTTP_LENGTH_REQUIRED, 'content-length is required')
+    resplib.make_status_resp(httpstatus.HTTP_LENGTH_REQUIRED, 'content-length is required in header')
     return
   elseif content_length > MAX_BODY_BYTES_ALLOWED then
-    common.make_status_resp(httpstatus.HTTP_REQUEST_ENTITY_TOO_LARGE, 'payload is too large')
+    resplib.make_status_resp(httpstatus.HTTP_REQUEST_ENTITY_TOO_LARGE, 'payload is too large')
     return
   end
 
-  -- 1.2 make sure authorization is in header
+  local host = req_headers['Host'] or ''
+  if #host == 0 then
+    resplib.make_403_err('host is required in header')
+    return
+  end
+
+  local token = req_headers['X-Security-Token'] or ''
+  if #token == 0 then
+    resplib.make_403_err('x-security-token is required in header')
+    return
+  end
+
+  local jwt_obj = jwt:verify(env.get_aws_secret_access_key(), token, {
+    require_exp_claim = true,
+    valid_issuers = { 'whm_note' }
+  })
+  if not jwt_obj['verified'] then
+    resplib.make_403_err('invalid x-security-token ' .. jwt_obj['reason'])
+    return
+  end
+  if jwt_obj['payload']['sub'] ~= 'sts' then
+    resplib.make_403_err('invalid x-security-token subject')
+    return
+  end
+  if jwt_obj['payload']['jti'] ~= 'whm_ulas' then
+    resplib.make_403_err('invalid x-security-token id')
+    return
+  end
+  local access_key = jwt_obj['payload']['access_key'] or ''
+
+  local date = req_headers['X-Date'] or ''
+  if #date == 0 then
+    resplib.make_403_err('x-date is required in header')
+    return
+  end
+  if not iso8601.is_valid_datetime(date) then
+    resplib.make_403_err('x-date invalid format')
+    return
+  end
+
   local authorization = req_headers['Authorization'] or ''
   if #authorization == 0 then
-    common.make_403_err('authorization is required')
+    resplib.make_403_err('authorization is required in header')
     return
   end
 
-  -- TODO 1.3 furthur checking for authorization
+  -- check authorization
+  local res = whmrauth.sign_request(access_key)
+  if res ~= authorization then
+    resplib.make_403_err('The request signature we calculated does not match the signature you provided')
+    return
+  end
 
-  -- 1.4 we need to check payload mime type
+  -- 2. check mime type
   local sock, err = ngx.req.socket()
   if err ~= nil then
     ngx.log(ngx.ERROR, 'ngx.req.socket err: ' .. err)
-    common.make_500_err('socket internal error')
+    resplib.make_500_err('socket internal error')
     return
   end
 
   sock:settimeout(SOCK_TIMEOUT) -- ms
 
-  -- 1.4.1 read body in a streaming way
+  -- read body in a streaming way
   -- In case of success, it returns the data received;
   -- in case of error, it returns nil with a string describing the error and
   -- the partial data received so far.
@@ -76,14 +130,14 @@ if req_method == httpmethod.PUT then
     end
   end
   if not is_allowed then
-    common.make_400_err('unsupported content-type')
+    resplib.make_400_err('unsupported content-type')
     return
   end
 
-  -- 1.5 read the rest of the body and prepare for later usage
+  -- 3. read the rest of the body and prepare for later usage
   local body_rest = sock:receive('*a')
 
-  -- 2. save all the related requests data into ctx
+  -- 4. save all the related requests data into ctx
   ngx.ctx.requests = {}
   ngx.ctx.requests[ctx.REQUESTS_CONTENT_LENGTH] = content_length
   ngx.ctx.requests[ctx.REQUESTS_CONTENT_TYPE] = detected_content_type

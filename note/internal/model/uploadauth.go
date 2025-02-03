@@ -74,3 +74,22 @@ func (r *UploadAuthResponse) AsPb() *notev1.GetUploadAuthResponse {
 		Headers:     r.Headers.AsPb(),
 	}
 }
+
+// STS上传凭证响应
+type UploadAuthSTSResponse struct {
+	FileIds     []string `json:"file_ids"`
+	CurrentTime int64    `json:"current_time"`
+	ExpireTime  int64    `json:"expire_time"`
+	UploadAddr  string   `json:"upload_addr"`
+	Token       string   `json:"token"`
+}
+
+func (r *UploadAuthSTSResponse) AsPb() *notev1.BatchGetUploadAuthV2Response {
+	return &notev1.BatchGetUploadAuthV2Response{
+		FileIds:     r.FileIds,
+		CurrentTime: r.CurrentTime,
+		ExpireTime:  r.ExpireTime,
+		UploadAddr:  r.UploadAddr,
+		Token:       r.Token,
+	}
+}

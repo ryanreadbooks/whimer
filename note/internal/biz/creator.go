@@ -2,6 +2,10 @@ package biz
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha1"
+	"encoding/hex"
 	"errors"
 	"math"
 	"time"
@@ -9,6 +13,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/oss/keygen"
 	"github.com/ryanreadbooks/whimer/misc/oss/signer"
+	"github.com/ryanreadbooks/whimer/misc/utils"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
@@ -16,18 +21,21 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dao"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
+
+	jwtv5 "github.com/golang-jwt/jwt/v5"
 )
 
 // 笔记相关
 type NoteCreatorBiz interface {
 	// 创作者相关
-	CreatorCreateNote(ctx context.Context, note *model.CreateNoteRequest) (uint64, error)
-	CreatorUpdateNote(ctx context.Context, note *model.UpdateNoteRequest) error
-	CreatorDeleteNote(ctx context.Context, note *model.DeleteNoteRequest) error
-	CreatorGetNote(ctx context.Context, noteId uint64) (*model.Note, error)
-	CreatorListNote(ctx context.Context) (*model.Notes, error)
-	CreatorPageListNote(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error)
-	CreatorGetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error)
+	CreateNote(ctx context.Context, note *model.CreateNoteRequest) (uint64, error)
+	UpdateNote(ctx context.Context, note *model.UpdateNoteRequest) error
+	DeleteNote(ctx context.Context, note *model.DeleteNoteRequest) error
+	GetNote(ctx context.Context, noteId uint64) (*model.Note, error)
+	ListNote(ctx context.Context) (*model.Notes, error)
+	PageListNote(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error)
+	GetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error)
+	GetUploadAuthSTS(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthSTSResponse, error)
 }
 
 type noteCreatorBiz struct {
@@ -55,7 +63,7 @@ func NewNoteCreatorBiz() NoteCreatorBiz {
 	return b
 }
 
-func (b *noteCreatorBiz) CreatorCreateNote(ctx context.Context, note *model.CreateNoteRequest) (uint64, error) {
+func (b *noteCreatorBiz) CreateNote(ctx context.Context, note *model.CreateNoteRequest) (uint64, error) {
 	var (
 		uid    uint64 = metadata.Uid(ctx)
 		noteId uint64
@@ -90,7 +98,7 @@ func (b *noteCreatorBiz) CreatorCreateNote(ctx context.Context, note *model.Crea
 	return noteId, nil
 }
 
-func (b *noteCreatorBiz) CreatorUpdateNote(ctx context.Context, note *model.UpdateNoteRequest) error {
+func (b *noteCreatorBiz) UpdateNote(ctx context.Context, note *model.UpdateNoteRequest) error {
 	var (
 		uid uint64 = metadata.Uid(ctx)
 	)
@@ -138,7 +146,7 @@ func (b *noteCreatorBiz) CreatorUpdateNote(ctx context.Context, note *model.Upda
 	return nil
 }
 
-func (b *noteCreatorBiz) CreatorDeleteNote(ctx context.Context, note *model.DeleteNoteRequest) error {
+func (b *noteCreatorBiz) DeleteNote(ctx context.Context, note *model.DeleteNoteRequest) error {
 	var (
 		uid    uint64 = metadata.Uid(ctx)
 		noteId        = note.NoteId
@@ -190,7 +198,7 @@ func (b *noteCreatorBiz) CreatorGetNote(ctx context.Context, noteId uint64) (*mo
 	return res.Items[0], nil
 }
 
-func (b *noteCreatorBiz) CreatorListNote(ctx context.Context) (*model.Notes, error) {
+func (b *noteCreatorBiz) ListNote(ctx context.Context) (*model.Notes, error) {
 	var (
 		uid uint64 = metadata.Uid(ctx)
 	)
@@ -206,7 +214,7 @@ func (b *noteCreatorBiz) CreatorListNote(ctx context.Context) (*model.Notes, err
 	return b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
 }
 
-func (b *noteCreatorBiz) CreatorPageListNote(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
+func (b *noteCreatorBiz) PageListNote(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
 	var (
 		uid      uint64 = metadata.Uid(ctx)
 		nextPage        = model.PageResult{}
@@ -245,7 +253,7 @@ func (b *noteCreatorBiz) CreatorPageListNote(ctx context.Context, cursor uint64,
 	return notesResp, nextPage, nil
 }
 
-func (b *noteCreatorBiz) CreatorGetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {
+func (b *noteCreatorBiz) GetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {
 	// 生成count个上传凭证
 	fileId := b.OssKeyGen.Gen()
 
@@ -255,7 +263,8 @@ func (b *noteCreatorBiz) CreatorGetUploadAuth(ctx context.Context, req *model.Up
 	// 生成签名
 	info, err := b.OssSigner.Sign(fileId)
 	if err != nil {
-		return nil, xerror.Wrapf(global.ErrPermDenied.Msg("服务器签名失败"), "%s", err.Error()).WithExtra("fileId", fileId).WithCtx(ctx)
+		return nil, xerror.Wrapf(global.ErrPermDenied.Msg("服务器签名失败"), "%s", err.Error()).
+			WithExtra("fileId", fileId).WithCtx(ctx)
 	}
 
 	res := model.UploadAuthResponse{
@@ -272,4 +281,70 @@ func (b *noteCreatorBiz) CreatorGetUploadAuth(ctx context.Context, req *model.Up
 	}
 
 	return &res, nil
+}
+
+func (b *noteCreatorBiz) GetUploadAuthSTS(ctx context.Context,
+	req *model.UploadAuthRequest) (*model.UploadAuthSTSResponse, error) {
+	// 生成count个上传凭证
+	fileIds := make([]string, 0, req.Count)
+	for range req.Count {
+		fileIds = append(fileIds, b.OssKeyGen.Gen())
+	}
+
+	now := time.Now()
+	expireAt := now.Add(config.Conf.UploadAuthSign.JwtDuration)
+	claim := newStsUploadAuthClaim(now, expireAt, req.Resource, req.Source)
+
+	token := jwtv5.NewWithClaims(jwtv5.SigningMethodHS256, claim)
+	ss, err := token.SignedString(utils.StringToBytes(config.Conf.UploadAuthSign.Sk))
+	if err != nil {
+		return nil, xerror.Wrapf(global.ErrInternal.Msg("服务器签名失败"), "%s", err.Error()).
+			WithCtx(ctx)
+	}
+
+	return &model.UploadAuthSTSResponse{
+		FileIds:     fileIds,
+		CurrentTime: now.Unix(),
+		ExpireTime:  expireAt.Unix(),
+		UploadAddr:  config.Conf.Oss.DisplayEndpoint,
+		Token:       ss,
+	}, nil
+}
+
+type stsUploadAuthClaim struct {
+	jwtv5.RegisteredClaims
+
+	AccessKey string `json:"access_key"`
+	Resource  string `json:"resource"`
+	Source    string `json:"source"`
+}
+
+var claimSk = []byte(config.Conf.UploadAuthSign.Sk)
+
+func newStsUploadAuthClaim(now, expireAt time.Time, resource, source string) *stsUploadAuthClaim {
+	akb := make([]byte, 16)
+	_, err := rand.Read(akb)
+	if err != nil {
+		akb = []byte(config.Conf.UploadAuthSign.Ak)
+	}
+
+	hash := hmac.New(sha1.New, claimSk)
+	hash.Write(akb)
+	akb = hash.Sum(nil)
+	ak := hex.EncodeToString(akb)
+
+	return &stsUploadAuthClaim{
+		AccessKey: ak,
+		Resource:  resource,
+		Source:    source,
+
+		RegisteredClaims: jwtv5.RegisteredClaims{
+			Issuer:    config.Conf.UploadAuthSign.JwtIssuer,
+			Subject:   config.Conf.UploadAuthSign.JwtSubject,
+			ID:        config.Conf.UploadAuthSign.JwtId,
+			IssuedAt:  jwtv5.NewNumericDate(now),
+			NotBefore: jwtv5.NewNumericDate(now),
+			ExpiresAt: jwtv5.NewNumericDate(expireAt),
+		},
+	}
 }

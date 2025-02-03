@@ -19,16 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NoteCreatorService_IsUserOwnNote_FullMethodName      = "/note.api.v1.NoteCreatorService/IsUserOwnNote"
-	NoteCreatorService_IsNoteExist_FullMethodName        = "/note.api.v1.NoteCreatorService/IsNoteExist"
-	NoteCreatorService_CreateNote_FullMethodName         = "/note.api.v1.NoteCreatorService/CreateNote"
-	NoteCreatorService_UpdateNote_FullMethodName         = "/note.api.v1.NoteCreatorService/UpdateNote"
-	NoteCreatorService_DeleteNote_FullMethodName         = "/note.api.v1.NoteCreatorService/DeleteNote"
-	NoteCreatorService_GetNote_FullMethodName            = "/note.api.v1.NoteCreatorService/GetNote"
-	NoteCreatorService_ListNote_FullMethodName           = "/note.api.v1.NoteCreatorService/ListNote"
-	NoteCreatorService_GetUploadAuth_FullMethodName      = "/note.api.v1.NoteCreatorService/GetUploadAuth"
-	NoteCreatorService_BatchGetUploadAuth_FullMethodName = "/note.api.v1.NoteCreatorService/BatchGetUploadAuth"
-	NoteCreatorService_GetPostedCount_FullMethodName     = "/note.api.v1.NoteCreatorService/GetPostedCount"
+	NoteCreatorService_IsUserOwnNote_FullMethodName        = "/note.api.v1.NoteCreatorService/IsUserOwnNote"
+	NoteCreatorService_IsNoteExist_FullMethodName          = "/note.api.v1.NoteCreatorService/IsNoteExist"
+	NoteCreatorService_CreateNote_FullMethodName           = "/note.api.v1.NoteCreatorService/CreateNote"
+	NoteCreatorService_UpdateNote_FullMethodName           = "/note.api.v1.NoteCreatorService/UpdateNote"
+	NoteCreatorService_DeleteNote_FullMethodName           = "/note.api.v1.NoteCreatorService/DeleteNote"
+	NoteCreatorService_GetNote_FullMethodName              = "/note.api.v1.NoteCreatorService/GetNote"
+	NoteCreatorService_ListNote_FullMethodName             = "/note.api.v1.NoteCreatorService/ListNote"
+	NoteCreatorService_GetUploadAuth_FullMethodName        = "/note.api.v1.NoteCreatorService/GetUploadAuth"
+	NoteCreatorService_BatchGetUploadAuth_FullMethodName   = "/note.api.v1.NoteCreatorService/BatchGetUploadAuth"
+	NoteCreatorService_BatchGetUploadAuthV2_FullMethodName = "/note.api.v1.NoteCreatorService/BatchGetUploadAuthV2"
+	NoteCreatorService_GetPostedCount_FullMethodName       = "/note.api.v1.NoteCreatorService/GetPostedCount"
 )
 
 // NoteCreatorServiceClient is the client API for NoteCreatorService service.
@@ -56,6 +57,8 @@ type NoteCreatorServiceClient interface {
 	GetUploadAuth(ctx context.Context, in *GetUploadAuthRequest, opts ...grpc.CallOption) (*GetUploadAuthResponse, error)
 	// 批量获取上传凭证
 	BatchGetUploadAuth(ctx context.Context, in *BatchGetUploadAuthRequest, opts ...grpc.CallOption) (*BatchGetUploadAuthResponse, error)
+	// 获取上传凭证v2
+	BatchGetUploadAuthV2(ctx context.Context, in *BatchGetUploadAuthV2Request, opts ...grpc.CallOption) (*BatchGetUploadAuthV2Response, error)
 	// 获取用户投稿数量
 	GetPostedCount(ctx context.Context, in *GetPostedCountRequest, opts ...grpc.CallOption) (*GetPostedCountResponse, error)
 }
@@ -158,6 +161,16 @@ func (c *noteCreatorServiceClient) BatchGetUploadAuth(ctx context.Context, in *B
 	return out, nil
 }
 
+func (c *noteCreatorServiceClient) BatchGetUploadAuthV2(ctx context.Context, in *BatchGetUploadAuthV2Request, opts ...grpc.CallOption) (*BatchGetUploadAuthV2Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetUploadAuthV2Response)
+	err := c.cc.Invoke(ctx, NoteCreatorService_BatchGetUploadAuthV2_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *noteCreatorServiceClient) GetPostedCount(ctx context.Context, in *GetPostedCountRequest, opts ...grpc.CallOption) (*GetPostedCountResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetPostedCountResponse)
@@ -193,6 +206,8 @@ type NoteCreatorServiceServer interface {
 	GetUploadAuth(context.Context, *GetUploadAuthRequest) (*GetUploadAuthResponse, error)
 	// 批量获取上传凭证
 	BatchGetUploadAuth(context.Context, *BatchGetUploadAuthRequest) (*BatchGetUploadAuthResponse, error)
+	// 获取上传凭证v2
+	BatchGetUploadAuthV2(context.Context, *BatchGetUploadAuthV2Request) (*BatchGetUploadAuthV2Response, error)
 	// 获取用户投稿数量
 	GetPostedCount(context.Context, *GetPostedCountRequest) (*GetPostedCountResponse, error)
 	mustEmbedUnimplementedNoteCreatorServiceServer()
@@ -231,6 +246,9 @@ func (UnimplementedNoteCreatorServiceServer) GetUploadAuth(context.Context, *Get
 }
 func (UnimplementedNoteCreatorServiceServer) BatchGetUploadAuth(context.Context, *BatchGetUploadAuthRequest) (*BatchGetUploadAuthResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchGetUploadAuth not implemented")
+}
+func (UnimplementedNoteCreatorServiceServer) BatchGetUploadAuthV2(context.Context, *BatchGetUploadAuthV2Request) (*BatchGetUploadAuthV2Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchGetUploadAuthV2 not implemented")
 }
 func (UnimplementedNoteCreatorServiceServer) GetPostedCount(context.Context, *GetPostedCountRequest) (*GetPostedCountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPostedCount not implemented")
@@ -418,6 +436,24 @@ func _NoteCreatorService_BatchGetUploadAuth_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NoteCreatorService_BatchGetUploadAuthV2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetUploadAuthV2Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteCreatorServiceServer).BatchGetUploadAuthV2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteCreatorService_BatchGetUploadAuthV2_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteCreatorServiceServer).BatchGetUploadAuthV2(ctx, req.(*BatchGetUploadAuthV2Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _NoteCreatorService_GetPostedCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetPostedCountRequest)
 	if err := dec(in); err != nil {
@@ -478,6 +514,10 @@ var NoteCreatorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BatchGetUploadAuth",
 			Handler:    _NoteCreatorService_BatchGetUploadAuth_Handler,
+		},
+		{
+			MethodName: "BatchGetUploadAuthV2",
+			Handler:    _NoteCreatorService_BatchGetUploadAuthV2_Handler,
 		},
 		{
 			MethodName: "GetPostedCount",
