@@ -154,15 +154,8 @@ if ctx.is_upload_request() then                             -- the request is a 
     return
   end
 else -- the request is not a upload request
-  -- for get method, we just add header and proxy pass
-  local auth_headers = get_oss_auth_header(httpmethod.GET)
-  for k, v in pairs(auth_headers) do
-    ngx.req.set_header(k:lower(), v)
-  end
-
   -- proxy pass to internal path
-  local res = ngx.location.capture('/minioserver' .. obj_key, {
-    method = ngx.HTTP_GET,
+  local res = ngx.location.capture('/imgproxyserver' .. ngx.var.uri, {
     ctx = ngx.ctx
   })
 

@@ -32,7 +32,6 @@ oss:
   endpoint: localhost:9000
   location: local
   bucket: nota
-  bucket_prv: nota-prv
   prefix: assets
   display_endpoint: http://s1-file.whimer.com
 
@@ -43,6 +42,10 @@ upload_auth_sign:
   jwt_duration: 2h
   ak: ${ENV_OSS_AK}
   sk: ${ENV_OSS_SK}
+
+img_proxy_auth:
+  key: ${IMGPROXY_KEY}
+  salt: ${IMGPROXY_SALT}
 
 # 外部依赖
 external:

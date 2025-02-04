@@ -3,18 +3,15 @@ package biz
 import (
 	"context"
 	"errors"
-	"strings"
 
 	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
-	"github.com/ryanreadbooks/whimer/misc/oss"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
+	"github.com/ryanreadbooks/whimer/note/internal/biz/imgproxy"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
-
-	"github.com/ryanreadbooks/whimer/asset-job/sdk/rules"
 )
 
 // NoteBiz作为最基础的biz可以被其它biz依赖，其它biz之间不能相互依赖
@@ -152,18 +149,11 @@ func (b *noteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 		for _, asset := range noteAssets {
 			assetMeta := model.NewAssetImageMetaFromJson(asset.AssetMeta)
 			if note.NoteId == asset.NoteId {
-				pureKey := strings.TrimLeft(asset.AssetKey, config.Conf.Oss.Bucket+"/") // 此处要去掉桶名称
+				// pureKey := strings.TrimLeft(asset.AssetKey, config.Conf.Oss.Bucket+"/") // 此处要去掉桶名称
 				item.Images = append(item.Images, &model.NoteImage{
-					Url: oss.GetPublicVisitUrl2(
-						asset.AssetKey,
-						config.Conf.Oss.DisplayEndpoint,
-					),
-					UrlPrv: oss.GetPublicVisitUrl(
-						config.Conf.Oss.BucketPreview,
-						rules.PreviewKey(pureKey),
-						config.Conf.Oss.DisplayEndpoint,
-					),
-					Type: int(asset.AssetType),
+					Url:    imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey),
+					UrlPrv: imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, imgproxy.WithQuality("28")),
+					Type:   int(asset.AssetType),
 					Meta: model.NoteImageMeta{
 						Width:  assetMeta.Width,
 						Height: assetMeta.Height,
