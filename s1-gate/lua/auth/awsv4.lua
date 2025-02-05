@@ -34,7 +34,7 @@ local function encode_char(ch)
   return string.format("%%%02X", string.byte(ch))
 end
 
-local function encode_path(path)
+function _M.encode_path(path)
   if is_reserved_object_name(path) then
     return path
   end
@@ -110,6 +110,7 @@ local function get_derived_signing_key(keys, timestamp, region, service)
   return h:final()
 end
 
+
 ---Calculates and returns the credential scope
 ---
 ---See: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html#create-string-to-sign
@@ -152,7 +153,7 @@ end
 ---@return             string
 local function get_hashed_canonical_request(method, timestamp, host, uri, body_digest)
   local canonical_request = method .. '\n'
-      .. encode_path(uri) .. '\n'
+      .. _M.encode_path(uri) .. '\n'
       .. '\n'
       .. 'host:' .. host .. '\n'
       .. 'x-amz-content-sha256:' .. body_digest .. '\n'
@@ -162,6 +163,7 @@ local function get_hashed_canonical_request(method, timestamp, host, uri, body_d
       .. body_digest
   return get_sha256_digest(canonical_request)
 end
+
 
 ---Calculates and returns the "string to sign"
 ---

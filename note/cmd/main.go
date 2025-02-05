@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/entry/grpc"
@@ -18,13 +19,16 @@ func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
+	if err := config.Conf.Init(); err != nil {
+		panic(fmt.Errorf("panic: config init: %w", err))
+	}
 	svc := srv.NewService(&config.Conf)
 
 	grpcServer := grpc.Init(config.Conf.Grpc, svc)
 
 	group := service.NewServiceGroup()
 	defer group.Stop()
-	
+
 	group.Add(grpcServer)
 	group.Add(srv.AsService{})
 	logx.Info("note is serving...")

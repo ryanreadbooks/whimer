@@ -136,6 +136,24 @@ func (h *Handler) AdminUploadNoteAuth() http.HandlerFunc {
 	}
 }
 
+func (h *Handler) AdminUploadNoteAuthV2() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[note.UploadAuthReq](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
+			return
+		}
+
+		resp, err := note.NoteCreatorServer().BatchGetUploadAuthV2(r.Context(), req.AsPbV2())
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		httpx.OkJson(w, resp)
+	}
+}
+
 // 点赞/取消点赞笔记
 func (h *Handler) LikeNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

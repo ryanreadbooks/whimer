@@ -109,6 +109,20 @@ message GetPostedCountRequest {
 
 message GetPostedCountResponse { uint64 count = 1; }
 
+message BatchGetUploadAuthV2Request {
+  string resource = 1;
+  string source = 2;
+  int32 count = 3 [ (buf.validate.field).int32.gt = 0 ];
+}
+
+message BatchGetUploadAuthV2Response {
+  repeated string file_ids = 1;
+  int64 current_time = 2;
+  int64 expire_time = 3;
+  string upload_addr = 4;
+  string token = 5;
+}
+
 // 和笔记管理相关的服务
 // 比如发布笔记，修改笔记，删除笔记等管理笔记的功能
 service NoteCreatorService {
@@ -131,6 +145,9 @@ service NoteCreatorService {
   // 批量获取上传凭证
   rpc BatchGetUploadAuth(BatchGetUploadAuthRequest)
       returns (BatchGetUploadAuthResponse);
+  // 获取上传凭证v2
+  rpc BatchGetUploadAuthV2(BatchGetUploadAuthV2Request)
+      returns (BatchGetUploadAuthV2Response);
   // 获取用户投稿数量
   rpc GetPostedCount(GetPostedCountRequest) returns (GetPostedCountResponse);
 }
