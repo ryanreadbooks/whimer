@@ -34,6 +34,7 @@ type NoteCreatorBiz interface {
 	GetNote(ctx context.Context, noteId uint64) (*model.Note, error)
 	ListNote(ctx context.Context) (*model.Notes, error)
 	PageListNote(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error)
+	// Deprecated
 	GetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error)
 	GetUploadAuthSTS(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthSTSResponse, error)
 }
@@ -271,7 +272,7 @@ func (b *noteCreatorBiz) GetUploadAuth(ctx context.Context, req *model.UploadAut
 		FildId:      fileId,
 		CurrentTime: currentTime,
 		ExpireTime:  info.ExpireAt.Unix(),
-		UploadAddr:  config.Conf.Oss.DisplayEndpoint,
+		UploadAddr:  config.Conf.Oss.UploadEndpoint,
 		Headers: model.UploadAuthResponseHeaders{
 			Auth:   info.Auth,
 			Date:   info.Date,
@@ -306,7 +307,7 @@ func (b *noteCreatorBiz) GetUploadAuthSTS(ctx context.Context,
 		FileIds:     fileIds,
 		CurrentTime: now.Unix(),
 		ExpireTime:  expireAt.Unix(),
-		UploadAddr:  config.Conf.Oss.DisplayEndpoint,
+		UploadAddr:  config.Conf.Oss.UploadEndpoint,
 		Token:       ss,
 	}, nil
 }

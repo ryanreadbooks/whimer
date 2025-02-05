@@ -1,29 +1,21 @@
-local cjson = require('cjson')
 local resplib = require('common.resp')
-local strlib = require('common.str')
-local headerlib = require('common.header')
 local httpstatus = require('http.status')
 local httpmethod = require('http.method')
 local imgsniff = require('mime.imgsniff')
-local ctx = require('nota.ctx')
+local ctx = require('s1-upload.ctx')
 local env = require('common.env')
+local const = require('common.const')
 local jwt = require('resty.jwt')
 local whmrauth = require('auth.whmr')
 local iso8601 = require('time.iso8601')
 
--- constant
-local MAX_BODY_BYTES_ALLOWED = 10 * 1024 * 1024 -- 10M
-local ALLOWED_CONTENT_TYPE = {
-  'image/jpeg',
-  'image/png',
-  'image/webp'
-}
-local SOCK_TIMEOUT = 30 * 1000 -- 30s
+ngx.log(ngx.DEBUG, 's1-upload.check is working...')
+ngx.header['Access-Control-Allow-Origin'] = env.get_cors_allowed_origin()
+ngx.header['Access-Control-Allow-Credentials'] = 'true'
 
 -- requests
 local req_method = ngx.req.get_method():upper()
 if req_method ~= httpmethod.PUT and
-    req_method ~= httpmethod.GET and
     req_method ~= httpmethod.HEAD and
     req_method ~= httpmethod.OPTIONS then
   resplib.make_status_resp(httpstatus.HTTP_METHOD_NOT_ALLOWED, 'method not allowed')
@@ -32,15 +24,14 @@ end
 
 local req_headers = ngx.req.get_headers()
 
--- this is considered as a upload request
--- 1. check request method
+-- 1. check upload request
 if req_method == httpmethod.PUT then
   -- 1. make sure required headers are present
   local content_length = tonumber(req_headers['Content-Length']) or 0
   if content_length == 0 then
     resplib.make_status_resp(httpstatus.HTTP_LENGTH_REQUIRED, 'content-length is required in header')
     return
-  elseif content_length > MAX_BODY_BYTES_ALLOWED then
+  elseif content_length > const.MAX_BODY_BYTES_ALLOWED then
     resplib.make_status_resp(httpstatus.HTTP_REQUEST_ENTITY_TOO_LARGE, 'payload is too large')
     return
   end
@@ -106,7 +97,7 @@ if req_method == httpmethod.PUT then
     return
   end
 
-  sock:settimeout(SOCK_TIMEOUT) -- ms
+  sock:settimeout(const.SOCK_TIMEOUT) -- ms
 
   -- read body in a streaming way
   -- In case of success, it returns the data received;
@@ -123,8 +114,8 @@ if req_method == httpmethod.PUT then
   local magic = body_header:sub(1, imgsniff.MAX_SNIFF_BYTE)
   local detected_content_type = imgsniff.detect(magic) -- detected content type
   local is_allowed = false
-  for i = 1, #ALLOWED_CONTENT_TYPE do
-    if detected_content_type == ALLOWED_CONTENT_TYPE[i] then
+  for i = 1, #const.ALLOWED_CONTENT_TYPE do
+    if detected_content_type == const.ALLOWED_CONTENT_TYPE[i] then
       is_allowed = true
       break
     end
@@ -145,4 +136,10 @@ if req_method == httpmethod.PUT then
     header = body_header,
     rest = body_rest
   }
+elseif req_method == httpmethod.OPTIONS then
+  -- add headers
+  ngx.header['Access-Control-Allow-Headers'] =
+  'Authorization,Cache-Control,Content-Type,X-Security-Token,X-Date,Access-Control-Allow-Credentials'
+  ngx.header['Access-Control-Allow-Methods'] = 'PUT,HEAD,OPTIONS'
+  ngx.header['Access-Control-Expose-Headers'] = '*'
 end

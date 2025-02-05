@@ -27,13 +27,12 @@ redis:
   host: 127.0.0.1:7542
 
 oss:
-  user: ${ENV_OSS_USER}
-  pass: ${ENV_OSS_PASS}
   endpoint: localhost:9000
   location: local
   bucket: nota
   prefix: assets
   display_endpoint: http://s1-file.whimer.com
+  upload_endpoint: http://s1-upload.whimer.com
 
 upload_auth_sign:
   jwt_id: whm_ulas

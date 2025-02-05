@@ -221,6 +221,14 @@ func (r *UploadAuthReq) AsPb() *notesdk.BatchGetUploadAuthRequest {
 	}
 }
 
+func (r *UploadAuthReq) AsPbV2() *notesdk.BatchGetUploadAuthV2Request {
+	return &notesdk.BatchGetUploadAuthV2Request{
+		Resource: r.Resource,
+		Source:   r.Source,
+		Count:    r.Count,
+	}
+}
+
 type UploadAuthResHeaders struct {
 	Auth   string `json:"auth"`
 	Sha256 string `json:"sha256"`

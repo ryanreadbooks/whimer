@@ -35,5 +35,6 @@ var (
 
 // internal user
 var (
-	ErrPanic = NewError(InternalServerError, -99999, "FATAL PANIC")
+	ErrApiWentOffline = NewError(NotFound, CodeOther, "接口不存在(´･ω･`)")
+	ErrPanic          = NewError(InternalServerError, -99999, "FATAL PANIC")
 )

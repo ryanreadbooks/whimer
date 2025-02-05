@@ -95,8 +95,13 @@ type Oss struct {
 	Bucket          string `json:"bucket"`
 	Prefix          string `json:"prefix"`
 	DisplayEndpoint string `json:"display_endpoint"`
+	UploadEndpoint  string `json:"upload_endpoint"`
 }
 
 func (c *Oss) DisplayEndpointBucket() string {
 	return c.DisplayEndpoint + "/" + c.Bucket
+}
+
+func (c *Oss) UploadEndpointBucket() string {
+	return c.UploadEndpoint + "/" + c.Bucket
 }

@@ -44,7 +44,6 @@ func WhmrSign(secret string, req *http.Request) (string, error) {
 	seck := "WHMR" + secret
 	signingKey := sumHMAC([]byte(seck), []byte(xDate))
 	signingKey = sumHMAC(signingKey, []byte("whmr_request"))
-	println(hex.EncodeToString(signingKey))
 	signature := sumHMAC(signingKey, []byte(stringToSign))
 
 	return hex.EncodeToString(signature), nil

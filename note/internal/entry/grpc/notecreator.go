@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
@@ -199,32 +200,37 @@ func (s *NoteCreatorServiceServer) GetUploadAuth(ctx context.Context, in *notev1
 	return data.AsPb(), nil
 }
 
+// Deprecated
+//
 // 批量获取上传凭证
 func (s *NoteCreatorServiceServer) BatchGetUploadAuth(ctx context.Context,
 	in *notev1.BatchGetUploadAuthRequest) (
 	*notev1.BatchGetUploadAuthResponse, error,
 ) {
-	var req = model.UploadAuthRequest{
-		Resource: in.Resource,
-		Source:   in.Source,
-		Count:    in.Count,
-	}
 
-	if err := req.Validate(); err != nil {
-		return nil, err
-	}
+	return nil, xerror.ErrApiWentOffline
 
-	data, err := s.Srv.NoteCreatorSrv.BatchGetUploadAuth(ctx, &req)
-	if err != nil {
-		return nil, err
-	}
+	// var req = model.UploadAuthRequest{
+	// 	Resource: in.Resource,
+	// 	Source:   in.Source,
+	// 	Count:    in.Count,
+	// }
 
-	resp := notev1.BatchGetUploadAuthResponse{}
-	for _, d := range data {
-		resp.Tickets = append(resp.Tickets, d.AsPb())
-	}
+	// if err := req.Validate(); err != nil {
+	// 	return nil, err
+	// }
 
-	return &resp, nil
+	// data, err := s.Srv.NoteCreatorSrv.BatchGetUploadAuth(ctx, &req)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// resp := notev1.BatchGetUploadAuthResponse{}
+	// for _, d := range data {
+	// 	resp.Tickets = append(resp.Tickets, d.AsPb())
+	// }
+
+	// return &resp, nil
 }
 
 func (s *NoteCreatorServiceServer) GetPostedCount(ctx context.Context, in *notev1.GetPostedCountRequest) (
