@@ -5,7 +5,7 @@ http:
   port: 8888
   log:
     level: debug
-  
+
 grpc:
   mode: dev
   name: note-grpc
@@ -27,16 +27,24 @@ redis:
   host: 127.0.0.1:7542
 
 oss:
-  user: ${ENV_OSS_USER}
-  pass: ${ENV_OSS_PASS}
-  ak: ${ENV_OSS_AK}
-  sk: ${ENV_OSS_SK}
   endpoint: localhost:9000
   location: local
   bucket: nota
-  bucket_prv: nota-prv
   prefix: assets
-  display_endpoint: http://s1-file.whimer.com:9000
+  display_endpoint: http://s1-file.whimer.com
+  upload_endpoint: http://s1-upload.whimer.com
+
+upload_auth_sign:
+  jwt_id: whm_ulas
+  jwt_issuer: whm_note
+  jwt_subject: sts
+  jwt_duration: 2h
+  ak: ${ENV_OSS_AK}
+  sk: ${ENV_OSS_SK}
+
+img_proxy_auth:
+  key: ${IMGPROXY_KEY}
+  salt: ${IMGPROXY_SALT}
 
 # 外部依赖
 external:

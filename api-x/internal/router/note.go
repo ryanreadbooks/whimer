@@ -25,7 +25,11 @@ func regNoteRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 			// 获取笔记
 			v1g.Get("/get/:note_id", svc.AdminGetNote())
 			// 申请笔记资源上传链接
-			v1g.Get("/upload/auth", svc.AdminUploadNoteAuth())
+			v1g.Get("/upload/auth", svc.AdminUploadNoteAuth(), middleware.ApiOffline()) // Deprecated
+		}
+		{
+			v2g := creator.Group("/v2")
+			v2g.Get("/upload/auth", svc.AdminUploadNoteAuthV2())
 		}
 
 		// 笔记互动相关接口

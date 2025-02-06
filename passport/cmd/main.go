@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/ryanreadbooks/whimer/passport/internal/config"
 	"github.com/ryanreadbooks/whimer/passport/internal/entry/grpc"
@@ -20,6 +21,9 @@ func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
+	if err := config.Conf.Init(); err != nil {
+		panic(fmt.Errorf("panic: config init: %w", err))
+	}
 
 	s := srv.New(&config.Conf)
 	restServer := rest.MustNewServer(config.Conf.Http)

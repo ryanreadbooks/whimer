@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
+	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 	"github.com/ryanreadbooks/whimer/misc/oss/keygen"
 	"github.com/ryanreadbooks/whimer/misc/oss/uploader"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -153,21 +154,30 @@ func (b *userBiz) UpdateAvatar(ctx context.Context, uid uint64, req *model.Avata
 	}
 
 	// 返回头像访问链接
-	visitUrl := b.avatarUploader.GetPublicVisitUrl(bucket, objName, config.Conf.Oss.DisplayEndpoint)
+	visitUrl := getVisitUrlFromConf(objName)
 
 	return visitUrl, nil
 }
 
+func getVisitUrlFromConf(avtr string) string {
+	visitUrl := imgproxy.GetSignedUrl(
+		config.Conf.Oss.AvatarDisplayEndpoint(), // 带上桶的名称,不加前缀/
+		config.Conf.Oss.Bucket+"/"+avtr,
+		config.Conf.ImgProxyAuth.GetKey(),
+		config.Conf.ImgProxyAuth.GetSalt(),
+	)
+	return visitUrl
+}
+
 func (b *userBiz) ReplaceAvatar(u *model.UserInfo) {
 	if len(u.Avatar) > 0 {
-		visitUrl := b.avatarUploader.GetPublicVisitUrl(config.Conf.Oss.Bucket, u.Avatar, config.Conf.Oss.DisplayEndpoint)
-		u.Avatar = visitUrl
+		u.Avatar = getVisitUrlFromConf(u.Avatar)
 	}
 }
 
 func (b *userBiz) ReplaceAvatarUrl(url string) string {
 	if len(url) > 0 {
-		return b.avatarUploader.GetPublicVisitUrl(config.Conf.Oss.Bucket, url, config.Conf.Oss.DisplayEndpoint)
+		return getVisitUrlFromConf(url)
 	}
 
 	return url

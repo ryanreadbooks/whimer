@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
@@ -182,48 +183,56 @@ func (s *NoteCreatorServiceServer) ListNote(ctx context.Context, in *notev1.List
 
 func (s *NoteCreatorServiceServer) GetUploadAuth(ctx context.Context, in *notev1.GetUploadAuthRequest) (
 	*notev1.GetUploadAuthResponse, error) {
-	var req = model.UploadAuthRequest{
-		Resource: in.Resource,
-		Source:   in.Source,
-	}
+	return nil, xerror.ErrApiWentOffline
 
-	if err := req.Validate(); err != nil {
-		return nil, err
-	}
+	// var req = model.UploadAuthRequest{
+	// 	Resource: in.Resource,
+	// 	Source:   in.Source,
+	// }
 
-	data, err := s.Srv.NoteCreatorSrv.UploadAuth(ctx, &req)
-	if err != nil {
-		return nil, err
-	}
+	// if err := req.Validate(); err != nil {
+	// 	return nil, err
+	// }
 
-	return data.AsPb(), nil
+	// data, err := s.Srv.NoteCreatorSrv.UploadAuth(ctx, &req)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// return data.AsPb(), nil
 }
 
+// Deprecated
+//
 // 批量获取上传凭证
-func (s *NoteCreatorServiceServer) BatchGetUploadAuth(ctx context.Context, in *notev1.BatchGetUploadAuthRequest) (
+func (s *NoteCreatorServiceServer) BatchGetUploadAuth(ctx context.Context,
+	in *notev1.BatchGetUploadAuthRequest) (
 	*notev1.BatchGetUploadAuthResponse, error,
 ) {
-	var req = model.UploadAuthRequest{
-		Resource: in.Resource,
-		Source:   in.Source,
-		Count:    in.Count,
-	}
 
-	if err := req.Validate(); err != nil {
-		return nil, err
-	}
+	return nil, xerror.ErrApiWentOffline
 
-	data, err := s.Srv.NoteCreatorSrv.BatchGetUploadAuth(ctx, &req)
-	if err != nil {
-		return nil, err
-	}
+	// var req = model.UploadAuthRequest{
+	// 	Resource: in.Resource,
+	// 	Source:   in.Source,
+	// 	Count:    in.Count,
+	// }
 
-	resp := notev1.BatchGetUploadAuthResponse{}
-	for _, d := range data {
-		resp.Tickets = append(resp.Tickets, d.AsPb())
-	}
+	// if err := req.Validate(); err != nil {
+	// 	return nil, err
+	// }
 
-	return &resp, nil
+	// data, err := s.Srv.NoteCreatorSrv.BatchGetUploadAuth(ctx, &req)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// resp := notev1.BatchGetUploadAuthResponse{}
+	// for _, d := range data {
+	// 	resp.Tickets = append(resp.Tickets, d.AsPb())
+	// }
+
+	// return &resp, nil
 }
 
 func (s *NoteCreatorServiceServer) GetPostedCount(ctx context.Context, in *notev1.GetPostedCountRequest) (
@@ -234,4 +243,25 @@ func (s *NoteCreatorServiceServer) GetPostedCount(ctx context.Context, in *notev
 	}
 
 	return &notev1.GetPostedCountResponse{Count: cnt}, nil
+}
+
+func (s *NoteCreatorServiceServer) BatchGetUploadAuthV2(ctx context.Context,
+	in *notev1.BatchGetUploadAuthV2Request) (*notev1.BatchGetUploadAuthV2Response, error) {
+
+	var req = model.UploadAuthRequest{
+		Resource: in.Resource,
+		Source:   in.Source,
+		Count:    in.Count,
+	}
+
+	if err := req.Validate(); err != nil {
+		return nil, err
+	}
+
+	res, err := s.Srv.NoteCreatorSrv.BatchGetUploadAuthSTS(ctx, &req)
+	if err != nil {
+		return nil, err
+	}
+
+	return res.AsPb(), nil
 }
