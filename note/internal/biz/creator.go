@@ -145,7 +145,7 @@ func (b *noteCreatorBiz) DeleteNote(ctx context.Context, note *model.DeleteNoteR
 	)
 
 	queried, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
-	if errors.Is(xsql.ErrNoRecord, err) {
+	if errors.Is(err, xsql.ErrNoRecord) {
 		return global.ErrNoteNotFound
 	}
 	if err != nil {
@@ -196,7 +196,7 @@ func (b *noteCreatorBiz) ListNote(ctx context.Context) (*model.Notes, error) {
 	)
 
 	notes, err := infra.Dao().NoteDao.ListByOwner(ctx, uid)
-	if errors.Is(xsql.ErrNoRecord, err) {
+	if errors.Is(err, xsql.ErrNoRecord) {
 		return &model.Notes{}, nil
 	}
 	if err != nil {
@@ -216,7 +216,7 @@ func (b *noteCreatorBiz) PageListNote(ctx context.Context, cursor uint64, count 
 		cursor = math.MaxUint64
 	}
 	notes, err := infra.Dao().NoteDao.ListByOwnerByCursor(ctx, uid, cursor, count)
-	if errors.Is(xsql.ErrNoRecord, err) {
+	if errors.Is(err, xsql.ErrNoRecord) {
 		return &model.Notes{}, nextPage, nil
 	}
 	if err != nil {

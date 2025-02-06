@@ -9,7 +9,6 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 
-	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
@@ -120,14 +119,6 @@ func (b *noteBiz) GetNoteOwner(ctx context.Context, noteId uint64) (uint64, erro
 // 笔记的资源数据，点赞等
 func (b *noteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*model.Notes, error) {
 	var noteIds = make([]uint64, 0, len(notes))
-	likesReq := make([]*counterv1.GetSummaryRequest, 0, len(notes))
-	for _, note := range notes {
-		noteIds = append(noteIds, note.NoteId)
-		likesReq = append(likesReq, &counterv1.GetSummaryRequest{
-			BizCode: global.NoteLikeBizcode,
-			Oid:     note.NoteId,
-		})
-	}
 
 	// 获取资源信息
 	noteAssets, err := infra.Dao().NoteAssetRepo.FindByNoteIds(ctx, noteIds)
