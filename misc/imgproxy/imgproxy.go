@@ -35,6 +35,12 @@ func WithWebpExt() ProcessOpt {
 	}
 }
 
+func WithPngExt() ProcessOpt {
+	return func(po *processOption) {
+		po.ext = ".png"
+	}
+}
+
 func WithJpgExt() ProcessOpt {
 	return func(po *processOption) {
 		po.ext = ".jpg"
@@ -75,8 +81,8 @@ func pathJoin(host, signature, urlToSign string) string {
 // Generate public url for image asset key
 //
 // assetKey is like /bucket/keyName
-func GetSignedUrl(host, assetKey string, key, salt []byte, opts ...ProcessOpt) string {
-	urlToSign := getUrlToSign(assetKey, opts...)
+func GetSignedUrl(host, originUrl string, key, salt []byte, opts ...ProcessOpt) string {
+	urlToSign := getUrlToSign(originUrl, opts...)
 	signature := signUrl(urlToSign, key, salt)
 	return pathJoin(host, signature, urlToSign)
 }

@@ -1,4 +1,4 @@
--- proxy pass to internal path
+-- we just proxy pass to internal path
 local res = ngx.location.capture('/imgproxyserver' .. ngx.var.uri, {
   ctx = ngx.ctx
 })

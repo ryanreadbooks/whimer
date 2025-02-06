@@ -1,10 +1,9 @@
 package config
 
 import (
-	"encoding/hex"
-	"fmt"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -39,7 +38,7 @@ type Config struct {
 		Sk          string        `json:"sk"`
 	} `json:"upload_auth_sign"`
 
-	ImgProxyAuth ImgProxyAuth `json:"img_proxy_auth"`
+	ImgProxyAuth imgproxy.Auth `json:"img_proxy_auth"`
 
 	External struct {
 		Grpc struct {
@@ -54,37 +53,6 @@ type Config struct {
 
 func (c *Config) Init() error {
 	return c.ImgProxyAuth.Init()
-}
-
-type ImgProxyAuth struct {
-	Key  string `json:"key"`
-	Salt string `json:"salt"`
-
-	keyBin  []byte `json:"-" yaml:"-"`
-	saltBin []byte `json:"-" yaml:"-"`
-}
-
-func (c *ImgProxyAuth) GetKey() []byte {
-	return c.keyBin
-}
-
-func (c *ImgProxyAuth) GetSalt() []byte {
-	return c.saltBin
-}
-
-func (c *ImgProxyAuth) Init() error {
-	var err error
-	c.keyBin, err = hex.DecodeString(c.Key)
-	if err != nil {
-		return fmt.Errorf("img proxy auth key is invalid: %w", err)
-	}
-
-	c.saltBin, err = hex.DecodeString(c.Salt)
-	if err != nil {
-		return fmt.Errorf("img proxy auth salt is invalid: %w", err)
-	}
-
-	return nil
 }
 
 type Oss struct {

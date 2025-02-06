@@ -35,7 +35,11 @@ oss:
   location: local
   bucket: pasaporte
   prefix: avatars
-  display_endpoint: http://s1-file.whimer.com:9000
+  display_endpoint: http://s1-file.whimer.com
+
+img_proxy_auth:
+  key: ${IMGPROXY_KEY}
+  salt: ${IMGPROXY_SALT}
 
 idgen:
   addr: 127.0.0.1:9528

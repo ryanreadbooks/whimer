@@ -2,7 +2,7 @@ local resplib = require('common.resp')
 local httpstatus = require('http.status')
 local httpmethod = require('http.method')
 
--- requests
+-- check requests
 local req_method = ngx.req.get_method():upper()
 if req_method ~= httpmethod.GET and
     req_method ~= httpmethod.HEAD and
