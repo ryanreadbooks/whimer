@@ -183,21 +183,23 @@ func (s *NoteCreatorServiceServer) ListNote(ctx context.Context, in *notev1.List
 
 func (s *NoteCreatorServiceServer) GetUploadAuth(ctx context.Context, in *notev1.GetUploadAuthRequest) (
 	*notev1.GetUploadAuthResponse, error) {
-	var req = model.UploadAuthRequest{
-		Resource: in.Resource,
-		Source:   in.Source,
-	}
+	return nil, xerror.ErrApiWentOffline
 
-	if err := req.Validate(); err != nil {
-		return nil, err
-	}
+	// var req = model.UploadAuthRequest{
+	// 	Resource: in.Resource,
+	// 	Source:   in.Source,
+	// }
 
-	data, err := s.Srv.NoteCreatorSrv.UploadAuth(ctx, &req)
-	if err != nil {
-		return nil, err
-	}
+	// if err := req.Validate(); err != nil {
+	// 	return nil, err
+	// }
 
-	return data.AsPb(), nil
+	// data, err := s.Srv.NoteCreatorSrv.UploadAuth(ctx, &req)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// return data.AsPb(), nil
 }
 
 // Deprecated

@@ -34,7 +34,7 @@ type NoteCreatorBiz interface {
 	GetNote(ctx context.Context, noteId uint64) (*model.Note, error)
 	ListNote(ctx context.Context) (*model.Notes, error)
 	PageListNote(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error)
-	// Deprecated
+	// Deprecated: GetUploadAuth is deprecated, use GetUploadAuthSTS instead
 	GetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error)
 	GetUploadAuthSTS(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthSTSResponse, error)
 }

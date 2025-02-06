@@ -39,11 +39,15 @@ func (s *NoteCreatorSrv) Update(ctx context.Context, req *model.UpdateNoteReques
 }
 
 // 获取上传凭证
+// 
+// Deprecated: UploadAuth is deprecated
 func (s *NoteCreatorSrv) UploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {
 	return s.noteCreatorBiz.GetUploadAuth(ctx, req)
 }
 
 // 批量获取上传凭证
+// 
+// Deprecated: BatchGetUploadAuth is deprecated
 func (s *NoteCreatorSrv) BatchGetUploadAuth(ctx context.Context,
 	req *model.UploadAuthRequest) ([]*model.UploadAuthResponse, error) {
 

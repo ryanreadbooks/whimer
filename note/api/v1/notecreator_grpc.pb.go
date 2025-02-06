@@ -54,8 +54,12 @@ type NoteCreatorServiceClient interface {
 	// 列出笔记
 	ListNote(ctx context.Context, in *ListNoteRequest, opts ...grpc.CallOption) (*ListNoteResponse, error)
 	// 获取上传凭证
+	//
+	// Deprecated: GetUploadAuth is deprecated, use BatchGetUploadAuthV2 instead.
 	GetUploadAuth(ctx context.Context, in *GetUploadAuthRequest, opts ...grpc.CallOption) (*GetUploadAuthResponse, error)
 	// 批量获取上传凭证
+	//
+	// Deprecated: BatchGetUploadAuth is deprecated, use BatchGetUploadAuthV2 instead.
 	BatchGetUploadAuth(ctx context.Context, in *BatchGetUploadAuthRequest, opts ...grpc.CallOption) (*BatchGetUploadAuthResponse, error)
 	// 获取上传凭证v2
 	BatchGetUploadAuthV2(ctx context.Context, in *BatchGetUploadAuthV2Request, opts ...grpc.CallOption) (*BatchGetUploadAuthV2Response, error)
@@ -203,8 +207,12 @@ type NoteCreatorServiceServer interface {
 	// 列出笔记
 	ListNote(context.Context, *ListNoteRequest) (*ListNoteResponse, error)
 	// 获取上传凭证
+	//
+	// Deprecated: GetUploadAuth is deprecated, use BatchGetUploadAuthV2 instead.
 	GetUploadAuth(context.Context, *GetUploadAuthRequest) (*GetUploadAuthResponse, error)
 	// 批量获取上传凭证
+	//
+	// Deprecated: BatchGetUploadAuth is deprecated, use BatchGetUploadAuthV2 instead.
 	BatchGetUploadAuth(context.Context, *BatchGetUploadAuthRequest) (*BatchGetUploadAuthResponse, error)
 	// 获取上传凭证v2
 	BatchGetUploadAuthV2(context.Context, *BatchGetUploadAuthV2Request) (*BatchGetUploadAuthV2Response, error)
