@@ -12,7 +12,6 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/oss/keygen"
-	"github.com/ryanreadbooks/whimer/misc/oss/signer"
 	"github.com/ryanreadbooks/whimer/misc/utils"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
@@ -42,7 +41,6 @@ type NoteCreatorBiz interface {
 type noteCreatorBiz struct {
 	noteBiz
 	OssKeyGen *keygen.Generator
-	OssSigner *signer.Signer
 }
 
 func NewNoteCreatorBiz() NoteCreatorBiz {
@@ -52,13 +50,6 @@ func NewNoteCreatorBiz() NoteCreatorBiz {
 			keygen.WithPrefix(config.Conf.Oss.Prefix),
 			keygen.WithPrependBucket(true),
 		),
-		OssSigner: signer.NewSigner(
-			config.Conf.Oss.User,
-			config.Conf.Oss.Pass,
-			signer.Config{
-				Endpoint: config.Conf.Oss.DisplayEndpoint,
-				Location: config.Conf.Oss.Location,
-			}),
 	}
 
 	return b
@@ -255,33 +246,7 @@ func (b *noteCreatorBiz) PageListNote(ctx context.Context, cursor uint64, count 
 }
 
 func (b *noteCreatorBiz) GetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {
-	// 生成count个上传凭证
-	fileId := b.OssKeyGen.Gen()
-
-	now := time.Now()
-	currentTime := now.Unix()
-
-	// 生成签名
-	info, err := b.OssSigner.Sign(fileId)
-	if err != nil {
-		return nil, xerror.Wrapf(global.ErrPermDenied.Msg("服务器签名失败"), "%s", err.Error()).
-			WithExtra("fileId", fileId).WithCtx(ctx)
-	}
-
-	res := model.UploadAuthResponse{
-		FildId:      fileId,
-		CurrentTime: currentTime,
-		ExpireTime:  info.ExpireAt.Unix(),
-		UploadAddr:  config.Conf.Oss.UploadEndpoint,
-		Headers: model.UploadAuthResponseHeaders{
-			Auth:   info.Auth,
-			Date:   info.Date,
-			Sha256: info.Sha256,
-			Token:  info.Token,
-		},
-	}
-
-	return &res, nil
+	return nil, xerror.Wrap(global.ErrPermDenied.Msg("服务器签名失败"))
 }
 
 func (b *noteCreatorBiz) GetUploadAuthSTS(ctx context.Context,

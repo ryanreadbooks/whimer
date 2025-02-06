@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 
-	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
-	"github.com/ryanreadbooks/whimer/misc/xerror"
-	"github.com/ryanreadbooks/whimer/misc/xsql"
-	"github.com/ryanreadbooks/whimer/note/internal/biz/imgproxy"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
+
+	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
+	"github.com/ryanreadbooks/whimer/misc/imgproxy"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
 
 // NoteBiz作为最基础的biz可以被其它biz依赖，其它biz之间不能相互依赖
@@ -146,13 +147,15 @@ func (b *noteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 			UpdateAt: note.UpdateAt,
 			Owner:    note.Owner,
 		}
+
+		k, s := config.Conf.ImgProxyAuth.GetKey(), config.Conf.ImgProxyAuth.GetSalt()
 		for _, asset := range noteAssets {
 			assetMeta := model.NewAssetImageMetaFromJson(asset.AssetMeta)
 			if note.NoteId == asset.NoteId {
 				// pureKey := strings.TrimLeft(asset.AssetKey, config.Conf.Oss.Bucket+"/") // 此处要去掉桶名称
 				item.Images = append(item.Images, &model.NoteImage{
-					Url:    imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey),
-					UrlPrv: imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, imgproxy.WithQuality("28")),
+					Url:    imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, k, s),
+					UrlPrv: imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, k, s, imgproxy.WithQuality("28")),
 					Type:   int(asset.AssetType),
 					Meta: model.NoteImageMeta{
 						Width:  assetMeta.Width,

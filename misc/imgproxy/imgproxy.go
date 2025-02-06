@@ -7,8 +7,6 @@ import (
 	"encoding/hex"
 	"net/url"
 	"strings"
-
-	"github.com/ryanreadbooks/whimer/note/internal/config"
 )
 
 type processOption struct {
@@ -77,9 +75,9 @@ func pathJoin(host, signature, urlToSign string) string {
 // Generate public url for image asset key
 //
 // assetKey is like /bucket/keyName
-func GetSignedUrl(host, assetKey string, opts ...ProcessOpt) string {
+func GetSignedUrl(host, assetKey string, key, salt []byte, opts ...ProcessOpt) string {
 	urlToSign := getUrlToSign(assetKey, opts...)
-	signature := signUrl(urlToSign)
+	signature := signUrl(urlToSign, key, salt)
 	return pathJoin(host, signature, urlToSign)
 }
 
@@ -105,9 +103,9 @@ func signUrlWith(url string, key, salt string) string {
 	return signature
 }
 
-func signUrl(url string) string {
-	mac := hmac.New(sha256.New, config.Conf.ImgProxyAuth.GetKey())
-	mac.Write(config.Conf.ImgProxyAuth.GetSalt())
+func signUrl(url string, key, salt []byte) string {
+	mac := hmac.New(sha256.New, key)
+	mac.Write(salt)
 	mac.Write([]byte(url))
 	signature := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 

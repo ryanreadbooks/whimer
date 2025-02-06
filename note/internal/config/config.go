@@ -88,8 +88,6 @@ func (c *ImgProxyAuth) Init() error {
 }
 
 type Oss struct {
-	User            string `json:"user"`
-	Pass            string `json:"pass"`
 	Endpoint        string `json:"endpoint"`
 	Location        string `json:"location"`
 	Bucket          string `json:"bucket"`
