@@ -119,6 +119,9 @@ func (b *noteBiz) GetNoteOwner(ctx context.Context, noteId uint64) (uint64, erro
 // 笔记的资源数据，点赞等
 func (b *noteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*model.Notes, error) {
 	var noteIds = make([]uint64, 0, len(notes))
+	for _, n := range notes {
+		noteIds = append(noteIds, n.NoteId)
+	}
 
 	// 获取资源信息
 	noteAssets, err := infra.Dao().NoteAssetRepo.FindByNoteIds(ctx, noteIds)

@@ -26,7 +26,7 @@ func (r *AddReplyReq) Validate() error {
 		return global.ErrUnsupportedType
 	}
 
-	// 平陵对象id不能为空
+	// 评论对象id不能为空
 	if r.Oid == 0 {
 		return global.ErrObjectIdEmpty
 	}

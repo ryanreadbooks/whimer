@@ -418,6 +418,10 @@ func (b *commentBiz) BatchCheckUserIsReplied(ctx context.Context, uidOids map[ui
 func (b *commentBiz) GetPinnedReply(ctx context.Context, oid uint64) (*model.ReplyItem, error) {
 	pinned, err := infra.Dao().CommentDao.GetPinned(ctx, oid)
 	if err != nil {
+		if xsql.IsNotFound(err) {
+			return nil, global.ErrNoPinReply
+		}
+
 		return nil, xerror.Wrapf(err, "comment biz get pinned reply failed").WithExtra("oid", oid).WithCtx(ctx)
 	}
 

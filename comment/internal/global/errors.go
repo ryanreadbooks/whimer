@@ -39,4 +39,5 @@ var (
 	ErrGetReplyLikeCount    = ErrArgs.Msg("获取评论点赞失败")
 	ErrGetReplyDislikeCount = ErrArgs.Msg("获取评论点踩失败")
 	ErrUnsupportedAction    = ErrArgs.Msg("不支持的操作")
+	ErrNoPinReply           = ErrArgs.Msg("无置顶评论")
 )
