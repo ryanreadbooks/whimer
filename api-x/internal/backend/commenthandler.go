@@ -247,8 +247,8 @@ func attachReplyUsers(ctx context.Context, replies []*commentv1.ReplyItem) ([]*c
 	res := make([]*comment.ReplyItem, 0, len(replies))
 	for _, root := range replies {
 		res = append(res, &comment.ReplyItem{
-			ReplyItem: root,
-			User:      userResp.Users[formatUid(root.Uid)],
+			ReplyItemBase: comment.NewReplyItemBaseFromPb(root),
+			User:          userResp.Users[formatUid(root.Uid)],
 		})
 	}
 

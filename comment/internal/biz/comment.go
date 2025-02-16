@@ -151,9 +151,13 @@ func (b *commentBiz) findByIdForUpdate(ctx context.Context, rid uint64) (*model.
 func (b *commentBiz) isReplyAddable(ctx context.Context, rootId, parentId uint64) error {
 	// 两个都需要检查
 	if rootId != 0 {
-		_, err := b.findByIdForUpdate(ctx, rootId)
+		root, err := b.findByIdForUpdate(ctx, rootId)
 		if err != nil {
 			return xerror.Wrap(err)
+		}
+		// 确保root真的是root
+		if !root.IsRoot() {
+			return xerror.Wrap(global.ErrRootReplyIsNotRoot)
 		}
 		return nil
 	}

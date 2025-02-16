@@ -28,6 +28,7 @@ var (
 	ErrReplyNotFound      = ErrNotFound.Msg("评论不存在")
 	ErrReplyWrongRelation = ErrArgs.Msg("评论关系错误")
 	ErrYouDontOwnThis     = ErrPermDenied.Msg("你不是该评论的作者")
+	ErrRootReplyIsNotRoot = ErrArgs.Msg("指定根评论并非根评论")
 
 	ErrPinFailInternal      = ErrInternal.Msg("置顶操作失败，请稍后重试")
 	ErrUnPinFailInternal    = ErrInternal.Msg("取消置顶操作失败，请稍后重试")
