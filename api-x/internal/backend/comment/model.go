@@ -73,9 +73,51 @@ func (r *GetSubCommentsReq) AsPb() *commentv1.PageGetSubReplyRequest {
 	}
 }
 
+type ReplyItemBase struct {
+	Id        uint64 `json:"id"`         // 评论id
+	Oid       uint64 `json:"oid"`        // 被评论对象id
+	ReplyType uint32 `json:"reply_type"` // 评论类型
+	Content   string `json:"content"`    // 评论内容
+	Uid       uint64 `json:"uid"`        // 评论发表用户uid
+	RootId    uint64 `json:"root_id"`    // 根评论id
+	ParentId  uint64 `json:"parent_id"`  // 父评论id
+	Ruid      uint64 `json:"ruid"`       // 被回复的用户id
+	LikeCount uint64 `json:"like_count"` // 点赞数
+	HateCount uint64 `json:"-"`          // 点踩数
+	Ctime     int64  `json:"ctime"`      // 发布时间
+	Mtime     int64  `json:"mtime"`      // 修改时间
+	Ip        string `json:"ip"`         // 发布时ip地址
+	IsPin     bool   `json:"is_pin"`     // 是否为置顶评论
+	SubsCount uint64 `json:"subs_count"` // 子评论数
+}
+
 type ReplyItem struct {
-	*commentv1.ReplyItem
+	*ReplyItemBase
 	User *userv1.UserInfo `json:"user"`
+}
+
+func NewReplyItemBaseFromPb(p *commentv1.ReplyItem) *ReplyItemBase {
+	if p == nil {
+		return &ReplyItemBase{}
+	}
+
+	return &ReplyItemBase{
+		Id:        p.Id,
+		Oid:       p.Oid,
+		ReplyType: p.ReplyType,
+		Content:   p.Content,
+		Uid:       p.Uid,
+		RootId:    p.RootId,
+		ParentId:  p.ParentId,
+		Ruid:      p.Uid,
+		LikeCount: p.LikeCount,
+		HateCount: p.HateCount,
+		Mtime:     p.Mtime,
+		Ctime:     p.Ctime,
+		Ip:        p.Ip,
+		IsPin:     p.IsPin,
+		SubsCount: p.SubsCount,
+	}
 }
 
 type DetailedSubReply struct {
@@ -93,7 +135,7 @@ type DetailedReplyItem struct {
 func NewDetailedReplyItemFromPb(item *commentv1.DetailedReplyItem, userMap map[string]*userv1.UserInfo) *DetailedReplyItem {
 	details := &DetailedReplyItem{}
 	details.Root = &ReplyItem{
-		ReplyItem: item.Root,
+		ReplyItemBase: NewReplyItemBaseFromPb(item.Root),
 	}
 	if userMap != nil {
 		details.Root.User = userMap[xconv.FormatUint(item.Root.Uid)]
@@ -106,7 +148,7 @@ func NewDetailedReplyItemFromPb(item *commentv1.DetailedReplyItem, userMap map[s
 	}
 	for _, sub := range item.SubReplies.Items {
 		item := &ReplyItem{
-			ReplyItem: sub,
+			ReplyItemBase: NewReplyItemBaseFromPb(sub),
 		}
 		if userMap != nil {
 			item.User = userMap[xconv.FormatUint(sub.Uid)]
@@ -155,8 +197,8 @@ func (r *PinReq) Validate() error {
 type ThumbAction uint8
 
 const (
-	ThumbActionUndo ThumbAction = ThumbAction(commentv1.ReplyAction_REPLY_ACTION_UNDO) // 取消
-	ThumbActionDo   ThumbAction = ThumbAction(commentv1.ReplyAction_REPLY_ACTION_DO)   // 执行
+	ThumbActionUndo ThumbAction = ThumbAction(commentv1.ReplyAction_REPLY_ACTION_UNDO) // 取消 0
+	ThumbActionDo   ThumbAction = ThumbAction(commentv1.ReplyAction_REPLY_ACTION_DO)   // 执行 1
 )
 
 type thumbActionChecker struct{}

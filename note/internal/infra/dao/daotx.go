@@ -58,7 +58,7 @@ func (d *Dao) UpdateNote(ctx context.Context, note *Note, assets []*NoteAsset) e
 
 		// 找出旧资源
 		oldAssets, err := d.NoteAssetRepo.FindImageByNoteIdTx(ctx, tx, note.Id)
-		if err != nil && !errors.Is(xsql.ErrNoRecord, err) {
+		if err != nil && !errors.Is(err, xsql.ErrNoRecord) {
 			return xerror.Wrapf(err, "noteasset dao find failed")
 		}
 

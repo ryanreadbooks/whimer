@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/note"
@@ -12,6 +13,18 @@ import (
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
+
+func (h *Handler) hasNoteCheck(ctx context.Context, noteId uint64) error {
+	if resp, err := note.NoteCreatorServer().IsNoteExist(ctx, &notev1.IsNoteExistRequest{NoteId: noteId}); err != nil {
+		return err
+	} else {
+		if !resp.Exist {
+			return xerror.ErrArgs.Msg("笔记不存在")
+		}
+	}
+
+	return nil
+}
 
 func (h *Handler) AdminCreateNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

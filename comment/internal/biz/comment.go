@@ -151,9 +151,13 @@ func (b *commentBiz) findByIdForUpdate(ctx context.Context, rid uint64) (*model.
 func (b *commentBiz) isReplyAddable(ctx context.Context, rootId, parentId uint64) error {
 	// 两个都需要检查
 	if rootId != 0 {
-		_, err := b.findByIdForUpdate(ctx, rootId)
+		root, err := b.findByIdForUpdate(ctx, rootId)
 		if err != nil {
 			return xerror.Wrap(err)
+		}
+		// 确保root真的是root
+		if !root.IsRoot() {
+			return xerror.Wrap(global.ErrRootReplyIsNotRoot)
 		}
 		return nil
 	}
@@ -418,6 +422,10 @@ func (b *commentBiz) BatchCheckUserIsReplied(ctx context.Context, uidOids map[ui
 func (b *commentBiz) GetPinnedReply(ctx context.Context, oid uint64) (*model.ReplyItem, error) {
 	pinned, err := infra.Dao().CommentDao.GetPinned(ctx, oid)
 	if err != nil {
+		if xsql.IsNotFound(err) {
+			return nil, global.ErrNoPinReply
+		}
+
 		return nil, xerror.Wrapf(err, "comment biz get pinned reply failed").WithExtra("oid", oid).WithCtx(ctx)
 	}
 

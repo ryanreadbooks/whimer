@@ -48,6 +48,11 @@ func (h *Handler) PageGetRoots() http.HandlerFunc {
 			return
 		}
 
+		if err := h.hasNoteCheck(r.Context(), req.Oid); err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
 		ctx := r.Context()
 		rootReplies, err := comment.Commenter().
 			PageGetReply(ctx, req.AsPb())
@@ -79,6 +84,11 @@ func (h *Handler) PageGetSubs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[comment.GetSubCommentsReq](httpx.Parse, r)
 		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		if err := h.hasNoteCheck(r.Context(), req.Oid); err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
@@ -127,6 +137,11 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[comment.GetCommentsReq](httpx.Parse, r)
 		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		if err := h.hasNoteCheck(r.Context(), req.Oid); err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
@@ -199,10 +214,12 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 		}
 
 		var pinned *comment.DetailedReplyItem
+		wg.Wait()
 		if req.Cursor == 0 {
-			wg.Wait()
 			// 置顶
-			pinned = comment.NewDetailedReplyItemFromPb(pinnedReply, pinnedReplyUser)
+			if pinnedReply != nil { // 有些可能没有设置置顶评论
+				pinned = comment.NewDetailedReplyItemFromPb(pinnedReply, pinnedReplyUser)
+			}
 		}
 
 		httpx.OkJson(w, &comment.DetailedCommentRes{
@@ -230,8 +247,8 @@ func attachReplyUsers(ctx context.Context, replies []*commentv1.ReplyItem) ([]*c
 	res := make([]*comment.ReplyItem, 0, len(replies))
 	for _, root := range replies {
 		res = append(res, &comment.ReplyItem{
-			ReplyItem: root,
-			User:      userResp.Users[formatUid(root.Uid)],
+			ReplyItemBase: comment.NewReplyItemBaseFromPb(root),
+			User:          userResp.Users[formatUid(root.Uid)],
 		})
 	}
 

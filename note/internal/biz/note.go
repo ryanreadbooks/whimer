@@ -119,6 +119,9 @@ func (b *noteBiz) GetNoteOwner(ctx context.Context, noteId uint64) (uint64, erro
 // 笔记的资源数据，点赞等
 func (b *noteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*model.Notes, error) {
 	var noteIds = make([]uint64, 0, len(notes))
+	for _, n := range notes {
+		noteIds = append(noteIds, n.NoteId)
+	}
 
 	// 获取资源信息
 	noteAssets, err := infra.Dao().NoteAssetRepo.FindByNoteIds(ctx, noteIds)
@@ -145,8 +148,9 @@ func (b *noteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 			if note.NoteId == asset.NoteId {
 				// pureKey := strings.TrimLeft(asset.AssetKey, config.Conf.Oss.Bucket+"/") // 此处要去掉桶名称
 				item.Images = append(item.Images, &model.NoteImage{
-					Url:    imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, k, s),
-					UrlPrv: imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, k, s, imgproxy.WithQuality("28")),
+					// TODO 大图片的占用还是太大了
+					Url:    imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, k, s, imgproxy.WithQuality("15")),
+					UrlPrv: imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, k, s, imgproxy.WithQuality("1")),
 					Type:   int(asset.AssetType),
 					Meta: model.NoteImageMeta{
 						Width:  assetMeta.Width,
