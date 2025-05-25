@@ -5,6 +5,7 @@ go 1.22
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.2-20240717164558-a6c49f84cc0f.2
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
+	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/zeromicro/go-zero v1.7.3
 	google.golang.org/grpc v1.65.0
@@ -105,3 +106,5 @@ require (
 )
 
 replace github.com/ryanreadbooks/whimer/misc => ../misc
+
+replace github.com/ryanreadbooks/whimer/passport => ../passport

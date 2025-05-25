@@ -1,7 +1,7 @@
-passport: go run passport/cmd/main.go -f passport/etc/passport.yaml
-counter: go run counter/cmd/main.go -f counter/etc/counter.yaml
-note: go run note/cmd/main.go -f note/etc/note.yaml
-comment: go run comment/cmd/main.go -f comment/etc/comment.yaml
-relation: go run relation/cmd/main.go -f relation/etc/relation.yaml
-feed: go run feed/cmd/main.go -f feed/etc/feed.yaml
-api-x: go run api-x/cmd/main.go -f api-x/etc/api-x.yaml
+passport: cd passport && go run cmd/main.go -f etc/passport.yaml
+counter: cd counter && go run cmd/main.go -f etc/counter.yaml
+note: cd note && go run cmd/main.go -f etc/note.yaml
+comment: cd comment && go run cmd/main.go -f etc/comment.yaml
+relation: cd relation && go run cmd/main.go -f etc/relation.yaml
+feed: cd feed && go run cmd/main.go -f etc/feed.yaml
+api-x: cd api-x && go run cmd/main.go -f etc/api-x.yaml

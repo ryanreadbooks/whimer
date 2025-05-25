@@ -88,7 +88,7 @@ func (d *UserDao) FindPassAndSaltByUid(ctx context.Context, uid uint64) (*PassAn
 	return model, xerror.Wrapf(xsql.ConvertError(err), "user dao query pass and salt failed")
 }
 
-func (d *UserDao) findUserBaseBy(ctx context.Context, cond string, val interface{}) (*UserBase, error) {
+func (d *UserDao) findUserBaseBy(ctx context.Context, cond string, val any) (*UserBase, error) {
 	model := new(UserBase)
 	err := d.db.QueryRowCtx(ctx, model, fmt.Sprintf(sqlFindBasic, cond), val)
 	return model, xerror.Wrapf(xsql.ConvertError(err), "user dao query user base %s=%v failed", cond, val)
