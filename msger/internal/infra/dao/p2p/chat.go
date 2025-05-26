@@ -10,14 +10,14 @@ type Chat struct {
 	UnReadCount       int64 `db:"unread_count"`
 	Ctime             int64 `db:"ctime"`
 	LastMessageId     int64 `db:"last_message_id"`
-	LastMessageTime   int64 `db:"last_message_time"`
+	LastMessageSeq    int64 `db:"last_message_seq"`
 	LastReadMessageId int64 `db:"last_read_message_id"`
 	LastReadTime      int64 `db:"last_read_time"`
 }
 
 var (
-	_inst = &Chat{}
+	_chatInst = &Chat{}
 
-	dbFields          = xsql.GetFields(_inst)
-	insFields, insQst = xsql.GetFields2(_inst, "id") // for insert
+	chatFields                = xsql.GetFields(_chatInst)
+	insChatFields, insChatQst = xsql.GetFields2(_chatInst, "id") // for insert
 )

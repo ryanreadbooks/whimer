@@ -13,6 +13,7 @@ type Dao struct {
 	db *xsql.DB
 
 	P2PChatDao *p2p.ChatDao
+	P2PMsgDao  *p2p.MessageDao
 }
 
 func New(c *config.Config, cache *redis.Redis) *Dao {
@@ -36,6 +37,7 @@ func New(c *config.Config, cache *redis.Redis) *Dao {
 	return &Dao{
 		db:         db,
 		P2PChatDao: p2p.NewChatDao(db),
+		P2PMsgDao:  p2p.NewMessageDao(db),
 	}
 }
 

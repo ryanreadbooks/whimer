@@ -5,4 +5,5 @@ const (
 	BizPassport = 30000
 	BizComment  = 40000
 	BizCounter  = 50000
+	BizMsger    = 60000
 )
