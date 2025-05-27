@@ -101,6 +101,7 @@ func (b *p2pChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg
 	}
 
 	// TODO 检查是否允许发送
+
 	uid1 := min(req.Sender, req.Receiver)
 	uid2 := max(req.Sender, req.Receiver)
 	msgNo, err := dep.Idgen().GetId(ctx, fmt.Sprintf(msgIdGenKey, uid1, uid2), msgIdGenStep)
@@ -123,13 +124,42 @@ func (b *p2pChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg
 	}
 
 	err = infra.Dao().DB().Transact(ctx, func(ctx context.Context) error {
-
+		// 创建消息
 		err = infra.Dao().P2PMsgDao.Create(ctx, msgPo)
 		if err != nil {
 			return xerror.Wrapf(err, "p2p msg dao failed to create")
 		}
 
-		// TODO 写入inbox
+		// 写入inbox
+		senderInbox := p2pdao.InboxMsg{
+			UserId: req.Sender,
+			ChatId: msgPo.ChatId,
+			MsgId:  msgId,
+			Status: int8(InboxRead),
+		}
+		receiverInbox := p2pdao.InboxMsg{
+			UserId: req.Receiver,
+			ChatId: msgPo.ChatId,
+			MsgId:  msgId,
+			Status: int8(InboxUnread),
+		}
+		err := infra.Dao().P2PInboxDao.BatchCreate(ctx, []*p2pdao.InboxMsg{&senderInbox, &receiverInbox})
+		if err != nil {
+			return xerror.Wrapf(err, "p2p inbox dao failed to batch create")
+		}
+
+		// 更新receiver的未读数
+		err = infra.Dao().P2PChatDao.UpdateLastMsg(ctx, msgId, msgPo.Seq, req.ChatId, req.Receiver, true)
+		if err != nil {
+			return xerror.Wrapf(err, "p2p chat dao failed to update last msg for sender")
+		}
+
+		// 更新sender的消息
+		err = infra.Dao().P2PChatDao.UpdateLastMsg(ctx, msgId, msgPo.Seq, req.ChatId, req.Sender, false)
+		if err != nil {
+			return xerror.Wrapf(err, "p2p chat dao failed to update last msg for sender")
+		}
+
 		return nil
 	})
 

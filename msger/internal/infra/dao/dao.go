@@ -12,8 +12,9 @@ import (
 type Dao struct {
 	db *xsql.DB
 
-	P2PChatDao *p2p.ChatDao
-	P2PMsgDao  *p2p.MessageDao
+	P2PChatDao  *p2p.ChatDao
+	P2PMsgDao   *p2p.MessageDao
+	P2PInboxDao *p2p.InboxDao
 }
 
 func New(c *config.Config, cache *redis.Redis) *Dao {
@@ -35,9 +36,10 @@ func New(c *config.Config, cache *redis.Redis) *Dao {
 
 	db := xsql.New(conn)
 	return &Dao{
-		db:         db,
-		P2PChatDao: p2p.NewChatDao(db),
-		P2PMsgDao:  p2p.NewMessageDao(db),
+		db:          db,
+		P2PChatDao:  p2p.NewChatDao(db),
+		P2PMsgDao:   p2p.NewMessageDao(db),
+		P2PInboxDao: p2p.NewInboxDao(db),
 	}
 }
 

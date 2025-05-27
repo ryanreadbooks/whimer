@@ -30,7 +30,7 @@ func BatchExec[T any](list []T, batchsize int, f func(start, end int) error) err
 	batchsize, total := cal(l, batchsize)
 
 	var final error
-	for i := 0; i < total; i++ {
+	for i := range total {
 		start := i * batchsize
 		end := (i + 1) * batchsize
 		if end > l {
@@ -56,7 +56,7 @@ func BatchAsyncExec[T any](wg *sync.WaitGroup, list []T, batchsize int, f func(s
 	batchsize, total := cal(l, batchsize)
 
 	errors := make(chan error, total)
-	for i := 0; i < total; i++ {
+	for i := range total {
 		start := i * batchsize
 		end := (i + 1) * batchsize
 		if end > l {

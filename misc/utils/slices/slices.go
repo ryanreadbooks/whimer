@@ -72,3 +72,12 @@ func AsMap[T comparable](a []T) map[T]struct{} {
 
 	return m
 }
+
+func Repeat[T any](v T, n int) []T {
+	r := make([]T, 0, n)
+	for range n {
+		r = append(r, v)
+	}
+
+	return r
+}

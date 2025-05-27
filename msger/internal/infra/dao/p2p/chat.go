@@ -9,9 +9,9 @@ type Chat struct {
 	PeerId            int64 `db:"peer_id"`
 	UnReadCount       int64 `db:"unread_count"`
 	Ctime             int64 `db:"ctime"`
-	LastMessageId     int64 `db:"last_message_id"`
+	LastMessageId     int64 `db:"last_message_id"` // last_message可以是对方的也可以是自己的
 	LastMessageSeq    int64 `db:"last_message_seq"`
-	LastReadMessageId int64 `db:"last_read_message_id"`
+	LastReadMessageId int64 `db:"last_read_message_id"` // last_read记录的是对方的消息
 	LastReadTime      int64 `db:"last_read_time"`
 }
 

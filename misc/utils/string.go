@@ -60,7 +60,7 @@ func RandomString(size int) string {
 	var bd strings.Builder
 	bd.Grow(size)
 
-	for i := 0; i < size; i++ {
+	for range size {
 		bd.WriteByte(candis[rand.Intn(candisLen)])
 	}
 
@@ -70,14 +70,14 @@ func RandomString(size int) string {
 func RandomByte(size int) []byte {
 	var bd bytes.Buffer
 	bd.Grow(size)
-	for i := 0; i < size; i++ {
+	for range size {
 		bd.WriteByte(byteCandis[rand.Intn(byteCandisLen)])
 	}
 
 	return bd.Bytes()
 }
 
-func SecureRandomString(size int) (s string, err error) {
+func CryptoRandomString(size int) (s string, err error) {
 	var buf = make([]byte, size)
 	_, err = crand.Read(buf)
 	if err != nil {
