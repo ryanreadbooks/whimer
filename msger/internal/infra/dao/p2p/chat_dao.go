@@ -61,11 +61,10 @@ func (d *ChatDao) Create(ctx context.Context, chat *Chat) (int64, error) {
 		chat.ChatId,
 		chat.UserId,
 		chat.PeerId,
-		chat.UnReadCount,
+		chat.UnreadCount,
 		chat.Ctime,
 		chat.LastMessageId,
 		chat.LastMessageSeq,
-		chat.LastReadMessageId,
 		chat.LastReadTime,
 	)
 	if err != nil {
@@ -133,17 +132,9 @@ func (d *ChatDao) UpdateLastMsg(ctx context.Context,
 	return xsql.ConvertError(err)
 }
 
-func (d *ChatDao) UpdateLastRead(ctx context.Context,
-	lastReadMsgId, lastReadTime int64,
-	chatId, userId int64,
-	decUnread bool,
-) error {
-	sql := "UPDATE p2p_chat SET last_read_message_id=?, last_read_seq=?"
-	if decUnread {
-		sql += ", unread_count=unread_count-1"
-	}
-	sql += " WHERE chat_id=? AND user_id=?"
-	_, err := d.db.ExecCtx(ctx, sql, lastReadMsgId, lastReadTime, chatId, userId)
-
+// 清除未读数
+func (d *ChatDao) ResetUnreadCount(ctx context.Context, chatId, userId int64) error {
+	sql := fmt.Sprintf("UPDATE p2p_chat SET unread_count=0, last_read_time=? WHERE chat_id=? AND user_id=?")
+	_, err := d.db.ExecCtx(ctx, sql, time.Now().UnixNano(), chatId, userId)
 	return xsql.ConvertError(err)
 }

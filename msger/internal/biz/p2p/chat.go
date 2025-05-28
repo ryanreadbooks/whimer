@@ -38,7 +38,7 @@ func NewP2PChatBiz() ChatBiz {
 	return nil
 }
 
-// 两个用户开启会话
+// 两个用户开启会话, userA发起请求
 func (b *p2pChatBiz) InitChat(ctx context.Context, userA, userB int64) (int64, error) {
 	// TODO 检查两个user的合法性
 

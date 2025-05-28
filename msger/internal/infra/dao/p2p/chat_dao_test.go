@@ -6,14 +6,13 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-
 func TestChatDao_Create(t *testing.T) {
 	Convey("TestChatDao_Create", t, func() {
 		id, err := chatDao.Create(ctx, &Chat{
 			ChatId:      100,
 			UserId:      10,
 			PeerId:      20,
-			UnReadCount: 100,
+			UnreadCount: 100,
 		})
 		So(err, ShouldBeNil)
 		So(id, ShouldNotBeZeroValue)

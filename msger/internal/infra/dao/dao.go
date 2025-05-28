@@ -5,7 +5,6 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/internal/config"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra/dao/p2p"
 
-	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -17,7 +16,7 @@ type Dao struct {
 	P2PInboxDao *p2p.InboxDao
 }
 
-func New(c *config.Config, cache *redis.Redis) *Dao {
+func New(c *config.Config) *Dao {
 	conn := sqlx.NewMysql(xsql.GetDsn(
 		c.MySql.User,
 		c.MySql.Pass,
