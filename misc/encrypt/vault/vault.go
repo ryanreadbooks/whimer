@@ -1,17 +1,15 @@
-package encrypt
+package vault
 
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
 	"github.com/ryanreadbooks/whimer/misc/encrypt"
 	"github.com/ryanreadbooks/whimer/misc/utils"
-	"github.com/ryanreadbooks/whimer/misc/xhttp/client"
+	xclient "github.com/ryanreadbooks/whimer/misc/xhttp/client"
 )
 
 const (
@@ -27,12 +25,14 @@ type vaultResponse struct {
 }
 
 type vaultResponseData struct {
-	Cipertext  string `json:"cipertext"`
-	KeyVersion string `json:"key_version"`
+	Ciphertext string `json:"ciphertext,omitempty"`
+	Plaintext  string `json:"plaintext,omitempty"`
+	KeyVersion int64  `json:"key_version,omitempty"`
 }
 
 type Option struct {
-	Addr    string `json:"addr" yaml:"addr"`
+	Schema  string `json:"schema" yaml:"schema"`
+	Host    string `json:"host" yaml:"host"`
 	KeyName string `json:"key_name" yaml:"key_name"`
 	Token   string `json:"token" yaml:"token"`
 	// 指定了context(base64格式)后，相同的明文会加密成相同的密文, 但是创建token需要支持
@@ -42,22 +42,31 @@ type Option struct {
 // Vault Docs: https://developer.hashicorp.com/vault/tutorials/encryption-as-a-service/eaas-transit#encrypt-secrets
 type Valut struct {
 	opt *Option
-	cli *client.Client
+	cli *xclient.Client
 
 	encPath, decPath string
 }
 
-func New(opt *Option) encrypt.Encryptor {
+func New(opt Option) encrypt.Encryptor {
+	if opt.Context != "" {
+		_, err := base64.StdEncoding.DecodeString(opt.Context)
+		if err != nil {
+			opt.Context = base64.StdEncoding.EncodeToString(utils.StringToBytes(opt.Context))
+		}
+	}
+
 	v := &Valut{
-		opt:     opt,
+		opt:     &opt,
 		encPath: fmt.Sprintf("/v1/transit/encrypt/%s", opt.KeyName),
 		decPath: fmt.Sprintf("/v1/transit/decrypt/%s", opt.KeyName),
 	}
 
+	v.cli = xclient.New(opt.Schema, opt.Host)
+
 	return v
 }
 
-func (v *Valut) Encrypt(ctx context.Context, plain string) (enc string, err error) {
+func (v *Valut) Encrypt(ctx context.Context, plain string) (string, error) {
 	// do base64 first
 	data := base64.StdEncoding.EncodeToString(utils.StringToBytes(plain))
 	var reqBody string
@@ -77,28 +86,43 @@ func (v *Valut) Encrypt(ctx context.Context, plain string) (enc string, err erro
 	}
 	req.Header.Add(vaultReqTokenHeaderKey, v.opt.Token)
 
-	resp, err := v.cli.Do(req)
+	var respData vaultResponse
+	_, err = v.cli.Fetch(req, &respData)
 	if err != nil {
 		return "", fmt.Errorf("vault failed to encrypt: %w", err)
 	}
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("vault failed to read respbody: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("vault return non ok: %s", resp.Status)
-	}
 
-	var respData vaultResponse
-	err = json.Unmarshal(respBody, &respData)
-	if err != nil {
-		return "", fmt.Errorf("valut failed to unmarshal body: %w", err)
-	}
-
-	return respData.Data.Cipertext, nil
+	return respData.Data.Ciphertext, nil
 }
 
-func (v *Valut) Decrypt(ctx context.Context, enc string) (plain string, err error) {
-	return "", nil
+func (v *Valut) Decrypt(ctx context.Context, ciphertext string) (string, error) {
+	var reqBody string
+	if v.opt.Context != "" {
+		reqBody = fmt.Sprintf(`{"ciphertext": "%s", "context": "%s"}`, ciphertext, v.opt.Context)
+	} else {
+		reqBody = fmt.Sprintf(`{"ciphertext": "%s"}`, ciphertext)
+	}
+
+	req, err := http.NewRequestWithContext(ctx,
+		http.MethodPost,
+		v.decPath,
+		strings.NewReader(reqBody),
+	)
+	if err != nil {
+		return "", fmt.Errorf("vault failed to create request: %w", err)
+	}
+	req.Header.Add(vaultReqTokenHeaderKey, v.opt.Token)
+
+	var respData vaultResponse
+	_, err = v.cli.Fetch(req, &respData)
+	if err != nil {
+		return "", fmt.Errorf("vault failed to decrypt: %w", err)
+	}
+
+	plaintext, err := base64.StdEncoding.DecodeString(respData.Data.Plaintext)
+	if err != nil {
+		return "", fmt.Errorf("vault failed to base64 decode: %w", err)
+	}
+
+	return string(plaintext), nil
 }
