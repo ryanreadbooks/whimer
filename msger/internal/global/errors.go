@@ -19,5 +19,6 @@ var (
 
 	ErrNilReq = ErrArgs.Msg("请求参数为空")
 
-	ErrP2PChatNotExist = ErrArgs.Msg("会话不存在")
+	ErrP2PChatNotExist  = ErrArgs.Msg("会话不存在")
+	ErrP2PChatUserEmpty = ErrArgs.Msg("会话用户不存在")
 )

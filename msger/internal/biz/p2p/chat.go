@@ -35,7 +35,7 @@ type p2pChatBiz struct {
 }
 
 func NewP2PChatBiz() ChatBiz {
-	return nil
+	return &p2pChatBiz{}
 }
 
 // 两个用户开启会话, userA发起请求

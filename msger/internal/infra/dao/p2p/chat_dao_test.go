@@ -25,3 +25,14 @@ func TestChatDao_InitChat(t *testing.T) {
 		So(err, ShouldBeNil)
 	})
 }
+
+func TestChatDao_GetByUsers(t *testing.T) {
+	Convey("TestChatDao_InitChat", t, func() {
+		err := chatDao.InitChat(ctx, 900, 1000, 300)
+		So(err, ShouldBeNil)
+
+		c, err := chatDao.GetByUsers(ctx, 1000, 300)
+		So(err, ShouldBeNil)
+		t.Log(c)
+	})
+}

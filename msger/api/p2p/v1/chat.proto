@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package msger.api.p2p.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/msger/api/p2p/v1";
+
+message CreateChatRequest {
+  int64 initiator = 1; // 发起人
+  int64 target = 2;    // 目标
+}
+
+message CreateChatResponse { int64 chat_id = 1; }
+
+// p2p会话相关服务
+service ChatService {
+  // 创建会话
+  rpc CreateChat(CreateChatRequest) returns (CreateChatResponse);
+}

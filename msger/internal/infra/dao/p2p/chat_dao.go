@@ -88,7 +88,7 @@ func (d *ChatDao) GetByUsers(ctx context.Context, userA, userB int64) (*Chat, er
 	var chat Chat
 	sql := fmt.Sprintf(
 		"SELECT %s FROM p2p_chat WHERE (user_id=? AND peer_id=?) OR (user_id=? AND peer_id=?) LIMIT 1", chatFields)
-	err := d.db.QueryRowsCtx(ctx, &chat, sql, userA, userB, userB, userA)
+	err := d.db.QueryRowCtx(ctx, &chat, sql, userA, userB, userB, userA)
 	return &chat, xsql.ConvertError(err)
 }
 
