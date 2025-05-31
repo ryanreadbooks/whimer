@@ -9,7 +9,7 @@ import (
 
 func TestMessageDao_Create(t *testing.T) {
 	Convey("TestMessageDao_Create", t, func() {
-		err := messageDao.Create(ctx, &Message{
+		err := messageDao.Create(ctx, &MessagePO{
 			MsgId:    1,
 			SenderId: 100,
 			ChatId:   10,

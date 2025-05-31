@@ -1,29 +1,8 @@
 package p2p
 
-// 定义消息的类型
-type MsgType int8
-
-const (
-	MsgText  MsgType = 1
-	MsgImage MsgType = 10
-	MsgVideo MsgType = 20
-)
-
-// 定义消息的状态
-type MsgStatus int8
-
-const (
-	MsgStatusNormal  MsgStatus = 0
-	MsgStatusRevoked MsgStatus = 1
-)
-
-// 收件箱状态
-type InboxStatus int8
-
-const (
-	InboxUnread  InboxStatus = 0
-	InboxRead    InboxStatus = 1
-	InboxRevoked InboxStatus = 2
+import (
+	gm "github.com/ryanreadbooks/whimer/msger/internal/global/model"
+	p2pdao "github.com/ryanreadbooks/whimer/msger/internal/infra/dao/p2p"
 )
 
 type ChatMsg struct {
@@ -31,16 +10,40 @@ type ChatMsg struct {
 	Sender   int64
 	Receiver int64
 	ChatId   int64
-	Type     MsgType
-	Status   MsgStatus
+	Type     gm.MsgType
+	Status   gm.MsgStatus
 	Content  string
 	Seq      int64
+}
+
+func MakeChatMsgFromPO(po *p2pdao.MessagePO, recv int64) *ChatMsg {
+	if po == nil {
+		return &ChatMsg{}
+	}
+
+	// po中没有记录receiver
+	cm := &ChatMsg{
+		MsgId:    po.MsgId,
+		Sender:   po.SenderId,
+		Receiver: recv,
+		ChatId:   po.ChatId,
+		Type:     gm.MsgType(po.MsgType),
+		Status:   gm.MsgStatus(po.Status),
+		Seq:      po.Seq,
+		Content:  po.Content,
+	}
+
+	if cm.Status == gm.MsgStatusRevoked {
+		cm.Content = "" // 已撤回
+	}
+
+	return cm
 }
 
 type CreateMsgReq struct {
 	ChatId   int64
 	Sender   int64
 	Receiver int64
-	MsgType  MsgType
+	MsgType  gm.MsgType
 	Content  string
 }

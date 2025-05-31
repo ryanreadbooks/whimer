@@ -5,7 +5,6 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/util"
 
@@ -16,7 +15,7 @@ type UnaryServerMetadataChecker func(ctx context.Context, info *grpc.UnaryServer
 
 func UidExistence(ctx context.Context, info *grpc.UnaryServerInfo) error {
 	uid := metadata.Uid(ctx)
-	if uid <= 0 {
+	if uid == 0 {
 		return xerror.ErrNotLogin
 	}
 
@@ -25,7 +24,7 @@ func UidExistence(ctx context.Context, info *grpc.UnaryServerInfo) error {
 
 func UidExistenceLoose(ctx context.Context, info *grpc.UnaryServerInfo) error {
 	uid := metadata.Uid(ctx)
-	if uid <= 0 {
+	if uid == 0 {
 		xlog.Msg("uid not found in grpc incoming metadata").Info()
 	}
 
@@ -89,7 +88,7 @@ func UidExistenceWithOpt(opts ...Option) UnaryServerMetadataChecker {
 		}
 
 		uid := metadata.Uid(ctx)
-		if uid <= 0 {
+		if uid == 0 {
 			return xerror.ErrNotLogin
 		}
 

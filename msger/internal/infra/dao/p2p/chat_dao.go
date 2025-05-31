@@ -27,13 +27,13 @@ func (d *ChatDao) DB() *xsql.DB {
 // 数据表中新建两条记录
 func (d *ChatDao) InitChat(ctx context.Context, chatId, userA, userB int64) error {
 	now := time.Now().UnixNano()
-	ins1 := Chat{
+	ins1 := ChatPO{
 		ChatId: chatId,
 		Ctime:  now,
 		UserId: userA,
 		PeerId: userB,
 	}
-	ins2 := Chat{
+	ins2 := ChatPO{
 		ChatId: chatId,
 		Ctime:  now,
 		UserId: userB,
@@ -51,7 +51,7 @@ func (d *ChatDao) InitChat(ctx context.Context, chatId, userA, userB int64) erro
 }
 
 // 插入一条记录
-func (d *ChatDao) Create(ctx context.Context, chat *Chat) (int64, error) {
+func (d *ChatDao) Create(ctx context.Context, chat *ChatPO) (int64, error) {
 	if chat.Ctime == 0 {
 		chat.Ctime = time.Now().UnixNano()
 	}
@@ -76,16 +76,16 @@ func (d *ChatDao) Create(ctx context.Context, chat *Chat) (int64, error) {
 }
 
 // 按照会话id获取会话记录
-func (d *ChatDao) GetByChatId(ctx context.Context, chatId int64) ([]*Chat, error) {
-	var chat []*Chat
+func (d *ChatDao) GetByChatId(ctx context.Context, chatId int64) ([]*ChatPO, error) {
+	var chat []*ChatPO
 	sql := fmt.Sprintf("SELECT %s FROM p2p_chat WHERE chat_id=?", chatFields)
 	err := d.db.QueryRowsCtx(ctx, &chat, sql, chatId)
 	return chat, xsql.ConvertError(err)
 }
 
 // 按照两个用户获取会话记录
-func (d *ChatDao) GetByUsers(ctx context.Context, userA, userB int64) (*Chat, error) {
-	var chat Chat
+func (d *ChatDao) GetByUsers(ctx context.Context, userA, userB int64) (*ChatPO, error) {
+	var chat ChatPO
 	sql := fmt.Sprintf(
 		"SELECT %s FROM p2p_chat WHERE (user_id=? AND peer_id=?) OR (user_id=? AND peer_id=?) LIMIT 1", chatFields)
 	err := d.db.QueryRowCtx(ctx, &chat, sql, userA, userB, userB, userA)
@@ -100,16 +100,16 @@ func (d *ChatDao) CountByUserId(ctx context.Context, userId int64) (int64, error
 	return cnt, xsql.ConvertError(err)
 }
 
-func (d *ChatDao) GetByChatIdUserId(ctx context.Context, chatId, userId int64) (*Chat, error) {
-	var chat Chat
+func (d *ChatDao) GetByChatIdUserId(ctx context.Context, chatId, userId int64) (*ChatPO, error) {
+	var chat ChatPO
 	sql := fmt.Sprintf("SELECT %s FROM p2p_chat WHERE chat_id=? AND user_id=?", chatFields)
 	err := d.db.QueryRowCtx(ctx, &chat, sql, chatId, userId)
 	return &chat, xsql.ConvertError(err)
 }
 
 // 分页获取
-func (d *ChatDao) PageGetByUserId(ctx context.Context, userId int64, lastSeq int64, count int) ([]*Chat, error) {
-	var chats []*Chat
+func (d *ChatDao) PageGetByUserId(ctx context.Context, userId int64, lastSeq int64, count int) ([]*ChatPO, error) {
+	var chats []*ChatPO
 	sql := fmt.Sprintf(
 		"SELECT %s FROM p2p_chat WHERE user_id=? AND last_message_time<? ORDER BY last_message_seq DESC LIMIT ?", chatFields)
 	err := d.db.QueryRowsCtx(ctx, &chats, sql, userId, lastSeq, count)

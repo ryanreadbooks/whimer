@@ -13,9 +13,9 @@ type MdExtractor interface {
 
 func (ij UidMdInOut) Extract(ctx context.Context, md grpcmetadata.MD) context.Context {
 	res := md.Get(CtxUidKey)
-	var uid uint64
+	var uid int64
 	if len(res) > 0 {
-		uid, _ = strconv.ParseUint(res[0], 10, 64)
+		uid, _ = strconv.ParseInt(res[0], 10, 64)
 	}
 
 	return WithUid(ctx, uid)

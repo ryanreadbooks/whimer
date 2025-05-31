@@ -2,7 +2,7 @@ package p2p
 
 import "github.com/ryanreadbooks/whimer/misc/xsql"
 
-type Chat struct {
+type ChatPO struct {
 	Id             int64 `db:"id"`
 	ChatId         int64 `db:"chat_id"`
 	UserId         int64 `db:"user_id"`
@@ -15,7 +15,7 @@ type Chat struct {
 }
 
 var (
-	_chatInst = &Chat{}
+	_chatInst = &ChatPO{}
 
 	chatFields                = xsql.GetFields(_chatInst)
 	insChatFields, insChatQst = xsql.GetFields2(_chatInst, "id") // for insert

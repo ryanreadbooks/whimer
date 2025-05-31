@@ -21,7 +21,7 @@ type UidMdInOut struct{}
 
 func (ij UidMdInOut) Inject(ctx context.Context) context.Context {
 	uid := Uid(ctx)
-	return grpcmetadata.AppendToOutgoingContext(ctx, CtxUidKey, strconv.FormatUint(uid, 10))
+	return grpcmetadata.AppendToOutgoingContext(ctx, CtxUidKey, strconv.FormatInt(uid, 10))
 }
 
 type ClientIpInOut struct{}
