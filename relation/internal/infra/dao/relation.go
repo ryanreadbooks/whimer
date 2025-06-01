@@ -35,8 +35,8 @@ type Relation struct {
 	// 示例：(200,-2,100)==(100,2,200), (200,2,100)==(100,-2,200)
 	//			(200,-4,100)==(100,-4,200)
 	Id        uint64     `db:"id"`
-	UserAlpha uint64     `db:"alpha"`  // 用户A
-	UserBeta  uint64     `db:"beta"`   // 用户B
+	UserAlpha int64      `db:"alpha"`  // 用户A
+	UserBeta  int64      `db:"beta"`   // 用户B
 	Link      LinkStatus `db:"link"`   // 用户的关注关系
 	Actime    int64      `db:"actime"` // A首次关注B的时间，Unix时间戳
 	Bctime    int64      `db:"bctime"` // B首次关注A的时间，Unix时间戳
@@ -46,8 +46,8 @@ type Relation struct {
 
 type RelationUser struct {
 	Id        uint64     `db:"id"`
-	UserAlpha uint64     `db:"alpha"` // 用户A
-	UserBeta  uint64     `db:"beta"`  // 用户B
+	UserAlpha int64      `db:"alpha"` // 用户A
+	UserBeta  int64      `db:"beta"`  // 用户B
 	Link      LinkStatus `db:"link"`  // 用户的关注关系
 }
 
@@ -67,7 +67,7 @@ func enforceUserRule(r *Relation) *Relation {
 	return r
 }
 
-func enforceUidRule(a, b uint64) (uint64, uint64) {
+func enforceUidRule(a, b int64) (int64, int64) {
 	if a > b {
 		return b, a
 	}
@@ -75,7 +75,7 @@ func enforceUidRule(a, b uint64) (uint64, uint64) {
 	return a, b
 }
 
-func newRelationFromAlphaToBeta(a, b uint64) *Relation {
+func newRelationFromAlphaToBeta(a, b int64) *Relation {
 	return &Relation{
 		UserAlpha: a,
 		UserBeta:  b,
@@ -84,7 +84,7 @@ func newRelationFromAlphaToBeta(a, b uint64) *Relation {
 	}
 }
 
-func newRelationFromBetaToAlpha(a, b uint64) *Relation {
+func newRelationFromBetaToAlpha(a, b int64) *Relation {
 	return &Relation{
 		UserAlpha: a,
 		UserBeta:  b,
@@ -93,7 +93,7 @@ func newRelationFromBetaToAlpha(a, b uint64) *Relation {
 	}
 }
 
-func newMutualRelation(a, b uint64) *Relation {
+func newMutualRelation(a, b int64) *Relation {
 	return &Relation{
 		UserAlpha: a,
 		UserBeta:  b,
@@ -194,7 +194,7 @@ func (d *RelationDao) UpdateLink(ctx context.Context, r *Relation) error {
 	return xsql.ConvertError(err)
 }
 
-func (d *RelationDao) FindByAlphaBeta(ctx context.Context, a, b uint64, forUpdate bool) (*Relation, error) {
+func (d *RelationDao) FindByAlphaBeta(ctx context.Context, a, b int64, forUpdate bool) (*Relation, error) {
 	a, b = enforceUidRule(a, b)
 	var r Relation
 	sql := fmt.Sprintf(sqlFindByAlphaBeta, "")
@@ -210,7 +210,7 @@ func (d *RelationDao) FindByAlphaBeta(ctx context.Context, a, b uint64, forUpdat
 	return &r, nil
 }
 
-func (d *RelationDao) FindByAlphaBetaAndLink(ctx context.Context, a, b uint64, link LinkStatus, forUpdate bool) (*Relation, error) {
+func (d *RelationDao) FindByAlphaBetaAndLink(ctx context.Context, a, b int64, link LinkStatus, forUpdate bool) (*Relation, error) {
 	a, b = enforceUidRule(a, b)
 	var (
 		r   Relation
@@ -231,18 +231,18 @@ func (d *RelationDao) FindByAlphaBetaAndLink(ctx context.Context, a, b uint64, l
 // 找到uid关注的人 (找到发出关注连接的用户存在的用户关系)
 //
 //	alpha=uid and link=Forward/Mutual or beta=uid and link=Backward/Mutual
-func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid, offset uint64, limit int) (uids []uint64, next uint64, more bool, err error) {
+func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid int64, offset uint64, limit int) (uids []int64, next uint64, more bool, err error) {
 	var (
 		rs = make([]*RelationUser, 0, 50)
 	)
 
-	uids = []uint64{}
+	uids = []int64{}
 	err = d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoUidFollows, offset, uid, limit, offset, uid, limit, limit)
 	if err != nil {
 		err = xsql.ConvertError(err)
 		if errors.Is(err, xsql.ErrNoRecord) {
 			err = nil
-			uids = []uint64{}
+			uids = []int64{}
 			return
 		}
 		return
@@ -252,7 +252,7 @@ func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid, offset uint64, lim
 		return
 	}
 
-	uids = make([]uint64, 0, len(rs))
+	uids = make([]int64, 0, len(rs))
 	for _, r := range rs {
 		if r.UserAlpha == uid {
 			uids = append(uids, r.UserBeta)
@@ -272,10 +272,10 @@ func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid, offset uint64, lim
 }
 
 // 找出uid关注的全部人
-func (d *RelationDao) FindAllUidLinkTo(ctx context.Context, uid uint64) ([]uint64, error) {
+func (d *RelationDao) FindAllUidLinkTo(ctx context.Context, uid int64) ([]int64, error) {
 	var (
 		rs     = make([]*RelationUser, 0, 80)
-		others = []uint64{}
+		others = []int64{}
 	)
 
 	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoUidFollowsAll, uid, uid)
@@ -292,7 +292,7 @@ func (d *RelationDao) FindAllUidLinkTo(ctx context.Context, uid uint64) ([]uint6
 		return others, nil
 	}
 
-	others = make([]uint64, 0, len(rs))
+	others = make([]int64, 0, len(rs))
 	for _, r := range rs {
 		if r.UserAlpha == uid {
 			others = append(others, r.UserBeta)
@@ -305,17 +305,17 @@ func (d *RelationDao) FindAllUidLinkTo(ctx context.Context, uid uint64) ([]uint6
 }
 
 // 找到alpha关注的人
-func (d *RelationDao) FindAlphaLinkTo(ctx context.Context, alpha uint64) ([]uint64, error) {
+func (d *RelationDao) FindAlphaLinkTo(ctx context.Context, alpha int64) ([]int64, error) {
 	var rs = make([]*Relation, 0, 16)
 	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindByAlpha, alpha)
 	if err != nil {
 		if errors.Is(err, xsql.ErrNoRecord) {
-			return []uint64{}, nil
+			return []int64{}, nil
 		}
 		return nil, err
 	}
 
-	uids := make([]uint64, 0, len(rs))
+	uids := make([]int64, 0, len(rs))
 	for _, r := range rs {
 		uids = append(uids, r.UserBeta)
 	}
@@ -324,17 +324,17 @@ func (d *RelationDao) FindAlphaLinkTo(ctx context.Context, alpha uint64) ([]uint
 }
 
 // 找到beta关注的人
-func (d *RelationDao) FindBetaLinkTo(ctx context.Context, beta uint64) ([]uint64, error) {
+func (d *RelationDao) FindBetaLinkTo(ctx context.Context, beta int64) ([]int64, error) {
 	var rs = make([]*Relation, 0, 16)
 	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindByBeta, beta)
 	if err != nil {
 		if errors.Is(err, xsql.ErrNoRecord) {
-			return []uint64{}, nil
+			return []int64{}, nil
 		}
 		return nil, err
 	}
 
-	uids := make([]uint64, 0, len(rs))
+	uids := make([]int64, 0, len(rs))
 	for _, r := range rs {
 		uids = append(uids, r.UserAlpha)
 	}
@@ -343,18 +343,18 @@ func (d *RelationDao) FindBetaLinkTo(ctx context.Context, beta uint64) ([]uint64
 }
 
 // 找到关注uid的人
-func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid, offset uint64, limit int) (uids []uint64, next uint64, more bool, err error) {
+func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid int64, offset uint64, limit int) (uids []int64, next uint64, more bool, err error) {
 	var (
 		rs = make([]*RelationUser, 0, 16)
 	)
 
-	uids = []uint64{}
+	uids = []int64{}
 	err = d.db.QueryRowsCtx(ctx, &rs, sqlFindWhoFollowsUid, offset, uid, limit, offset, uid, limit, limit)
 	if err != nil {
 		err = xsql.ConvertError(err)
 		if errors.Is(err, xsql.ErrNoRecord) {
 			err = nil
-			uids = []uint64{}
+			uids = []int64{}
 			return
 		}
 		return
@@ -364,7 +364,7 @@ func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid, offset uint64, 
 		return
 	}
 
-	uids = make([]uint64, 0, len(rs))
+	uids = make([]int64, 0, len(rs))
 	for _, r := range rs {
 		if r.UserAlpha == uid {
 			uids = append(uids, r.UserBeta)
@@ -384,18 +384,18 @@ func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid, offset uint64, 
 }
 
 // 找到关注alpha的人
-func (d *RelationDao) FindAlphaGotLinked(ctx context.Context, alpha uint64) ([]uint64, error) {
+func (d *RelationDao) FindAlphaGotLinked(ctx context.Context, alpha int64) ([]int64, error) {
 	var rs = make([]*Relation, 0, 16)
 	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindAlphaGotLinked, alpha)
 	if err != nil {
 		err = xsql.ConvertError(err)
 		if errors.Is(err, xsql.ErrNoRecord) {
-			return []uint64{}, nil
+			return []int64{}, nil
 		}
 		return nil, err
 	}
 
-	uids := make([]uint64, 0, len(rs))
+	uids := make([]int64, 0, len(rs))
 	for _, r := range rs {
 		uids = append(uids, r.UserBeta)
 	}
@@ -404,18 +404,18 @@ func (d *RelationDao) FindAlphaGotLinked(ctx context.Context, alpha uint64) ([]u
 }
 
 // 找到关注beta的人
-func (d *RelationDao) FindBetaGotLinked(ctx context.Context, beta uint64) ([]uint64, error) {
+func (d *RelationDao) FindBetaGotLinked(ctx context.Context, beta int64) ([]int64, error) {
 	var rs = make([]*Relation, 0, 16)
 	err := d.db.QueryRowsCtx(ctx, &rs, sqlFindBetaGotLinked, beta)
 	if err != nil {
 		err = xsql.ConvertError(err)
 		if errors.Is(err, xsql.ErrNoRecord) {
-			return []uint64{}, nil
+			return []int64{}, nil
 		}
 		return nil, err
 	}
 
-	uids := make([]uint64, 0, len(rs))
+	uids := make([]int64, 0, len(rs))
 	for _, r := range rs {
 		uids = append(uids, r.UserAlpha)
 	}
@@ -424,7 +424,7 @@ func (d *RelationDao) FindBetaGotLinked(ctx context.Context, beta uint64) ([]uin
 }
 
 // 获取关注uid的人数
-func (d *RelationDao) CountUidFans(ctx context.Context, uid uint64) (uint64, error) {
+func (d *RelationDao) CountUidFans(ctx context.Context, uid int64) (uint64, error) {
 	var cnt uint64
 	// TODO use cache
 	err := d.db.QueryRowCtx(ctx, &cnt, sqlCountUidFans, uid, uid)
@@ -432,7 +432,7 @@ func (d *RelationDao) CountUidFans(ctx context.Context, uid uint64) (uint64, err
 }
 
 // 获取uid关注的人数
-func (d *RelationDao) CountUidFollowings(ctx context.Context, uid uint64) (uint64, error) {
+func (d *RelationDao) CountUidFollowings(ctx context.Context, uid int64) (uint64, error) {
 	var cnt uint64
 	// TODO use cache
 	err := d.db.QueryRowCtx(ctx, &cnt, sqlCountUidFollowings, uid, uid)

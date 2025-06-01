@@ -148,7 +148,7 @@ func TestFindBasic(t *testing.T) {
 
 func TestFindBasicIn(t *testing.T) {
 	Convey("test userbase FindBasicByUids", t, func() {
-		users, err := dao.FindUserBaseByUids(ctx, []uint64{1, 10002, 20001})
+		users, err := dao.FindUserBaseByUids(ctx, []int64{1, 10002, 20001})
 		So(err, ShouldBeNil)
 		So(users, ShouldNotBeEmpty)
 	})

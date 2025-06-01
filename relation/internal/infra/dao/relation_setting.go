@@ -28,11 +28,11 @@ const (
 
 // 用户的关系设置
 type RelationSetting struct {
-	Uid               uint64 `db:"uid"`
-	NotShowFollowings int8   `db:"not_show_followings"` // 是否不展示关注的人 默认展示
-	ShowFans          int8   `db:"show_fans"`           // 是否展示粉丝 默认不展示
-	Ctime             int64  `db:"ctime"`
-	Mtime             int64  `db:"mtime"`
+	Uid               int64 `db:"uid"`
+	NotShowFollowings int8  `db:"not_show_followings"` // 是否不展示关注的人 默认展示
+	ShowFans          int8  `db:"show_fans"`           // 是否展示粉丝 默认不展示
+	Ctime             int64 `db:"ctime"`
+	Mtime             int64 `db:"mtime"`
 }
 
 type RelationSettingDao struct {
@@ -47,8 +47,8 @@ func NewRelationSettingDao(db *xsql.DB, c *redis.Redis) *RelationSettingDao {
 	}
 }
 
-func getSettingCacheKey(uid uint64) string {
-	return "relation:setting:uid:" + strconv.FormatUint(uid, 10)
+func getSettingCacheKey(uid int64) string {
+	return "relation:setting:uid:" + strconv.FormatInt(uid, 10)
 }
 
 // all sqls here
@@ -63,7 +63,7 @@ var (
 		"ON DUPLICATE KEY UPDATE not_show_followings=val.not_show_followings, show_fans=val.show_fans, mtime=val.mtime", settingFields)
 )
 
-func (d *RelationSettingDao) Get(ctx context.Context, uid uint64) (*RelationSetting, error) {
+func (d *RelationSettingDao) Get(ctx context.Context, uid int64) (*RelationSetting, error) {
 	return d.settingCache.Get(ctx, getSettingCacheKey(uid), xcache.WithGetFallback(
 		func(ctx context.Context) (*RelationSetting, int, error) {
 			r, err := d.getByUidDao(ctx, uid)
@@ -82,7 +82,7 @@ func (d *RelationSettingDao) Get(ctx context.Context, uid uint64) (*RelationSett
 		}))
 }
 
-func (d *RelationSettingDao) getByUidDao(ctx context.Context, uid uint64) (*RelationSetting, error) {
+func (d *RelationSettingDao) getByUidDao(ctx context.Context, uid int64) (*RelationSetting, error) {
 	var setting RelationSetting
 	err := d.db.QueryRowCtx(ctx, &setting, sqlGetSettingByUid, uid)
 	if err != nil {
@@ -122,7 +122,7 @@ func (d *RelationSettingDao) Insert(ctx context.Context, s *RelationSetting) err
 	return xsql.ConvertError(err)
 }
 
-func (d *RelationSettingDao) delCache(ctx context.Context, uid uint64) {
+func (d *RelationSettingDao) delCache(ctx context.Context, uid int64) {
 	if _, err := d.settingCache.Del(ctx, getSettingCacheKey(uid)); err != nil {
 		xlog.Msg("relation setting dao failed to del cache when inserting").Extra("uid", uid).Errorx(ctx)
 	}

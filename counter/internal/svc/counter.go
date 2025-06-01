@@ -217,10 +217,10 @@ func (s *CounterSvc) GetRecord(ctx context.Context,
 	}}, nil
 }
 
-func (s *CounterSvc) BatchGetRecord(ctx context.Context, uidOids map[uint64][]uint64, biz int) (
-	map[uint64][]*counterv1.Record, error) {
+func (s *CounterSvc) BatchGetRecord(ctx context.Context, uidOids map[int64][]uint64, biz int) (
+	map[int64][]*counterv1.Record, error) {
 	datas, err := s.repo.RecordRepo.BatchFind(ctx, uidOids, biz)
-	var uidRecords = make(map[uint64][]*counterv1.Record, len(datas))
+	var uidRecords = make(map[int64][]*counterv1.Record, len(datas))
 	if err != nil {
 		if !xsql.IsNotFound(err) {
 			return nil, xerror.Wrapf(err, "batch find failed")

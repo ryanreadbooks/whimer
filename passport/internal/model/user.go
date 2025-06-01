@@ -16,7 +16,7 @@ const (
 
 // 可以返回给各端的个人信息
 type UserInfo struct {
-	Uid       uint64 `json:"uid"`
+	Uid       int64  `json:"uid"`
 	Nickname  string `json:"nickname"`
 	Avatar    string `json:"avatar,omitempty"`
 	StyleSign string `json:"style_sign"`
@@ -68,7 +68,7 @@ func (u *UserInfo) ToPb() *userv1.UserInfo {
 }
 
 type UpdateUserRequest struct {
-	Uid       uint64 `json:"uid"`
+	Uid       int64  `json:"uid"`
 	Nickname  string `json:"nickname"`
 	StyleSign string `json:"style_sign"`
 	Gender    int8   `json:"gender"`

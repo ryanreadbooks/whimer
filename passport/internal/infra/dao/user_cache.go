@@ -15,7 +15,7 @@ const (
 	cacheUserBaseTelKey = "passport:user:base:tel:%s"
 )
 
-func getCacheUserBaseUidKey(uid uint64) string {
+func getCacheUserBaseUidKey(uid int64) string {
 	return fmt.Sprintf(cacheUserBaseUidKey, uid)
 }
 
@@ -38,7 +38,7 @@ func (d *UserDao) cacheGetUserBaseBy(ctx context.Context, key string) (*UserBase
 	return &ret, nil
 }
 
-func (d *UserDao) CacheGetUserBaseByUid(ctx context.Context, uid uint64) (*UserBase, error) {
+func (d *UserDao) CacheGetUserBaseByUid(ctx context.Context, uid int64) (*UserBase, error) {
 	return d.cacheGetUserBaseBy(ctx, getCacheUserBaseUidKey(uid))
 }
 
@@ -61,7 +61,7 @@ func (d *UserDao) CacheSetUserBase(ctx context.Context, u *UserBase) error {
 	return err
 }
 
-func (d *UserDao) CacheDelUserBaseByUid(ctx context.Context, uid uint64) error {
+func (d *UserDao) CacheDelUserBaseByUid(ctx context.Context, uid int64) error {
 	if d.cache == nil {
 		return nil
 	}

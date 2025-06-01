@@ -396,7 +396,7 @@ func (r *CommentDao) BatchCountByOid(ctx context.Context, oids []uint64) (map[ui
 	return result, nil
 }
 
-func (r *CommentDao) CountByOidUid(ctx context.Context, oid, uid uint64) (uint64, error) {
+func (r *CommentDao) CountByOidUid(ctx context.Context, oid uint64, uid int64) (uint64, error) {
 	var cnt uint64
 	err := r.db.QueryRowCtx(ctx, &cnt, sqlCountByOU, oid, uid)
 	if err != nil {
@@ -451,10 +451,10 @@ func (r *CommentDao) CountGroupByOidLimit(ctx context.Context, offset, limit int
 }
 
 // uid -> []oids
-func (r *CommentDao) FindByUidsOids(ctx context.Context, uidOids map[uint64][]uint64) ([]UidOid, error) {
+func (r *CommentDao) FindByUidsOids(ctx context.Context, uidOids map[int64][]uint64) ([]UidOid, error) {
 	var batchRes []UidOid
 	// 分批操作
-	err := maps.BatchExec(uidOids, 200, func(target map[uint64][]uint64) error {
+	err := maps.BatchExec(uidOids, 200, func(target map[int64][]uint64) error {
 		uids, oids := maps.All(target)
 		var allOids []uint64 = oids[0]
 		for i := 1; i < len(oids); i++ {

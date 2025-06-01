@@ -30,7 +30,7 @@ type CheckInRequest struct {
 // 登录认证相关
 type AccessBiz interface {
 	// 验证用户的密码
-	VerifyUserPass(ctx context.Context, uid uint64, pass string) error
+	VerifyUserPass(ctx context.Context, uid int64, pass string) error
 	// 用户登录
 	CheckIn(ctx context.Context, req *CheckInRequest) (*model.Session, error)
 	// 检查某个sessId 不检查登录的平台
@@ -38,13 +38,13 @@ type AccessBiz interface {
 	// 检查某个sessId是否所属某个平台
 	IsSessIdCheckedInPlatform(ctx context.Context, sessId, platform string) (*model.UserInfo, error)
 	// 检查用户是否登录
-	IsCheckedIn(ctx context.Context, uid uint64) (*model.UserInfo, error)
+	IsCheckedIn(ctx context.Context, uid int64) (*model.UserInfo, error)
 	// 检查某个用户是否在某个平台登录
-	IsCheckedInOnPlatform(ctx context.Context, uid uint64, platform string) (*model.UserInfo, error)
+	IsCheckedInOnPlatform(ctx context.Context, uid int64, platform string) (*model.UserInfo, error)
 	// 退出某个登录会话
 	CheckOutTarget(ctx context.Context, sessId string) error
 	// 全平台退登
-	CheckOutAll(ctx context.Context, uid uint64) error
+	CheckOutAll(ctx context.Context, uid int64) error
 }
 
 type accessBiz struct {
@@ -60,7 +60,7 @@ func NewAccessBiz() AccessBiz {
 }
 
 // 验证用户的密码
-func (b *accessBiz) VerifyUserPass(ctx context.Context, uid uint64, pass string) error {
+func (b *accessBiz) VerifyUserPass(ctx context.Context, uid int64, pass string) error {
 	passAndSalt, err := infra.Dao().UserDao.FindPassAndSaltByUid(ctx, uid)
 	if err != nil {
 		if !errors.Is(err, xsql.ErrNoRecord) {
@@ -127,7 +127,7 @@ func (b *accessBiz) CheckOutTarget(ctx context.Context, sessId string) error {
 	return nil
 }
 
-func (b *accessBiz) CheckOutAll(ctx context.Context, uid uint64) error {
+func (b *accessBiz) CheckOutAll(ctx context.Context, uid int64) error {
 	err := b.sessMgr.InvalidateAll(ctx, uid)
 	if err != nil {
 		return xerror.Wrapf(err, "access biz failed to invalidate all").WithCtx(ctx)
@@ -136,7 +136,7 @@ func (b *accessBiz) CheckOutAll(ctx context.Context, uid uint64) error {
 }
 
 // 判断用户是否登录
-func (b *accessBiz) IsCheckedIn(ctx context.Context, uid uint64) (*model.UserInfo, error) {
+func (b *accessBiz) IsCheckedIn(ctx context.Context, uid int64) (*model.UserInfo, error) {
 	sessions, err := b.sessMgr.GetUserSessions(ctx, uid)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "access biz failed to get user sessions").WithCtx(ctx)
@@ -150,7 +150,7 @@ func (b *accessBiz) IsCheckedIn(ctx context.Context, uid uint64) (*model.UserInf
 }
 
 // 检查某个用户是否在某个平台登录
-func (b *accessBiz) IsCheckedInOnPlatform(ctx context.Context, uid uint64, platform string) (*model.UserInfo, error) {
+func (b *accessBiz) IsCheckedInOnPlatform(ctx context.Context, uid int64, platform string) (*model.UserInfo, error) {
 	sessions, err := b.sessMgr.GetUserSessions(ctx, uid)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "access biz failed to get user sessions").WithCtx(ctx)

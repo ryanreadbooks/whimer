@@ -57,7 +57,7 @@ func NewNoteCreatorBiz() NoteCreatorBiz {
 
 func (b *noteCreatorBiz) CreateNote(ctx context.Context, note *model.CreateNoteRequest) (uint64, error) {
 	var (
-		uid    uint64 = metadata.Uid(ctx)
+		uid    = metadata.Uid(ctx)
 		noteId uint64
 	)
 
@@ -92,7 +92,7 @@ func (b *noteCreatorBiz) CreateNote(ctx context.Context, note *model.CreateNoteR
 
 func (b *noteCreatorBiz) UpdateNote(ctx context.Context, note *model.UpdateNoteRequest) error {
 	var (
-		uid uint64 = metadata.Uid(ctx)
+		uid = metadata.Uid(ctx)
 	)
 
 	now := time.Now().Unix()
@@ -140,8 +140,8 @@ func (b *noteCreatorBiz) UpdateNote(ctx context.Context, note *model.UpdateNoteR
 
 func (b *noteCreatorBiz) DeleteNote(ctx context.Context, note *model.DeleteNoteRequest) error {
 	var (
-		uid    uint64 = metadata.Uid(ctx)
-		noteId        = note.NoteId
+		uid    int64 = metadata.Uid(ctx)
+		noteId       = note.NoteId
 	)
 
 	queried, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
@@ -166,8 +166,8 @@ func (b *noteCreatorBiz) DeleteNote(ctx context.Context, note *model.DeleteNoteR
 
 func (b *noteCreatorBiz) CreatorGetNote(ctx context.Context, noteId uint64) (*model.Note, error) {
 	var (
-		uid uint64 = metadata.Uid(ctx)
-		nid        = noteId
+		uid = metadata.Uid(ctx)
+		nid = noteId
 	)
 
 	note, err := infra.Dao().NoteDao.FindOne(ctx, nid)
@@ -192,7 +192,7 @@ func (b *noteCreatorBiz) CreatorGetNote(ctx context.Context, noteId uint64) (*mo
 
 func (b *noteCreatorBiz) ListNote(ctx context.Context) (*model.Notes, error) {
 	var (
-		uid uint64 = metadata.Uid(ctx)
+		uid = metadata.Uid(ctx)
 	)
 
 	notes, err := infra.Dao().NoteDao.ListByOwner(ctx, uid)
@@ -208,8 +208,8 @@ func (b *noteCreatorBiz) ListNote(ctx context.Context) (*model.Notes, error) {
 
 func (b *noteCreatorBiz) PageListNote(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
 	var (
-		uid      uint64 = metadata.Uid(ctx)
-		nextPage        = model.PageResult{}
+		uid      = metadata.Uid(ctx)
+		nextPage = model.PageResult{}
 	)
 
 	if cursor == 0 {

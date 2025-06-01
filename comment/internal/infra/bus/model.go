@@ -31,7 +31,7 @@ type (
 	}
 
 	BinaryReplyData struct {
-		Uid     uint64 `json:"uid"`
+		Uid     int64  `json:"uid"`
 		ReplyId uint64 `json:"reply_id"`
 		Action  int    `json:"action"` // do or undo
 		Type    int    `json:"type"`   // like or dislike

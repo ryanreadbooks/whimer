@@ -19,7 +19,7 @@ type Store interface {
 	// 批量获取
 	BatchGet(ctx context.Context, keys []string) ([]*model.Session, error)
 	// 获取uid所有的session
-	GetUid(ctx context.Context, uid uint64) ([]*model.Session, error)
+	GetUid(ctx context.Context, uid int64) ([]*model.Session, error)
 	// 设置id为key的session 存在则覆盖
 	Set(ctx context.Context, key string, sess *model.Session) error
 	// 立即删除id为key的session, 如果不存在 则操作为no-op
@@ -27,7 +27,7 @@ type Store interface {
 	// 批量删除sessId
 	BatchDel(ctx context.Context, keys []string) error
 	// 删除uid的所有session, 如果不存在, 则操作为no-op
-	DelUid(ctx context.Context, uid uint64) error
+	DelUid(ctx context.Context, uid int64) error
 }
 
 const (
@@ -81,8 +81,8 @@ func (r *RedisStore) getSessKey(key string) string {
 	return r.sessPrefix + key
 }
 
-func (r *RedisStore) getUidKey(uid uint64) string {
-	return r.uidPrefix + strconv.FormatUint(uid, 10)
+func (r *RedisStore) getUidKey(uid int64) string {
+	return r.uidPrefix + strconv.FormatInt(uid, 10)
 }
 
 func (r *RedisStore) parseGetResult(result string) (*model.Session, error) {
@@ -152,7 +152,7 @@ func (r *RedisStore) BatchGet(ctx context.Context, keys []string) ([]*model.Sess
 	return res, nil
 }
 
-func (r *RedisStore) GetUid(ctx context.Context, uid uint64) ([]*model.Session, error) {
+func (r *RedisStore) GetUid(ctx context.Context, uid int64) ([]*model.Session, error) {
 	res, err := r.cache.SmembersCtx(ctx, r.getUidKey(uid))
 	if err != nil {
 		return nil, err
@@ -254,7 +254,7 @@ func (r *RedisStore) BatchDel(ctx context.Context, keys []string) error {
 
 	// 在pipeline中删除
 	err = r.cache.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
-		targets := make(map[uint64][]string)
+		targets := make(map[int64][]string)
 		for _, sess := range sesses {
 			targets[sess.Uid] = append(targets[sess.Uid], sess.Meta.Id)
 		}
@@ -287,7 +287,7 @@ func (r *RedisStore) BatchDel(ctx context.Context, keys []string) error {
 	return err
 }
 
-func (r *RedisStore) DelUid(ctx context.Context, uid uint64) error {
+func (r *RedisStore) DelUid(ctx context.Context, uid int64) error {
 	// 2RT
 	sessIds, err := r.cache.SmembersCtx(ctx, r.getUidKey(uid))
 	if err != nil {

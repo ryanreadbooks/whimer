@@ -21,7 +21,7 @@ const (
 type Model struct {
 	Id      uint64 `db:"id"`
 	BizCode int    `db:"biz_code"`
-	Uid     uint64 `db:"uid"`
+	Uid     int64  `db:"uid"`
 	Oid     uint64 `db:"oid"`
 	Act     int8   `db:"act"`
 	Ctime   int64  `db:"ctime"`
@@ -29,7 +29,7 @@ type Model struct {
 }
 
 type Summary struct {
-	BizCode int32    `db:"biz_code"`
+	BizCode int32  `db:"biz_code"`
 	Oid     uint64 `db:"oid"`
 	Cnt     uint64 `db:"cnt"`
 }

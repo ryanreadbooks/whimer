@@ -27,7 +27,7 @@ func NewRelationSrv(p *Service, biz biz.Biz) *RelationSrv {
 	return s
 }
 
-func (s *RelationSrv) FollowUser(ctx context.Context, follower, followed uint64) error {
+func (s *RelationSrv) FollowUser(ctx context.Context, follower, followed int64) error {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -65,7 +65,7 @@ func (s *RelationSrv) FollowUser(ctx context.Context, follower, followed uint64)
 	return nil
 }
 
-func (s *RelationSrv) UnfollowUser(ctx context.Context, follower, unfollowed uint64) error {
+func (s *RelationSrv) UnfollowUser(ctx context.Context, follower, unfollowed int64) error {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -94,7 +94,7 @@ func (s *RelationSrv) UnfollowUser(ctx context.Context, follower, unfollowed uin
 	return nil
 }
 
-func (s *RelationSrv) GetUserFanList(ctx context.Context, who, offset uint64, cnt int) (fans []uint64, result model.ListResult, err error) {
+func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset uint64, cnt int) (fans []int64, result model.ListResult, err error) {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -113,7 +113,7 @@ func (s *RelationSrv) GetUserFanList(ctx context.Context, who, offset uint64, cn
 	return
 }
 
-func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who, offset uint64, cnt int) (followings []uint64, result model.ListResult, err error) {
+func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offset uint64, cnt int) (followings []int64, result model.ListResult, err error) {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -133,25 +133,25 @@ func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who, offset uint
 }
 
 // 获取用户粉丝数
-func (s *RelationSrv) GetUserFanCount(ctx context.Context, uid uint64) (uint64, error) {
+func (s *RelationSrv) GetUserFanCount(ctx context.Context, uid int64) (uint64, error) {
 	return s.relationBiz.GetUserFanCount(ctx, uid)
 }
 
 // 获取用户关注数
-func (s *RelationSrv) GetUserFollowingCount(ctx context.Context, uid uint64) (uint64, error) {
+func (s *RelationSrv) GetUserFollowingCount(ctx context.Context, uid int64) (uint64, error) {
 	return s.relationBiz.GetUserFollowingCount(ctx, uid)
 }
 
 // 检查用户是否关注过某些用户
-func (s *RelationSrv) BatchCheckUserFollowStatus(ctx context.Context, uid uint64, targets []uint64) (map[uint64]bool, error) {
+func (s *RelationSrv) BatchCheckUserFollowStatus(ctx context.Context, uid int64, targets []int64) (map[int64]bool, error) {
 	return s.relationBiz.BatchCheckUserFollowStatus(ctx, uid, targets)
 }
 
-func (s *RelationSrv) CheckUserFollowStatus(ctx context.Context, uid, other uint64) (bool, error) {
+func (s *RelationSrv) CheckUserFollowStatus(ctx context.Context, uid, other int64) (bool, error) {
 	return s.relationBiz.CheckUserFollowStatus(ctx, uid, other)
 }
 
-func (s *RelationSrv) hasUser(ctx context.Context, uid uint64) (bool, error) {
+func (s *RelationSrv) hasUser(ctx context.Context, uid int64) (bool, error) {
 	r, err := dep.Userer().HasUser(ctx, &userv1.HasUserRequest{Uid: uid})
 	if err != nil {
 		return false, xerror.Wrapf(err, "relation check user failed").WithCtx(ctx).WithExtra("uid", uid)

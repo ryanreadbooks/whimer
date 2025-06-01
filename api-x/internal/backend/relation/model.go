@@ -8,12 +8,12 @@ const (
 )
 
 type FollowReq struct {
-	Target uint64 `json:"target"`
-	Action int8   `json:"action"`
+	Target int64 `json:"target"`
+	Action int8  `json:"action"`
 }
 
 func (r *FollowReq) Validate() error {
-	if r.Target <= 0 {
+	if r.Target == 0 {
 		return xerror.ErrArgs.Msg("非法用户id")
 	}
 

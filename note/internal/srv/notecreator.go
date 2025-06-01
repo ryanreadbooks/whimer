@@ -39,14 +39,14 @@ func (s *NoteCreatorSrv) Update(ctx context.Context, req *model.UpdateNoteReques
 }
 
 // 获取上传凭证
-// 
+//
 // Deprecated: UploadAuth is deprecated
 func (s *NoteCreatorSrv) UploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {
 	return s.noteCreatorBiz.GetUploadAuth(ctx, req)
 }
 
 // 批量获取上传凭证
-// 
+//
 // Deprecated: BatchGetUploadAuth is deprecated
 func (s *NoteCreatorSrv) BatchGetUploadAuth(ctx context.Context,
 	req *model.UploadAuthRequest) ([]*model.UploadAuthResponse, error) {
@@ -119,7 +119,7 @@ func (s *NoteCreatorSrv) GetNote(ctx context.Context, noteId uint64) (*model.Not
 }
 
 // 获取笔记作者
-func (s *NoteCreatorSrv) GetNoteOwner(ctx context.Context, noteId uint64) (uint64, error) {
+func (s *NoteCreatorSrv) GetNoteOwner(ctx context.Context, noteId uint64) (int64, error) {
 	return s.noteBiz.GetNoteOwner(ctx, noteId)
 }
 
@@ -129,7 +129,7 @@ func (s *NoteCreatorSrv) IsNoteExist(ctx context.Context, noteId uint64) (bool, 
 }
 
 // 获取用户发布的笔记数量
-func (s *NoteCreatorSrv) GetPostedCount(ctx context.Context, uid uint64) (uint64, error) {
+func (s *NoteCreatorSrv) GetPostedCount(ctx context.Context, uid int64) (uint64, error) {
 	cnt, err := infra.Dao().NoteDao.GetPostedCountByOwner(ctx, uid)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "srv creator get posted count failed").

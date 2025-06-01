@@ -44,7 +44,7 @@ func (s *CounterServer) GetRecord(ctx context.Context, req *counterv1.GetRecordR
 
 func (s *CounterServer) BatchGetRecord(ctx context.Context, req *counterv1.BatchGetRecordRequest) (
 	*counterv1.BatchGetRecordResponse, error) {
-	var uidOids = make(map[uint64][]uint64, len(req.Params))
+	var uidOids = make(map[int64][]uint64, len(req.Params))
 	for uid, oids := range req.Params {
 		uidOids[uid] = append(uidOids[uid], oids.Oids...)
 	}
@@ -54,7 +54,7 @@ func (s *CounterServer) BatchGetRecord(ctx context.Context, req *counterv1.Batch
 		return nil, err
 	}
 
-	var result = make(map[uint64]*counterv1.RecordList)
+	var result = make(map[int64]*counterv1.RecordList)
 	for uid, records := range resp {
 		result[uid] = &counterv1.RecordList{List: records}
 	}

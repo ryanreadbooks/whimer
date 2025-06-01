@@ -70,7 +70,7 @@ type PassCheckInRequest struct {
 
 // 登录成功返回结果 需要包含登录成功的用户信息
 type CheckInResponse struct {
-	Uid       uint64   `json:"uid"`
+	Uid       int64    `json:"uid"`
 	Nickname  string   `json:"nickname"`
 	StyleSign string   `json:"style_sign"`
 	Avatar    string   `json:"avatar"`

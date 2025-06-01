@@ -18,21 +18,21 @@ import (
 // 关注相关
 type RelationBiz interface {
 	// follower对followee的关注
-	UserFollow(ctx context.Context, follower, followee uint64) error
+	UserFollow(ctx context.Context, follower, followee int64) error
 	// follower取消对followee关注
-	UserUnFollow(ctx context.Context, follower, followee uint64) error
+	UserUnFollow(ctx context.Context, follower, followee int64) error
 	// 获取用户的关注列表
-	GetUserFollowingList(ctx context.Context, uid uint64, offset uint64, limit int) ([]uint64, model.ListResult, error)
+	GetUserFollowingList(ctx context.Context, uid int64, offset uint64, limit int) ([]int64, model.ListResult, error)
 	// 获取用户的粉丝列表
-	GetUserFansList(ctx context.Context, uid uint64, offset uint64, limit int) ([]uint64, model.ListResult, error)
+	GetUserFansList(ctx context.Context, uid int64, offset uint64, limit int) ([]int64, model.ListResult, error)
 	// 获取用户关注数
-	GetUserFollowingCount(ctx context.Context, uid uint64) (uint64, error)
+	GetUserFollowingCount(ctx context.Context, uid int64) (uint64, error)
 	// 获取用户粉丝数
-	GetUserFanCount(ctx context.Context, uid uint64) (uint64, error)
+	GetUserFanCount(ctx context.Context, uid int64) (uint64, error)
 	// 检查用户是否关注了某些人
-	BatchCheckUserFollowStatus(ctx context.Context, uid uint64, others []uint64) (map[uint64]bool, error)
+	BatchCheckUserFollowStatus(ctx context.Context, uid int64, others []int64) (map[int64]bool, error)
 	// 检查用户是否关注了某个人
-	CheckUserFollowStatus(ctx context.Context, uid, other uint64) (bool, error)
+	CheckUserFollowStatus(ctx context.Context, uid, other int64) (bool, error)
 }
 
 type relationBiz struct {
@@ -45,7 +45,7 @@ func NewRelationBiz() RelationBiz {
 }
 
 // follower发起对followee的关注
-func (b *relationBiz) UserFollow(ctx context.Context, follower, followee uint64) error {
+func (b *relationBiz) UserFollow(ctx context.Context, follower, followee int64) error {
 	err := infra.Dao().DB().Transact(ctx, func(ctx context.Context) error {
 		// 需要先检查当前两人的关注状态
 		cur, err := infra.Dao().RelationDao.FindByAlphaBeta(ctx, follower, followee, true)
@@ -114,7 +114,7 @@ func (b *relationBiz) UserFollow(ctx context.Context, follower, followee uint64)
 	return nil
 }
 
-func (b *relationBiz) UserUnFollow(ctx context.Context, follower, followee uint64) error {
+func (b *relationBiz) UserUnFollow(ctx context.Context, follower, followee int64) error {
 	err := infra.Dao().DB().Transact(ctx, func(ctx context.Context) error {
 		cur, err := infra.Dao().RelationDao.FindByAlphaBeta(ctx, follower, followee, true)
 		if err != nil {
@@ -179,7 +179,8 @@ func (b *relationBiz) UserUnFollow(ctx context.Context, follower, followee uint6
 }
 
 // 获取用户的关注列表
-func (b *relationBiz) GetUserFollowingList(ctx context.Context, uid uint64, offset uint64, limit int) ([]uint64, model.ListResult, error) {
+func (b *relationBiz) GetUserFollowingList(ctx context.Context, uid int64, offset uint64, limit int) (
+	[]int64, model.ListResult, error) {
 	var lr model.ListResult
 	followings, next, more, err := infra.Dao().RelationDao.FindUidLinkTo(ctx, uid, offset, limit)
 	if err != nil {
@@ -192,7 +193,8 @@ func (b *relationBiz) GetUserFollowingList(ctx context.Context, uid uint64, offs
 }
 
 // 获取用户的粉丝列表
-func (b *relationBiz) GetUserFansList(ctx context.Context, uid uint64, offset uint64, limit int) ([]uint64, model.ListResult, error) {
+func (b *relationBiz) GetUserFansList(ctx context.Context, uid int64, offset uint64, limit int) (
+	[]int64, model.ListResult, error) {
 	var lr model.ListResult
 	fans, next, more, err := infra.Dao().RelationDao.FindUidGotLinked(ctx, uid, offset, limit)
 	if err != nil {
@@ -205,7 +207,7 @@ func (b *relationBiz) GetUserFansList(ctx context.Context, uid uint64, offset ui
 }
 
 // 获取用户关注数
-func (b *relationBiz) GetUserFollowingCount(ctx context.Context, uid uint64) (uint64, error) {
+func (b *relationBiz) GetUserFollowingCount(ctx context.Context, uid int64) (uint64, error) {
 	cnt, err := infra.Dao().RelationDao.CountUidFollowings(ctx, uid)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "relation biz failed to count user followings").WithCtx(ctx)
@@ -215,7 +217,7 @@ func (b *relationBiz) GetUserFollowingCount(ctx context.Context, uid uint64) (ui
 }
 
 // 获取用户粉丝数
-func (b *relationBiz) GetUserFanCount(ctx context.Context, uid uint64) (uint64, error) {
+func (b *relationBiz) GetUserFanCount(ctx context.Context, uid int64) (uint64, error) {
 	cnt, err := infra.Dao().RelationDao.CountUidFans(ctx, uid)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "relation biz failed to count user fans").WithCtx(ctx)
@@ -225,13 +227,13 @@ func (b *relationBiz) GetUserFanCount(ctx context.Context, uid uint64) (uint64, 
 }
 
 // 检查uid是否关注了others
-func (b *relationBiz) BatchCheckUserFollowStatus(ctx context.Context, uid uint64, others []uint64) (map[uint64]bool, error) {
+func (b *relationBiz) BatchCheckUserFollowStatus(ctx context.Context, uid int64, others []int64) (map[int64]bool, error) {
 	followings, err := infra.Dao().RelationDao.FindAllUidLinkTo(ctx, uid)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "relation biz failed to find all followings").WithCtx(ctx)
 	}
 
-	res := make(map[uint64]bool, len(others))
+	res := make(map[int64]bool, len(others))
 	fm := uslices.AsMap(followings)
 	for _, o := range others {
 		if _, ok := fm[o]; ok {
@@ -243,7 +245,7 @@ func (b *relationBiz) BatchCheckUserFollowStatus(ctx context.Context, uid uint64
 }
 
 // 检查uid是否关注了other
-func (b *relationBiz) CheckUserFollowStatus(ctx context.Context, uid, other uint64) (bool, error) {
+func (b *relationBiz) CheckUserFollowStatus(ctx context.Context, uid, other int64) (bool, error) {
 	rel, err := infra.Dao().RelationDao.FindByAlphaBeta(ctx, uid, other, false)
 	if err != nil {
 		return false, xerror.Wrapf(err, "relation biz failed to find by alpha-beta").

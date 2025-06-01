@@ -278,7 +278,7 @@ func (s *CommentSrv) GetReplyDislikesCount(ctx context.Context, rid uint64) (uin
 }
 
 // 检查用户是否发起了评论
-func (s *CommentSrv) CheckUserIsReplied(ctx context.Context, uid, oid uint64) (bool, error) {
+func (s *CommentSrv) CheckUserIsReplied(ctx context.Context, uid int64, oid uint64) (bool, error) {
 	ok, err := s.CommentBiz.CheckUserIsReplied(ctx, uid, oid)
 	if err != nil {
 		return false, xerror.Wrapf(err, "comment srv failed to check user replied on").
@@ -303,7 +303,7 @@ func (s *CommentSrv) BatchGetCountReply(ctx context.Context, oids []uint64) (map
 	return cnts, nil
 }
 
-func (s *CommentSrv) BatchCheckUserIsReplied(ctx context.Context, uidOids map[uint64][]uint64) ([]model.UidCommentOnOid, error) {
+func (s *CommentSrv) BatchCheckUserIsReplied(ctx context.Context, uidOids map[int64][]uint64) ([]model.UidCommentOnOid, error) {
 	commted, err := s.CommentBiz.BatchCheckUserIsReplied(ctx, uidOids)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "comment srv failed to batch check user replied on").WithCtx(ctx)

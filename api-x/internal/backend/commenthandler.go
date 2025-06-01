@@ -119,8 +119,8 @@ func (h *Handler) PageGetSubs() http.HandlerFunc {
 	}
 }
 
-func extractUidsMap(replies []*commentv1.DetailedReplyItem) map[uint64]struct{} {
-	uidsMap := make(map[uint64]struct{})
+func extractUidsMap(replies []*commentv1.DetailedReplyItem) map[int64]struct{} {
+	uidsMap := make(map[int64]struct{})
 	// 提取出主评论和子评论的uid
 	for _, item := range replies {
 		uidsMap[item.Root.Uid] = struct{}{}
@@ -233,7 +233,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 
 // 填入用户信息
 func attachReplyUsers(ctx context.Context, replies []*commentv1.ReplyItem) ([]*comment.ReplyItem, error) {
-	uidsMap := make(map[uint64]struct{})
+	uidsMap := make(map[int64]struct{})
 	for _, root := range replies {
 		uidsMap[root.Uid] = struct{}{}
 	}
@@ -255,8 +255,8 @@ func attachReplyUsers(ctx context.Context, replies []*commentv1.ReplyItem) ([]*c
 	return res, nil
 }
 
-func formatUid(uid uint64) string {
-	return strconv.FormatUint(uid, 10)
+func formatUid(uid int64) string {
+	return strconv.FormatInt(uid, 10)
 }
 
 func (h *Handler) DelComment() http.HandlerFunc {

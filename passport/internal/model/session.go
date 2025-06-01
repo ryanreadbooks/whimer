@@ -36,7 +36,7 @@ func (m *SessionMeta) IsExpired() bool {
 // 用户session信息
 type Session struct {
 	Meta     SessionMeta `json:"meta"`
-	Uid      uint64      `json:"uid"`
+	Uid      int64       `json:"uid"`
 	Platform string      `json:"platform"` // session对应平台
 	Detail   string      `json:"detail"`   // 用户详细信息
 }
@@ -64,10 +64,10 @@ func (s *Session) Cookie() *http.Cookie {
 
 func (s *Session) UidCookie() *http.Cookie {
 	return &http.Cookie{
-		Name:     WhimerUid,
-		Value:    strconv.FormatUint(s.Uid, 10),
-		Path:     "/",
-		Expires:  time.Unix(s.Meta.ExpireAt, 0),
+		Name:    WhimerUid,
+		Value:   strconv.FormatInt(s.Uid, 10),
+		Path:    "/",
+		Expires: time.Unix(s.Meta.ExpireAt, 0),
 	}
 }
 

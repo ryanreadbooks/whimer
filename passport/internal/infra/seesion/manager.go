@@ -88,7 +88,7 @@ func (m *Manager) GetSession(ctx context.Context, sessId string) (*model.Session
 // GetUserSessions 获取某个用户的所有session
 //
 // 返回的Session已经经过了过期检查
-func (m *Manager) GetUserSessions(ctx context.Context, uid uint64) ([]*model.Session, error) {
+func (m *Manager) GetUserSessions(ctx context.Context, uid int64) ([]*model.Session, error) {
 	sesses, err := m.store.GetUid(ctx, uid)
 	if err != nil {
 		return nil, xerror.Wrapf(global.ErrInternal, "store get uid failed").WithExtra("cause", err)
@@ -154,7 +154,7 @@ func (m *Manager) InvalidateSession(ctx context.Context, sessId string) error {
 }
 
 // 令某个用户的所有session立即失效
-func (m *Manager) InvalidateAll(ctx context.Context, uid uint64) error {
+func (m *Manager) InvalidateAll(ctx context.Context, uid int64) error {
 	if err := m.store.DelUid(ctx, uid); err != nil {
 		return xerror.Wrapf(global.ErrCheckOut, "store del uid failed").WithExtra("cause", err)
 	}

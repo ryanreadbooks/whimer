@@ -252,7 +252,7 @@ func (s *ReplyServiceServer) BatchCheckUserOnObject(ctx context.Context,
 	in *commentv1.BatchCheckUserOnObjectRequest) (
 	*commentv1.BatchCheckUserOnObjectResponse, error) {
 
-	var uidObjects = make(map[uint64][]uint64, len(in.Mappings))
+	var uidObjects = make(map[int64][]uint64, len(in.Mappings))
 	for uid, m := range in.GetMappings() {
 		uidObjects[uid] = append(uidObjects[uid], m.Oids...)
 	}
@@ -261,7 +261,7 @@ func (s *ReplyServiceServer) BatchCheckUserOnObject(ctx context.Context,
 		return nil, err
 	}
 
-	m := make(map[uint64]*commentv1.OidCommentedList)
+	m := make(map[int64]*commentv1.OidCommentedList)
 	for _, r := range resp {
 		if _, ok := m[r.Uid]; !ok {
 			m[r.Uid] = &commentv1.OidCommentedList{}

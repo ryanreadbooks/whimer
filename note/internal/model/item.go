@@ -50,7 +50,7 @@ type Note struct {
 	// UserInteraction UserInteraction `json:"user_interaction,omitempty"`
 
 	// unexported to user
-	Owner uint64 `json:"-"`
+	Owner int64 `json:"-"`
 }
 
 func (n *Note) AsSlice() []*Note {

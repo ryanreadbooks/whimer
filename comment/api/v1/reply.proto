@@ -18,7 +18,7 @@ message AddReplyRequest {
   string content = 3;    // 评论内容
   uint64 root_id = 4;    // 根评论id
   uint64 parent_id = 5;  // 被回复的评论id
-  uint64 reply_uid = 6;  // 被回复的用户id
+  int64 reply_uid = 6;   // 被回复的用户id
 }
 
 message AddReplyResponse {
@@ -80,10 +80,10 @@ message ReplyItem {
   uint64 oid = 2;         // 被评论对象id
   uint32 reply_type = 3;  // 评论类型
   string content = 4;     // 评论内容
-  uint64 uid = 5;         // 评论发表用户uid
+  int64 uid = 5;          // 评论发表用户uid
   uint64 root_id = 6;     // 根评论id
   uint64 parent_id = 7;   // 父评论id
-  uint64 ruid = 8;        // 被回复的用户id
+  int64 ruid = 8;         // 被回复的用户id
   uint64 like_count = 9;  // 点赞数
   uint64 hate_count = 10; // 点踩数
   int64 ctime = 11;       // 发布时间
@@ -121,7 +121,7 @@ message DetailedSubReply {
 
 // 详细的主评论的详细信息，会包含子评论
 message DetailedReplyItem {
-  ReplyItem root = 1;              // 主评论本身的信息
+  ReplyItem root = 1;               // 主评论本身的信息
   DetailedSubReply sub_replies = 2; // 子评论的信息
 }
 
@@ -177,7 +177,8 @@ service ReplyService {
   // 获取子评论信息
   rpc PageGetSubReply(PageGetSubReplyRequest) returns (PageGetSubReplyResponse);
   // 获取主评论详细信息
-  rpc PageGetDetailedReply(PageGetDetailedReplyRequest) returns (PageGetDetailedReplyResponse);
+  rpc PageGetDetailedReply(PageGetDetailedReplyRequest)
+      returns (PageGetDetailedReplyResponse);
   // 获取置顶评论
   rpc GetPinnedReply(GetPinnedReplyRequest) returns (GetPinnedReplyResponse);
   // 获取某个被评对象的评论数
@@ -185,7 +186,8 @@ service ReplyService {
   // 获取多个被评论对象的评论数
   rpc BatchCountReply(BatchCountReplyRequest) returns (BatchCountReplyResponse);
   // 获取某条评论的点赞数
-  rpc GetReplyLikeCount(GetReplyLikeCountRequest) returns (GetReplyLikeCountResponse);
+  rpc GetReplyLikeCount(GetReplyLikeCountRequest)
+      returns (GetReplyLikeCountResponse);
   // 获取某条评论的点踩数
   rpc GetReplyDislikeCount(GetReplyDislikeCountRequest)
       returns (GetReplyDislikeCountResponse);
@@ -217,7 +219,7 @@ message GetReplyDislikeCountResponse {
 
 message CheckUserOnObjectRequest {
   uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
-  uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 用户id
+  int64 uid = 2;                                         // 用户id
 }
 
 message CheckUserOnObjectResponse { OidCommented result = 1; }
@@ -225,11 +227,11 @@ message CheckUserOnObjectResponse { OidCommented result = 1; }
 message BatchCheckUserOnObjectRequest {
   message Objects {
     repeated uint64 oids = 1 [
-      (buf.validate.field).repeated.min_items = 1,
-      (buf.validate.field).repeated.max_items = 50
+      (buf.validate.field).repeated .min_items = 1,
+      (buf.validate.field).repeated .max_items = 50
     ];
   }
-  map<uint64, Objects> mappings = 1 [
+  map<int64, Objects> mappings = 1 [
     (buf.validate.field).map.min_pairs = 1,
     (buf.validate.field).map.max_pairs = 50
   ];
@@ -243,5 +245,5 @@ message OidCommented {
 message OidCommentedList { repeated OidCommented list = 1; }
 
 message BatchCheckUserOnObjectResponse {
-  map<uint64, OidCommentedList> results = 1;
+  map<int64, OidCommentedList> results = 1;
 }

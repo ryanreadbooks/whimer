@@ -13,7 +13,7 @@ type PubReq struct {
 	Content   string `json:"content"`
 	RootId    uint64 `json:"root_id,omitempty,optional"`
 	ParentId  uint64 `json:"parent_id,omitempty,optional"`
-	ReplyUid  uint64 `json:"reply_uid"`
+	ReplyUid  int64  `json:"reply_uid"`
 }
 
 func (r *PubReq) AsPb() *commentv1.AddReplyRequest {
@@ -78,10 +78,10 @@ type ReplyItemBase struct {
 	Oid       uint64 `json:"oid"`        // 被评论对象id
 	ReplyType uint32 `json:"reply_type"` // 评论类型
 	Content   string `json:"content"`    // 评论内容
-	Uid       uint64 `json:"uid"`        // 评论发表用户uid
+	Uid       int64  `json:"uid"`        // 评论发表用户uid
 	RootId    uint64 `json:"root_id"`    // 根评论id
 	ParentId  uint64 `json:"parent_id"`  // 父评论id
-	Ruid      uint64 `json:"ruid"`       // 被回复的用户id
+	Ruid      int64  `json:"ruid"`       // 被回复的用户id
 	LikeCount uint64 `json:"like_count"` // 点赞数
 	HateCount uint64 `json:"-"`          // 点踩数
 	Ctime     int64  `json:"ctime"`      // 发布时间
@@ -138,7 +138,7 @@ func NewDetailedReplyItemFromPb(item *commentv1.DetailedReplyItem, userMap map[s
 		ReplyItemBase: NewReplyItemBaseFromPb(item.Root),
 	}
 	if userMap != nil {
-		details.Root.User = userMap[xconv.FormatUint(item.Root.Uid)]
+		details.Root.User = userMap[xconv.FormatInt(item.Root.Uid)]
 	}
 
 	details.SubReplies = &DetailedSubReply{
@@ -151,7 +151,7 @@ func NewDetailedReplyItemFromPb(item *commentv1.DetailedReplyItem, userMap map[s
 			ReplyItemBase: NewReplyItemBaseFromPb(sub),
 		}
 		if userMap != nil {
-			item.User = userMap[xconv.FormatUint(sub.Uid)]
+			item.User = userMap[xconv.FormatInt(sub.Uid)]
 		}
 
 		details.SubReplies.Items = append(details.SubReplies.Items, item)

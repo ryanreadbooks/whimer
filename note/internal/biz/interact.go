@@ -20,12 +20,12 @@ const (
 // 笔记互动
 type NoteInteractBiz interface {
 	// 点赞笔记
-	LikeNote(ctx context.Context, uid, noteId uint64, operation int) error
+	LikeNote(ctx context.Context, uid int64, noteId uint64, operation int) error
 	// 用户是否点赞笔记
-	CheckUserLikeStatus(ctx context.Context, uid, noteId uint64) (bool, error)
+	CheckUserLikeStatus(ctx context.Context, uid int64, noteId uint64) (bool, error)
 	// 批量检查用户是否点赞笔记
-	BatchCheckUserLikeStatus(ctx context.Context, uidNoteIds map[uint64][]uint64) (
-		map[uint64][]*model.LikeStatus, error)
+	BatchCheckUserLikeStatus(ctx context.Context, uidNoteIds map[int64][]uint64) (
+		map[int64][]*model.LikeStatus, error)
 	// 获取笔记点赞信息并填充
 	AssignNoteLikes(ctx context.Context, batch *model.Notes) (*model.Notes, error)
 	// 获取笔记点赞数量
@@ -47,7 +47,7 @@ func NewNoteInteractBiz() NoteInteractBiz {
 }
 
 // 点赞笔记
-func (b *noteInteractBiz) LikeNote(ctx context.Context, uid, noteId uint64, operation int) error {
+func (b *noteInteractBiz) LikeNote(ctx context.Context, uid int64, noteId uint64, operation int) error {
 	var (
 		err error
 	)
@@ -87,7 +87,7 @@ func (b *noteInteractBiz) LikeNote(ctx context.Context, uid, noteId uint64, oper
 }
 
 // 获取用户是否点赞过笔记
-func (b *noteInteractBiz) CheckUserLikeStatus(ctx context.Context, uid, noteId uint64) (bool, error) {
+func (b *noteInteractBiz) CheckUserLikeStatus(ctx context.Context, uid int64, noteId uint64) (bool, error) {
 	ok, err := b.IsNoteExist(ctx, noteId)
 	if err != nil {
 		return false, xerror.Wrapf(err, "GetNoteInteraction check note exists failed")
@@ -114,10 +114,10 @@ func (b *noteInteractBiz) CheckUserLikeStatus(ctx context.Context, uid, noteId u
 
 // 批量获取用户是否点赞过笔记
 // 批量查找就不检查noteId是否存在
-func (b *noteInteractBiz) BatchCheckUserLikeStatus(ctx context.Context, uidNoteIds map[uint64][]uint64) (
-	map[uint64][]*model.LikeStatus, error) {
+func (b *noteInteractBiz) BatchCheckUserLikeStatus(ctx context.Context, uidNoteIds map[int64][]uint64) (
+	map[int64][]*model.LikeStatus, error) {
 
-	var req = make(map[uint64]*counterv1.ObjectList)
+	var req = make(map[int64]*counterv1.ObjectList)
 	for uid, noteIds := range uidNoteIds {
 		req[uid] = &counterv1.ObjectList{
 			Oids: noteIds,
@@ -131,7 +131,7 @@ func (b *noteInteractBiz) BatchCheckUserLikeStatus(ctx context.Context, uidNoteI
 		return nil, xerror.Wrapf(err, "note interact biz failed to batch like status").WithCtx(ctx)
 	}
 
-	var result = make(map[uint64][]*model.LikeStatus, len(resp.GetResults()))
+	var result = make(map[int64][]*model.LikeStatus, len(resp.GetResults()))
 	for uid, noteIds := range uidNoteIds {
 		likeRecords := resp.GetResults()[uid]
 		for _, noteId := range noteIds {

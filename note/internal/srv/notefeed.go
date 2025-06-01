@@ -133,6 +133,6 @@ func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId uint64) (*model.
 	return res.Items[0], nil
 }
 
-func (s *NoteFeedSrv) GetUserRecentNotes(ctx context.Context, user uint64, maxCount int32) (*model.Notes, error) {
+func (s *NoteFeedSrv) GetUserRecentNotes(ctx context.Context, user int64, maxCount int32) (*model.Notes, error) {
 	return s.noteBiz.GetUserRecentNote(ctx, user, maxCount)
 }
