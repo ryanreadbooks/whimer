@@ -42,11 +42,10 @@ func (s *P2PChatSrv) ListMessage(ctx context.Context, userId, chatId, seq int64,
 	if err != nil {
 		return nil, 0, err
 	}
-	if len(msgs) == 0 {
-		return nil, 0, nil
+	var nextSeq int64 = -1
+	if lc := len(msgs); lc != 0 && lc == int(cnt) {
+		nextSeq = msgs[len(msgs)-1].Seq
 	}
-
-	nextSeq := msgs[len(msgs)-1].Seq
 
 	return msgs, nextSeq, nil
 }
@@ -62,7 +61,23 @@ func (s *P2PChatSrv) ClearUnread(ctx context.Context, userId, chatId int64) erro
 }
 
 // 撤回消息
-func (s *P2PChatSrv) RevokeMessage(ctx context.Context, chatId, msgId int64) error {
-	// TODO 数据推送下发
-	return s.chatBiz.RevokeMessage(ctx, chatId, msgId)
+func (s *P2PChatSrv) RevokeMessage(ctx context.Context, userId, chatId, msgId int64) error {
+	// TODO 通知下发
+	return s.chatBiz.RevokeMessage(ctx, userId, chatId, msgId)
+}
+
+// 列出会话列表
+func (s *P2PChatSrv) ListChat(ctx context.Context, userId, seq int64, count int32) (
+	[]*bizp2p.Chat, int64, error) {
+	chats, err := s.chatBiz.ListChat(ctx, userId, seq, count)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var nextSeq int64 = -1
+	if lc := len(chats); lc != 0 && lc == int(count) {
+		nextSeq = chats[len(chats)-1].LastMsgSeq
+	}
+
+	return chats, nextSeq, nil
 }

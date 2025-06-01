@@ -65,6 +65,7 @@ func (d *ChatDao) Create(ctx context.Context, chat *ChatPO) (int64, error) {
 		chat.Ctime,
 		chat.LastMessageId,
 		chat.LastMessageSeq,
+		chat.LastReadMessageId,
 		chat.LastReadTime,
 	)
 	if err != nil {
@@ -108,10 +109,10 @@ func (d *ChatDao) GetByChatIdUserId(ctx context.Context, chatId, userId int64) (
 }
 
 // 分页获取
-func (d *ChatDao) PageGetByUserId(ctx context.Context, userId int64, lastSeq int64, count int) ([]*ChatPO, error) {
+func (d *ChatDao) PageListByUserId(ctx context.Context, userId int64, lastSeq int64, count int) ([]*ChatPO, error) {
 	var chats []*ChatPO
 	sql := fmt.Sprintf(
-		"SELECT %s FROM p2p_chat WHERE user_id=? AND last_message_time<? ORDER BY last_message_seq DESC LIMIT ?", chatFields)
+		"SELECT %s FROM p2p_chat WHERE user_id=? AND last_message_seq<? ORDER BY last_message_seq DESC LIMIT ?", chatFields)
 	err := d.db.QueryRowsCtx(ctx, &chats, sql, userId, lastSeq, count)
 	return chats, xsql.ConvertError(err)
 }
@@ -119,11 +120,11 @@ func (d *ChatDao) PageGetByUserId(ctx context.Context, userId int64, lastSeq int
 func (d *ChatDao) UpdateLastMsg(ctx context.Context,
 	lastMsgId, lastMsgSeq int64,
 	chatId, userId int64,
-	addUnread bool,
+	incrUnread bool,
 ) error {
 
 	sql := "UPDATE p2p_chat SET last_message_id=?, last_message_seq=?"
-	if addUnread {
+	if incrUnread {
 		sql += ", unread_count=unread_count+1"
 	}
 	sql += " WHERE chat_id=? AND user_id=?"
@@ -132,9 +133,32 @@ func (d *ChatDao) UpdateLastMsg(ctx context.Context,
 	return xsql.ConvertError(err)
 }
 
+// 更新最新消息和最新已读消息
+func (d *ChatDao) UpdateMsg(ctx context.Context,
+	lastMsgId, lastMsgSeq, lastReadMsgId int64,
+	chatId, userId int64,
+	incrUnread bool,
+) error {
+
+	sql := "UPDATE p2p_chat SET last_message_id=?, last_message_seq=?, " +
+		"last_read_message_id=?, last_read_time=?"
+	if incrUnread {
+		sql += ", unread_count=unread_count+1"
+	}
+	sql += " WHERE chat_id=? AND user_id=?"
+	_, err := d.db.ExecCtx(ctx,
+		sql,
+		lastMsgId, lastMsgSeq, lastReadMsgId, time.Now().UnixNano(),
+		chatId, userId,
+	)
+	return xsql.ConvertError(err)
+}
+
 // 清除未读数
 func (d *ChatDao) ResetUnreadCount(ctx context.Context, chatId, userId int64) error {
-	sql := fmt.Sprintf("UPDATE p2p_chat SET unread_count=0, last_read_time=? WHERE chat_id=? AND user_id=?")
+	sql := "UPDATE p2p_chat SET " +
+		"unread_count=0, last_read_message_id=last_message_id, last_read_time=? " +
+		"WHERE chat_id=? AND user_id=?"
 	_, err := d.db.ExecCtx(ctx, sql, time.Now().UnixNano(), chatId, userId)
 	return xsql.ConvertError(err)
 }

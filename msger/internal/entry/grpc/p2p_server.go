@@ -156,12 +156,14 @@ func (s *ChatServiceServer) ClearUnread(ctx context.Context, in *p2pv1.ClearUnre
 // 撤回消息
 func (s *ChatServiceServer) RevokeMessage(ctx context.Context, in *p2pv1.RevokeMessageRequest) (
 	*p2pv1.RevokeMessageResponse, error) {
-
+	if err := checkChatIdUserId(in); err != nil {
+		return nil, err
+	}
 	if err := checkChatIdMsgId(in); err != nil {
 		return nil, err
 	}
 
-	err := s.Svc.P2PChatSrv.RevokeMessage(ctx, in.ChatId, in.MsgId)
+	err := s.Svc.P2PChatSrv.RevokeMessage(ctx, in.UserId, in.ChatId, in.MsgId)
 	if err != nil {
 		return nil, err
 	}
@@ -169,36 +171,39 @@ func (s *ChatServiceServer) RevokeMessage(ctx context.Context, in *p2pv1.RevokeM
 	return &p2pv1.RevokeMessageResponse{}, nil
 }
 
-type ChatIdUserIdGetter interface {
-	GetChatId() int64
-	GetUserId() int64
-}
-
-func checkChatIdUserId(g ChatIdUserIdGetter) error {
-	if g.GetChatId() <= 0 {
-		return global.ErrP2PChatNotExist
+func (s *ChatServiceServer) ListChat(ctx context.Context, in *p2pv1.ListChatRequest) (
+	*p2pv1.ListChatResponse, error) {
+	if in.UserId == 0 {
+		return nil, global.ErrP2PChatUserEmpty
+	}
+	if in.Count > 50 {
+		in.Count = 50
+	}
+	if in.Seq <= 0 {
+		in.Seq = math.MaxInt64
 	}
 
-	if g.GetUserId() == 0 {
-		return global.ErrP2PChatUserEmpty
+	chats, nextSeq, err := s.Svc.P2PChatSrv.ListChat(ctx, in.UserId, in.Seq, in.Count)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
-}
-
-type ChatIdMsgIdGetter interface {
-	GetChatId() int64
-	GetMsgId() int64
-}
-
-func checkChatIdMsgId(g ChatIdMsgIdGetter) error {
-	if g.GetChatId() <= 0 {
-		return global.ErrP2PChatNotExist
+	result := make([]*p2pv1.Chat, 0, len(chats))
+	for _, c := range chats {
+		result = append(result, &p2pv1.Chat{
+			ChatId:        c.ChatId,
+			UserId:        c.UserId,
+			PeerId:        c.PeerId,
+			Unread:        c.Unread,
+			LastMsgId:     c.LastMsgId,
+			LastMsgSeq:    c.LastMsgSeq,
+			LastReadMsgId: c.LastReadMsgId,
+			LastReadTime:  c.LastReadTime,
+		})
 	}
 
-	if g.GetMsgId() == 0 {
-		return global.ErrMsgNotExist
-	}
-
-	return nil
+	return &p2pv1.ListChatResponse{
+		Chats:   result,
+		NextSeq: nextSeq,
+	}, nil
 }

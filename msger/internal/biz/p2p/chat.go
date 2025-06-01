@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
@@ -31,7 +30,9 @@ type ChatBiz interface {
 	// 消除用户会话的未读数
 	ClearUnreadCount(ctx context.Context, userId, chatId int64) error
 	// 撤回会话消息
-	RevokeMessage(ctx context.Context, chatId, msgId int64) error
+	RevokeMessage(ctx context.Context, userId, chatId, msgId int64) error
+	// 获取用户会话列表
+	ListChat(ctx context.Context, userId, lastMsgSeq int64, count int32) ([]*Chat, error)
 }
 
 const (
@@ -50,8 +51,6 @@ func NewP2PChatBiz() ChatBiz {
 
 // 两个用户开启会话, userA发起请求
 func (b *p2pChatBiz) InitChat(ctx context.Context, userA, userB int64) (int64, error) {
-	// TODO 检查两个user的合法性
-
 	seqNo, err := dep.Idgen().GetId(ctx, chatIdGenKey, chatIdGenStep)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "p2p biz failed to gen chatid").WithCtx(ctx)
@@ -175,7 +174,7 @@ func (b *p2pChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg
 		}
 
 		// 更新sender的消息
-		err = infra.Dao().P2PChatDao.UpdateLastMsg(ctx, msgId, msgPo.Seq, req.ChatId, req.Sender, false)
+		err = infra.Dao().P2PChatDao.UpdateMsg(ctx, msgId, msgPo.Seq, msgId, req.ChatId, req.Sender, false)
 		if err != nil {
 			return xerror.Wrapf(err, "chat dao failed to update last msg for sender")
 		}
@@ -286,13 +285,12 @@ func (b *p2pChatBiz) ClearUnreadCount(ctx context.Context, userId, chatId int64)
 }
 
 // 撤回消息
-func (b *p2pChatBiz) RevokeMessage(ctx context.Context, chatId, msgId int64) error {
-	uid := metadata.Uid(ctx)
+func (b *p2pChatBiz) RevokeMessage(ctx context.Context, userId, chatId, msgId int64) error {
 	// uid撤回chatId中msgId消息
 	logExtras := make([]any, 0, 4)
-	logExtras = append(logExtras, "chat_id", chatId, "msg_id", msgId)
+	logExtras = append(logExtras, "chat_id", chatId, "msg_id", msgId, "user_id", userId)
 
-	_, err := b.getChat(ctx, uid, chatId)
+	_, err := b.getChat(ctx, userId, chatId)
 	if err != nil {
 		return xerror.Wrapf(err, "p2p revoke message failed").WithExtras(logExtras...).WithCtx(ctx)
 	}
@@ -301,7 +299,7 @@ func (b *p2pChatBiz) RevokeMessage(ctx context.Context, chatId, msgId int64) err
 	if err != nil {
 		return xerror.Wrapf(err, "msg dao failed to get msg").WithExtras(logExtras...).WithCtx(ctx)
 	}
-	if msgPo.SenderId != uid {
+	if msgPo.SenderId != userId {
 		return global.ErrCantRevokeMsg
 	}
 	if msgPo.Status == gm.MsgStatusRevoked {
@@ -329,4 +327,21 @@ func (b *p2pChatBiz) RevokeMessage(ctx context.Context, chatId, msgId int64) err
 	}
 
 	return nil
+}
+
+// 列出用户会话列表
+func (b *p2pChatBiz) ListChat(ctx context.Context, userId, lastMsgSeq int64, count int32) ([]*Chat, error) {
+	logExtras := make([]any, 0, 4)
+	logExtras = append(logExtras, "last_msg_seq", lastMsgSeq, "count", count, "user_id", userId)
+	chatPos, err := infra.Dao().P2PChatDao.PageListByUserId(ctx, userId, lastMsgSeq, int(count))
+	if err != nil {
+		return nil, xerror.Wrapf(err, "chat dao failed to page list").WithExtras(logExtras...).WithCtx(ctx)
+	}
+
+	chats := make([]*Chat, 0, len(chatPos))
+	for _, c := range chatPos {
+		chats = append(chats, MakeChatFromPO(c))
+	}
+
+	return chats, nil
 }

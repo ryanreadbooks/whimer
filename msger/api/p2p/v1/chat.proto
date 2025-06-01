@@ -6,6 +6,18 @@ option go_package = "github.com/ryanreadbooks/whimer/msger/api/p2p/v1";
 
 import "msg/msg.proto";
 
+// 单聊会话
+message Chat {
+  int64 chat_id = 1;
+  int64 user_id = 2;
+  int64 peer_id = 3;
+  int64 unread = 4;
+  int64 last_msg_id = 5;
+  int64 last_msg_seq = 6;
+  int64 last_read_msg_id = 7;
+  int64 last_read_time = 8;
+}
+
 message CreateChatRequest {
   int64 initiator = 1; // 发起人
   int64 target = 2;    // 目标
@@ -52,11 +64,23 @@ message ClearUnreadRequest {
 message ClearUnreadResponse {}
 
 message RevokeMessageRequest {
-  int64 chat_id = 1;
-  int64 msg_id = 2;
+  int64 user_id = 1;
+  int64 chat_id = 2;
+  int64 msg_id = 3;
 }
 
 message RevokeMessageResponse {}
+
+message ListChatRequest {
+  int64 user_id = 1;
+  int64 seq = 2;
+  int32 count = 3;
+}
+
+message ListChatResponse {
+  repeated Chat chats = 1;
+  int64 next_seq = 2;
+}
 
 // p2p会话相关服务
 service ChatService {
@@ -72,4 +96,6 @@ service ChatService {
   rpc ClearUnread(ClearUnreadRequest) returns (ClearUnreadResponse);
   // 撤回消息
   rpc RevokeMessage(RevokeMessageRequest) returns (RevokeMessageResponse);
+  // 列出用户单聊会话
+  rpc ListChat(ListChatRequest) returns (ListChatResponse);
 }
