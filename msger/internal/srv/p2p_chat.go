@@ -20,6 +20,7 @@ func NewP2PChatSrv(biz biz.Biz) *P2PChatSrv {
 
 // 两个用户创建会话
 func (s *P2PChatSrv) CreateChat(ctx context.Context, initer, target int64) (int64, error) {
+	// TODO 检查initer和target
 	chatId, err := s.chatBiz.InitChat(ctx, initer, target)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "p2p chat srv failed to init chat").WithCtx(ctx)
@@ -31,6 +32,7 @@ func (s *P2PChatSrv) CreateChat(ctx context.Context, initer, target int64) (int6
 // 单聊消息发送
 func (s *P2PChatSrv) SendMessage(ctx context.Context, req *bizp2p.CreateMsgReq) (
 	*bizp2p.ChatMsg, error) {
+	// TODO req检查，type和content的检查等
 	// TODO 数据推送下发
 	return s.chatBiz.CreateMsg(ctx, req)
 }

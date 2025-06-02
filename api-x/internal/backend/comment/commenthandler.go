@@ -1,4 +1,4 @@
-package backend
+package comment
 
 import (
 	"context"
@@ -6,55 +6,65 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/comment"
+	"github.com/ryanreadbooks/whimer/api-x/internal/backend/note"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
+	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/utils/maps"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
+type Handler struct {
+}
+
+func NewHandler(c *config.Config) *Handler {
+	return &Handler{}
+}
+
 // 发表评论
 func (h *Handler) PublishComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[comment.PubReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[PubReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		resp, err := comment.Commenter().
+		resp, err := Commenter().
 			AddReply(r.Context(), req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		httpx.OkJson(w, &comment.PubRes{ReplyId: resp.ReplyId})
+		httpx.OkJson(w, &PubRes{ReplyId: resp.ReplyId})
 	}
 }
 
 // 只获取主评论
 func (h *Handler) PageGetRoots() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[comment.GetCommentsReq](httpx.Parse, r)
+		req, err := xhttp.ParseValidate[GetCommentsReq](httpx.Parse, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		if err := h.hasNoteCheck(r.Context(), req.Oid); err != nil {
+		if err := h.checkHasNote(r.Context(), req.Oid); err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
 		ctx := r.Context()
-		rootReplies, err := comment.Commenter().
+		rootReplies, err := Commenter().
 			PageGetReply(ctx, req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -62,7 +72,7 @@ func (h *Handler) PageGetRoots() http.HandlerFunc {
 		}
 
 		// 整合用户的信息
-		var replies = []*comment.ReplyItem{}
+		var replies = []*ReplyItem{}
 		if len(rootReplies.Replies) > 0 {
 			replies, err = attachReplyUsers(ctx, rootReplies.Replies)
 			if err != nil {
@@ -71,7 +81,7 @@ func (h *Handler) PageGetRoots() http.HandlerFunc {
 			}
 		}
 
-		httpx.OkJson(w, &comment.CommentRes{
+		httpx.OkJson(w, &CommentRes{
 			Replies:    replies,
 			NextCursor: rootReplies.NextCursor,
 			HasNext:    rootReplies.HasNext,
@@ -82,19 +92,19 @@ func (h *Handler) PageGetRoots() http.HandlerFunc {
 // 只获取子评论
 func (h *Handler) PageGetSubs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[comment.GetSubCommentsReq](httpx.Parse, r)
+		req, err := xhttp.ParseValidate[GetSubCommentsReq](httpx.Parse, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		if err := h.hasNoteCheck(r.Context(), req.Oid); err != nil {
+		if err := h.checkHasNote(r.Context(), req.Oid); err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
 		ctx := r.Context()
-		subReplies, err := comment.Commenter().
+		subReplies, err := Commenter().
 			PageGetSubReply(ctx, req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -102,7 +112,7 @@ func (h *Handler) PageGetSubs() http.HandlerFunc {
 		}
 
 		// 填充评论的用户信息
-		var replies = []*comment.ReplyItem{}
+		var replies = []*ReplyItem{}
 		if len(subReplies.Replies) > 0 {
 			replies, err = attachReplyUsers(ctx, subReplies.Replies)
 			if err != nil {
@@ -111,7 +121,7 @@ func (h *Handler) PageGetSubs() http.HandlerFunc {
 			}
 		}
 
-		httpx.OkJson(w, &comment.CommentRes{
+		httpx.OkJson(w, &CommentRes{
 			Replies:    replies,
 			HasNext:    subReplies.HasNext,
 			NextCursor: subReplies.NextCursor,
@@ -135,13 +145,13 @@ func extractUidsMap(replies []*commentv1.DetailedReplyItem) map[int64]struct{} {
 // 获取主评论信息（包含其下子评论）
 func (h *Handler) PageGetReplies() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[comment.GetCommentsReq](httpx.Parse, r)
+		req, err := xhttp.ParseValidate[GetCommentsReq](httpx.Parse, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		if err := h.hasNoteCheck(r.Context(), req.Oid); err != nil {
+		if err := h.checkHasNote(r.Context(), req.Oid); err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
@@ -159,7 +169,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 			concurrent.SafeGo(func() {
 				defer wg.Done()
 				var err error
-				resp, err := comment.Commenter().
+				resp, err := Commenter().
 					GetPinnedReply(ctx, &commentv1.GetPinnedReplyRequest{Oid: req.Oid})
 				if err != nil {
 					logx.Errorw("rpc get pin reply err", xlog.WithUid(ctx), xlog.WithErr(err))
@@ -182,7 +192,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 			})
 		}
 
-		resp, err := comment.Commenter().
+		resp, err := Commenter().
 			PageGetDetailedReply(ctx, req.AsDetailedPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -190,7 +200,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 		}
 
 		var (
-			replies = []*comment.DetailedReplyItem{}
+			replies = []*DetailedReplyItem{}
 		)
 
 		if len(resp.Replies) > 0 {
@@ -206,23 +216,23 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 
 			logx.Debugf("userResp = %v, uidsMap = %v", userResp.Users, uidsMap)
 			// 拼接结果
-			replies = make([]*comment.DetailedReplyItem, 0, len(resp.Replies))
+			replies = make([]*DetailedReplyItem, 0, len(resp.Replies))
 			for _, item := range resp.Replies {
-				details := comment.NewDetailedReplyItemFromPb(item, userResp.Users)
+				details := NewDetailedReplyItemFromPb(item, userResp.Users)
 				replies = append(replies, details)
 			}
 		}
 
-		var pinned *comment.DetailedReplyItem
+		var pinned *DetailedReplyItem
 		wg.Wait()
 		if req.Cursor == 0 {
 			// 置顶
 			if pinnedReply != nil { // 有些可能没有设置置顶评论
-				pinned = comment.NewDetailedReplyItemFromPb(pinnedReply, pinnedReplyUser)
+				pinned = NewDetailedReplyItemFromPb(pinnedReply, pinnedReplyUser)
 			}
 		}
 
-		httpx.OkJson(w, &comment.DetailedCommentRes{
+		httpx.OkJson(w, &DetailedCommentRes{
 			Replies:    replies,
 			PinReply:   pinned,
 			HasNext:    resp.HasNext,
@@ -232,7 +242,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 }
 
 // 填入用户信息
-func attachReplyUsers(ctx context.Context, replies []*commentv1.ReplyItem) ([]*comment.ReplyItem, error) {
+func attachReplyUsers(ctx context.Context, replies []*commentv1.ReplyItem) ([]*ReplyItem, error) {
 	uidsMap := make(map[int64]struct{})
 	for _, root := range replies {
 		uidsMap[root.Uid] = struct{}{}
@@ -244,10 +254,10 @@ func attachReplyUsers(ctx context.Context, replies []*commentv1.ReplyItem) ([]*c
 		return nil, err
 	}
 
-	res := make([]*comment.ReplyItem, 0, len(replies))
+	res := make([]*ReplyItem, 0, len(replies))
 	for _, root := range replies {
-		res = append(res, &comment.ReplyItem{
-			ReplyItemBase: comment.NewReplyItemBaseFromPb(root),
+		res = append(res, &ReplyItem{
+			ReplyItemBase: NewReplyItemBaseFromPb(root),
 			User:          userResp.Users[formatUid(root.Uid)],
 		})
 	}
@@ -261,13 +271,13 @@ func formatUid(uid int64) string {
 
 func (h *Handler) DelComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[comment.DelReq](httpx.Parse, r)
+		req, err := xhttp.ParseValidate[DelReq](httpx.Parse, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		_, err = comment.Commenter().DelReply(r.Context(), &commentv1.DelReplyRequest{ReplyId: req.ReplyId})
+		_, err = Commenter().DelReply(r.Context(), &commentv1.DelReplyRequest{ReplyId: req.ReplyId})
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -279,13 +289,13 @@ func (h *Handler) DelComment() http.HandlerFunc {
 
 func (h *Handler) PinComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[comment.PinReq](httpx.Parse, r)
+		req, err := xhttp.ParseValidate[PinReq](httpx.Parse, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		_, err = comment.Commenter().PinReply(r.Context(), &commentv1.PinReplyRequest{
+		_, err = Commenter().PinReply(r.Context(), &commentv1.PinReplyRequest{
 			Oid:    req.Oid,
 			Rid:    req.ReplyId,
 			Action: commentv1.ReplyAction(req.Action),
@@ -301,13 +311,13 @@ func (h *Handler) PinComment() http.HandlerFunc {
 
 func (h *Handler) LikeComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[comment.ThumbUpReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[ThumbUpReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		_, err = comment.Commenter().LikeAction(r.Context(), &commentv1.LikeActionRequest{
+		_, err = Commenter().LikeAction(r.Context(), &commentv1.LikeActionRequest{
 			ReplyId: req.ReplyId,
 			Action:  commentv1.ReplyAction(req.Action),
 		})
@@ -322,13 +332,13 @@ func (h *Handler) LikeComment() http.HandlerFunc {
 
 func (h *Handler) DislikeComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[comment.ThumbDownReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[ThumbDownReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		_, err = comment.Commenter().DislikeAction(r.Context(), &commentv1.DislikeActionRequest{
+		_, err = Commenter().DislikeAction(r.Context(), &commentv1.DislikeActionRequest{
 			ReplyId: req.ReplyId,
 			Action:  commentv1.ReplyAction(req.Action),
 		})
@@ -343,13 +353,13 @@ func (h *Handler) DislikeComment() http.HandlerFunc {
 
 func (h *Handler) GetCommentLikeCount() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[comment.GetLikeCountReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[GetLikeCountReq](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		res, err := comment.Commenter().GetReplyLikeCount(r.Context(),
+		res, err := Commenter().GetReplyLikeCount(r.Context(),
 			&commentv1.GetReplyLikeCountRequest{
 				ReplyId: req.ReplyId,
 			})
@@ -358,9 +368,24 @@ func (h *Handler) GetCommentLikeCount() http.HandlerFunc {
 			return
 		}
 
-		httpx.OkJson(w, &comment.GetLikeCountRes{
+		httpx.OkJson(w, &GetLikeCountRes{
 			ReplyId: res.ReplyId,
 			Likes:   res.Count,
 		})
 	}
+}
+
+func (h *Handler) checkHasNote(ctx context.Context, noteId uint64) error {
+	if resp, err := note.NoteCreatorServer().IsNoteExist(ctx,
+		&notev1.IsNoteExistRequest{
+			NoteId: noteId,
+		}); err != nil {
+		return err
+	} else {
+		if !resp.Exist {
+			return xerror.ErrArgs.Msg("笔记不存在")
+		}
+	}
+
+	return nil
 }

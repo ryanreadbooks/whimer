@@ -12,7 +12,7 @@ func regRelationRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 		v1g := g.Group("/v1", middleware.MustLogin())
 		{
 			// 关注/取关某个用户
-			v1g.Post("/follow", svc.UserFollowAction())
+			v1g.Post("/follow", svc.Relation.UserFollowAction())
 		}
 	}
 }

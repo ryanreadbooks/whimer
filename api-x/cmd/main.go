@@ -19,6 +19,7 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	backend.Init(&c)
 	var handler = backend.NewHandler(&c)
 
 	apiserver := rest.MustNewServer(c.Http)

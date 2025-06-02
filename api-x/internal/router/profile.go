@@ -13,12 +13,12 @@ func regProfileRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 		v1gLogin := g.Group("/v1", middleware.MustLogin())
 		{
 			// 获取用户的投稿数量、点赞数量等信息
-			v1gLogin.Get("/stat", svc.GetProfileStat())
+			v1gLogin.Get("/stat", svc.Profile.GetProfileStat())
 		}
 
 		v1gNoLogin := g.Group("/v1", middleware.CanLogin())
 		{
-			v1gNoLogin.Get("/hover", svc.GetHoverProfile())
+			v1gNoLogin.Get("/hover", svc.Profile.GetHoverProfile())
 		}
 	}
 }

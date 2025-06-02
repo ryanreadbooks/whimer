@@ -14,5 +14,6 @@ type Config struct {
 		Comment  xconf.Discovery `json:"comment"`
 		Passport xconf.Discovery `json:"passport"`
 		Relation xconf.Discovery `json:"relation"`
+		Msger    xconf.Discovery `json:"msger"`
 	} `json:"backend"`
 }

@@ -1,4 +1,4 @@
-package backend
+package profile
 
 import (
 	"net/http"
@@ -6,8 +6,8 @@ import (
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/note"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/profile"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/relation"
+	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
@@ -19,6 +19,14 @@ import (
 
 	"golang.org/x/sync/errgroup"
 )
+
+type Handler struct {
+}
+
+func NewHandler(c *config.Config) *Handler {
+	return &Handler{}
+
+}
 
 // 获取用户的投稿数量、点赞数量等信息
 func (h *Handler) GetProfileStat() http.HandlerFunc {
@@ -94,7 +102,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 			isAuthedRequest = uid != 0
 		)
 
-		req, err := xhttp.ParseValidate[profile.HoverReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[HoverReq](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -153,7 +161,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 		})
 
 		// 用户最近发布的笔记信息
-		var postAssets = make([]profile.PostAsset, 0, 3)
+		var postAssets = make([]PostAsset, 0, 3)
 		eg.Go(func() error {
 			return recovery.Do(func() error {
 				resp, err := note.NoteFeedServer().GetUserRecentPost(ctx, &notev1.GetUserRecentPostRequest{
@@ -167,7 +175,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 				for _, item := range resp.Items {
 					// 此处只需要封面
 					if len(item.Images) > 0 {
-						postAssets = append(postAssets, profile.PostAsset{
+						postAssets = append(postAssets, PostAsset{
 							Url:    item.Images[0].Url,
 							UrlPrv: item.Images[0].UrlPrv,
 							Type:   int(item.Images[0].Type),
@@ -204,21 +212,21 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 		}
 
 		// organize all result
-		var res profile.HoverRes
-		res.Relation.Status = profile.RelationNone
+		var res HoverRes
+		res.Relation.Status = RelationNone
 		res.BasicInfo.Nickname = targetUser.GetNickname()
 		res.BasicInfo.StyleSign = targetUser.GetStyleSign()
 		res.BasicInfo.Avatar = targetUser.GetAvatar()
 		if !isAuthedRequest {
 			// 非登录用户不展示准确的用户数据
-			res.Interaction.Fans = profile.HideActualCount(fansCount)
-			res.Interaction.Follows = profile.HideActualCount(followsCount)
+			res.Interaction.Fans = HideActualCount(fansCount)
+			res.Interaction.Follows = HideActualCount(followsCount)
 		} else {
 			res.Interaction.Fans = strconv.FormatUint(fansCount, 10)
 			res.Interaction.Follows = strconv.FormatUint(followsCount, 10)
 		}
 		if followed {
-			res.Relation.Status = profile.RelationFollowing
+			res.Relation.Status = RelationFollowing
 		}
 		res.RecentPosts = postAssets
 
