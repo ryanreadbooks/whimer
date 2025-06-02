@@ -2,7 +2,7 @@ package dep
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/idgen"
-	// "github.com/ryanreadbooks/whimer/misc/xgrpc"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/msger/internal/config"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 
@@ -16,9 +16,9 @@ var (
 )
 
 func Init(c *config.Config) {
-	// userer = xgrpc.NewRecoverableClient(c.External.Grpc.Passport,
-	// 	userv1.NewUserServiceClient, func(cc userv1.UserServiceClient) { userer = cc },
-	// )
+	userer = xgrpc.NewRecoverableClient(c.External.Grpc.Passport,
+		userv1.NewUserServiceClient, func(cc userv1.UserServiceClient) { userer = cc },
+	)
 
 	initIdGen(c)
 }
