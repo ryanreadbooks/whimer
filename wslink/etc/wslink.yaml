@@ -1,0 +1,7 @@
+ws_server:
+  addr: 0.0.0.0
+  port: 3800
+  read_timeout: 1m
+  write_timeout: 1m
+  busy_threshold: 85
+  max_conn_allowed: 1200
