@@ -8,18 +8,24 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
+	"github.com/ryanreadbooks/whimer/misc/xhttp"
+	"github.com/ryanreadbooks/whimer/misc/xhttp/middleware"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/wslink/internal/config"
 	"github.com/ryanreadbooks/whimer/wslink/internal/global"
+	modelws "github.com/ryanreadbooks/whimer/wslink/internal/model/ws"
+	"github.com/ryanreadbooks/whimer/wslink/internal/srv"
+	"github.com/zeromicro/go-zero/rest"
 )
 
 type Server struct {
-	httpServer *http.Server
-	upgrader   *websocket.Upgrader
-	conf       *config.Websocket
-	engine     *gin.Engine
+	httpServer  *http.Server
+	upgrader    *websocket.Upgrader
+	conf        *config.Websocket
+	engine      *gin.Engine
+	sessHandler modelws.SessionHandler
 
 	// server state
 	startAt  time.Time // 启动时间
@@ -27,18 +33,17 @@ type Server struct {
 	isClosed atomic.Bool
 }
 
-func New(c *config.Websocket) *Server {
+func New(c *config.Config, restServer *rest.Server, service *srv.Service) *Server {
 	s := &Server{
-		conf: c,
+		conf:        c.WsServer,
+		sessHandler: service,
 	}
 
 	// http
-	s.engine = gin.New()
-	s.engine.GET("/sub", s.upgrade)
-	// mux := http.NewServeMux()
-	// mux.HandleFunc("/sub", s.upgrade)
+	subGroup := xhttp.NewRouterGroup(restServer)
+	subGroup.Get("/sub", s.upgrade, middleware.Recovery)
 	s.httpServer = &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", s.conf.Addr, s.conf.Port),
+		Addr:    fmt.Sprintf("%s:%d", c.Http.Host, c.Http.Port),
 		Handler: s.engine,
 	}
 	s.upgrader = &websocket.Upgrader{
@@ -51,23 +56,40 @@ func New(c *config.Websocket) *Server {
 }
 
 // 协议升级成websocket
-func (s *Server) upgrade(c *gin.Context) {
-	defer func() {
-		if e := recover(); e != nil {
-			// 升级过程中panic
-		}
-	}()
-
-	gwsc, err := s.upgrader.Upgrade(c.Writer, c.Request, nil)
+func (s *Server) upgrade(w http.ResponseWriter, r *http.Request) {
+	wsConn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		// err != nil时 upgrader.Upgrade已经处理了
 		return
 	}
 
-	wsConnId := uuid.NewString()
-	wsConn := GetWsConn(wsConnId, gwsc)
-	wsConn.SetReadTimeout(time.Duration(s.conf.ReadTimeout.Duration()))
-	wsConn.SetWriteTimeout(time.Duration(s.conf.WriteTimeout.Duration()))
+	session := modelws.CreateSession(
+		wsConn,
+		modelws.WithReadTimeout(s.conf.ReadTimeout.Duration()),
+		modelws.WithWriteTimeout(s.conf.WriteTimeout.Duration()),
+	)
+
+	ctx := r.Context()
+	if err := s.sessHandler.OnCreate(ctx, session); err != nil {
+		// err is not nil, we deny this connection
+		modelws.RecoverSession(session)
+		xhttp.Error(r, w, err)
+		wsConn.Close()
+		return
+	}
+
+	session.SetOnData(s.sessHandler)
+	session.SetOnClose(s.sessHandler)
+
+	concurrent.SafeGo(func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer func() {
+			cancel()
+			modelws.RecoverSession(session)
+		}()
+
+		session.Loop(ctx)
+	})
 }
 
 // 判断请求是否能升级
@@ -82,14 +104,10 @@ func (s *Server) isUpgradeAllowed(r *http.Request) error {
 }
 
 func (s *Server) Start() {
-	s.startAt = time.Now()
-	err := s.httpServer.ListenAndServe()
-	if err != nil {
-		xlog.Error(fmt.Sprintf("listen and serve failed: %v", err)).Do()
-	}
 }
 
 func (s *Server) Stop() {
+	// TODO close all existing sessions
 	if err := s.httpServer.Shutdown(context.Background()); err != nil {
 		xlog.Error(fmt.Sprintf("close failed: %v", err)).Do()
 	}

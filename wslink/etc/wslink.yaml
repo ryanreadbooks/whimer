@@ -1,6 +1,12 @@
-ws_server:
-  addr: 0.0.0.0
+http:
+  mode: dev
+  name: wslink
+  host: 0.0.0.0
   port: 3800
+  log:
+    level: debug
+
+ws_server:
   read_timeout: 1m
   write_timeout: 1m
   busy_threshold: 85

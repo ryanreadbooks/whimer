@@ -2,11 +2,10 @@ package config
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/xtime"
+	"github.com/zeromicro/go-zero/rest"
 )
 
 type Websocket struct {
-	Addr           string          `json:"addr"`
-	Port           uint16          `json:"port"`
 	ReadTimeout    xtime.SDuration `json:"read_timeout"`
 	WriteTimeout   xtime.SDuration `json:"write_timeout"`
 	BusyThreshold  int             `json:"busy_threshold"` // 判定为忙碌的连接占比阈值
@@ -14,5 +13,6 @@ type Websocket struct {
 }
 
 type Config struct {
-	WsServer *Websocket `json:"ws_server"`
+	Http     rest.RestConf `json:"http"`
+	WsServer *Websocket    `json:"ws_server"`
 }
