@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -20,10 +21,25 @@ var (
 	ErrFinishSession = fmt.Errorf("finish session")
 )
 
+func isTimeoutErr(err error) bool {
+	if netError, ok := err.(net.Error); ok && netError.Timeout() {
+		return true
+	}
+
+	return false
+}
+
+type Device string
+
+const (
+	DeviceWeb Device = "web"
+)
+
 // 对connection的封装
 type Session struct {
 	conn   *connection
 	closed atomic.Bool
+	device Device
 
 	// callback handler
 	onData  SessionOnDataHandler
@@ -35,6 +51,7 @@ func (s *Session) reset() {
 	s.onClose = nil
 	s.onData = nil
 	s.closed.Store(true)
+	s.device = ""
 }
 
 var sessionPool = sync.Pool{
@@ -74,8 +91,8 @@ func CreateSession(webconn *websocket.Conn, opts ...createSessionOpt) *Session {
 
 	cid := uuid.NewString()
 	c := getWsConn(cid, webconn)
-	c.setReadTimeout(o.readTimeout)
-	c.setWriteTimeout(o.writeTimeout)
+	c.rTimeout = o.readTimeout
+	c.wTimeout = o.writeTimeout
 
 	s := sessionPool.Get().(*Session)
 	s.conn = c
@@ -115,9 +132,14 @@ func (s *Session) Loop(ctx context.Context) {
 		if err != nil {
 			if !errors.Is(err, ErrContinued) {
 				// unexpected error should close session
-				s.Close(ctx)
+				if isTimeoutErr(err) {
+					s.GraceClose(ctx)
+				} else {
+					s.Close(ctx)
+				}
 				return
 			}
+
 			continue
 		}
 
@@ -146,15 +168,30 @@ func (s *Session) handleData(ctx context.Context, data []byte) error {
 }
 
 func (s *Session) Close(ctx context.Context) {
+	cid := s.conn.id
 	if s.conn != nil {
 		if err := s.conn.close(); err != nil {
-			xlog.Msg(fmt.Sprintf("conn %s close err", s.conn.id)).
-				Err(err).Errorx(ctx)
+			xlog.Msgf("conn %s close err", s.conn.id).Err(err).Errorx(ctx)
 		}
 	}
 
 	if s.onClose != nil {
-		s.onClose.OnClosed(ctx, s)
+		s.onClose.OnClosed(ctx, cid)
+	}
+
+	s.closed.Store(true)
+}
+
+func (s *Session) GraceClose(ctx context.Context) {
+	cid := s.conn.id
+	if s.conn != nil {
+		if err := s.conn.graceClose(); err != nil {
+			xlog.Msgf("conn %s grace close err", s.conn.id).Err(err).Errorx(ctx)
+		}
+	}
+
+	if s.onClose != nil {
+		s.onClose.OnClosed(ctx, cid)
 	}
 
 	s.closed.Store(true)
@@ -181,4 +218,8 @@ func (s *Session) SetOnData(h SessionOnDataHandler) {
 
 func (s *Session) SetOnClose(h SessionOnClosedHandler) {
 	s.onClose = h
+}
+
+func (s *Session) SetDevice(dev Device) {
+	s.device = dev
 }

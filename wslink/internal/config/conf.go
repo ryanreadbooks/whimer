@@ -1,7 +1,9 @@
 package config
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/ryanreadbooks/whimer/misc/xtime"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/rest"
 )
 
@@ -15,4 +17,10 @@ type Websocket struct {
 type Config struct {
 	Http     rest.RestConf `json:"http"`
 	WsServer *Websocket    `json:"ws_server"`
+
+	Redis redis.RedisConf
+
+	Backend struct {
+		Passport xconf.Discovery `json:"passport"`
+	} `json:"backend"`
 }

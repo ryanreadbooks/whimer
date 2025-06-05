@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package wslink.api.protocol.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/wslink/api/protocol/v1";
+
+enum Flag {
+  FLAG_UNSPECIFIED = 0;
+  FLAG_PONG = 1;
+  FLAG_HEARTBEAT = 2;
+}
+
+message Protocol { Flag flag = 1; }

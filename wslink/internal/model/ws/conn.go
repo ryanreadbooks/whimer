@@ -26,6 +26,15 @@ var wsConnPool = sync.Pool{
 	},
 }
 
+// websocket连接
+type connection struct {
+	id   string
+	conn *websocket.Conn
+
+	rTimeout time.Duration
+	wTimeout time.Duration
+}
+
 func getWsConn(id string, wc *websocket.Conn) *connection {
 	c, _ := wsConnPool.Get().(*connection)
 	c.id = id
@@ -40,15 +49,6 @@ func putWsConn(c *connection) {
 	}
 }
 
-// websocket连接
-type connection struct {
-	id   string
-	conn *websocket.Conn
-
-	rTimeout time.Duration
-	wTimeout time.Duration
-}
-
 func (c *connection) reset() {
 	c.id = ""
 	c.conn = nil
@@ -57,6 +57,7 @@ func (c *connection) reset() {
 }
 
 func (c *connection) read() ([]byte, error) {
+	c.setReadTimeout(c.rTimeout)
 	msgTyp, data, err := c.conn.ReadMessage()
 	if err != nil {
 		if strings.Contains(err.Error(), net.ErrClosed.Error()) {
@@ -65,12 +66,17 @@ func (c *connection) read() ([]byte, error) {
 		}
 		return nil, err
 	}
+
 	if msgTyp == websocket.PingMessage {
 		// pong back
-		err = c.conn.WriteMessage(websocket.PongMessage, nil)
+		err = c.conn.WriteMessage(websocket.PongMessage, []byte("PONG"))
 		if err != nil {
 			return nil, ErrContinued
 		}
+	}
+
+	if msgTyp == websocket.PongMessage {
+		return nil, ErrContinued
 	}
 
 	if msgTyp == websocket.CloseMessage {
@@ -82,10 +88,12 @@ func (c *connection) read() ([]byte, error) {
 }
 
 func (c *connection) write(data []byte) error {
+	c.setWriteTimeout(c.wTimeout)
 	return c.conn.WriteMessage(websocket.BinaryMessage, data)
 }
 
 func (c *connection) writeText(text string) error {
+	c.setWriteTimeout(c.wTimeout)
 	return c.conn.WriteMessage(websocket.TextMessage, utils.StringToBytes(text))
 }
 
@@ -93,12 +101,12 @@ func (c *connection) close() error {
 	return c.conn.Close()
 }
 
-func (c *connection) writeAndClose(text string) error {
-	errW := c.conn.WriteMessage(
-		websocket.CloseMessage,
-		websocket.FormatCloseMessage(websocket.CloseInternalServerErr, text))
-	errC := c.conn.Close()
-	return errors.Join(errW, errC)
+func (c *connection) graceClose() error {
+	err := c.conn.WriteControl(websocket.CloseMessage,
+		websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSED"),
+		time.Time{})
+	err2 := c.conn.Close()
+	return errors.Join(err, err2)
 }
 
 func (c *connection) setReadTimeout(timeout time.Duration) error {

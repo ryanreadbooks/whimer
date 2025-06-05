@@ -5,6 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/wslink/internal/config"
 	"github.com/ryanreadbooks/whimer/wslink/internal/entry/ws"
+	"github.com/ryanreadbooks/whimer/wslink/internal/infra"
 	"github.com/ryanreadbooks/whimer/wslink/internal/srv"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -20,6 +21,7 @@ func main() {
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
 
+	infra.Init(&c)
 	apiserver := rest.MustNewServer(c.Http)
 	serv := srv.NewService(&c)
 	handler := ws.New(&c, apiserver, serv)

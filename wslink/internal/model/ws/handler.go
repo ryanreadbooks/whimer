@@ -9,7 +9,7 @@ type SessionOnDataHandler interface {
 
 // session关闭处理
 type SessionOnClosedHandler interface {
-	OnClosed(ctx context.Context, s *Session) error
+	OnClosed(ctx context.Context, id string) error
 }
 
 // session创建时处理
