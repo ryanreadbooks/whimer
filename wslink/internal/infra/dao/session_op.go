@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/ryanreadbooks/whimer/misc/utils"
@@ -33,10 +34,9 @@ func NewSessionDao(cache *redis.Redis) *SessionDao {
 	}
 }
 
-//go:embed lua/create_session.lua
-var createLua string
-
 var (
+	//go:embed lua/create_session.lua
+	createLua    string
 	createScript = redis.NewScript(createLua)
 )
 
@@ -48,7 +48,6 @@ func (d *SessionDao) Create(ctx context.Context, sess *Session) error {
 	}
 
 	sessKey := getSessKey(sess.Id)
-
 	uidKey := getUidSessKey(sess.Uid)
 	_, err = d.cache.ScriptRunCtx(ctx, createScript, []string{
 		sessKey,
@@ -61,6 +60,7 @@ func (d *SessionDao) Create(ctx context.Context, sess *Session) error {
 	return nil
 }
 
+// get session by session id, return ErrNoRecord if not found
 func (d *SessionDao) GetById(ctx context.Context, id string) (*Session, error) {
 	res, err := d.cache.GetCtx(ctx, getSessKey(id))
 	if err != nil {
@@ -74,5 +74,33 @@ func (d *SessionDao) GetById(ctx context.Context, id string) (*Session, error) {
 	var s Session
 	err = json.Unmarshal(utils.StringToBytes(res), &s)
 	return &s, xsql.ConvertError(err)
+}
 
+var (
+	//go:embed lua/delete_session.lua
+	deleteLua    string
+	deleteScript = redis.NewScript(deleteLua)
+)
+
+// delete session by session id,
+// uid session members will also be removed,
+// if id does not exist, nothing will happen
+func (d *SessionDao) DeleteById(ctx context.Context, id string) error {
+	sess, err := d.GetById(ctx, id)
+	if err != nil {
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return nil
+		}
+
+		return err
+	}
+
+	sessKey := getSessKey(id)
+	uidKey := getUidSessKey(sess.Uid)
+	_, err = d.cache.ScriptRunCtx(ctx, deleteScript, []string{
+		sessKey,
+		uidKey,
+	})
+
+	return xsql.ConvertError(err)
 }

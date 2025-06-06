@@ -1,12 +1,12 @@
--- step1. set session key-value pair
 local sid = KEYS[1]
-local sval = ARGV[1]
 local uid_key = KEYS[2]
+local sval = ARGV[1]
 
 local function is_pcall_err(res)
   return type(res) == 'table' and res['err'] ~= nil
 end
 
+-- step1. set session key-value pair
 local r1 = redis.pcall('SET', sid, sval)
 if is_pcall_err(r1) then
   -- return immediately

@@ -50,3 +50,11 @@ func TestSessionDao_GetById(t *testing.T) {
 	t.Log(err)
 	t.Logf("%+v\n", s)
 }
+
+func TestSessionDao_DeleteById(t *testing.T) {
+	err := testSessDao.DeleteById(ctx, "2b100b68-999b-46e2-a961-7fc6ba304d1d")
+	t.Log(err)
+
+	err = testSessDao.DeleteById(ctx, "non-exists")
+	t.Log(err)
+}
