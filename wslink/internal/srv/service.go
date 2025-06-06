@@ -14,31 +14,31 @@ import (
 type Service struct {
 	Config *config.Config
 
-	// session连接
-	sessions async.Map[string, ws.Session]
+	// 和本机建立的连接
+	conns async.Map[string, ws.Connection]
 }
 
 func NewService(c *config.Config) *Service {
 	return &Service{
-		Config:   c,
-		sessions: async.NewShardedMap[string, ws.Session](128),
+		Config: c,
+		conns:  async.NewShardedMap[string, ws.Connection](128),
 	}
 }
 
-func (s *Service) OnCreate(ctx context.Context, sess *ws.Session) error {
+func (s *Service) OnCreate(ctx context.Context, sess *ws.Connection) error {
 	xlog.Msgf("session %s is connected", sess.GetId()).Debugx(ctx)
-	s.sessions.Put(sess.GetId(), sess)
+	s.conns.Put(sess.GetId(), sess)
 	return nil
 }
 
-func (s *Service) OnData(ctx context.Context, sess *ws.Session, data []byte) error {
+func (s *Service) OnData(ctx context.Context, sess *ws.Connection, data []byte) error {
 	fmt.Printf("data reached on %s, %s\n", sess.GetId(), data)
 	// do echo
 	return sess.WriteText(strings.ToUpper(string(data)))
 }
 
-func (s *Service) OnClosed(ctx context.Context, sid string) error {
+func (s *Service) AfterClosed(ctx context.Context, sid string) error {
 	xlog.Msgf("session %s is closed", sid).Debugx(ctx)
-	s.sessions.Remove(sid)
+	s.conns.Remove(sid)
 	return nil
 }

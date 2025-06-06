@@ -14,6 +14,7 @@ import (
 	"github.com/ryanreadbooks/whimer/wslink/internal/config"
 	"github.com/ryanreadbooks/whimer/wslink/internal/global"
 	"github.com/ryanreadbooks/whimer/wslink/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/wslink/internal/model"
 	modelws "github.com/ryanreadbooks/whimer/wslink/internal/model/ws"
 	"github.com/ryanreadbooks/whimer/wslink/internal/srv"
 	"github.com/zeromicro/go-zero/rest"
@@ -28,7 +29,7 @@ type Server struct {
 	upgrader    *websocket.Upgrader
 	conf        *config.Websocket
 	serv        *srv.Service
-	sessHandler modelws.SessionHandler
+	sessHandler modelws.ConnectionHandler
 
 	// server state
 	startAt  time.Time // 启动时间
@@ -69,7 +70,7 @@ func (s *Server) upgrade(w http.ResponseWriter, r *http.Request) {
 		modelws.WithReadTimeout(s.conf.ReadTimeout.Duration()),
 		modelws.WithWriteTimeout(s.conf.WriteTimeout.Duration()),
 	)
-	session.SetDevice(modelws.DeviceWeb)
+	session.SetDevice(model.DeviceWeb)
 
 	ctx := r.Context()
 	if err := s.sessHandler.OnCreate(ctx, session); err != nil {
@@ -105,8 +106,6 @@ func (s *Server) isUpgradeAllowed(r *http.Request) error {
 	return nil
 }
 
-func (s *Server) Start() {
-}
+func (s *Server) Start() {}
 
-func (s *Server) Stop() {
-}
+func (s *Server) Stop() {}

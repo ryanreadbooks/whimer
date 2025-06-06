@@ -1,13 +1,18 @@
 package dao
 
-import "github.com/zeromicro/go-zero/core/stores/redis"
+import (
+	"github.com/zeromicro/go-zero/core/stores/redis"
+)
 
-type SessionDao struct {
+type Dao struct {
 	cache *redis.Redis
+
+	SessionDao *SessionDao
 }
 
-func NewSessionDao(cache *redis.Redis) *SessionDao {
-	return &SessionDao{
+func New(cache *redis.Redis) *Dao {
+	return &Dao{
 		cache: cache,
+		SessionDao: NewSessionDao(cache),
 	}
 }
