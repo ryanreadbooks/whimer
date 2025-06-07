@@ -10,12 +10,10 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
 	"github.com/ryanreadbooks/whimer/msger/internal/srv"
 
-	"github.com/bufbuild/protovalidate-go"
 )
 
 type ChatServiceServer struct {
 	p2pv1.UnimplementedChatServiceServer
-	validator *protovalidate.Validator
 
 	Svc *srv.Service
 }

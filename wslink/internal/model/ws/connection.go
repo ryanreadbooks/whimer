@@ -20,13 +20,13 @@ import (
 )
 
 var (
-	ErrSessionClosed = fmt.Errorf("connection is already closed")
-	ErrFinishSession = fmt.Errorf("finish session")
+	ErrConnectionClosed = fmt.Errorf("connection is already closed")
+	ErrFinishConnection = fmt.Errorf("finish session")
+	ErrContinued        = fmt.Errorf("conn continued")
 
 	// websocket通用错误
 	ErrWebsocketConnClosed = fmt.Errorf("websocket conn closed")
 	ErrUnsupportedMsgType  = fmt.Errorf("unsupported msg type")
-	ErrContinued           = fmt.Errorf("conn continued")
 	ErrUseOfClosedConn     = fmt.Errorf("use of closed network connection")
 )
 
@@ -40,10 +40,11 @@ func isTimeoutErr(err error) bool {
 
 // 对connection的封装
 type Connection struct {
-	id     string
-	conn   *websocket.Conn
-	closed atomic.Bool
-	device model.Device
+	id      string
+	conn    *websocket.Conn
+	closed  atomic.Bool
+	device  model.Device
+	localIp string
 
 	rTimeout time.Duration
 	wTimeout time.Duration
@@ -58,6 +59,7 @@ func (s *Connection) reset() {
 	s.conn = nil
 	s.closed.Store(true)
 	s.device = ""
+	s.localIp = ""
 
 	s.rTimeout = 0
 	s.wTimeout = 0
@@ -183,7 +185,7 @@ func (s *Connection) Loop(ctx context.Context) {
 		}
 	}()
 
-	for {
+	for !s.closed.Load() {
 		data, err := s.read()
 		if err != nil {
 			if !errors.Is(err, ErrContinued) {
@@ -203,7 +205,7 @@ func (s *Connection) Loop(ctx context.Context) {
 
 		err = s.handleData(ctx, data)
 		if err != nil {
-			if errors.Is(err, ErrFinishSession) {
+			if errors.Is(err, ErrFinishConnection) {
 				// ErrFinishSession will close this session
 				s.Close(ctx)
 				return
@@ -240,6 +242,7 @@ func (s *Connection) Close(ctx context.Context) {
 	s.closed.Store(true)
 }
 
+// GraceClose will send close control through websocket then close the net connection;
 func (s *Connection) GraceClose(ctx context.Context) {
 	cid := s.id
 	if s.conn != nil {
@@ -249,8 +252,8 @@ func (s *Connection) GraceClose(ctx context.Context) {
 		)
 		err2 := s.conn.Close()
 		err := errors.Join(err1, err2)
-		if err != nil {
-			xlog.Msgf("conn %s grace close err", s.id).Err(err).Errorx(ctx)
+		if err2 != nil {
+			xlog.Msgf("conn %s grace close err", s.id).Err(err).Infox(ctx)
 		}
 	}
 
@@ -263,7 +266,7 @@ func (s *Connection) GraceClose(ctx context.Context) {
 
 func (s *Connection) Write(data []byte) error {
 	if s.closed.Load() {
-		return ErrSessionClosed
+		return ErrConnectionClosed
 	}
 
 	s.conn.SetWriteDeadline(time.Now().Add(s.wTimeout))
@@ -272,7 +275,7 @@ func (s *Connection) Write(data []byte) error {
 
 func (s *Connection) WriteText(text string) error {
 	if s.closed.Load() {
-		return ErrSessionClosed
+		return ErrConnectionClosed
 	}
 
 	s.conn.SetWriteDeadline(time.Now().Add(s.wTimeout))
@@ -297,4 +300,12 @@ func (s *Connection) GetDevice() model.Device {
 
 func (s *Connection) GetRemote() string {
 	return s.conn.RemoteAddr().String()
+}
+
+func (s *Connection) GetLocalIp() string {
+	return s.localIp
+}
+
+func (s *Connection) SetLocalIp(ip string) {
+	s.localIp = ip
 }

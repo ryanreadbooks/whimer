@@ -5,25 +5,17 @@ import (
 
 	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/counter/internal/svc"
-
-	"github.com/bufbuild/protovalidate-go"
 )
 
 type CounterServer struct {
 	counterv1.UnimplementedCounterServiceServer
-	validator *protovalidate.Validator
 
 	Svc *svc.ServiceContext
 }
 
 func NewCounterServer(ctx *svc.ServiceContext) *CounterServer {
-	validator, err := protovalidate.New()
-	if err != nil {
-		panic(err)
-	}
 	return &CounterServer{
 		Svc:       ctx,
-		validator: validator,
 	}
 }
 

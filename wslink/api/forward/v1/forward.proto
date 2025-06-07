@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package wslink.api.forward.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/wslink/api/forward/v1";
+
+service ForwardService {
+  
+}

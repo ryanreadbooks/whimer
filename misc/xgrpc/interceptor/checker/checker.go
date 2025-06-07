@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
-	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/util"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 type UnaryServerMetadataChecker func(ctx context.Context, info *grpc.UnaryServerInfo) error
@@ -49,6 +50,9 @@ func WithServicesIgnore(ignores ...string) Option {
 func WithMethodsIgnore(methods ...string) Option {
 	return func(o *option) {
 		o.ignoredMethods = methods
+		// 内置方法
+		o.ignoredMethods = append(o.ignoredMethods, grpc_health_v1.Health_Check_FullMethodName)
+		o.ignoredMethods = append(o.ignoredMethods, grpc_health_v1.Health_Watch_FullMethodName)
 	}
 }
 

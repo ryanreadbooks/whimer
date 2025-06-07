@@ -7,7 +7,6 @@ replace github.com/ryanreadbooks/whimer/misc => ../misc
 replace github.com/ryanreadbooks/whimer/passport => ../passport
 
 require (
-	github.com/bufbuild/protovalidate-go v0.6.5
 	github.com/ryanreadbooks/folium v0.1.3
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000
@@ -22,6 +21,7 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bufbuild/protovalidate-go v0.6.5 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect

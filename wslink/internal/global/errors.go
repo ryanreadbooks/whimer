@@ -13,6 +13,9 @@ var (
 	ErrBizDenied   = xerror.ErrPermission.ErrCode(WsErrCode)
 	ErrNotFound    = xerror.ErrNotFound.ErrCode(WsErrCode)
 
-	ErrAuthFailed = xerror.ErrPermission.Msg("认证失败")
-	ErrServerBusy = xerror.ErrServiceUnavailable.Msg("系统繁忙，稍后重试")
+	ErrUserEmpty         = xerror.ErrArgs.Msg("用户id非法")
+	ErrUnsupportedDevice = xerror.ErrArgs.Msg("不支持的设备")
+	ErrDataEmpty         = xerror.ErrArgs.Msg("内容为空")
+	ErrAuthFailed        = xerror.ErrPermission.Msg("认证失败")
+	ErrServerBusy        = xerror.ErrServiceUnavailable.Msg("系统繁忙，稍后重试")
 )

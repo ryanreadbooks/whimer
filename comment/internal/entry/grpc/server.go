@@ -8,24 +8,17 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/model"
 	"github.com/ryanreadbooks/whimer/comment/internal/srv"
 
-	"github.com/bufbuild/protovalidate-go"
 )
 
 type ReplyServiceServer struct {
 	commentv1.UnimplementedReplyServiceServer
-	validator *protovalidate.Validator
 
 	Svc *srv.Service
 }
 
 func NewReplyServiceServer(ctx *srv.Service) *ReplyServiceServer {
-	validator, err := protovalidate.New()
-	if err != nil {
-		panic(err)
-	}
 	return &ReplyServiceServer{
 		Svc:       ctx,
-		validator: validator,
 	}
 }
 

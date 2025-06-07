@@ -7,15 +7,11 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xhttp/middleware"
 	"github.com/ryanreadbooks/whimer/passport/pkg/middleware/auth"
 	"github.com/ryanreadbooks/whimer/wslink/internal/config"
-	"github.com/ryanreadbooks/whimer/wslink/internal/global"
 	"github.com/ryanreadbooks/whimer/wslink/internal/infra/dep"
-	"github.com/ryanreadbooks/whimer/wslink/internal/model"
-	modelws "github.com/ryanreadbooks/whimer/wslink/internal/model/ws"
 	"github.com/ryanreadbooks/whimer/wslink/internal/srv"
 	"github.com/zeromicro/go-zero/rest"
 )
@@ -23,17 +19,17 @@ import (
 type Server struct {
 	upgrader *websocket.Upgrader
 	conf     *config.Websocket
-	serv     *srv.Service
+	sessServ *srv.SessionService
 
 	// server state
 	startAt  time.Time // 启动时间
 	isClosed atomic.Bool
 }
 
-func New(c *config.Config, restServer *rest.Server, service *srv.Service) *Server {
+func New(c *config.Config, restServer *rest.Server, serv *srv.Service) *Server {
 	s := &Server{
-		conf: c.WsServer,
-		serv: service,
+		conf:     c.WsServer,
+		sessServ: serv.SessionService,
 	}
 
 	// http
@@ -50,55 +46,6 @@ func New(c *config.Config, restServer *rest.Server, service *srv.Service) *Serve
 	return s
 }
 
-// 协议升级成websocket
-func (s *Server) upgrade(w http.ResponseWriter, r *http.Request) {
-	wsConn, err := s.upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		// err != nil时 upgrader.Upgrade已经处理了
-		return
-	}
-
-	session := modelws.CreateSession(
-		wsConn,
-		modelws.WithReadTimeout(s.conf.ReadTimeout.Duration()),
-		modelws.WithWriteTimeout(s.conf.WriteTimeout.Duration()),
-	)
-	session.SetDevice(model.DeviceWeb)
-
-	ctx := r.Context()
-	if err := s.serv.OnCreate(ctx, session); err != nil {
-		// err is not nil, we deny this connection
-		modelws.RecoverSession(session)
-		xhttp.Error(r, w, err)
-		wsConn.Close()
-		return
-	}
-
-	session.SetOnData(s.serv)
-	session.SetAfterClosed(s.serv)
-
-	concurrent.SafeGo(func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer func() {
-			cancel()
-			modelws.RecoverSession(session)
-		}()
-
-		session.Loop(ctx)
-	})
-}
-
-// 判断请求是否能升级
-func (s *Server) isUpgradeAllowed(r *http.Request) error {
-	if r == nil {
-		return global.ErrBizInternal
-	}
-
-	// 判断最大连接情况
-
-	return nil
-}
-
 func (s *Server) Start() {}
 
 func (s *Server) Stop() {
@@ -106,5 +53,5 @@ func (s *Server) Stop() {
 		context.Background(), time.Second*time.Duration(config.Conf.System.Shutdown.WaitTime))
 	defer cancel()
 
-	s.serv.Close(ctx)
+	s.sessServ.Close(ctx)
 }

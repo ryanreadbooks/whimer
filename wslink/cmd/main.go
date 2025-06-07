@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ryanreadbooks/whimer/wslink/internal/config"
+	"github.com/ryanreadbooks/whimer/wslink/internal/entry/grpc"
 	"github.com/ryanreadbooks/whimer/wslink/internal/entry/ws"
 	"github.com/ryanreadbooks/whimer/wslink/internal/infra"
 	"github.com/ryanreadbooks/whimer/wslink/internal/srv"
@@ -26,14 +27,18 @@ func main() {
 	config.Init()
 
 	infra.Init(&c)
-	apiserver := rest.MustNewServer(c.Http)
-	serv := srv.NewService(&c)
-	wshandler := ws.New(&c, apiserver, serv)
+	serv := srv.New(&c)
+
+	apiServer := rest.MustNewServer(c.Http)
+	wsServer := ws.New(&c, apiServer, serv)
+	grpcServer := grpc.Init(c.Grpc, serv)
 
 	proc.SetTimeToForceQuit(time.Duration(c.System.Shutdown.WaitTime) * time.Second)
+
 	group := service.NewServiceGroup()
-	group.Add(apiserver)
-	group.Add(wshandler)
+	group.Add(apiServer)
+	group.Add(wsServer)
+	group.Add(grpcServer)
 	defer group.Stop()
 
 	logx.Info("wslink server is running...")
