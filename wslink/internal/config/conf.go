@@ -5,7 +5,11 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xtime"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/rest"
+	"github.com/zeromicro/go-zero/zrpc"
 )
+
+// 全局配置对象
+var Conf Config
 
 type Websocket struct {
 	ReadTimeout    xtime.SDuration `json:"read_timeout"`
@@ -15,8 +19,15 @@ type Websocket struct {
 }
 
 type Config struct {
-	Http     rest.RestConf `json:"http"`
-	WsServer *Websocket    `json:"ws_server"`
+	System struct {
+		Shutdown struct {
+			WaitTime int `json:"wait_time"` // sec
+		} `json:"shutdown"`
+	} `json:"system"`
+
+	Http     rest.RestConf      `json:"http"`
+	Grpc     zrpc.RpcServerConf `json:"grpc"`
+	WsServer *Websocket         `json:"ws_server"`
 
 	Redis redis.RedisConf
 

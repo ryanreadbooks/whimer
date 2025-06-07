@@ -37,3 +37,12 @@ func Func[M ~map[K]V, K comparable, V any](m M, f func(k K, v V)) {
 		f(key, value)
 	}
 }
+
+func KVs[M ~map[K]V, K comparable, V any](m M) []any {
+	var r = make([]any, 0, len(m)*2)
+	for k, v := range m {
+		r = append(r, k, v)
+	}
+
+	return r
+}

@@ -20,16 +20,10 @@ import (
 	"github.com/zeromicro/go-zero/rest"
 )
 
-var (
-	_ = auth.MustAuther
-	_ = dep.Init
-)
-
 type Server struct {
-	upgrader    *websocket.Upgrader
-	conf        *config.Websocket
-	serv        *srv.Service
-	sessHandler modelws.ConnectionHandler
+	upgrader *websocket.Upgrader
+	conf     *config.Websocket
+	serv     *srv.Service
 
 	// server state
 	startAt  time.Time // 启动时间
@@ -38,16 +32,15 @@ type Server struct {
 
 func New(c *config.Config, restServer *rest.Server, service *srv.Service) *Server {
 	s := &Server{
-		conf:        c.WsServer,
-		sessHandler: service,
-		serv:        service,
+		conf: c.WsServer,
+		serv: service,
 	}
 
 	// http
 	subGroup := xhttp.NewRouterGroup(restServer)
 	subGroup.Get("/web/sub", s.upgrade,
 		middleware.Recovery,
-		// auth.UserWeb(dep.Auther()),
+		auth.UserWeb(dep.Auther()),
 	)
 
 	s.upgrader = &websocket.Upgrader{
@@ -73,7 +66,7 @@ func (s *Server) upgrade(w http.ResponseWriter, r *http.Request) {
 	session.SetDevice(model.DeviceWeb)
 
 	ctx := r.Context()
-	if err := s.sessHandler.OnCreate(ctx, session); err != nil {
+	if err := s.serv.OnCreate(ctx, session); err != nil {
 		// err is not nil, we deny this connection
 		modelws.RecoverSession(session)
 		xhttp.Error(r, w, err)
@@ -81,8 +74,8 @@ func (s *Server) upgrade(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session.SetOnData(s.sessHandler)
-	session.SetOnClose(s.sessHandler)
+	session.SetOnData(s.serv)
+	session.SetAfterClosed(s.serv)
 
 	concurrent.SafeGo(func() {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -108,4 +101,10 @@ func (s *Server) isUpgradeAllowed(r *http.Request) error {
 
 func (s *Server) Start() {}
 
-func (s *Server) Stop() {}
+func (s *Server) Stop() {
+	ctx, cancel := context.WithTimeout(
+		context.Background(), time.Second*time.Duration(config.Conf.System.Shutdown.WaitTime))
+	defer cancel()
+
+	s.serv.Close(ctx)
+}

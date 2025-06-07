@@ -49,8 +49,8 @@ type Connection struct {
 	wTimeout time.Duration
 
 	// callback handler
-	onData  ConnectionOnDataHandler
-	onClose ConnectionAfterClosedHandler
+	onData      ConnectionOnDataHandler
+	afterClosed ConnectionAfterClosedHandler
 }
 
 func (s *Connection) reset() {
@@ -62,7 +62,7 @@ func (s *Connection) reset() {
 	s.rTimeout = 0
 	s.wTimeout = 0
 
-	s.onClose = nil
+	s.afterClosed = nil
 	s.onData = nil
 }
 
@@ -73,11 +73,18 @@ var sessionPool = sync.Pool{
 }
 
 type sessionOpt struct {
+	autoId       bool
 	readTimeout  time.Duration
 	writeTimeout time.Duration
 }
 
 type createSessionOpt func(o *sessionOpt)
+
+func WithAutoId(b bool) createSessionOpt {
+	return func(o *sessionOpt) {
+		o.autoId = b
+	}
+}
 
 func WithReadTimeout(rt time.Duration) createSessionOpt {
 	return func(o *sessionOpt) {
@@ -94,6 +101,7 @@ func WithWriteTimeout(wt time.Duration) createSessionOpt {
 // 获取一个session实例
 func CreateSession(webconn *websocket.Conn, opts ...createSessionOpt) *Connection {
 	o := &sessionOpt{
+		autoId:       true,
 		readTimeout:  time.Second * 60,
 		writeTimeout: time.Second * 60,
 	}
@@ -101,12 +109,14 @@ func CreateSession(webconn *websocket.Conn, opts ...createSessionOpt) *Connectio
 		opt(o)
 	}
 
-	cid := uuid.NewString()
 	s := sessionPool.Get().(*Connection)
 	s.conn = webconn
 	s.rTimeout = o.readTimeout
 	s.wTimeout = o.writeTimeout
-	s.id = cid
+	if o.autoId {
+		cid := uuid.NewString()
+		s.id = cid
+	}
 
 	s.closed.Store(false)
 
@@ -123,6 +133,10 @@ func RecoverSession(s *Connection) {
 
 func (s *Connection) GetId() string {
 	return s.id
+}
+
+func (s *Connection) SetId(id string) {
+	s.id = id
 }
 
 func (s *Connection) read() ([]byte, error) {
@@ -175,6 +189,8 @@ func (s *Connection) Loop(ctx context.Context) {
 			if !errors.Is(err, ErrContinued) {
 				// unexpected error should close session
 				if isTimeoutErr(err) {
+					// After a read has timed out, the websocket connection state is corrupt and
+					// all future reads will return an error
 					s.GraceClose(ctx)
 				} else {
 					s.Close(ctx)
@@ -217,8 +233,8 @@ func (s *Connection) Close(ctx context.Context) {
 		}
 	}
 
-	if s.onClose != nil {
-		s.onClose.AfterClosed(ctx, cid)
+	if s.afterClosed != nil {
+		s.afterClosed.AfterClosed(ctx, cid)
 	}
 
 	s.closed.Store(true)
@@ -238,8 +254,8 @@ func (s *Connection) GraceClose(ctx context.Context) {
 		}
 	}
 
-	if s.onClose != nil {
-		s.onClose.AfterClosed(ctx, cid)
+	if s.afterClosed != nil {
+		s.afterClosed.AfterClosed(ctx, cid)
 	}
 
 	s.closed.Store(true)
@@ -267,12 +283,16 @@ func (s *Connection) SetOnData(h ConnectionOnDataHandler) {
 	s.onData = h
 }
 
-func (s *Connection) SetOnClose(h ConnectionAfterClosedHandler) {
-	s.onClose = h
+func (s *Connection) SetAfterClosed(h ConnectionAfterClosedHandler) {
+	s.afterClosed = h
 }
 
 func (s *Connection) SetDevice(dev model.Device) {
 	s.device = dev
+}
+
+func (s *Connection) GetDevice() model.Device {
+	return s.device
 }
 
 func (s *Connection) GetRemote() string {
