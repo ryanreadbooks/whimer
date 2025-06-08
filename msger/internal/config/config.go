@@ -22,6 +22,7 @@ type Config struct {
 	External struct {
 		Grpc struct {
 			Passport xconf.Discovery `json:"passport"`
+			Wslink   xconf.Discovery `json:"wslink"`
 		} `json:"grpc"`
 	} `json:"external"`
 

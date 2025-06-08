@@ -4,8 +4,11 @@ import (
 	"context"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/msger/internal/biz"
 	bizp2p "github.com/ryanreadbooks/whimer/msger/internal/biz/p2p"
+	"github.com/ryanreadbooks/whimer/msger/internal/infra/dep"
+	pushv1 "github.com/ryanreadbooks/whimer/wslink/api/push/v1"
 )
 
 type P2PChatSrv struct {
@@ -33,8 +36,15 @@ func (s *P2PChatSrv) CreateChat(ctx context.Context, initer, target int64) (int6
 func (s *P2PChatSrv) SendMessage(ctx context.Context, req *bizp2p.CreateMsgReq) (
 	*bizp2p.ChatMsg, error) {
 	// TODO req检查，type和content的检查等
-	// TODO 数据推送下发
-	return s.chatBiz.CreateMsg(ctx, req)
+
+	msg, err := s.chatBiz.CreateMsg(ctx, req)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "p2p chat srv failed to create msg").WithCtx(ctx)
+	}
+
+	s.notifyReceiver(ctx, req.Receiver)
+
+	return msg, nil
 }
 
 // 获取会话消息
@@ -63,9 +73,21 @@ func (s *P2PChatSrv) ClearUnread(ctx context.Context, userId, chatId int64) erro
 }
 
 // 撤回消息
+// userId撤回在chatId中的msgId消息
 func (s *P2PChatSrv) RevokeMessage(ctx context.Context, userId, chatId, msgId int64) error {
-	// TODO 通知下发
-	return s.chatBiz.RevokeMessage(ctx, userId, chatId, msgId)
+	cht, err := s.chatBiz.GetChat(ctx, userId, chatId)
+	if err != nil {
+		return xerror.Wrapf(err, "p2p chat failed to get chat")
+	}
+
+	err = s.chatBiz.RevokeMessage(ctx, userId, chatId, msgId)
+	if err != nil {
+		return xerror.Wrapf(err, "p2p chat failed to revoke message")
+	}
+
+	s.notifyReceiver(ctx, cht.PeerId)
+
+	return nil
 }
 
 // 列出会话列表
@@ -82,4 +104,15 @@ func (s *P2PChatSrv) ListChat(ctx context.Context, userId, seq int64, count int3
 	}
 
 	return chats, nextSeq, nil
+}
+
+func (s *P2PChatSrv) notifyReceiver(ctx context.Context, receiver int64) {
+	// 下发通知
+	_, err := dep.Notifier().Broadcast(ctx, &pushv1.BroadcastRequest{
+		Targets: []int64{receiver},
+		Data:    []byte("MSGER"),
+	})
+	if err != nil {
+		xlog.Msgf("p2p chat failed to notify user %d", receiver).Err(err).Errorx(ctx)
+	}
 }

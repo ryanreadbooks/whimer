@@ -1,7 +1,7 @@
 grpc:
   mode: dev
   name: msger-grpc
-  listenon: 0.0.0.0:10008
+  listenon: 0.0.0.0:5678
   log:
     level: debug
   etcd:
@@ -21,8 +21,11 @@ external:
     passport:
       hosts: [127.0.0.1:2379]
       key: whimer.passport.rpc
+    wslink:
+      hosts: [127.0.0.1:2379]
+      key: whimer.wslink.rpc
 
-seqer: 
+seqer:
   addr: 127.0.0.1:9528
 
 redis:

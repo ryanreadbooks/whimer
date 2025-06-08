@@ -6,14 +6,17 @@ replace github.com/ryanreadbooks/whimer/misc => ../misc
 
 replace github.com/ryanreadbooks/whimer/passport => ../passport
 
+replace github.com/ryanreadbooks/whimer/wslink => ../wslink
+
 require (
 	github.com/ryanreadbooks/folium v0.1.3
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000
+	github.com/ryanreadbooks/whimer/wslink v0.0.0-00010101000000-000000000000
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/zeromicro/go-zero v1.8.3
 	google.golang.org/grpc v1.65.0
-	google.golang.org/protobuf v1.36.5
+	google.golang.org/protobuf v1.36.6
 )
 
 require (

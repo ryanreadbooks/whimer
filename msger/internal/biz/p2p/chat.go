@@ -33,6 +33,8 @@ type ChatBiz interface {
 	RevokeMessage(ctx context.Context, userId, chatId, msgId int64) error
 	// 获取用户会话列表
 	ListChat(ctx context.Context, userId, lastMsgSeq int64, count int32) ([]*Chat, error)
+	// 获取会话
+	GetChat(ctx context.Context, userId, chatId int64) (*Chat, error)
 }
 
 const (
@@ -344,4 +346,14 @@ func (b *p2pChatBiz) ListChat(ctx context.Context, userId, lastMsgSeq int64, cou
 	}
 
 	return chats, nil
+}
+
+func (b *p2pChatBiz) GetChat(ctx context.Context, userId, chatId int64) (*Chat, error) {
+	chatPo, err := infra.Dao().P2PChatDao.GetByChatIdUserId(ctx, chatId, userId)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "chat dao failed to get chat").
+			WithExtras("chat_id", chatId, "user_id", userId).WithCtx(ctx)
+	}
+
+	return MakeChatFromPO(chatPo), nil
 }
