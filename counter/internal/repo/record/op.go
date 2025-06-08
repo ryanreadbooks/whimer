@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/misc/utils/maps"
-	"github.com/ryanreadbooks/whimer/misc/utils/slices"
+	maps "github.com/ryanreadbooks/whimer/misc/xmap"
+	slices "github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
 
@@ -89,7 +89,7 @@ func (r *Repo) Update(ctx context.Context, data *Model) error {
 	return xsql.ConvertError(err)
 }
 
-func (r *Repo) Find(ctx context.Context, uid, oid uint64, biz int) (*Model, error) {
+func (r *Repo) Find(ctx context.Context, uid int64, oid uint64, biz int) (*Model, error) {
 	var ret Model
 	err := r.db.QueryRowCtx(ctx, &ret, sqlFind, uid, oid, biz)
 	if err != nil {
@@ -99,10 +99,10 @@ func (r *Repo) Find(ctx context.Context, uid, oid uint64, biz int) (*Model, erro
 	return &ret, nil
 }
 
-func (r *Repo) BatchFind(ctx context.Context, uidOids map[uint64][]uint64, biz int) ([]Model, error) {
+func (r *Repo) BatchFind(ctx context.Context, uidOids map[int64][]uint64, biz int) ([]Model, error) {
 	var batchRes []Model
 	// 分批操作
-	err := maps.BatchExec(uidOids, 200, func(target map[uint64][]uint64) error {
+	err := maps.BatchExec(uidOids, 200, func(target map[int64][]uint64) error {
 		uids, oids := maps.All(target)
 		var allOids []uint64 = oids[0]
 		for i := 1; i < len(oids); i++ {

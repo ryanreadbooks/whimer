@@ -14,12 +14,12 @@ const (
 	CtxClientIpKey   = "CtxClientIpKey"
 )
 
-func WithUid(ctx context.Context, uid uint64) context.Context {
+func WithUid(ctx context.Context, uid int64) context.Context {
 	return context.WithValue(ctx, CtxUidKey, uid)
 }
 
-func RpcWithUid(ctx context.Context, uid uint64) context.Context {
-	return grpcmeta.AppendToOutgoingContext(ctx, CtxUidKey, strconv.FormatUint(uid, 10))
+func RpcWithUid(ctx context.Context, uid int64) context.Context {
+	return grpcmeta.AppendToOutgoingContext(ctx, CtxUidKey, strconv.FormatInt(uid, 10))
 }
 
 func WithSessId(ctx context.Context, sessId string) context.Context {
@@ -30,8 +30,8 @@ func RpcWithSessId(ctx context.Context, sessId string) context.Context {
 	return grpcmeta.AppendToOutgoingContext(ctx, CtxSessIdKey, sessId)
 }
 
-func Uid(ctx context.Context) uint64 {
-	return getUInt64(ctx, CtxUidKey)
+func Uid(ctx context.Context) int64 {
+	return getInt64(ctx, CtxUidKey)
 }
 
 func SessId(ctx context.Context) string {

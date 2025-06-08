@@ -28,7 +28,7 @@ type NoteItemImage struct {
 type NoteItemImageList []*NoteItemImage
 
 type Author struct {
-	Uid      uint64 `json:"uid"`
+	Uid      int64  `json:"uid"`
 	Nickname string `json:"nickname"`
 	Avatar   string `json:"avatar"`
 }

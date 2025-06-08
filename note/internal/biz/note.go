@@ -19,13 +19,13 @@ type NoteBiz interface {
 	// 获取笔记基础信息
 	GetNote(ctx context.Context, noteId uint64) (*model.Note, error)
 	// 获取用户最近发布的笔记
-	GetUserRecentNote(ctx context.Context, uid uint64, count int32) (*model.Notes, error)
+	GetUserRecentNote(ctx context.Context, uid int64, count int32) (*model.Notes, error)
 	// 获取公开的笔记基础信息
 	GetPublicNote(ctx context.Context, noteId uint64) (*model.Note, error)
 	// 判断笔记是否存在
 	IsNoteExist(ctx context.Context, noteId uint64) (bool, error)
 	// 获取笔记作者
-	GetNoteOwner(ctx context.Context, noteId uint64) (uint64, error)
+	GetNoteOwner(ctx context.Context, noteId uint64) (int64, error)
 	// 组装笔记信息，主要是填充asset
 	AssembleNotes(ctx context.Context, notes []*model.Note) (*model.Notes, error)
 }
@@ -55,7 +55,7 @@ func (b *noteBiz) GetNote(ctx context.Context, noteId uint64) (*model.Note, erro
 	return resp.Items[0], nil
 }
 
-func (b *noteBiz) GetUserRecentNote(ctx context.Context, uid uint64, count int32) (*model.Notes, error) {
+func (b *noteBiz) GetUserRecentNote(ctx context.Context, uid int64, count int32) (*model.Notes, error) {
 	notes, err := infra.Dao().NoteDao.GetRecentPublicPosted(ctx, uid, count)
 	if err != nil {
 		if xsql.IsNotFound(err) {
@@ -103,7 +103,7 @@ func (b *noteBiz) IsNoteExist(ctx context.Context, noteId uint64) (bool, error) 
 	return true, nil
 }
 
-func (b *noteBiz) GetNoteOwner(ctx context.Context, noteId uint64) (uint64, error) {
+func (b *noteBiz) GetNoteOwner(ctx context.Context, noteId uint64) (int64, error) {
 	n, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
 	if err != nil {
 		if !xsql.IsNotFound(err) {

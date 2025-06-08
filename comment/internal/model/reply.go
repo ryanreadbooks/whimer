@@ -39,10 +39,10 @@ type ReplyItem struct {
 	Oid        uint64 `json:"oid"`
 	ReplyType  int8   `json:"reply_type"`
 	Content    string `json:"content"`
-	Uid        uint64 `json:"uid"`
+	Uid        int64  `json:"uid"`
 	RootId     uint64 `json:"root_id"`
 	ParentId   uint64 `json:"parent_id"`
-	RepliedUid uint64 `json:"replied_uid"`
+	RepliedUid int64  `json:"replied_uid"`
 	Ctime      int64  `json:"ctime"`
 	Mtime      int64  `json:"mtime"`
 	Ip         string `json:"ip"`
@@ -153,7 +153,7 @@ func IsRoot(rootId, parentId uint64) bool {
 }
 
 type UidCommentOnOid struct {
-	Uid       uint64
+	Uid       int64
 	Oid       uint64
 	Commented bool
 }

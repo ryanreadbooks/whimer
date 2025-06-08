@@ -52,7 +52,7 @@ func (s *NoteInteractServiceServer) BatchCheckUserLikeStatus(ctx context.Context
 	in *notev1.BatchCheckUserLikeStatusRequest) (
 	*notev1.BatchCheckUserLikeStatusResponse, error) {
 
-	var uidNoteIds = make(map[uint64][]uint64, len(in.Mappings))
+	var uidNoteIds = make(map[int64][]uint64, len(in.Mappings))
 	for uid, m := range in.GetMappings() {
 		uidNoteIds[uid] = append(uidNoteIds[uid], m.NoteIds...)
 	}
@@ -62,7 +62,7 @@ func (s *NoteInteractServiceServer) BatchCheckUserLikeStatus(ctx context.Context
 		return nil, err
 	}
 
-	result := make(map[uint64]*notev1.LikeStatusList)
+	result := make(map[int64]*notev1.LikeStatusList)
 	for uid, status := range resp {
 		list := make([]*notev1.LikeStatus, 0, len(status))
 		for _, s := range status {

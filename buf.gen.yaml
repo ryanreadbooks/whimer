@@ -14,3 +14,5 @@ inputs:
   - directory: passport/api
   - directory: counter/api
   - directory: relation/api
+  - directory: msger/api
+  - directory: wslink/api

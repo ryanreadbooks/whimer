@@ -13,7 +13,7 @@ type AddReplyReq struct {
 	Content  string    `json:"content"` // 评论内容
 	RootId   uint64    `json:"pid"`     // 根评论id
 	ParentId uint64    `json:"rid"`     // 被回复的评论id
-	ReplyUid uint64    `json:"ruid"`    // 被回复的用户id
+	ReplyUid int64     `json:"ruid"`    // 被回复的用户id
 }
 
 func (r *AddReplyReq) Validate() error {
@@ -58,5 +58,5 @@ func (r *AddReplyReq) Validate() error {
 // 发表评论结果
 type AddReplyRes struct {
 	ReplyId uint64
-	Uid     uint64
+	Uid     int64
 }

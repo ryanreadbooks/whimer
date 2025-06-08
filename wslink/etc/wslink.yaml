@@ -1,0 +1,37 @@
+http:
+  mode: dev
+  name: wslink
+  host: 0.0.0.0
+  port: 3800
+  log:
+    level: debug
+
+grpc:
+  mode: dev
+  name: wslink-grpc
+  listenon: 0.0.0.0:10008
+  log:
+    level: debug
+  etcd:
+    hosts:
+      - 127.0.0.1:2379
+    key: whimer.wslink.rpc
+
+ws_server:
+  read_timeout: 300s
+  write_timeout: 30s
+  busy_threshold: 85
+  max_conn_allowed: 1200
+
+redis:
+  host: 127.0.0.1:7542
+
+backend:
+  passport:
+    hosts: [127.0.0.1:2379]
+    key: whimer.passport.rpc
+
+system:
+  shutdown:
+    wait_time: 15
+  conn_shard: 1

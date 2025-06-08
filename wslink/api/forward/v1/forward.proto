@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package wslink.api.forward.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/wslink/api/forward/v1";
+
+message ForwardTarget {
+  string id = 1;
+  bytes data = 2;
+  int32 forward_cnt = 3; // 该id累计被转发的次数
+}
+
+message PushForwardRequest { repeated ForwardTarget targets = 1; }
+
+message PushForwardResponse {}
+
+// 相同服务不同实例之间的转发
+service ForwardService {
+  rpc PushForward(PushForwardRequest) returns (PushForwardResponse);
+}

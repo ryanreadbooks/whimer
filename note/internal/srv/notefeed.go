@@ -8,9 +8,9 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
-	"github.com/ryanreadbooks/whimer/misc/utils/maps"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	maps "github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
@@ -133,6 +133,6 @@ func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId uint64) (*model.
 	return res.Items[0], nil
 }
 
-func (s *NoteFeedSrv) GetUserRecentNotes(ctx context.Context, user uint64, maxCount int32) (*model.Notes, error) {
+func (s *NoteFeedSrv) GetUserRecentNotes(ctx context.Context, user int64, maxCount int32) (*model.Notes, error) {
 	return s.noteBiz.GetUserRecentNote(ctx, user, maxCount)
 }

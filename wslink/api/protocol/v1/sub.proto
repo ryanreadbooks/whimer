@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package wslink.api.protocol.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/wslink/api/protocol/v1";
+
+// 数据类型
+enum Flag {
+  FLAG_UNSPECIFIED = 0;
+  FLAG_PONG = 1; // 心跳回复帧
+  FLAG_PING = 2; // 心跳帧
+  FLAG_DATA = 3; // 数据帧
+  FLAG_ERR = 4;  // 错误消息帧
+}
+
+message Meta {
+  Flag flag = 1;  // 数据类型
+  string msg = 2; // 携带少量数据
+}
+
+// 上下行通用协议
+message Protocol {
+  Meta meta = 1;     // 消息元数据
+  bytes payload = 2; // 消息负载, 由业务自定义
+}

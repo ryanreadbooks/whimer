@@ -15,12 +15,8 @@ const (
 	cacheUserBaseTelKey = "passport:user:base:tel:%s"
 )
 
-func getCacheUserBaseUidKey(uid uint64) string {
+func getCacheUserBaseUidKey(uid int64) string {
 	return fmt.Sprintf(cacheUserBaseUidKey, uid)
-}
-
-func getCacheUserBaseTelKey(tel string) string {
-	return fmt.Sprintf(cacheUserBaseTelKey, tel)
 }
 
 func (d *UserDao) cacheGetUserBaseBy(ctx context.Context, key string) (*UserBase, error) {
@@ -42,13 +38,9 @@ func (d *UserDao) cacheGetUserBaseBy(ctx context.Context, key string) (*UserBase
 	return &ret, nil
 }
 
-func (d *UserDao) CacheGetUserBaseByUid(ctx context.Context, uid uint64) (*UserBase, error) {
+func (d *UserDao) CacheGetUserBaseByUid(ctx context.Context, uid int64) (*UserBase, error) {
 	return d.cacheGetUserBaseBy(ctx, getCacheUserBaseUidKey(uid))
 }
-
-// func (d *UserDao) CacheGetUserBaseByTel(ctx context.Context, tel string) (*UserBase, error) {
-// 	return d.cacheGetUserBaseBy(ctx, getCacheUserBaseTelKey(tel))
-// }
 
 func (d *UserDao) CacheSetUserBase(ctx context.Context, u *UserBase) error {
 	if d.cache == nil {
@@ -65,15 +57,11 @@ func (d *UserDao) CacheSetUserBase(ctx context.Context, u *UserBase) error {
 	if err != nil {
 		xlog.Msg("user dao cache failed to set uid key").Extra("uid", u.Uid).Infox(ctx)
 	}
-	// err = d.cache.SetexCtx(ctx, getCacheUserBaseTelKey(u.Tel), utils.Bytes2String(content), int(ttl))
-	// if err != nil {
-	// 	xlog.Msg("user dao cache failed to set tel key").Infox(ctx)
-	// }
 
 	return err
 }
 
-func (d *UserDao) CacheDelUserBaseByUid(ctx context.Context, uid uint64) error {
+func (d *UserDao) CacheDelUserBaseByUid(ctx context.Context, uid int64) error {
 	if d.cache == nil {
 		return nil
 	}

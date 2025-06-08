@@ -11,10 +11,10 @@ import (
 type Proxy interface {
 	AddReply(ctx context.Context, data *dao.Comment) error
 	DelReply(ctx context.Context, rid uint64, reply *dao.Comment) error
-	LikeReply(ctx context.Context, rid, uid uint64) error
-	UnLikeReply(ctx context.Context, rid, uid uint64) error
-	DisLikeReply(ctx context.Context, rid, uid uint64) error
-	UnDisLikeReply(ctx context.Context, rid, uid uint64) error
+	LikeReply(ctx context.Context, rid uint64, uid int64) error
+	UnLikeReply(ctx context.Context, rid uint64, uid int64) error
+	DisLikeReply(ctx context.Context, rid uint64, uid int64) error
+	UnDisLikeReply(ctx context.Context, rid uint64, uid int64) error
 	PinReply(ctx context.Context, oid, rid uint64) error
 	UnPinReply(ctx context.Context, oid, rid uint64) error
 }

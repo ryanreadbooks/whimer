@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/misc/utils/slices"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	slices "github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
@@ -29,7 +29,7 @@ type User struct {
 }
 
 type UserBase struct {
-	Uid       uint64 `db:"uid" json:"uid"`
+	Uid       int64  `db:"uid" json:"uid"`
 	Nickname  string `db:"nickname" json:"nickname"`
 	Avatar    string `db:"avatar" json:"avatar"`
 	StyleSign string `db:"style_sign" json:"style_sign"`
@@ -46,7 +46,7 @@ type UserSecret struct {
 
 // 仅有部分查询结果的定义
 type PassAndSalt struct {
-	Uid  uint64 `db:"uid"`
+	Uid  int64  `db:"uid"`
 	Pass string `db:"pass"`
 	Salt string `db:"salt"`
 }
@@ -74,7 +74,7 @@ func (d *UserDao) find(ctx context.Context, cond string, val interface{}) (*User
 	return model, xerror.Wrapf(xsql.ConvertError(err), "user dao query %s=%v failed", cond, val)
 }
 
-func (d *UserDao) FindByUid(ctx context.Context, uid uint64) (*User, error) {
+func (d *UserDao) FindByUid(ctx context.Context, uid int64) (*User, error) {
 	return d.find(ctx, "uid", uid)
 }
 
@@ -82,19 +82,19 @@ func (d *UserDao) FindByTel(ctx context.Context, tel string) (*User, error) {
 	return d.find(ctx, "tel", tel)
 }
 
-func (d *UserDao) FindPassAndSaltByUid(ctx context.Context, uid uint64) (*PassAndSalt, error) {
+func (d *UserDao) FindPassAndSaltByUid(ctx context.Context, uid int64) (*PassAndSalt, error) {
 	model := new(PassAndSalt)
 	err := d.db.QueryRowCtx(ctx, model, sqlFindPassSalt, uid)
 	return model, xerror.Wrapf(xsql.ConvertError(err), "user dao query pass and salt failed")
 }
 
-func (d *UserDao) findUserBaseBy(ctx context.Context, cond string, val interface{}) (*UserBase, error) {
+func (d *UserDao) findUserBaseBy(ctx context.Context, cond string, val any) (*UserBase, error) {
 	model := new(UserBase)
 	err := d.db.QueryRowCtx(ctx, model, fmt.Sprintf(sqlFindBasic, cond), val)
 	return model, xerror.Wrapf(xsql.ConvertError(err), "user dao query user base %s=%v failed", cond, val)
 }
 
-func (d *UserDao) FindUserBaseByUid(ctx context.Context, uid uint64) (*UserBase, error) {
+func (d *UserDao) FindUserBaseByUid(ctx context.Context, uid int64) (*UserBase, error) {
 	if resp, err := d.CacheGetUserBaseByUid(ctx, uid); err == nil && resp != nil {
 		return resp, nil
 	}
@@ -111,7 +111,7 @@ func (d *UserDao) FindUserBaseByTel(ctx context.Context, tel string) (*UserBase,
 }
 
 // TODO make it cache
-func (d *UserDao) FindUserBaseByUids(ctx context.Context, uids []uint64) ([]*UserBase, error) {
+func (d *UserDao) FindUserBaseByUids(ctx context.Context, uids []int64) ([]*UserBase, error) {
 	model := make([]*UserBase, 0)
 	if len(uids) == 0 {
 		return model, nil
@@ -144,12 +144,12 @@ func (d *UserDao) Insert(ctx context.Context, user *User) error {
 	return xerror.Wrapf(xsql.ConvertError(err), "user dao insert user failed")
 }
 
-func (d *UserDao) Delete(ctx context.Context, uid uint64) error {
+func (d *UserDao) Delete(ctx context.Context, uid int64) error {
 	_, err := d.db.ExecCtx(ctx, sqlDel, uid)
 	return xerror.Wrapf(xsql.ConvertError(err), "user dao delete user %d failed", uid)
 }
 
-func (d *UserDao) updateCol(ctx context.Context, col string, val interface{}, uid uint64) error {
+func (d *UserDao) updateCol(ctx context.Context, col string, val interface{}, uid int64) error {
 	statement := fmt.Sprintf(sqlUpdateCol, col)
 	_, err := d.db.ExecCtx(ctx, statement, val, time.Now().Unix(), uid)
 
@@ -159,34 +159,34 @@ func (d *UserDao) updateCol(ctx context.Context, col string, val interface{}, ui
 	return xerror.Wrapf(xsql.ConvertError(err), "user dao update col(%s) failed", col)
 }
 
-func (d *UserDao) UpdateNickname(ctx context.Context, value string, uid uint64) error {
+func (d *UserDao) UpdateNickname(ctx context.Context, value string, uid int64) error {
 	return d.updateCol(ctx, "nickname", value, uid)
 }
 
-func (d *UserDao) UpdateAvatar(ctx context.Context, value string, uid uint64) error {
+func (d *UserDao) UpdateAvatar(ctx context.Context, value string, uid int64) error {
 	return d.updateCol(ctx, "avatar", value, uid)
 }
 
-func (d *UserDao) UpdateStyleSign(ctx context.Context, value string, uid uint64) error {
+func (d *UserDao) UpdateStyleSign(ctx context.Context, value string, uid int64) error {
 	return d.updateCol(ctx, "style_sign", value, uid)
 }
 
-func (d *UserDao) UpdateGender(ctx context.Context, value int8, uid uint64) error {
+func (d *UserDao) UpdateGender(ctx context.Context, value int8, uid int64) error {
 	return d.updateCol(ctx, "gender", value, uid)
 }
 
-func (d *UserDao) UpdateTel(ctx context.Context, value string, uid uint64) error {
+func (d *UserDao) UpdateTel(ctx context.Context, value string, uid int64) error {
 	return d.updateCol(ctx, "tel", value, uid)
 }
-func (d *UserDao) UpdateEmail(ctx context.Context, value string, uid uint64) error {
+func (d *UserDao) UpdateEmail(ctx context.Context, value string, uid int64) error {
 	return d.updateCol(ctx, "email", value, uid)
 }
 
-func (d *UserDao) UpdatePass(ctx context.Context, value string, uid uint64) error {
+func (d *UserDao) UpdatePass(ctx context.Context, value string, uid int64) error {
 	return d.updateCol(ctx, "pass", value, uid)
 }
 
-func (d *UserDao) UpdateSalt(ctx context.Context, value string, uid uint64) error {
+func (d *UserDao) UpdateSalt(ctx context.Context, value string, uid int64) error {
 	return d.updateCol(ctx, "salt", value, uid)
 }
 

@@ -9,7 +9,7 @@ func getString(ctx context.Context, key string) string {
 	return v
 }
 
-func getUInt64(ctx context.Context, key string) uint64 {
-	v, _ := ctx.Value(key).(uint64)
+func getInt64(ctx context.Context, key string) int64 {
+	v, _ := ctx.Value(key).(int64)
 	return v
 }

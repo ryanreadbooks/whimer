@@ -7,7 +7,6 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 
 	"github.com/zeromicro/go-zero/core/stores/redis"
-	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
@@ -15,7 +14,6 @@ import (
 var Conf Config
 
 type Config struct {
-	Http rest.RestConf      `json:"http"`
 	Grpc zrpc.RpcServerConf `json:"grpc"`
 
 	MySql struct {

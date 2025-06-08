@@ -7,8 +7,8 @@ import "buf/validate/validate.proto";
 option go_package = "github.com/ryanreadbooks/whimer/relation/api/v1";
 
 message FollowUserRequest {
-  uint64 follower = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 关注者
-  uint64 followee = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 被关注者
+  int64 follower = 1; // 关注者
+  int64 followee = 2; // 被关注者
   enum Action {
     ACTION_UNSPECIFIED = 0;
     ACTION_FOLLOW = 1;   // follower发起关注followee
@@ -28,56 +28,56 @@ message QueryCondition {
 message FollowUserResponse {}
 
 message GetUserFanListRequest {
-  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
+  int64 uid = 1; // 目标uid
   QueryCondition cond = 2;
 }
 
 message GetUserFanListResponse {
-  repeated uint64 fans = 1;
+  repeated int64 fans = 1;
   uint64 next_offset = 2;
   bool has_more = 3;
 }
 
 message GetUserFollowingListRequest {
-  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
+  int64 uid = 1; // 目标uid
   QueryCondition cond = 2;
 }
 
 message GetUserFollowingListResponse {
-  repeated uint64 followings = 1;
+  repeated int64 followings = 1;
   uint64 next_offset = 2;
   bool has_more = 3;
 }
 
 message RemoveUserFanRequest {
-  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
-  repeated uint64 fans_id = 2; // 需要移除的粉丝id
+  int64 uid = 1;              // 目标uid
+  repeated int64 fans_id = 2; // 需要移除的粉丝id
 }
 
 message RemoveUserFanResponse {}
 
 message GetUserFanCountRequest {
-  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
+  int64 uid = 1; // 目标uid
 }
 
 message GetUserFanCountResponse { uint64 count = 1; }
 
 message GetUserFollowingCountRequest {
-  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 目标uid
+  int64 uid = 1; // 目标uid
 }
 
 message GetUserFollowingCountResponse { uint64 count = 1; }
 
 message BatchCheckUserFollowedRequest {
-  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 用户uid
-  repeated uint64 targets = 2;                           // 查找的目标uid
+  int64 uid = 1;              // 用户uid
+  repeated int64 targets = 2; // 查找的目标uid
 }
 
-message BatchCheckUserFollowedResponse { map<uint64, bool> status = 1; }
+message BatchCheckUserFollowedResponse { map<int64, bool> status = 1; }
 
 message CheckUserFollowedRequest {
-  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ];   // 用户uid
-  uint64 other = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 用户uid
+  int64 uid = 1;   // 用户uid
+  int64 other = 2; // 用户uid
 }
 
 message CheckUserFollowedResponse { bool followed = 1; }

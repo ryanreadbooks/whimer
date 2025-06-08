@@ -45,7 +45,7 @@ func (s *UserServiceServer) BatchGetUser(ctx context.Context, in *user.BatchGetU
 
 	users := make(map[string]*user.UserInfo, len(resp))
 	for _, r := range resp {
-		users[strconv.FormatUint(r.Uid, 10)] = r.ToPb()
+		users[strconv.FormatInt(r.Uid, 10)] = r.ToPb()
 	}
 
 	return &user.BatchGetUserResponse{Users: users}, nil

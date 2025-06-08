@@ -14,7 +14,7 @@ enum RecordAct {
 
 message Record {
   int32 biz_code = 1;
-  uint64 uid = 2;
+  int64 uid = 2;
   uint64 oid = 3;
   RecordAct act = 4;
   int64 ctime = 5;
@@ -25,7 +25,7 @@ message RecordList { repeated Record list = 1; }
 
 message AddRecordRequest {
   int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
-  uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 uid = 2;
   uint64 oid = 3 [ (buf.validate.field).uint64.gt = 0 ];
 }
 
@@ -33,7 +33,7 @@ message AddRecordResponse {}
 
 message CancelRecordRequest {
   int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
-  uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 uid = 2;
   uint64 oid = 3 [ (buf.validate.field).uint64.gt = 0 ];
 }
 
@@ -41,7 +41,7 @@ message CancelRecordResponse {}
 
 message DelRecordRequest {
   int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
-  uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 uid = 2;
   uint64 oid = 3 [ (buf.validate.field).uint64.gt = 0 ];
 }
 
@@ -49,7 +49,7 @@ message DelRecordResponse {}
 
 message GetRecordRequest {
   int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
-  uint64 uid = 2 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 uid = 2;
   uint64 oid = 3 [ (buf.validate.field).uint64.gt = 0 ];
 }
 
@@ -71,18 +71,18 @@ message BatchGetSummaryRequest { repeated GetSummaryRequest requests = 1; }
 message BatchGetSummaryResponse { repeated GetSummaryResponse responses = 1; }
 
 message ObjectList {
-  repeated uint64 oids = 1 [ (buf.validate.field).repeated.min_items = 1 ];
+  repeated uint64 oids = 1 [ (buf.validate.field).repeated .min_items = 1 ];
 }
 
 message BatchGetRecordRequest {
   int32 biz_code = 1;
-  map<uint64, ObjectList> params = 2 [
+  map<int64, ObjectList> params = 2 [
     (buf.validate.field).map.min_pairs = 1,
     (buf.validate.field).map.max_pairs = 50
   ];
 }
 
-message BatchGetRecordResponse { map<uint64, RecordList> results = 1; }
+message BatchGetRecordResponse { map<int64, RecordList> results = 1; }
 
 service CounterService {
   // 添加一条计数记录

@@ -47,7 +47,7 @@ type Note struct {
 	Title    string `db:"title"`     // 标题
 	Desc     string `db:"desc"`      // 描述
 	Privacy  int8   `db:"privacy"`   // 公开类型
-	Owner    uint64 `db:"owner"`     // 笔记作者
+	Owner    int64  `db:"owner"`     // 笔记作者
 	CreateAt int64  `db:"create_at"` // 创建时间
 	UpdateAt int64  `db:"update_at"` // 更新时间
 }
@@ -69,7 +69,7 @@ func (r *NoteDao) FindOne(ctx context.Context, id uint64) (*Note, error) {
 	return resp, xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteDao) ListByOwner(ctx context.Context, uid uint64) ([]*Note, error) {
+func (r *NoteDao) ListByOwner(ctx context.Context, uid int64) ([]*Note, error) {
 	res := make([]*Note, 0)
 	err := r.db.QueryRowsCtx(ctx, &res, sqlListByOwner, uid)
 	if err != nil {
@@ -78,7 +78,7 @@ func (r *NoteDao) ListByOwner(ctx context.Context, uid uint64) ([]*Note, error) 
 	return res, nil
 }
 
-func (r *NoteDao) ListByOwnerByCursor(ctx context.Context, uid uint64, cursor uint64, limit int32) ([]*Note, error) {
+func (r *NoteDao) ListByOwnerByCursor(ctx context.Context, uid int64, cursor uint64, limit int32) ([]*Note, error) {
 	res := make([]*Note, 0, limit)
 	err := r.db.QueryRowsCtx(ctx, &res, sqlListByOwnerByCursor, uid, cursor, limit)
 	if err != nil {
@@ -222,13 +222,13 @@ func (r *NoteDao) getCount(ctx context.Context, privacy int) (uint64, error) {
 	return cnt, xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteDao) GetPostedCountByOwner(ctx context.Context, uid uint64) (uint64, error) {
+func (r *NoteDao) GetPostedCountByOwner(ctx context.Context, uid int64) (uint64, error) {
 	var cnt uint64
 	err := r.db.QueryRowCtx(ctx, &cnt, sqlCountByUid, uid)
 	return cnt, xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteDao) GetRecentPublicPosted(ctx context.Context, uid uint64, count int32) ([]*Note, error) {
+func (r *NoteDao) GetRecentPublicPosted(ctx context.Context, uid int64, count int32) ([]*Note, error) {
 	var res = make([]*Note, 0, count)
 	err := r.db.QueryRowsCtx(ctx, &res, sqlGetRecentPosted, uid, global.PrivacyPublic, count)
 	return res, xerror.Wrap(err)

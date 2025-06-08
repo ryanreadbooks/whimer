@@ -25,6 +25,6 @@ func TestByteCandis(t *testing.T) {
 }
 
 func TestSecureRandomString(t *testing.T) {
-	s, _ := SecureRandomString(10)
+	s, _ := CryptoRandomString(10)
 	t.Log(s, len(s))
 }

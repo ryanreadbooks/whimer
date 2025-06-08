@@ -64,7 +64,7 @@ func (b *Bus) DelReply(ctx context.Context, rid uint64, reply *dao.Comment) erro
 	})
 }
 
-func (b *Bus) LikeReply(ctx context.Context, rid, uid uint64) error {
+func (b *Bus) LikeReply(ctx context.Context, rid uint64, uid int64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActLikeReply,
 		LikeReplyData: &BinaryReplyData{
@@ -76,7 +76,7 @@ func (b *Bus) LikeReply(ctx context.Context, rid, uid uint64) error {
 	})
 }
 
-func (b *Bus) UnLikeReply(ctx context.Context, rid, uid uint64) error {
+func (b *Bus) UnLikeReply(ctx context.Context, rid uint64, uid int64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActLikeReply,
 		LikeReplyData: &BinaryReplyData{
@@ -88,7 +88,7 @@ func (b *Bus) UnLikeReply(ctx context.Context, rid, uid uint64) error {
 	})
 }
 
-func (b *Bus) DisLikeReply(ctx context.Context, rid, uid uint64) error {
+func (b *Bus) DisLikeReply(ctx context.Context, rid uint64, uid int64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActDislikeReply,
 		LikeReplyData: &BinaryReplyData{
@@ -100,7 +100,7 @@ func (b *Bus) DisLikeReply(ctx context.Context, rid, uid uint64) error {
 	})
 }
 
-func (b *Bus) UnDisLikeReply(ctx context.Context, rid, uid uint64) error {
+func (b *Bus) UnDisLikeReply(ctx context.Context, rid uint64, uid int64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActDislikeReply,
 		LikeReplyData: &BinaryReplyData{

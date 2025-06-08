@@ -16,9 +16,9 @@ import (
 	"github.com/ryanreadbooks/whimer/counter/internal/repo"
 	"github.com/ryanreadbooks/whimer/counter/internal/repo/record"
 	"github.com/ryanreadbooks/whimer/counter/internal/repo/summary"
-	"github.com/ryanreadbooks/whimer/misc/utils/slices"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	slices "github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
@@ -217,10 +217,10 @@ func (s *CounterSvc) GetRecord(ctx context.Context,
 	}}, nil
 }
 
-func (s *CounterSvc) BatchGetRecord(ctx context.Context, uidOids map[uint64][]uint64, biz int) (
-	map[uint64][]*counterv1.Record, error) {
+func (s *CounterSvc) BatchGetRecord(ctx context.Context, uidOids map[int64][]uint64, biz int) (
+	map[int64][]*counterv1.Record, error) {
 	datas, err := s.repo.RecordRepo.BatchFind(ctx, uidOids, biz)
-	var uidRecords = make(map[uint64][]*counterv1.Record, len(datas))
+	var uidRecords = make(map[int64][]*counterv1.Record, len(datas))
 	if err != nil {
 		if !xsql.IsNotFound(err) {
 			return nil, xerror.Wrapf(err, "batch find failed")

@@ -27,9 +27,8 @@ message FeedNoteItem {
   int64 created_at = 4;
   repeated NoteImage images = 5;
   uint64 likes = 6;   // 点赞数量
-  uint64 author = 7;  // 笔记作者
+  int64 author = 7;   // 笔记作者
   uint64 replies = 8; // 点赞数
-  // NoteInteraction interaction = 7; // 用户与笔记的交互状态
   int64 updated_at = 9;
 }
 
@@ -40,7 +39,7 @@ message GetFeedNoteRequest {
 message GetFeedNoteResponse { FeedNoteItem item = 1; }
 
 message RecommendGetRequest {
-  uint64 uid = 1; // 用户id
+  int64 uid = 1; // 用户id
   int32 need_num = 2 [
     (buf.validate.field).int32.gt = 0,
     (buf.validate.field).int32.lte = 30
@@ -50,7 +49,7 @@ message RecommendGetRequest {
 message RecommendGetResponse {}
 
 message GetUserRecentPostRequest {
-  uint64 uid = 1 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 uid = 1;
   int32 count = 2 [ (buf.validate.field).int32.lte = 5 ];
 }
 

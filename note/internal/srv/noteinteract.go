@@ -79,12 +79,12 @@ func (s *NoteInteractSrv) GetNoteLikes(ctx context.Context, noteId uint64) (uint
 	return s.noteInteractBiz.GetNoteLikes(ctx, noteId)
 }
 
-func (s *NoteInteractSrv) CheckUserLikeStatus(ctx context.Context, uid, noteId uint64) (bool, error) {
+func (s *NoteInteractSrv) CheckUserLikeStatus(ctx context.Context, uid int64, noteId uint64) (bool, error) {
 	return s.noteInteractBiz.CheckUserLikeStatus(ctx, uid, noteId)
 }
 
-func (s *NoteInteractSrv) BatchCheckUserLikeStatus(ctx context.Context, req map[uint64][]uint64) (
-	map[uint64][]*model.LikeStatus, error) {
+func (s *NoteInteractSrv) BatchCheckUserLikeStatus(ctx context.Context, req map[int64][]uint64) (
+	map[int64][]*model.LikeStatus, error) {
 	// 批量查找就不检查noteId是否存在
 	uidsCheckStatus, err := s.noteInteractBiz.BatchCheckUserLikeStatus(ctx, req)
 	if err != nil {

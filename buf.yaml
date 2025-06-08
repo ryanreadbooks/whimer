@@ -6,6 +6,8 @@ modules:
   - path: passport/api
   - path: counter/api
   - path: relation/api
+  - path: msger/api
+  - path: wslink/api
 lint:
   use:
     - DEFAULT

@@ -23,13 +23,13 @@ import (
 // 包含通用功能
 type UserBiz interface {
 	// 获取个人信息
-	GetUser(ctx context.Context, uid uint64) (*model.UserInfo, error)
+	GetUser(ctx context.Context, uid int64) (*model.UserInfo, error)
 	// 批量和获取用户信息
-	BatchGetUser(ctx context.Context, uids []uint64) (map[uint64]*model.UserInfo, error)
+	BatchGetUser(ctx context.Context, uids []int64) (map[int64]*model.UserInfo, error)
 	// 更新个人信息
 	UpdateUser(ctx context.Context, req *model.UpdateUserRequest) (*model.UserInfo, error)
 	// 上传头像
-	UpdateAvatar(ctx context.Context, uid uint64, req *model.AvatarInfoRequest) (string, error)
+	UpdateAvatar(ctx context.Context, uid int64, req *model.AvatarInfoRequest) (string, error)
 	// 通过手机号获取用户
 	GetUserByTel(ctx context.Context, tel string) (*model.UserInfo, error)
 	// 获取头像链接
@@ -67,7 +67,7 @@ func NewUserBiz() UserBiz {
 	return b
 }
 
-func (b *userBiz) getUser(ctx context.Context, uid uint64) (*model.UserInfo, error) {
+func (b *userBiz) getUser(ctx context.Context, uid int64) (*model.UserInfo, error) {
 	user, err := infra.Dao().UserDao.FindUserBaseByUid(ctx, uid)
 	if err != nil {
 		if !errors.Is(err, xsql.ErrNoRecord) {
@@ -79,7 +79,7 @@ func (b *userBiz) getUser(ctx context.Context, uid uint64) (*model.UserInfo, err
 	return model.NewUserInfoFromUserBase(user), nil
 }
 
-func (b *userBiz) GetUser(ctx context.Context, uid uint64) (*model.UserInfo, error) {
+func (b *userBiz) GetUser(ctx context.Context, uid int64) (*model.UserInfo, error) {
 	user, err := b.getUser(ctx, uid)
 	if err != nil {
 		return nil, err
@@ -116,7 +116,7 @@ func (b *userBiz) UpdateUser(ctx context.Context, req *model.UpdateUserRequest) 
 }
 
 // 上传新头像
-func (b *userBiz) UpdateAvatar(ctx context.Context, uid uint64, req *model.AvatarInfoRequest) (string, error) {
+func (b *userBiz) UpdateAvatar(ctx context.Context, uid int64, req *model.AvatarInfoRequest) (string, error) {
 	var (
 		objKey  = b.avatarKeyGen.Gen()
 		objName = objKey + req.Ext
@@ -183,13 +183,13 @@ func (b *userBiz) ReplaceAvatarUrl(url string) string {
 	return url
 }
 
-func (b *userBiz) BatchGetUser(ctx context.Context, uids []uint64) (map[uint64]*model.UserInfo, error) {
+func (b *userBiz) BatchGetUser(ctx context.Context, uids []int64) (map[int64]*model.UserInfo, error) {
 	users, err := infra.Dao().UserDao.FindUserBaseByUids(ctx, uids)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "user biz failed to get users").WithExtra("uids", uids)
 	}
 
-	resp := make(map[uint64]*model.UserInfo, len(users))
+	resp := make(map[int64]*model.UserInfo, len(users))
 	for _, user := range users {
 		info := model.NewUserInfoFromUserBase(user)
 		b.ReplaceAvatar(info)

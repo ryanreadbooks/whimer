@@ -1,6 +1,6 @@
 module github.com/ryanreadbooks/whimer/feed
 
-go 1.22
+go 1.22.2
 
 require (
 	github.com/ryanreadbooks/whimer/comment v0.0.0-00010101000000-000000000000
@@ -9,7 +9,7 @@ require (
 	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/relation v0.0.0-00010101000000-000000000000
 	github.com/zeromicro/go-zero v1.7.3
-	golang.org/x/sync v0.8.0
+	golang.org/x/sync v0.10.0
 )
 
 require (
@@ -42,7 +42,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -84,7 +84,7 @@ require (
 	golang.org/x/oauth2 v0.21.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
 	golang.org/x/term v0.25.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240711142825-46eb208f015d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240711142825-46eb208f015d // indirect
@@ -111,4 +111,5 @@ replace github.com/ryanreadbooks/whimer/passport => ../passport
 replace github.com/ryanreadbooks/whimer/note => ../note
 
 replace github.com/ryanreadbooks/whimer/comment => ../comment
+
 replace github.com/ryanreadbooks/whimer/relation => ../relation

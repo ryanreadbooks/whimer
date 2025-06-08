@@ -74,7 +74,7 @@ func (a *Auth) getCookie(r *http.Request) (sessId string, err error) {
 	return
 }
 
-func (a *Auth) User(ctx context.Context, r *http.Request) (uid uint64, sessId string, err error) {
+func (a *Auth) User(ctx context.Context, r *http.Request) (uid int64, sessId string, err error) {
 	sessId, err = a.getCookie(r)
 	if err != nil {
 		return
@@ -95,7 +95,7 @@ func (a *Auth) User(ctx context.Context, r *http.Request) (uid uint64, sessId st
 	return
 }
 
-func (a *Auth) UserWeb(ctx context.Context, r *http.Request) (uid uint64, sessId string, err error) {
+func (a *Auth) UserWeb(ctx context.Context, r *http.Request) (uid int64, sessId string, err error) {
 	sessId, err = a.getCookie(r)
 	if err != nil {
 		return

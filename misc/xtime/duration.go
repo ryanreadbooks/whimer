@@ -1,10 +1,18 @@
 package xtime
 
 import (
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
 )
+
+type SDuration string
+
+func (s SDuration) Duration() time.Duration {
+	d, _ := time.ParseDuration(string(s))
+	return d
+}
 
 // 可以解析1m 2h等的时间格式
 type Duration time.Duration
@@ -16,6 +24,18 @@ func (t *Duration) UnmarshalYAML(value *yaml.Node) error {
 		return err
 	}
 
+	r, err := time.ParseDuration(s)
+	if err != nil {
+		return err
+	}
+
+	*t = Duration(r)
+
+	return nil
+}
+
+func (t *Duration) UnmarshalJSON(b []byte) error {
+	s := strings.Trim(string(b), "\"")
 	r, err := time.ParseDuration(s)
 	if err != nil {
 		return err

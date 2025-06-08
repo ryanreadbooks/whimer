@@ -1,0 +1,32 @@
+grpc:
+  mode: dev
+  name: msger-grpc
+  listenon: 0.0.0.0:5678
+  log:
+    level: debug
+  etcd:
+    hosts:
+      - 127.0.0.1:2379
+    key: whimer.msger.rpc
+
+mysql:
+  user: ${ENV_DB_USER}
+  pass: ${ENV_DB_PASS}
+  addr: ${ENV_DB_ADDR}
+  db_name: ${ENV_DB_NAME}
+
+# 外部依赖
+external:
+  grpc:
+    passport:
+      hosts: [127.0.0.1:2379]
+      key: whimer.passport.rpc
+    wslink:
+      hosts: [127.0.0.1:2379]
+      key: whimer.wslink.rpc
+
+seqer:
+  addr: 127.0.0.1:9528
+
+redis:
+  host: 127.0.0.1:7542

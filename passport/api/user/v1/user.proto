@@ -5,22 +5,22 @@ package passport.api.user.v1;
 option go_package = "github.com/ryanreadbooks/whimer/passport/api/user/v1";
 
 message UserInfo {
-  uint64 uid = 1;
+  int64 uid = 1;
   string nickname = 2;
   string avatar = 3;
   string style_sign = 4;
   string gender = 5;
 }
 
-message BatchGetUserRequest { repeated uint64 uids = 1; }
+message BatchGetUserRequest { repeated int64 uids = 1; }
 
 message BatchGetUserResponse { map<string, UserInfo> users = 1; }
 
-message GetUserRequest { uint64 uid = 1; }
+message GetUserRequest { int64 uid = 1; }
 
 message GetUserResponse { UserInfo user = 1; }
 
-message HasUserRequest { uint64 uid = 1; }
+message HasUserRequest { int64 uid = 1; }
 
 message HasUserResponse { bool has = 1; }
 

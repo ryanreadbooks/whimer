@@ -22,11 +22,11 @@ func NewUserSrv(p *Service, biz biz.Biz) *UserSrv {
 	return s
 }
 
-func (s *UserSrv) GetUser(ctx context.Context, uid uint64) (*model.UserInfo, error) {
+func (s *UserSrv) GetUser(ctx context.Context, uid int64) (*model.UserInfo, error) {
 	return s.userBiz.GetUser(ctx, uid)
 }
 
-func (s *UserSrv) BatchGetUser(ctx context.Context, uids []uint64) (map[uint64]*model.UserInfo, error) {
+func (s *UserSrv) BatchGetUser(ctx context.Context, uids []int64) (map[int64]*model.UserInfo, error) {
 	return s.userBiz.BatchGetUser(ctx, uids)
 }
 

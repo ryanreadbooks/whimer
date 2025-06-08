@@ -43,6 +43,11 @@ func (l *LogItem) Msg(s string) *LogItem {
 	return l
 }
 
+func (l *LogItem) Msgf(format string, args ...any) *LogItem {
+	l.msg = fmt.Sprintf(format, args...)
+	return l
+}
+
 func (l *LogItem) Err(err error) *LogItem {
 	l.err = err
 	return l
@@ -58,7 +63,7 @@ func (l *LogItem) Field(key string, val any) *LogItem {
 	return l
 }
 
-func (l *LogItem) Fields(kvs ...interface{}) *LogItem {
+func (l *LogItem) Fields(kvs ...any) *LogItem {
 	if len(kvs)%2 == 0 {
 		for i := 0; i < len(kvs)/2; i++ {
 			l.fields[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
@@ -77,7 +82,7 @@ func (l *LogItem) Extra(key string, val any) *LogItem {
 	return l
 }
 
-func (l *LogItem) Extras(kvs ...interface{}) *LogItem {
+func (l *LogItem) Extras(kvs ...any) *LogItem {
 	if len(kvs)%2 == 0 {
 		for i := 0; i < len(kvs)/2; i++ {
 			l.extra[fmt.Sprintf("%v", kvs[i*2])] = kvs[i*2+1]
@@ -217,6 +222,12 @@ func Msg(s string) *LogItem {
 	return l
 }
 
+func Msgf(format string, args ...any) *LogItem {
+	l := newLogItem()
+	l.msg = fmt.Sprintf(format, args...)
+	return l
+}
+
 func Fields(kvs ...interface{}) *LogItem {
 	l := newLogItem()
 	if len(kvs)%2 == 0 {
@@ -227,7 +238,7 @@ func Fields(kvs ...interface{}) *LogItem {
 	return l
 }
 
-func Extras(kvs ...interface{}) *LogItem {
+func Extras(kvs ...any) *LogItem {
 	l := newLogItem()
 	if len(kvs)%2 == 0 {
 		for i := 0; i < len(kvs)/2; i++ {

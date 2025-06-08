@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -18,6 +19,8 @@ var (
 func ConvertError(err error) error {
 	switch err {
 	case nil:
+		return nil
+	case redis.Nil:
 		return nil
 	case sqlx.ErrNotFound:
 		return ErrNoRecord

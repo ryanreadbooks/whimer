@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package msger.api.p2p.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/msger/api/p2p/v1";
+
+import "msg/msg.proto";
+
+// 单聊会话
+message Chat {
+  int64 chat_id = 1;
+  int64 user_id = 2;
+  int64 peer_id = 3;
+  int64 unread = 4;
+  int64 last_msg_id = 5;
+  int64 last_msg_seq = 6;
+  int64 last_read_msg_id = 7;
+  int64 last_read_time = 8;
+}
+
+message CreateChatRequest {
+  int64 initiator = 1; // 发起人
+  int64 target = 2;    // 目标
+}
+
+message CreateChatResponse { int64 chat_id = 1; }
+
+message SendMessageRequest {
+  int64 sender = 1;                 // 发送人
+  int64 receiver = 2;               // 接收人
+  int64 chat_id = 3;                // 发送会话
+  msger.api.msg.MsgContent msg = 4; // 发送的消息
+}
+
+message SendMessageResponse {
+  int64 msg_id = 1; // 消息id
+  int64 seq = 2;    // 序列号
+}
+
+message ListMessageRequest {
+  int64 chat_id = 1; // 会话id
+  int64 user_id = 2; // 用户id
+  int64 seq = 3;     // < 序列号
+  int32 count = 4;   // 拉取数量
+}
+
+message ListMessageResponse {
+  repeated msger.api.msg.Message messages = 1; // 消息
+  int64 next_seq = 2;                          // 下一次
+}
+
+message GetUnreadCountRequest {
+  int64 user_id = 1;
+  int64 chat_id = 2;
+}
+
+message GetUnreadCountResponse { int64 count = 1; }
+
+message ClearUnreadRequest {
+  int64 user_id = 1;
+  int64 chat_id = 2;
+}
+
+message ClearUnreadResponse {}
+
+message RevokeMessageRequest {
+  int64 user_id = 1;
+  int64 chat_id = 2;
+  int64 msg_id = 3;
+}
+
+message RevokeMessageResponse {}
+
+message ListChatRequest {
+  int64 user_id = 1;
+  int64 seq = 2;
+  int32 count = 3;
+}
+
+message ListChatResponse {
+  repeated Chat chats = 1;
+  int64 next_seq = 2;
+}
+
+// p2p会话相关服务
+service ChatService {
+  // 创建会话
+  rpc CreateChat(CreateChatRequest) returns (CreateChatResponse);
+  // 发送单聊消息
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  // 用户拉取单聊消息
+  rpc ListMessage(ListMessageRequest) returns (ListMessageResponse);
+  // 获取用户会话未读数
+  rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
+  // 清除未读数
+  rpc ClearUnread(ClearUnreadRequest) returns (ClearUnreadResponse);
+  // 撤回消息
+  rpc RevokeMessage(RevokeMessageRequest) returns (RevokeMessageResponse);
+  // 列出用户单聊会话
+  rpc ListChat(ListChatRequest) returns (ListChatResponse);
+}

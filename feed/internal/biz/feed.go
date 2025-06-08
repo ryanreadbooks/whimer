@@ -8,10 +8,10 @@ import (
 	"github.com/ryanreadbooks/whimer/feed/internal/model"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/recovery"
-	"github.com/ryanreadbooks/whimer/misc/utils/maps"
-	"github.com/ryanreadbooks/whimer/misc/utils/slices"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	maps "github.com/ryanreadbooks/whimer/misc/xmap"
+	slices "github.com/ryanreadbooks/whimer/misc/xslice"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
@@ -30,8 +30,8 @@ type feedBiz struct {
 func NewFeedBiz() FeedBiz { return &feedBiz{} }
 
 // 收集作者信息
-func (b *feedBiz) collectAuthor(ctx context.Context, uids []uint64) (map[uint64]*userv1.UserInfo, error) {
-	authors := make(map[uint64]*userv1.UserInfo)
+func (b *feedBiz) collectAuthor(ctx context.Context, uids []int64) (map[int64]*userv1.UserInfo, error) {
+	authors := make(map[int64]*userv1.UserInfo)
 	resp, err := dep.Userer().BatchGetUser(ctx, &userv1.BatchGetUserRequest{
 		Uids: uids,
 	})
@@ -47,10 +47,10 @@ func (b *feedBiz) collectAuthor(ctx context.Context, uids []uint64) (map[uint64]
 }
 
 // 收集reqUid和noteIds之间的评论关系
-func (b *feedBiz) collectCommentStatus(ctx context.Context, reqUid uint64, noteIds []uint64) (map[uint64]bool, error) {
+func (b *feedBiz) collectCommentStatus(ctx context.Context, reqUid int64, noteIds []uint64) (map[uint64]bool, error) {
 	oidCommented := make(map[uint64]bool)
 	// uid -> [oid1, oid2, ...]
-	objs := make(map[uint64]*commentv1.BatchCheckUserOnObjectRequest_Objects)
+	objs := make(map[int64]*commentv1.BatchCheckUserOnObjectRequest_Objects)
 	objs[reqUid] = &commentv1.BatchCheckUserOnObjectRequest_Objects{
 		Oids: noteIds,
 	}
@@ -86,9 +86,9 @@ func (b *feedBiz) collectCommentNumber(ctx context.Context, noteIds []uint64) (m
 }
 
 // 获取reqUid和noteIds之间的点赞关系
-func (b *feedBiz) collectLikeStatus(ctx context.Context, reqUid uint64, noteIds []uint64) (map[uint64]bool, error) {
+func (b *feedBiz) collectLikeStatus(ctx context.Context, reqUid int64, noteIds []uint64) (map[uint64]bool, error) {
 	oidLiked := make(map[uint64]bool)
-	mappings := make(map[uint64]*notev1.NoteIdList)
+	mappings := make(map[int64]*notev1.NoteIdList)
 	mappings[reqUid] = &notev1.NoteIdList{NoteIds: noteIds}
 	resp, err := dep.NoteInteracter().BatchCheckUserLikeStatus(ctx, &notev1.BatchCheckUserLikeStatusRequest{
 		Mappings: mappings,
@@ -105,23 +105,26 @@ func (b *feedBiz) collectLikeStatus(ctx context.Context, reqUid uint64, noteIds 
 	return oidLiked, nil
 }
 
-func (b *feedBiz) collectRelationStatus(ctx context.Context, reqUid uint64, authorUids []uint64) (map[uint64]bool, error) {
-	resp, err := dep.Relationer().BatchCheckUserFollowed(ctx, &relationv1.BatchCheckUserFollowedRequest{
-		Uid:     reqUid,
-		Targets: authorUids,
-	})
+func (b *feedBiz) collectRelationStatus(ctx context.Context, reqUid int64, authorUids []int64) (map[int64]bool, error) {
+	resp, err := dep.Relationer().BatchCheckUserFollowed(ctx,
+		&relationv1.BatchCheckUserFollowedRequest{
+			Uid:     reqUid,
+			Targets: authorUids,
+		})
 	if err != nil {
-		return nil, xerror.Wrapf(err, "feed biz failed to batch check user following authors status").WithCtx(ctx)
+		return nil, xerror.Wrapf(err,
+			"feed biz failed to batch check user following authors status").WithCtx(ctx)
 	}
 
 	return resp.Status, nil
 }
 
-func (b *feedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.FeedNoteItem) ([]*model.FeedNoteItem, error) {
+func (b *feedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.FeedNoteItem) (
+	[]*model.FeedNoteItem, error) {
 	var (
 		err     error
 		reqUid  = metadata.Uid(ctx)
-		authors = make(map[uint64][]uint64, len(notes)) // 作者，一个作者可能对应多篇笔记
+		authors = make(map[int64][]uint64, len(notes)) // 作者，一个作者可能对应多篇笔记
 	)
 
 	for _, note := range notes {
@@ -129,11 +132,11 @@ func (b *feedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.Fe
 	}
 
 	var (
-		authorInfos  map[uint64]*userv1.UserInfo // uid -> author info
-		oidCommented map[uint64]bool             // oid -> reqUid commented or not
-		oidLiked     map[uint64]bool             // oid -> reqUid liked or not
-		commentNums  map[uint64]uint64           // oid -> comment count
-		userFollows  map[uint64]bool             // authorId -> isFollowed
+		authorInfos  map[int64]*userv1.UserInfo // uid -> author info
+		oidCommented map[uint64]bool            // oid -> reqUid commented or not
+		oidLiked     map[uint64]bool            // oid -> reqUid liked or not
+		commentNums  map[uint64]uint64          // oid -> comment count
+		userFollows  map[int64]bool             // authorId -> isFollowed
 	)
 
 	noteIds := make([]uint64, 0, len(notes)) // 全部笔记id
@@ -191,7 +194,7 @@ func (b *feedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.Fe
 
 			// 非关键数据降级处理
 			if userFollows == nil {
-				userFollows = make(map[uint64]bool)
+				userFollows = make(map[int64]bool)
 			}
 
 			return nil

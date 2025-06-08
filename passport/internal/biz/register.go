@@ -41,10 +41,12 @@ func (b *registerBiz) UserRegister(ctx context.Context, tel string) (*model.User
 	)
 
 	// 分配用户id
-	uid, err := dep.IdGen().GetId(ctx, idgenRegIdKey, idgenStep)
+	resId, err := dep.IdGen().GetId(ctx, idgenRegIdKey, idgenStep)
 	if err != nil {
 		return nil, xerror.Wrapf(global.ErrRegisterTel, "register biz failed to get new uid").WithExtra("cause", err)
 	}
+
+	uid := int64(resId)
 
 	// 随机生成初始密码
 	pass, salt, err := MakeRandomInitPass()
@@ -82,6 +84,6 @@ func (b *registerBiz) UserRegister(ctx context.Context, tel string) (*model.User
 	return model.NewUserInfoFromUserBase(&data.UserBase), nil
 }
 
-func makeInitNickname(uid uint64) string {
+func makeInitNickname(uid int64) string {
 	return fmt.Sprintf("whimer_%d", uid)
 }

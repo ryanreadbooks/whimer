@@ -35,9 +35,9 @@ type CommentBiz interface {
 	// 批量获取评论数量
 	BatchCountReply(ctx context.Context, oids []uint64) (map[uint64]uint64, error)
 	// 检查用户是否发起了评论
-	CheckUserIsReplied(ctx context.Context, uid, oid uint64) (bool, error)
+	CheckUserIsReplied(ctx context.Context, uid int64, oid uint64) (bool, error)
 	// 批量检查用户是否发起了评论
-	BatchCheckUserIsReplied(ctx context.Context, uidOids map[uint64][]uint64) ([]model.UidCommentOnOid, error)
+	BatchCheckUserIsReplied(ctx context.Context, uidOids map[int64][]uint64) ([]model.UidCommentOnOid, error)
 	// 获取置顶评论
 	GetPinnedReply(ctx context.Context, oid uint64) (*model.ReplyItem, error)
 	// 填充评论的子评论数量
@@ -243,7 +243,7 @@ func (b *commentBiz) GetReply(ctx context.Context, rid uint64) (*model.ReplyItem
 }
 
 // 检查是否可以删除评论, 比如用户权限判断
-func (b *commentBiz) isReplyDeletable(ctx context.Context, uid uint64, reply *model.ReplyItem) error {
+func (b *commentBiz) isReplyDeletable(ctx context.Context, uid int64, reply *model.ReplyItem) error {
 	var (
 		owner = reply.Uid
 	)
@@ -372,7 +372,7 @@ func (b *commentBiz) BatchCountReply(ctx context.Context, oids []uint64) (map[ui
 }
 
 // 检查用户是否发起了评论
-func (b *commentBiz) CheckUserIsReplied(ctx context.Context, uid, oid uint64) (bool, error) {
+func (b *commentBiz) CheckUserIsReplied(ctx context.Context, uid int64, oid uint64) (bool, error) {
 	cnt, err := infra.Dao().CommentDao.CountByOidUid(ctx, oid, uid)
 	if err != nil {
 		return false, xerror.Wrapf(err, "comment biz failed to check user is replied object").
@@ -385,14 +385,14 @@ func (b *commentBiz) CheckUserIsReplied(ctx context.Context, uid, oid uint64) (b
 
 // 批量检查用户是否发起了评论
 // uid => [oid1, oid2, ..., oidN]
-func (b *commentBiz) BatchCheckUserIsReplied(ctx context.Context, uidOids map[uint64][]uint64) ([]model.UidCommentOnOid, error) {
+func (b *commentBiz) BatchCheckUserIsReplied(ctx context.Context, uidOids map[int64][]uint64) ([]model.UidCommentOnOid, error) {
 	resp, err := infra.Dao().CommentDao.FindByUidsOids(ctx, uidOids)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "comment biz failed to batch check user is replied").WithCtx(ctx)
 	}
 
 	// 记录uid评论过哪些oids
-	commented := make(map[uint64][]uint64, len(resp))
+	commented := make(map[int64][]uint64, len(resp))
 	for _, r := range resp {
 		commented[r.Uid] = append(commented[r.Uid], r.Oid)
 	}

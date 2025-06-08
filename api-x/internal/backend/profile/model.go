@@ -3,7 +3,7 @@ package profile
 import "github.com/ryanreadbooks/whimer/misc/xerror"
 
 type HoverReq struct {
-	UserId uint64 `form:"user_id"`
+	UserId int64 `form:"user_id"`
 }
 
 func (r *HoverReq) Validate() error {

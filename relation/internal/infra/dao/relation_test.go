@@ -5,7 +5,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ryanreadbooks/whimer/misc/utils/slices"
+	slices "github.com/ryanreadbooks/whimer/misc/xslice"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -60,8 +60,8 @@ func TestRelation_FindByAlphaBeta(t *testing.T) {
 		relationDao.Insert(ctx, c)
 	}
 	cases := []struct {
-		alpha   uint64
-		beta    uint64
+		alpha   int64
+		beta    int64
 		desire  *Relation
 		wantErr bool
 	}{
@@ -116,32 +116,32 @@ func TestRelation_FindUidLinkTo(t *testing.T) {
 	}
 
 	cases := []struct {
-		uid   uint64
-		wants []uint64
+		uid   int64
+		wants []int64
 	}{
 		{
 			uid:   1000,
-			wants: []uint64{1002, 1003},
+			wants: []int64{1002, 1003},
 		},
 		{
 			uid:   1002,
-			wants: []uint64{},
+			wants: []int64{},
 		},
 		{
 			uid:   1004,
-			wants: []uint64{1000, 1002, 1005},
+			wants: []int64{1000, 1002, 1005},
 		},
 		{
 			uid:   1003,
-			wants: []uint64{1005},
+			wants: []int64{1005},
 		},
 		{
 			uid:   1005,
-			wants: []uint64{1002, 1003},
+			wants: []int64{1002, 1003},
 		},
 		{
 			uid:   1001111,
-			wants: []uint64{},
+			wants: []int64{},
 		},
 	}
 	Convey("FindUidLinkTo", t, func() {
@@ -179,32 +179,32 @@ func TestRelation_FindUidGotLinked(t *testing.T) {
 	}
 
 	cases := []struct {
-		uid   uint64   // 关注他
-		wants []uint64 // 谁关注他
+		uid   int64   // 关注他
+		wants []int64 // 谁关注他
 	}{
 		{
 			uid:   1000,
-			wants: []uint64{1004},
+			wants: []int64{1004},
 		},
 		{
 			uid:   1002,
-			wants: []uint64{1000, 1004, 1005},
+			wants: []int64{1000, 1004, 1005},
 		},
 		{
 			uid:   1004,
-			wants: []uint64{},
+			wants: []int64{},
 		},
 		{
 			uid:   1003,
-			wants: []uint64{1000, 1005},
+			wants: []int64{1000, 1005},
 		},
 		{
 			uid:   1005,
-			wants: []uint64{1003, 1004},
+			wants: []int64{1003, 1004},
 		},
 		{
 			uid:   1001111,
-			wants: []uint64{},
+			wants: []int64{},
 		},
 	}
 	Convey("FindUidGotLinked", t, func() {

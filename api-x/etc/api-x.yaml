@@ -19,3 +19,6 @@ backend:
   relation:
     hosts: [127.0.0.1:2379]
     key: whimer.relation.rpc
+  msger:
+    hosts: [127.0.0.1:2379]
+    key: whimer.msger.rpc
