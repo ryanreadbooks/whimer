@@ -34,7 +34,7 @@ type PushServiceClient interface {
 	Push(ctx context.Context, in *PushRequest, opts ...grpc.CallOption) (*PushResponse, error)
 	// 广播推送 所有用户的所有设备都是同样的数据
 	Broadcast(ctx context.Context, in *BroadcastRequest, opts ...grpc.CallOption) (*BroadcastResponse, error)
-	// 批量推送 每个用户推送的数据不一样
+	// 批量推送 每个用户推送的数据不一样 不保证推送顺序
 	BatchPush(ctx context.Context, in *BatchPushRequest, opts ...grpc.CallOption) (*BatchPushResponse, error)
 }
 
@@ -86,7 +86,7 @@ type PushServiceServer interface {
 	Push(context.Context, *PushRequest) (*PushResponse, error)
 	// 广播推送 所有用户的所有设备都是同样的数据
 	Broadcast(context.Context, *BroadcastRequest) (*BroadcastResponse, error)
-	// 批量推送 每个用户推送的数据不一样
+	// 批量推送 每个用户推送的数据不一样 不保证推送顺序
 	BatchPush(context.Context, *BatchPushRequest) (*BatchPushResponse, error)
 	mustEmbedUnimplementedPushServiceServer()
 }

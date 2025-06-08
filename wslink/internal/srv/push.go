@@ -27,42 +27,21 @@ func NewPushService(b biz.Biz) *PushService {
 	}
 }
 
+// 给特定uid的特定device设备发送data
 func (s *PushService) Push(ctx context.Context, uid int64, device model.Device, data []byte) error {
-	locals, nonLocals, err := s.sessBiz.RespectivelyGetSessionByUid(ctx, uid)
+	locals, nonLocals, err := s.sessBiz.RespectivelyGetSessionByUid(ctx, []int64{uid})
 	if err != nil {
 		return xerror.Wrapf(err, "failed to get session by uid").WithCtx(ctx)
 	}
 
-	// filter devices
-	localTarges := make([]*PushLocalConnReq, 0, len(locals))
-	for _, l := range locals {
-		if l.GetDevice() == device {
-			localTarges = append(localTarges, &PushLocalConnReq{
-				Conn: l,
-				Data: data,
-			})
-		}
-	}
-
-	nonLocalTargets := make([]*PushNonLocalConnReq, 0, len(nonLocals))
-	for _, nl := range nonLocals {
-		if nl.GetDevice() == device {
-			nonLocalTargets = append(nonLocalTargets, &PushNonLocalConnReq{
-				Conn:       nl,
-				Data:       data,
-				ForwardCnt: 1, // 第一次转发
-			})
-		}
-	}
-
 	concurrent.SafeGo(func() {
-		err := s.PushLocalConns(ctx, localTarges)
+		err := s.PushLocalConns(ctx, FormatPushLocalConnReq(locals, device, data))
 		if err != nil {
 			xlog.Msgf("push local conns err").Err(err).Errorx(ctx)
 		}
 	})
 	concurrent.SafeGo(func() {
-		err := s.PushNonLocalConns(ctx, nonLocalTargets)
+		err := s.PushNonLocalConns(ctx, FormatPushNonLocalConnReq(nonLocals, device, data))
 		if err != nil {
 			xlog.Msgf("push non local conns err").Err(err).Errorx(ctx)
 		}
@@ -170,11 +149,44 @@ type BatchPushReq struct {
 	Data   []byte
 }
 
+// 广播给uids下所有设备相同的data
 func (s *PushService) Broadcast(ctx context.Context, uids []int64, data []byte) error {
+	if len(uids) == 0 {
+		return nil
+	}
+	locals, nonLocals, err := s.sessBiz.RespectivelyGetSessionByUid(ctx, uids)
+	if err != nil {
+		return xerror.Wrapf(err, "failed to get session by uid").WithCtx(ctx)
+	}
+
+	concurrent.SafeGo(func() {
+		err := s.PushLocalConns(ctx, FormatPushLocalConnReq(locals, "", data))
+		if err != nil {
+			xlog.Msgf("broadcast local conns err").Err(err).Errorx(ctx)
+		}
+	})
+	concurrent.SafeGo(func() {
+		err := s.PushNonLocalConns(ctx, FormatPushNonLocalConnReq(nonLocals, "", data))
+		if err != nil {
+			xlog.Msgf("broadcast non local conns err").Err(err).Errorx(ctx)
+		}
+	})
+
 	return nil
 }
 
 func (s *PushService) BatchPush(ctx context.Context, reqs []BatchPushReq) error {
+	// 直接分批调用Push
+	concurrent.SafeGo(func() {
+		var wg sync.WaitGroup
+		ctx = context.WithoutCancel(ctx)
+		xslice.BatchAsyncExec(&wg, reqs, 100, func(start, end int) error {
+			for _, req := range reqs[start:end] {
+				s.Push(ctx, req.Uid, req.Device, req.Data)
+			}
+			return nil
+		})
+	})
 
 	return nil
 }

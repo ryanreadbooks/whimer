@@ -36,6 +36,6 @@ service PushService {
   rpc Push(PushRequest) returns (PushResponse);
   // 广播推送 所有用户的所有设备都是同样的数据
   rpc Broadcast(BroadcastRequest) returns (BroadcastResponse);
-  // 批量推送 每个用户推送的数据不一样
+  // 批量推送 每个用户推送的数据不一样 不保证推送顺序
   rpc BatchPush(BatchPushRequest) returns (BatchPushResponse);
 }

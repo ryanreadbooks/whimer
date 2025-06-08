@@ -6,6 +6,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	protov1 "github.com/ryanreadbooks/whimer/wslink/api/protocol/v1"
 	"github.com/ryanreadbooks/whimer/wslink/internal/biz"
+	"github.com/ryanreadbooks/whimer/wslink/internal/model"
 	"github.com/ryanreadbooks/whimer/wslink/internal/model/ws"
 
 	protobuf "google.golang.org/protobuf/proto"
@@ -47,4 +48,37 @@ type PushNonLocalConnReq struct {
 	Conn       biz.UnSendableSession
 	Data       []byte
 	ForwardCnt int
+}
+
+func FormatPushLocalConnReq(locals []biz.Session, device model.Device, data []byte) []*PushLocalConnReq {
+	localTarges := make([]*PushLocalConnReq, 0, len(locals))
+	for _, l := range locals {
+		if device != "" && l.GetDevice() != device {
+			continue
+		}
+
+		localTarges = append(localTarges, &PushLocalConnReq{
+			Conn: l,
+			Data: data,
+		})
+	}
+
+	return localTarges
+}
+
+func FormatPushNonLocalConnReq(nonLocals []biz.UnSendableSession, device model.Device, data []byte) []*PushNonLocalConnReq {
+	nonLocalTargets := make([]*PushNonLocalConnReq, 0, len(nonLocals))
+	for _, nl := range nonLocals {
+		if device != "" && nl.GetDevice() != device {
+			continue
+		}
+
+		nonLocalTargets = append(nonLocalTargets, &PushNonLocalConnReq{
+			Conn:       nl,
+			Data:       data,
+			ForwardCnt: 1, // 第一次转发
+		})
+
+	}
+	return nonLocalTargets
 }

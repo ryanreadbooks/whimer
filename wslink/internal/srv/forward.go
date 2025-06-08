@@ -96,7 +96,7 @@ func (s *ForwardService) Forward(ctx context.Context, reqs []*ForwardReq) error 
 		reqMap[req.SessId] = req
 	}
 
-	locals, nonLocals, err := s.sessBiz.RespectivelyGetSessionById(ctx, sessIds)
+	locals, nonLocals, err := s.sessBiz.RespectivelyGetSessionByIds(ctx, sessIds)
 	if err != nil {
 		return xerror.Wrapf(err, "forward failed to get session by uid").WithCtx(ctx)
 	}

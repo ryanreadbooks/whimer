@@ -34,7 +34,6 @@ func (s *PushServiceServer) Push(ctx context.Context, in *pushv1.PushRequest) (*
 		return nil, global.ErrDataEmpty
 	}
 
-	// make it async
 	err := s.Svc.PushService.Push(ctx, in.Uid, device, in.Data)
 	if err != nil {
 		return nil, err
@@ -46,6 +45,17 @@ func (s *PushServiceServer) Push(ctx context.Context, in *pushv1.PushRequest) (*
 // 消息广播
 func (s *PushServiceServer) Broadcast(ctx context.Context, in *pushv1.BroadcastRequest) (
 	*pushv1.BroadcastResponse, error) {
+	if len(in.Targets) == 0 {
+		return nil, global.ErrUserEmpty
+	}
+	if len(in.GetData()) == 0 {
+		return nil, global.ErrDataEmpty
+	}
+
+	err := s.Svc.PushService.Broadcast(ctx, in.Targets, in.Data)
+	if err != nil {
+		return nil, err
+	}
 
 	return &pushv1.BroadcastResponse{}, nil
 }
@@ -53,6 +63,31 @@ func (s *PushServiceServer) Broadcast(ctx context.Context, in *pushv1.BroadcastR
 // 批量推送 每个用户推送的数据不一样
 func (s *PushServiceServer) BatchPush(ctx context.Context, in *pushv1.BatchPushRequest) (
 	*pushv1.BatchPushResponse, error) {
+
+	if len(in.Targets) == 0 {
+		return nil, global.ErrUserEmpty
+	}
+
+	reqs := make([]srv.BatchPushReq, 0, len(in.Targets))
+	for _, r := range in.Targets {
+		device := model.GetDeviceFromPb(r.Device)
+		if r.Uid != 0 && len(r.Data) > 0 && !device.Empty() && !device.Unspec() {
+			reqs = append(reqs, srv.BatchPushReq{
+				Uid:    r.Uid,
+				Data:   r.Data,
+				Device: device,
+			})
+		}
+	}
+
+	if len(reqs) == 0 {
+		return nil, global.ErrUserEmpty
+	}
+
+	err := s.Svc.PushService.BatchPush(ctx, reqs)
+	if err != nil {
+		return nil, err
+	}
 
 	return &pushv1.BatchPushResponse{}, nil
 }

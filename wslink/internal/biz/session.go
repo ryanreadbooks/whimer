@@ -65,9 +65,9 @@ type SessionBiz interface {
 	GetUnSendSessionByUid(ctx context.Context, uid int64) ([]UnSendableSession, error)
 	GetUnSendSessionByUidDevice(ctx context.Context, uid int64, device model.Device) ([]UnSendableSession, error)
 
-	RespectivelyGetSessionByUid(ctx context.Context, uid int64) ([]Session, []UnSendableSession, error)
+	RespectivelyGetSessionByUid(ctx context.Context, uid []int64) ([]Session, []UnSendableSession, error)
 	// 按照sessIds批量获取，分开本机和非本机
-	RespectivelyGetSessionById(ctx context.Context, sessIds []string) ([]Session, []UnSendableSession, error)
+	RespectivelyGetSessionByIds(ctx context.Context, sessIds []string) ([]Session, []UnSendableSession, error)
 }
 
 type sessionBiz struct {
@@ -352,19 +352,6 @@ func (b *sessionBiz) GetUnSendSessionByUidDevice(ctx context.Context, uid int64,
 	return results, nil
 }
 
-func (s *sessionBiz) RespectivelyGetSessionByUid(ctx context.Context, uid int64) ([]Session, []UnSendableSession, error) {
-	logExts := []any{"uid", uid}
-
-	sessions, err := infra.Dao().SessionDao.GetByUid(ctx, uid)
-	if err != nil {
-		return nil, nil, xerror.Wrapf(err, "session dao get by uid failed").WithExtras(logExts...).WithCtx(ctx)
-	}
-
-	local, unsend := s.seperateLocalAndNonLocal(sessions)
-
-	return local, unsend, nil
-}
-
 func (s *sessionBiz) seperateLocalAndNonLocal(sessions []*dao.Session) ([]Session, []UnSendableSession) {
 	local := make([]Session, 0, len(sessions))
 	unlocal := make([]UnSendableSession, 0, len(sessions))
@@ -381,7 +368,25 @@ func (s *sessionBiz) seperateLocalAndNonLocal(sessions []*dao.Session) ([]Sessio
 	return local, unlocal
 }
 
-func (b *sessionBiz) RespectivelyGetSessionById(ctx context.Context, sessIds []string) ([]Session, []UnSendableSession, error) {
+func (s *sessionBiz) RespectivelyGetSessionByUid(ctx context.Context, uid []int64) ([]Session, []UnSendableSession, error) {
+	logExts := []any{"uid", uid}
+
+	sessionsMap, err := infra.Dao().SessionDao.BatchGetByUid(ctx, uid)
+	if err != nil {
+		return nil, nil, xerror.Wrapf(err, "session dao get by uid failed").WithExtras(logExts...).WithCtx(ctx)
+	}
+
+	sessions := make([]*dao.Session, 0, len(sessionsMap))
+	for _, sess := range sessionsMap {
+		sessions = append(sessions, sess...)
+	}
+
+	local, unsend := s.seperateLocalAndNonLocal(sessions)
+
+	return local, unsend, nil
+}
+
+func (b *sessionBiz) RespectivelyGetSessionByIds(ctx context.Context, sessIds []string) ([]Session, []UnSendableSession, error) {
 	sessions, err := infra.Dao().SessionDao.BatchGetById(ctx, sessIds)
 	if err != nil {
 		return nil, nil, xerror.Wrapf(err, "session failed to batch get by id").WithExtras("ids", sessIds).WithCtx(ctx)

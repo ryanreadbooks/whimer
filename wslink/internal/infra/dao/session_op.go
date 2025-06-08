@@ -89,7 +89,7 @@ func (d *SessionDao) GetById(ctx context.Context, id string) (*Session, error) {
 	return &s, xsql.ConvertError(err)
 }
 
-func (d *SessionDao) BatchGetById(ctx context.Context, ids []string) (map[string]*Session, error) {
+func (d *SessionDao) batchGetById(ctx context.Context, ids []string, keyFn func(string) string) (map[string]*Session, error) {
 	pipe, err := d.cache.TxPipeline()
 	if err != nil {
 		return nil, xsql.ConvertError(err)
@@ -97,7 +97,7 @@ func (d *SessionDao) BatchGetById(ctx context.Context, ids []string) (map[string
 
 	cmds := make([]*redis.MapStringStringCmd, 0, len(ids))
 	for _, id := range ids {
-		cmd := pipe.HGetAll(ctx, getSessKey(id))
+		cmd := pipe.HGetAll(ctx, keyFn(id))
 		cmds = append(cmds, cmd)
 	}
 	_, err = pipe.Exec(ctx)
@@ -120,6 +120,10 @@ func (d *SessionDao) BatchGetById(ctx context.Context, ids []string) (map[string
 	}
 
 	return result, nil
+}
+
+func (d *SessionDao) BatchGetById(ctx context.Context, ids []string) (map[string]*Session, error) {
+	return d.batchGetById(ctx, ids, getSessKey)
 }
 
 var (
@@ -191,6 +195,46 @@ func (d *SessionDao) GetByUid(ctx context.Context, uid int64) ([]*Session, error
 	}
 
 	return result, nil
+}
+
+func (d *SessionDao) BatchGetByUid(ctx context.Context, uids []int64) (map[int64][]*Session, error) {
+	pipe, err := d.cache.TxPipeline()
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	cmds := make([]*redis.StringSliceCmd, 0, len(uids))
+	for _, uid := range uids {
+		cmds = append(cmds, pipe.SMembers(ctx, getUidSessKey(uid)))
+	}
+
+	_, err = pipe.Exec(ctx)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	// get all sessIds
+	sessIds := make([]string, 0, len(uids))
+	for _, cmd := range cmds {
+		r, _ := cmd.Result()
+		if len(r) > 0 {
+			sessIds = append(sessIds, r...)
+		}
+	}
+
+	// get sessions by sessId
+	sessions, err := d.batchGetById(ctx, sessIds, func(s string) string { return s })
+	if err != nil {
+		return nil, err
+	}
+
+	// organize results
+	results := make(map[int64][]*Session, len(sessions))
+	for _, sess := range sessions {
+		results[sess.Uid] = append(results[sess.Uid], sess)
+	}
+
+	return results, nil
 }
 
 // delete all sessions belonging to uid
