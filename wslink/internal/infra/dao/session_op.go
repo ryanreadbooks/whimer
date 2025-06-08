@@ -89,6 +89,39 @@ func (d *SessionDao) GetById(ctx context.Context, id string) (*Session, error) {
 	return &s, xsql.ConvertError(err)
 }
 
+func (d *SessionDao) BatchGetById(ctx context.Context, ids []string) (map[string]*Session, error) {
+	pipe, err := d.cache.TxPipeline()
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	cmds := make([]*redis.MapStringStringCmd, 0, len(ids))
+	for _, id := range ids {
+		cmd := pipe.HGetAll(ctx, getSessKey(id))
+		cmds = append(cmds, cmd)
+	}
+	_, err = pipe.Exec(ctx)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	result := make(map[string]*Session, len(ids))
+
+	for i, id := range ids {
+		cmd := cmds[i]
+		r, _ := cmd.Result()
+		if len(r) != 0 {
+			var s Session
+			err := cmd.Scan(&s)
+			if err == nil {
+				result[id] = &s
+			}
+		}
+	}
+
+	return result, nil
+}
+
 var (
 	//go:embed lua/delete_session.lua
 	deleteLua    string

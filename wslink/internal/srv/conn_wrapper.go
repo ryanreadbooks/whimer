@@ -5,6 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	protov1 "github.com/ryanreadbooks/whimer/wslink/api/protocol/v1"
+	"github.com/ryanreadbooks/whimer/wslink/internal/biz"
 	"github.com/ryanreadbooks/whimer/wslink/internal/model/ws"
 
 	protobuf "google.golang.org/protobuf/proto"
@@ -35,4 +36,15 @@ func (cw *ConnectionWrapper) Send(ctx context.Context, data []byte) error {
 	}
 
 	return cw.Write(wireData)
+}
+
+type PushLocalConnReq struct {
+	Conn biz.Session
+	Data []byte
+}
+
+type PushNonLocalConnReq struct {
+	Conn       biz.UnSendableSession
+	Data       []byte
+	ForwardCnt int
 }

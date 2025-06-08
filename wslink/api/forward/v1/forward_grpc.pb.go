@@ -7,7 +7,10 @@
 package v1
 
 import (
+	context "context"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -15,10 +18,17 @@ import (
 // Requires gRPC-Go v1.64.0 or later.
 const _ = grpc.SupportPackageIsVersion9
 
+const (
+	ForwardService_PushForward_FullMethodName = "/wslink.api.forward.v1.ForwardService/PushForward"
+)
+
 // ForwardServiceClient is the client API for ForwardService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// 相同服务不同实例之间的转发
 type ForwardServiceClient interface {
+	PushForward(ctx context.Context, in *PushForwardRequest, opts ...grpc.CallOption) (*PushForwardResponse, error)
 }
 
 type forwardServiceClient struct {
@@ -29,10 +39,23 @@ func NewForwardServiceClient(cc grpc.ClientConnInterface) ForwardServiceClient {
 	return &forwardServiceClient{cc}
 }
 
+func (c *forwardServiceClient) PushForward(ctx context.Context, in *PushForwardRequest, opts ...grpc.CallOption) (*PushForwardResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PushForwardResponse)
+	err := c.cc.Invoke(ctx, ForwardService_PushForward_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ForwardServiceServer is the server API for ForwardService service.
 // All implementations must embed UnimplementedForwardServiceServer
 // for forward compatibility.
+//
+// 相同服务不同实例之间的转发
 type ForwardServiceServer interface {
+	PushForward(context.Context, *PushForwardRequest) (*PushForwardResponse, error)
 	mustEmbedUnimplementedForwardServiceServer()
 }
 
@@ -43,6 +66,9 @@ type ForwardServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedForwardServiceServer struct{}
 
+func (UnimplementedForwardServiceServer) PushForward(context.Context, *PushForwardRequest) (*PushForwardResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PushForward not implemented")
+}
 func (UnimplementedForwardServiceServer) mustEmbedUnimplementedForwardServiceServer() {}
 func (UnimplementedForwardServiceServer) testEmbeddedByValue()                        {}
 
@@ -64,13 +90,36 @@ func RegisterForwardServiceServer(s grpc.ServiceRegistrar, srv ForwardServiceSer
 	s.RegisterService(&ForwardService_ServiceDesc, srv)
 }
 
+func _ForwardService_PushForward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PushForwardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ForwardServiceServer).PushForward(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ForwardService_PushForward_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ForwardServiceServer).PushForward(ctx, req.(*PushForwardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ForwardService_ServiceDesc is the grpc.ServiceDesc for ForwardService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ForwardService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "wslink.api.forward.v1.ForwardService",
 	HandlerType: (*ForwardServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams:     []grpc.StreamDesc{},
-	Metadata:    "forward/v1/forward.proto",
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "PushForward",
+			Handler:    _ForwardService_PushForward_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "forward/v1/forward.proto",
 }

@@ -3,6 +3,7 @@ package srv
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -14,11 +15,15 @@ import (
 
 type PushService struct {
 	sessBiz biz.SessionBiz
+
+	frMu       sync.RWMutex
+	forwarders map[string]*Forwarder
 }
 
 func NewPushService(b biz.Biz) *PushService {
 	return &PushService{
-		sessBiz: b.SessionBiz,
+		sessBiz:    b.SessionBiz,
+		forwarders: make(map[string]*Forwarder),
 	}
 }
 
@@ -29,33 +34,35 @@ func (s *PushService) Push(ctx context.Context, uid int64, device model.Device, 
 	}
 
 	// filter devices
-	localTarges := make([]*pushConnsReq, 0, len(locals))
+	localTarges := make([]*PushLocalConnReq, 0, len(locals))
 	for _, l := range locals {
 		if l.GetDevice() == device {
-			localTarges = append(localTarges, &pushConnsReq{
-				conn: l,
-				data: data,
+			localTarges = append(localTarges, &PushLocalConnReq{
+				Conn: l,
+				Data: data,
 			})
 		}
 	}
-	nonLocalTargets := make([]*pushUnsendConnReq, 0, len(nonLocals))
+
+	nonLocalTargets := make([]*PushNonLocalConnReq, 0, len(nonLocals))
 	for _, nl := range nonLocals {
 		if nl.GetDevice() == device {
-			nonLocalTargets = append(nonLocalTargets, &pushUnsendConnReq{
-				conn: nl,
-				data: data,
+			nonLocalTargets = append(nonLocalTargets, &PushNonLocalConnReq{
+				Conn:       nl,
+				Data:       data,
+				ForwardCnt: 1, // 第一次转发
 			})
 		}
 	}
 
 	concurrent.SafeGo(func() {
-		err := s.pushLocalConns(ctx, localTarges)
+		err := s.PushLocalConns(ctx, localTarges)
 		if err != nil {
 			xlog.Msgf("push local conns err").Err(err).Errorx(ctx)
 		}
 	})
 	concurrent.SafeGo(func() {
-		err := s.pushNonLocalConns(ctx, nonLocalTargets)
+		err := s.PushNonLocalConns(ctx, nonLocalTargets)
 		if err != nil {
 			xlog.Msgf("push non local conns err").Err(err).Errorx(ctx)
 		}
@@ -64,17 +71,7 @@ func (s *PushService) Push(ctx context.Context, uid int64, device model.Device, 
 	return nil
 }
 
-type pushConnsReq struct {
-	conn biz.Session
-	data []byte
-}
-
-type pushUnsendConnReq struct {
-	conn biz.UnSendableSession
-	data []byte
-}
-
-func (s *PushService) pushLocalConns(ctx context.Context, datas []*pushConnsReq) error {
+func (s *PushService) PushLocalConns(ctx context.Context, datas []*PushLocalConnReq) error {
 	if len(datas) == 0 {
 		return nil
 	}
@@ -85,8 +82,8 @@ func (s *PushService) pushLocalConns(ctx context.Context, datas []*pushConnsReq)
 	err := xslice.BatchAsyncExec(&wg, datas, 100, func(start, end int) error {
 		cs := datas[start:end]
 		for _, c := range cs {
-			if err := c.conn.Send(ctx, c.data); err != nil {
-				xlog.Msgf("push local conn %s err", c.conn.GetId()).Err(err).Errorx(ctx)
+			if err := c.Conn.Send(ctx, c.Data); err != nil {
+				xlog.Msgf("push local conn %s err", c.Conn.GetId()).Err(err).Errorx(ctx)
 			}
 		}
 
@@ -99,7 +96,70 @@ func (s *PushService) pushLocalConns(ctx context.Context, datas []*pushConnsReq)
 	return nil
 }
 
-func (s *PushService) pushNonLocalConns(ctx context.Context, conns []*pushUnsendConnReq) error {
+func (s *PushService) PushNonLocalConns(ctx context.Context, conns []*PushNonLocalConnReq) error {
+	if len(conns) == 0 {
+		return nil
+	}
+
+	ctx = context.WithoutCancel(ctx)
+
+	var totalCnt = len(conns)
+	var successCnt = 0
+
+	defer func() {
+		xlog.Msgf("push non local sucess/total(%d/%d)", successCnt, totalCnt).Debugx(ctx)
+	}()
+
+	// addr -> []Conns
+	m := make(map[string][]*PushNonLocalConnReq)
+	for _, c := range conns {
+		m[c.Conn.GetLocalIp()] = append(m[c.Conn.GetLocalIp()], c)
+	}
+
+	// 转发
+	failure := make(map[string][]*PushNonLocalConnReq)
+	success := make(map[string][]*PushNonLocalConnReq)
+	for target, conns := range m {
+		forward, err := s.GetForwarder(ctx, target)
+		if err != nil {
+			// 拿不到forwarder, 放入失败，给成功的重试
+			xlog.Msgf("push failed to get forward at %s", target).Err(err).Errorx(ctx)
+			failure[target] = append(failure[target], conns...)
+			continue
+		}
+
+		err = forward.Forward(ctx, conns)
+		if err != nil {
+			xlog.Msgf("push failed to forward to %s", target).Err(err).Errorx(ctx)
+			failure[target] = append(failure[target], conns...)
+		} else {
+			success[target] = append(success[target], conns...)
+			successCnt += len(conns)
+		}
+	}
+
+	// 将失败转发给成功的forward 尽量重试
+	if len(success) == 0 {
+		return xerror.ErrInternal.Msg("all non local forward failed")
+	}
+
+	for successTarget := range success {
+		forwarder, err := s.GetForwarder(ctx, successTarget)
+		if err != nil {
+			xlog.Msgf("retry push failed to get forward at %s", successTarget).Err(err).Errorx(ctx)
+			continue
+		}
+
+		for failTarget, conns := range failure {
+			err = forwarder.Forward(ctx, conns)
+			if err != nil {
+				xlog.Msgf("retry push failed to forward to %s by %s", failTarget, successTarget).
+					Err(err).Errorx(ctx)
+			}
+			successCnt += len(conns)
+		}
+		break
+	}
 
 	return nil
 }
@@ -117,4 +177,44 @@ func (s *PushService) Broadcast(ctx context.Context, uids []int64, data []byte) 
 func (s *PushService) BatchPush(ctx context.Context, reqs []BatchPushReq) error {
 
 	return nil
+}
+
+func (s *PushService) GetForwarder(ctx context.Context, target string) (*Forwarder, error) {
+	s.frMu.RLock()
+
+	var forwarder *Forwarder
+	var ok bool
+
+	forwarder, ok = s.forwarders[target]
+	if !ok {
+		s.frMu.RUnlock()
+		// 不存在需要创建
+		var newForwarder *Forwarder
+		for idx := range 3 {
+			fdr, err := NewForwarder(target)
+			if err != nil {
+				xlog.Msgf("push failed to new forwarder at %s (retry = %d)", target, idx).Err(err).Errorx(ctx)
+				time.Sleep(time.Second)
+				continue
+			}
+			newForwarder = fdr
+			break
+		}
+
+		s.frMu.Lock()
+		// check again
+		if curForwarder, ok := s.forwarders[target]; ok {
+			forwarder = curForwarder // we already have this
+			newForwarder.Close()     // close this newly created forwarder
+		} else {
+			s.forwarders[target] = newForwarder
+			forwarder = newForwarder
+			xlog.Msgf("push created new forwarder at %s", target).Infox(ctx)
+		}
+		s.frMu.Unlock()
+	} else {
+		s.frMu.RUnlock()
+	}
+
+	return forwarder, nil
 }

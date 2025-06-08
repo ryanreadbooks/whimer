@@ -7,12 +7,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
-	"github.com/ryanreadbooks/whimer/misc/concurrent/xmap"
+	cxmap "github.com/ryanreadbooks/whimer/misc/concurrent/xmap"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/misc/xrand"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/wslink/internal/config"
@@ -20,6 +20,8 @@ import (
 	"github.com/ryanreadbooks/whimer/wslink/internal/infra/dao"
 	"github.com/ryanreadbooks/whimer/wslink/internal/model"
 	"github.com/ryanreadbooks/whimer/wslink/internal/model/ws"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -64,6 +66,8 @@ type SessionBiz interface {
 	GetUnSendSessionByUidDevice(ctx context.Context, uid int64, device model.Device) ([]UnSendableSession, error)
 
 	RespectivelyGetSessionByUid(ctx context.Context, uid int64) ([]Session, []UnSendableSession, error)
+	// 按照sessIds批量获取，分开本机和非本机
+	RespectivelyGetSessionById(ctx context.Context, sessIds []string) ([]Session, []UnSendableSession, error)
 }
 
 type sessionBiz struct {
@@ -71,13 +75,13 @@ type sessionBiz struct {
 	closed  chan struct{}
 
 	// 和本机建立的连接
-	sessions     *xmap.ShardedMap[string, Session]
+	sessions     *cxmap.ShardedMap[string, Session]
 	sessionsHeap *SessionCountdownQueue
 }
 
 func NewSessionBiz() SessionBiz {
 	b := &sessionBiz{
-		sessions:     xmap.NewShardedMap[string, Session](config.Conf.System.ConnShard),
+		sessions:     cxmap.NewShardedMap[string, Session](config.Conf.System.ConnShard),
 		sessionsHeap: NewSessionCountdownQueue(),
 		closed:       make(chan struct{}, 1),
 	}
@@ -356,17 +360,33 @@ func (s *sessionBiz) RespectivelyGetSessionByUid(ctx context.Context, uid int64)
 		return nil, nil, xerror.Wrapf(err, "session dao get by uid failed").WithExtras(logExts...).WithCtx(ctx)
 	}
 
+	local, unsend := s.seperateLocalAndNonLocal(sessions)
+
+	return local, unsend, nil
+}
+
+func (s *sessionBiz) seperateLocalAndNonLocal(sessions []*dao.Session) ([]Session, []UnSendableSession) {
 	local := make([]Session, 0, len(sessions))
-	unsend := make([]UnSendableSession, 0, len(sessions))
+	unlocal := make([]UnSendableSession, 0, len(sessions))
 	for _, sess := range sessions {
-		if sess.Status == ws.StatusActive {
+		if sess != nil && sess.Status == ws.StatusActive {
 			if sess.LocalIp == config.GetIpAndPort() && s.sessions.Has(sess.Id) {
 				local = append(local, s.sessions.Get(sess.Id))
 			} else {
-				unsend = append(unsend, sess)
+				unlocal = append(unlocal, sess)
 			}
 		}
 	}
 
-	return local, unsend, nil
+	return local, unlocal
+}
+
+func (b *sessionBiz) RespectivelyGetSessionById(ctx context.Context, sessIds []string) ([]Session, []UnSendableSession, error) {
+	sessions, err := infra.Dao().SessionDao.BatchGetById(ctx, sessIds)
+	if err != nil {
+		return nil, nil, xerror.Wrapf(err, "session failed to batch get by id").WithExtras("ids", sessIds).WithCtx(ctx)
+	}
+
+	local, nonlocal := b.seperateLocalAndNonLocal(xmap.Values(sessions))
+	return local, nonlocal, nil
 }

@@ -97,3 +97,38 @@ func TestSessionDao_SetTTL(t *testing.T) {
 	err := testSessDao.SetTTL(ctx, "100", 10)
 	t.Log(err)
 }
+
+func TestSessionDao_BatchGetById(t *testing.T) {
+	err := testSessDao.Create(ctx, &Session{
+		Id:             "8b4372e0-6786-4fd6-9ba7-81351c72b765",
+		Uid:            930495,
+		Device:         "test",
+		Status:         "active",
+		Ctime:          time.Now().Unix(),
+		LastActiveTime: time.Now().Add(time.Second * 10).Unix(),
+		LocalIp:        gofakeit.IPv4Address(),
+		Ip:             gofakeit.IPv4Address(),
+	})
+	t.Log(err)
+
+	err = testSessDao.Create(ctx, &Session{
+		Id:             "abc927ad-6786-4fd6-9ba7-81351c72b765",
+		Uid:            930495,
+		Device:         "web",
+		Status:         "active",
+		Ctime:          time.Now().Unix(),
+		LastActiveTime: time.Now().Add(time.Second * 10).Unix(),
+		LocalIp:        gofakeit.IPv4Address(),
+		Ip:             gofakeit.IPv4Address(),
+	})
+	t.Log(err)
+
+	s, err := testSessDao.BatchGetById(ctx,
+		[]string{"8b4372e0-6786-4fd6-9ba7-81351c72b765", "abc927ad-6786-4fd6-9ba7-81351c72b765"})
+	t.Log(err)
+	for _, m := range s {
+		t.Log(m)
+	}
+	testSessDao.DeleteById(ctx, "8b4372e0-6786-4fd6-9ba7-81351c72b765")
+	testSessDao.DeleteById(ctx, "abc927ad-6786-4fd6-9ba7-81351c72b765")
+}

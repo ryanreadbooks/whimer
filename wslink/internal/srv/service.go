@@ -11,6 +11,7 @@ type Service struct {
 	// domain services
 	SessionService *SessionService
 	PushService    *PushService
+	ForwardService *ForwardService
 }
 
 func New(c *config.Config) *Service {
@@ -21,6 +22,7 @@ func New(c *config.Config) *Service {
 	b := biz.New()
 	s.SessionService = NewSessionService(c, b)
 	s.PushService = NewPushService(b)
+	s.ForwardService = NewForwardService(b, s.PushService)
 
 	return s
 }
