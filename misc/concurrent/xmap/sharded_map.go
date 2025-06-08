@@ -16,7 +16,7 @@ type ShardedMap[K comparable, V any] struct {
 func defaultHasher[K comparable]() hasher[K] {
 	return func(k K) uint64 {
 		h := fnv.New64a()
-		h.Write([]byte(fmt.Sprint(k)))
+		h.Write(fmt.Append(nil, k))
 		return h.Sum64()
 	}
 }

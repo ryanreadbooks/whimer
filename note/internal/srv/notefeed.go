@@ -8,9 +8,9 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
-	"github.com/ryanreadbooks/whimer/misc/utils/maps"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	maps "github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"

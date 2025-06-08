@@ -40,6 +40,7 @@ func (s *Server) upgrade(w http.ResponseWriter, r *http.Request) {
 		ws.WithWriteTimeout(s.conf.WriteTimeout.Duration()),
 	)
 	session.SetDevice(model.DeviceWeb)
+	session.SetLocalIp(config.GetIpAndPort())
 
 	ctx := r.Context()
 	if err := s.OnCreate(ctx, session); err != nil {
@@ -50,7 +51,6 @@ func (s *Server) upgrade(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session.SetLocalIp(config.GetIpAndPort())
 	session.SetOnData(s)
 	session.SetAfterClosed(s)
 

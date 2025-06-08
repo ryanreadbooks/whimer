@@ -34,7 +34,7 @@ func TestSessionDao_Create(t *testing.T) {
 		Status:         "active",
 		Ctime:          time.Now().Unix(),
 		LastActiveTime: time.Now().Add(time.Second * 10).Unix(),
-		Reside:         gofakeit.IPv4Address(),
+		LocalIp:        gofakeit.IPv4Address(),
 		Ip:             gofakeit.IPv4Address(),
 	})
 	t.Log(err)
@@ -46,7 +46,7 @@ func TestSessionDao_Create(t *testing.T) {
 		Status:         "active",
 		Ctime:          time.Now().Unix(),
 		LastActiveTime: time.Now().Add(time.Second * 10).Unix(),
-		Reside:         gofakeit.IPv4Address(),
+		LocalIp:        gofakeit.IPv4Address(),
 		Ip:             gofakeit.IPv4Address(),
 	})
 	t.Log(err)
@@ -90,5 +90,10 @@ func TestSessionDao_UpdateStatus(t *testing.T) {
 
 func TestSessionDao_UpdateLastActiveTime(t *testing.T) {
 	err := testSessDao.UpdateLastActiveTime(ctx, "8b4372e0-6786-4fd6-9ba7-81351c72b765", time.Now().Unix())
+	t.Log(err)
+}
+
+func TestSessionDao_SetTTL(t *testing.T) {
+	err := testSessDao.SetTTL(ctx, "100", 10)
 	t.Log(err)
 }

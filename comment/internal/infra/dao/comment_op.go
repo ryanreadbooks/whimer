@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/misc/utils/maps"
-	"github.com/ryanreadbooks/whimer/misc/utils/slices"
 	"github.com/ryanreadbooks/whimer/misc/xcache"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	maps "github.com/ryanreadbooks/whimer/misc/xmap"
+	slices "github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/misc/xtime"
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -389,7 +389,7 @@ func (r *CommentDao) BatchCountByOid(ctx context.Context, oids []uint64) (map[ui
 		result[r.Oid] = r.Cnt
 	}
 
-	if err := r.cache.BatchSetReplyCount(ctx, result); err != nil{
+	if err := r.cache.BatchSetReplyCount(ctx, result); err != nil {
 		xlog.Msg("comment dao batch set reply count failed").Err(err).Errorx(ctx)
 	}
 

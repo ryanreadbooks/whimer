@@ -9,7 +9,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/redis/go-redis/v9"
-	"github.com/ryanreadbooks/whimer/misc/utils/maps"
+	maps "github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/wslink/internal/model/ws"
 	zeroredis "github.com/zeromicro/go-zero/core/stores/redis"
@@ -188,5 +188,10 @@ func (d *SessionDao) UpdateLastActiveTime(ctx context.Context, id string, t int6
 // update the status field in session with id
 func (d *SessionDao) UpdateStatus(ctx context.Context, id string, status ws.SessionStatus) error {
 	err := d.cache.HsetCtx(ctx, getSessKey(id), "status", string(status))
+	return xsql.ConvertError(err)
+}
+
+func (d *SessionDao) SetTTL(ctx context.Context, id string, sec int) error {
+	err := d.cache.ExpireCtx(ctx, getSessKey(id), sec)
 	return xsql.ConvertError(err)
 }

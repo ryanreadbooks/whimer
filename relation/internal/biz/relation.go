@@ -12,7 +12,7 @@ import (
 	"github.com/ryanreadbooks/whimer/relation/internal/infra/dao"
 	"github.com/ryanreadbooks/whimer/relation/internal/model"
 
-	uslices "github.com/ryanreadbooks/whimer/misc/utils/slices"
+	uslices "github.com/ryanreadbooks/whimer/misc/xslice"
 )
 
 // 关注相关

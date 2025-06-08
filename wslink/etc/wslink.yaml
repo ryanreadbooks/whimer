@@ -34,3 +34,4 @@ backend:
 system:
   shutdown:
     wait_time: 15
+  conn_shard: 1

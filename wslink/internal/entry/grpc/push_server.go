@@ -34,6 +34,7 @@ func (s *PushServiceServer) Push(ctx context.Context, in *pushv1.PushRequest) (*
 		return nil, global.ErrDataEmpty
 	}
 
+	// make it async
 	err := s.Svc.PushService.Push(ctx, in.Uid, device, in.Data)
 	if err != nil {
 		return nil, err

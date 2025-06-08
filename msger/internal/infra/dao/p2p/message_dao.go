@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/misc/utils/slices"
+	slices "github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	gm "github.com/ryanreadbooks/whimer/msger/internal/global/model"
 )

@@ -57,7 +57,7 @@ func (s *SessionService) AfterClosed(ctx context.Context, cid string) error {
 
 // graceful close action before system quit
 func (s *SessionService) Close(ctx context.Context) {
-	s.sessionBiz.OfflineAllSessions(ctx)
+	s.sessionBiz.Close(ctx)
 }
 
 func (s *SessionService) Heatbeat(ctx context.Context, conn *ws.Connection) error {

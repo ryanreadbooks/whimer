@@ -1,4 +1,4 @@
-package maps
+package xmap
 
 import (
 	stderr "errors"

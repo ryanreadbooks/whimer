@@ -1,4 +1,4 @@
-package slices
+package xslice
 
 import (
 	stderr "errors"

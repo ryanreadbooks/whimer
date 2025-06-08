@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/misc/utils/maps"
-	"github.com/ryanreadbooks/whimer/misc/utils/slices"
+	maps "github.com/ryanreadbooks/whimer/misc/xmap"
+	slices "github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
 

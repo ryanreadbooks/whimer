@@ -23,6 +23,7 @@ type Config struct {
 		Shutdown struct {
 			WaitTime int `json:"wait_time"` // sec
 		} `json:"shutdown"`
+		ConnShard int `json:"conn_shard"`
 	} `json:"system"`
 
 	Http     rest.RestConf      `json:"http"`

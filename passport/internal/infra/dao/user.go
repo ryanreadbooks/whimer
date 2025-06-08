@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/misc/utils/slices"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	slices "github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
