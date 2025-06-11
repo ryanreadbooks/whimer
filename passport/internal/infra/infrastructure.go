@@ -1,6 +1,8 @@
 package infra
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/encrypt"
+	"github.com/ryanreadbooks/whimer/misc/encrypt/aes"
 	"github.com/ryanreadbooks/whimer/passport/internal/config"
 	infradao "github.com/ryanreadbooks/whimer/passport/internal/infra/dao"
 	"github.com/ryanreadbooks/whimer/passport/internal/infra/dep"
@@ -12,11 +14,19 @@ import (
 var (
 	dao   *infradao.Dao
 	cache *redis.Redis
+	enc   encrypt.Encryptor
 )
 
 func Init(c *config.Config) {
 	cache = redis.MustNewRedis(c.Redis)
 	dao = infradao.New(c, cache)
+	var err error
+	enc, err = aes.NewAes256GCMEncryptor(c.Encrypt.Key,
+		aes.WithFixNonce([]byte(c.Encrypt.Secret)))
+	if err != nil {
+		panic(err)
+	}
+
 	dep.Init(c)
 }
 
@@ -26,4 +36,8 @@ func Dao() *infradao.Dao {
 
 func Cache() *redis.Redis {
 	return cache
+}
+
+func Encryptor() encrypt.Encryptor {
+	return enc
 }

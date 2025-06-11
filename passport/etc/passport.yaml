@@ -43,3 +43,7 @@ img_proxy_auth:
 
 idgen:
   addr: 127.0.0.1:9528
+
+encrypt:
+  key: ${ENV_PASSPORT_ENCRYPT_KEY}
+  secret: ${ENV_PASSPORT_ENCRYPT_SECRET}

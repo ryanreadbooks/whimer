@@ -60,7 +60,14 @@ func getLockCheckInTel(tel string) string {
 }
 
 // 发送验证码
-func (b *accessSmsBiz) RequestSendSms(ctx context.Context, tel string) error {
+func (b *accessSmsBiz) RequestSendSms(ctx context.Context, tel string) (err error) {
+	rawTel := tel
+	// tel加密存储
+	tel, err = infra.Encryptor().Encrypt(ctx, tel)
+	if err != nil {
+		return xerror.Wrapf(err, "sms biz failed to encrypt tel")
+	}
+
 	lock := redis.NewRedisLock(infra.Cache(), getLockTelForSmsKey(tel))
 	lock.SetExpire(minute) // 同一个电话号码60s只能获取一次验证码
 	acquired, err := lock.AcquireCtx(ctx)
@@ -78,7 +85,7 @@ func (b *accessSmsBiz) RequestSendSms(ctx context.Context, tel string) error {
 		return xerror.Wrapf(global.ErrRequestSms, "access sms biz failed to set smscode in cache").WithExtra("cause", err).WithCtx(ctx)
 	}
 
-	err = dep.SmsSender().Send(ctx, tel, fmt.Sprintf(smsTemplate, smsCode))
+	err = dep.SmsSender().Send(ctx, rawTel, fmt.Sprintf(smsTemplate, smsCode))
 	if err != nil {
 		return xerror.Wrapf(global.ErrRequestSms, "access sms biz failed to send sms").WithExtra("cause", err).WithCtx(ctx)
 	}
@@ -88,6 +95,11 @@ func (b *accessSmsBiz) RequestSendSms(ctx context.Context, tel string) error {
 
 // 手机号验证码登录
 func (b *accessSmsBiz) CheckSmsCorrect(ctx context.Context, tel, smsCode string) (err error) {
+	tel, err = encryptTel(ctx, tel)
+	if err != nil {
+		return err
+	}
+
 	lock := redis.NewRedisLock(infra.Cache(), getLockCheckInTel(tel))
 	acquired, err := lock.AcquireCtx(ctx)
 	if err != nil {
@@ -120,10 +132,24 @@ func (b *accessSmsBiz) CheckSmsCorrect(ctx context.Context, tel, smsCode string)
 	return
 }
 
-func (b *accessSmsBiz) DeleteSmsCode(ctx context.Context, tel string) error {
+func (b *accessSmsBiz) DeleteSmsCode(ctx context.Context, tel string) (err error) {
+	tel, err = encryptTel(ctx, tel)
+	if err != nil {
+		return err
+	}
+
 	if _, err := infra.Cache().DelCtx(ctx, getSmsCodeTelKey(tel)); err != nil {
 		return xerror.Wrapf(global.ErrAccessBiz, "access sms biz failed to del smscode from cache").WithExtra("cause", err).WithCtx(ctx)
 	}
 
 	return nil
+}
+
+func encryptTel(ctx context.Context, tel string) (string, error) {
+	tel, err := infra.Encryptor().Encrypt(ctx, tel)
+	if err != nil {
+		return "", xerror.Wrapf(err, "sms biz failed to encrypt tel")
+	}
+
+	return tel, nil
 }

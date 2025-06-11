@@ -54,6 +54,11 @@ func (b *registerBiz) UserRegister(ctx context.Context, tel string) (*model.User
 		return nil, xerror.Wrapf(global.ErrRegisterTel, "register biz failed to init random password").WithExtra("cause", err)
 	}
 
+	encTel, err := infra.Encryptor().Encrypt(ctx, tel)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "register biz failed to encrypt tel")
+	}
+
 	// 随机用户名
 	nickname := makeInitNickname(uid)
 	data := &dao.User{
@@ -61,7 +66,7 @@ func (b *registerBiz) UserRegister(ctx context.Context, tel string) (*model.User
 			Uid:      uid,
 			Nickname: nickname,
 			Avatar:   "", // 默认头像在各端处理
-			Tel:      tel,
+			Tel:      encTel,
 			Timing: dao.Timing{
 				CreateAt: now,
 				UpdateAt: now,
@@ -81,7 +86,9 @@ func (b *registerBiz) UserRegister(ctx context.Context, tel string) (*model.User
 		return nil, xerror.Wrapf(err, "register biz failed to insert new user")
 	}
 
-	return model.NewUserInfoFromUserBase(&data.UserBase), nil
+	modelUser := model.NewUserInfoFromUserBase(&data.UserBase)
+
+	return modelUser, nil
 }
 
 func makeInitNickname(uid int64) string {

@@ -38,7 +38,7 @@ func (s *AccessSrv) SendSmsCode(ctx context.Context, tel string) error {
 // 手机号+短信验证码登录
 func (s *AccessSrv) SmsCheckIn(ctx context.Context, req *model.SmsCheckInRequest) (resp *model.CheckInResponse, err error) {
 	var (
-		tel      = req.Tel
+		tel      = req.Tel // not encrypted
 		platform = req.Platform
 		smsCode  = req.Code
 	)

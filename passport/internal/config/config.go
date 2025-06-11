@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -32,10 +34,24 @@ type Config struct {
 	Idgen struct {
 		Addr string `json:"addr"`
 	} `json:"idgen"`
+
+	Encrypt struct {
+		Key    string `json:"key"`
+		Secret string `json:"secret"`
+	} `json:"encrypt"`
 }
 
 func (c *Config) Init() error {
-	return c.ImgProxyAuth.Init()
+	err := c.ImgProxyAuth.Init()
+	if err != nil {
+		return err
+	}
+
+	if c.Encrypt.Key == "" || c.Encrypt.Secret == "" {
+		return fmt.Errorf("encrypt not set")
+	}
+
+	return nil
 }
 
 type Oss struct {

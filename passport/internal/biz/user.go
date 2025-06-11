@@ -200,7 +200,12 @@ func (b *userBiz) BatchGetUser(ctx context.Context, uids []int64) (map[int64]*mo
 }
 
 func (b *userBiz) GetUserByTel(ctx context.Context, tel string) (*model.UserInfo, error) {
-	user, err := infra.Dao().UserDao.FindUserBaseByTel(ctx, tel)
+	encTel, err := infra.Encryptor().Encrypt(ctx, tel)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "encrypt tel failed")
+	}
+
+	user, err := infra.Dao().UserDao.FindUserBaseByTel(ctx, encTel)
 	if err != nil {
 		if !errors.Is(err, xsql.ErrNoRecord) {
 			return nil, xerror.Wrapf(err, "user biz failed to find user by tel").WithCtx(ctx)
