@@ -24,10 +24,10 @@ jobs:
       - id: set-modules
         run: |
           modules=$(find . -mindepth 1 -maxdepth 1 -type d | while read dir; do
-            if (cd "$dir" && go env GOMOD 2>/dev/null | grep -q 'go.mod'); then
-              echo "$(realpath "$dir")"
-            fi
-          done | jq -s '.' | jq -c '[.[].Dir]')
+              if (cd "$dir" && go env GOMOD 2>/dev/null | grep -q 'go.mod'); then
+                echo "$(realpath "$dir")"
+              fi
+            done | jq -s '.' | jq -c '[.[].Dir]')
           echo "modules=${modules}" >> $GITHUB_ENV
           echo "::set-output name=modules::${modules}"
 
