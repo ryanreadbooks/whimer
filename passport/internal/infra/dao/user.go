@@ -68,7 +68,7 @@ const (
 	sqlUpdateBasicCore = `UPDATE user SET nickname=?,style_sign=?,gender=?,update_at=? WHERE uid=?`
 )
 
-func (d *UserDao) find(ctx context.Context, cond string, val interface{}) (*User, error) {
+func (d *UserDao) find(ctx context.Context, cond string, val any) (*User, error) {
 	model := new(User)
 	err := d.db.QueryRowCtx(ctx, model, fmt.Sprintf(sqlFindAll, cond), val)
 	return model, xerror.Wrapf(xsql.ConvertError(err), "user dao query %s=%v failed", cond, val)
