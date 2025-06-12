@@ -28,8 +28,7 @@ jobs:
                 echo "$(realpath "$dir")"
               fi
             done | jq -s '.' | jq -c '[.[].Dir]')
-          echo "modules=${modules}" >> $GITHUB_ENV
-          echo "::set-output name=modules::${modules}"
+          echo "modules=${modules}" >> $GITHUB_OUTPUT
 
   golangci-lint:
     needs: detect-modules
