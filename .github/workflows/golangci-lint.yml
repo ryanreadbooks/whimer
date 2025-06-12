@@ -22,7 +22,12 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - id: set-modules
-        run: echo "modules=$(go list -m -json | jq -s '.' | jq -c '[.[].Dir]')" >> $GITHUB_OUTPUT
+        run: |
+          find . -mindepth 1 -maxdepth 1 -type d | while read dir; do
+            if (cd "$dir" && go env GOMOD 2>/dev/null | grep -q 'go.mod'); then
+              echo {\"Dir\"\:\"$(realpath "$dir")\"}\\n
+            fi
+          done | jq -s '.' | jq -c '[.[].Dir]' | tee $GITHUB_OUTPUT
 
   golangci-lint:
     needs: detect-modules
