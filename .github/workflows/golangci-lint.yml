@@ -23,9 +23,10 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - id: set-modules
         run: |
+          ls
           find . -mindepth 1 -maxdepth 1 -type d | while read dir; do
             if (cd "$dir" && go env GOMOD 2>/dev/null | grep -q 'go.mod'); then
-              echo {\"Dir\"\:\"$(realpath "$dir")\"}\\n
+              echo {\"Dir\"\:\"$(realpath "$dir")\"}
             fi
           done | jq -s '.' | jq -c '[.[].Dir]' | tee $GITHUB_OUTPUT
 
