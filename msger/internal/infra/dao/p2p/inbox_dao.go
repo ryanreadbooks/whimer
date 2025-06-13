@@ -56,12 +56,19 @@ func (d *InboxDao) BatchCreate(ctx context.Context, msgs []*InboxMsgPO) error {
 
 // 列出某个用户在某个会话下的消息id
 func (d *InboxDao) ListMsg(ctx context.Context,
-	userId, chatId, seq int64, cnt int32) ([]int64, error) {
+	userId, chatId, seq int64, cnt int32, unread bool) ([]int64, error) {
 
 	var msgIds []int64
-	const sql = "SELECT msg_id FROM p2p_inbox WHERE user_id=? AND " +
-		"chat_id=? AND msg_seq<? ORDER BY msg_seq DESC LIMIT ?"
-	err := d.db.QueryRowsCtx(ctx, &msgIds, sql, userId, chatId, seq, cnt)
+	args := []any{userId, chatId, seq}
+	sql := "SELECT msg_id FROM p2p_inbox WHERE user_id=? AND " +
+		"chat_id=? AND msg_seq<? "
+	if unread {
+		sql += "AND status=? "
+		args = append(args, gm.InboxUnread)
+	}
+	sql += "ORDER BY msg_seq DESC LIMIT ?"
+	args = append(args, cnt)
+	err := d.db.QueryRowsCtx(ctx, &msgIds, sql, args...)
 	return msgIds, xsql.ConvertError(err)
 }
 

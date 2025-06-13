@@ -17,6 +17,10 @@ type ChatMsg struct {
 	Seq      int64
 }
 
+func (m *ChatMsg) IsRevoked() bool {
+	return m.Status == gm.MsgStatusRevoked
+}
+
 func MakeChatMsgFromPO(po *p2pdao.MessagePO, recv int64) *ChatMsg {
 	if po == nil {
 		return &ChatMsg{}

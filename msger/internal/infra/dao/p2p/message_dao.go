@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	slices "github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	gm "github.com/ryanreadbooks/whimer/msger/internal/global/model"
@@ -48,7 +49,7 @@ func (d *MessageDao) GetByChatIdMsgId(ctx context.Context, chatId, msgId int64) 
 	return &msg, xsql.ConvertError(err)
 }
 
-func (d *MessageDao) GetByMsgIds(ctx context.Context, chatId int64, msgIds []int64) ([]*MessagePO, error) {
+func (d *MessageDao) GetByChatIdMsgIds(ctx context.Context, chatId int64, msgIds []int64) ([]*MessagePO, error) {
 	if len(msgIds) == 0 {
 		return []*MessagePO{}, nil
 	}
@@ -62,16 +63,17 @@ func (d *MessageDao) GetByMsgIds(ctx context.Context, chatId int64, msgIds []int
 	return msgs, xsql.ConvertError(err)
 }
 
-// 按照msgId获取消息
-func (d *MessageDao) GetByMsgId(ctx context.Context, msgId int64) (*MessagePO, error) {
-	sql := fmt.Sprintf("SELECT %s FROM p2p_message WHERE msg_id=?", msgFields)
-	var po MessagePO
-	err := d.db.QueryRowCtx(ctx, &po, sql, msgId)
-	if err != nil {
-		return nil, err
+func (d *MessageDao) BatchGetByChatIdMsgId(ctx context.Context, chatIds, msgIds []int64) ([]*MessagePO, error) {
+	if len(msgIds) == 0 || len(chatIds) == 0 {
+		return []*MessagePO{}, nil
 	}
 
-	return &po, nil
+	var msgs []*MessagePO
+	sql := fmt.Sprintf(
+		"SELECT %s FROM p2p_message WHERE chat_id IN (%s) AND msg_id IN (%s) ORDER BY seq DESC",
+		msgFields, xslice.JoinInts(chatIds), xslice.JoinInts(msgIds))
+	err := d.db.QueryRowsCtx(ctx, &msgs, sql)
+	return msgs, xsql.ConvertError(err)
 }
 
 // 更新消息状态

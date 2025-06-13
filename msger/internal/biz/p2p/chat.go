@@ -15,6 +15,21 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/internal/infra/dep"
 )
 
+type ListMsgReq struct {
+	UserId int64
+	ChatId int64
+	Seq    int64
+	Cnt    int32
+	Unread bool // 是否仅列出未读
+}
+
+type ListChatReq struct {
+	UserId     int64
+	LastMsgSeq int64
+	Count      int32
+	Unread     bool // 是否仅列出未读的会话
+}
+
 // 用户单对单会话领域
 type ChatBiz interface {
 	// 两个用户开启会话
@@ -24,7 +39,9 @@ type ChatBiz interface {
 	// 发送消息
 	CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg, error)
 	// 列出用户的会话消息
-	ListMsg(ctx context.Context, userId, chatId, seq int64, cnt int32) ([]*ChatMsg, error)
+	ListMsg(ctx context.Context, req *ListMsgReq) ([]*ChatMsg, error)
+	// 获取某条会话消息
+	GetMsg(ctx context.Context, chatId, msgId int64) (*ChatMsg, error)
 	// 获取用户会话的未读数
 	GetUnreadCount(ctx context.Context, userId, chatId int64) (int64, error)
 	// 消除用户会话的未读数
@@ -32,9 +49,13 @@ type ChatBiz interface {
 	// 撤回会话消息
 	RevokeMessage(ctx context.Context, userId, chatId, msgId int64) error
 	// 获取用户会话列表
-	ListChat(ctx context.Context, userId, lastMsgSeq int64, count int32) ([]*Chat, error)
+	ListChat(ctx context.Context, req *ListChatReq) ([]*Chat, error)
 	// 获取会话
 	GetChat(ctx context.Context, userId, chatId int64) (*Chat, error)
+	// 批量获取会话
+	BatchGetChat(ctx context.Context, userId int64, chatIds []int64) (map[int64]*Chat, error)
+	// 批量获取最后一条消息
+	BatchGetLastMsg(ctx context.Context, chats []*Chat) (map[int64]*ChatMsg, error)
 }
 
 const (
@@ -215,21 +236,42 @@ func (b *p2pChatBiz) getChat(ctx context.Context, userId, chatId int64) (*p2pdao
 	return c, nil
 }
 
+func (b *p2pChatBiz) GetMsg(ctx context.Context, chatId, msgId int64) (*ChatMsg, error) {
+	r, err := infra.Dao().P2PMsgDao.GetByChatIdMsgId(ctx, chatId, msgId)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "msg dao failed tod get msg").
+			WithExtras("chat_id", chatId, "msg_id", msgId).WithCtx(ctx)
+	}
+
+	return MakeChatMsgFromPO(r, 0), nil
+}
+
 // 拉取userId在chatId中的会话信息(包含自己发送的和对方发送的)
-func (b *p2pChatBiz) ListMsg(ctx context.Context,
-	userId, chatId, seq int64, cnt int32) ([]*ChatMsg, error) {
-	userChat, err := b.getChat(ctx, userId, chatId)
+func (b *p2pChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) ([]*ChatMsg, error) {
+	userChat, err := b.getChat(ctx, req.UserId, req.ChatId)
 	if err != nil {
 		return nil, xerror.Wrap(err)
 	}
 
-	boxMsgIds, err := infra.Dao().P2PInboxDao.ListMsg(ctx, userId, chatId, seq, cnt)
+	boxMsgIds, err := infra.Dao().P2PInboxDao.ListMsg(ctx,
+		req.UserId,
+		req.ChatId,
+		req.Seq,
+		req.Cnt,
+		req.Unread)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "inbox dao failed to list inbox msg").WithCtx(ctx)
 	}
 
 	// 查消息
-	msgPos, err := infra.Dao().P2PMsgDao.GetByMsgIds(ctx, chatId, boxMsgIds)
+	return b.getChatMsgByIds(ctx, userChat, req.UserId, boxMsgIds)
+}
+
+// 查消息
+func (b *p2pChatBiz) getChatMsgByIds(ctx context.Context, chat *p2pdao.ChatPO,
+	userId int64, msgIds []int64) ([]*ChatMsg, error) {
+
+	msgPos, err := infra.Dao().P2PMsgDao.GetByChatIdMsgIds(ctx, chat.ChatId, msgIds)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "msg dao failed to get by msg ids").WithCtx(ctx)
 	}
@@ -238,7 +280,7 @@ func (b *p2pChatBiz) ListMsg(ctx context.Context,
 	for _, msgPo := range msgPos {
 		var recv int64 = userId
 		if msgPo.SenderId == userId {
-			recv = userChat.PeerId
+			recv = chat.PeerId
 		}
 		chatMsgs = append(chatMsgs, MakeChatMsgFromPO(msgPo, recv))
 	}
@@ -297,7 +339,7 @@ func (b *p2pChatBiz) RevokeMessage(ctx context.Context, userId, chatId, msgId in
 		return xerror.Wrapf(err, "p2p revoke message failed").WithExtras(logExtras...).WithCtx(ctx)
 	}
 
-	msgPo, err := infra.Dao().P2PMsgDao.GetByMsgId(ctx, msgId)
+	msgPo, err := infra.Dao().P2PMsgDao.GetByChatIdMsgId(ctx, chatId, msgId)
 	if err != nil {
 		return xerror.Wrapf(err, "msg dao failed to get msg").WithExtras(logExtras...).WithCtx(ctx)
 	}
@@ -332,12 +374,16 @@ func (b *p2pChatBiz) RevokeMessage(ctx context.Context, userId, chatId, msgId in
 }
 
 // 列出用户会话列表
-func (b *p2pChatBiz) ListChat(ctx context.Context, userId, lastMsgSeq int64, count int32) ([]*Chat, error) {
-	logExtras := make([]any, 0, 4)
-	logExtras = append(logExtras, "last_msg_seq", lastMsgSeq, "count", count, "user_id", userId)
-	chatPos, err := infra.Dao().P2PChatDao.PageListByUserId(ctx, userId, lastMsgSeq, int(count))
+func (b *p2pChatBiz) ListChat(ctx context.Context, req *ListChatReq) ([]*Chat, error) {
+	lgExts := make([]any, 0, 4)
+	lgExts = append(lgExts, "last_msg_seq", req.LastMsgSeq, "count", req.Count, "user_id", req.UserId)
+	chatPos, err := infra.Dao().P2PChatDao.PageListByUserId(ctx,
+		req.UserId,
+		req.LastMsgSeq,
+		int(req.Count),
+		req.Unread)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "chat dao failed to page list").WithExtras(logExtras...).WithCtx(ctx)
+		return nil, xerror.Wrapf(err, "chat dao failed to page list").WithExtras(lgExts...).WithCtx(ctx)
 	}
 
 	chats := make([]*Chat, 0, len(chatPos))
@@ -356,4 +402,56 @@ func (b *p2pChatBiz) GetChat(ctx context.Context, userId, chatId int64) (*Chat, 
 	}
 
 	return MakeChatFromPO(chatPo), nil
+}
+
+func (b *p2pChatBiz) BatchGetChat(ctx context.Context, userId int64, chatIds []int64) (map[int64]*Chat, error) {
+	chats, err := infra.Dao().P2PChatDao.BatchGetByChatIdsUserId(ctx, chatIds, userId)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "chat dao failed to batch get chat").
+			WithExtras("chat_ids", chatIds, "user_id", userId).WithCtx(ctx)
+	}
+
+	results := make(map[int64]*Chat, len(chats))
+	for _, c := range chats {
+		results[c.ChatId] = MakeChatFromPO(c)
+	}
+
+	return results, nil
+}
+
+// 批量获取会话的最近一条消息
+func (b *p2pChatBiz) BatchGetLastMsg(ctx context.Context, chats []*Chat) (map[int64]*ChatMsg, error) {
+	if len(chats) == 0 {
+		return map[int64]*ChatMsg{}, nil
+	}
+
+	chatIds := make([]int64, 0, len(chats))
+	msgIds := make([]int64, 0, len(chats))
+	chatMap := make(map[int64]*Chat, len(chats))
+	for _, c := range chats {
+		chatIds = append(chatIds, c.ChatId)
+		msgIds = append(msgIds, c.LastMsgId)
+		chatMap[c.ChatId] = c
+	}
+
+	items, err := infra.Dao().P2PMsgDao.BatchGetByChatIdMsgId(ctx, chatIds, msgIds)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "msg dao failed to batch get").WithCtx(ctx)
+	}
+
+	// organize
+	// chat_id -> msg
+	results := make(map[int64]*ChatMsg)
+	for _, m := range items {
+		chat := chatMap[m.ChatId]
+		var recv int64
+		if m.SenderId == chat.UserId {
+			recv = chat.PeerId
+		} else {
+			recv = chat.UserId
+		}
+		results[m.ChatId] = MakeChatMsgFromPO(m, recv)
+	}
+
+	return results, nil
 }

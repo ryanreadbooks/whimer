@@ -50,7 +50,12 @@ func (s *P2PChatSrv) SendMessage(ctx context.Context, req *bizp2p.CreateMsgReq) 
 // 获取会话消息
 func (s *P2PChatSrv) ListMessage(ctx context.Context, userId, chatId, seq int64, cnt int32) (
 	[]*bizp2p.ChatMsg, int64, error) {
-	msgs, err := s.chatBiz.ListMsg(ctx, userId, chatId, seq, cnt)
+	msgs, err := s.chatBiz.ListMsg(ctx, &bizp2p.ListMsgReq{
+		UserId: userId,
+		ChatId: chatId,
+		Seq:    seq,
+		Cnt:    cnt,
+	})
 	if err != nil {
 		return nil, 0, err
 	}
@@ -93,9 +98,14 @@ func (s *P2PChatSrv) RevokeMessage(ctx context.Context, userId, chatId, msgId in
 // 列出会话列表
 func (s *P2PChatSrv) ListChat(ctx context.Context, userId, seq int64, count int32) (
 	[]*bizp2p.Chat, int64, error) {
-	chats, err := s.chatBiz.ListChat(ctx, userId, seq, count)
+
+	chats, err := s.chatBiz.ListChat(ctx, &bizp2p.ListChatReq{
+		UserId:     userId,
+		LastMsgSeq: seq,
+		Count:      count,
+	})
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, xerror.Wrapf(err, "p2p chat failed to list chat")
 	}
 
 	var nextSeq int64 = -1
@@ -104,6 +114,46 @@ func (s *P2PChatSrv) ListChat(ctx context.Context, userId, seq int64, count int3
 	}
 
 	return chats, nextSeq, nil
+}
+
+type UnreadChat struct {
+	*bizp2p.Chat
+	*bizp2p.ChatMsg
+}
+
+// 列出未读会话 并且每个会话返回最新的未读消息
+func (s *P2PChatSrv) ListUnreadChat(ctx context.Context, userId, seq int64, count int32) ([]*UnreadChat, int64, error) {
+	chats, err := s.chatBiz.ListChat(ctx, &bizp2p.ListChatReq{
+		UserId:     userId,
+		LastMsgSeq: seq,
+		Count:      count,
+		Unread:     true,
+	})
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "p2p chat failed to list unread chat")
+	}
+
+	// chatid -> msg
+	lastMsgs, err := s.chatBiz.BatchGetLastMsg(ctx, chats)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "p2p chat failed to batch get last msg")
+	}
+
+	var nextSeq int64 = -1
+	if lc := len(chats); lc != 0 && lc == int(count) {
+		nextSeq = chats[len(chats)-1].LastMsgSeq
+	}
+
+	results := make([]*UnreadChat, 0, len(chats))
+	for _, c := range chats {
+		msg := lastMsgs[c.ChatId]
+		results = append(results, &UnreadChat{
+			Chat:    c,
+			ChatMsg: msg,
+		})
+	}
+
+	return nil, nextSeq, nil
 }
 
 func (s *P2PChatSrv) notifyReceiver(ctx context.Context, receiver int64) {
