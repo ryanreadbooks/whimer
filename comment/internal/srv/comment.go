@@ -144,7 +144,7 @@ func (s *CommentSrv) PageGetRootReplies(ctx context.Context, oid, cursor uint64,
 // 分页获取子评论
 func (s *CommentSrv) PageGetSubReplies(ctx context.Context, oid, rootId uint64, cursor uint64) (*model.PageReplies, error) {
 	const (
-		want = 10
+		want = 4
 	)
 
 	subReplies, err := s.CommentBiz.GetSubReplies(ctx, oid, rootId, want, cursor)
@@ -158,6 +158,23 @@ func (s *CommentSrv) PageGetSubReplies(ctx context.Context, oid, rootId uint64, 
 	}
 
 	return subReplies, nil
+}
+
+// 按照指定分页页码获取子评论
+func (s *CommentSrv) PageListSubReplies(ctx context.Context, oid, rootId uint64, page, count int) ([]*model.ReplyItem, int64, error) {
+	lgExts := []any{"oid", oid, "root_id", rootId}
+	subReplies, total, err := s.CommentBiz.GetSubRepliesByPage(ctx, oid, rootId, page, count)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "comment srv failed to get subreplies").
+			WithExtras(lgExts).WithCtx(ctx)
+	}
+
+	err = s.CommentInteractBiz.PopulateLikes(ctx, subReplies)
+	if err != nil {
+		xlog.Msg("comment srv failed to populate sub replies").Extras(lgExts).Errorx(ctx)
+	}
+
+	return subReplies, total, nil
 }
 
 // 获取对象的评论，包含主评论及其下的子评论
@@ -209,6 +226,65 @@ func (s *CommentSrv) PageGetObjectReplies(ctx context.Context, oid, cursor uint6
 		})
 	}
 	ret := model.PageDetailedReplies{
+		Items:      replies,
+		NextCursor: roots.NextCursor,
+		HasNext:    roots.HasNext,
+	}
+
+	return &ret, nil
+}
+
+func (s *CommentSrv) PageGetObjectRepliesV2(ctx context.Context, oid, cursor uint64, sortBy int8) (
+	*model.PageDetailedRepliesV2, error,
+) {
+	// 先拿主评论
+	roots, err := s.PageGetRootReplies(ctx, oid, cursor, sortBy)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "comment srv failed to get object replies").
+			WithCtx(ctx).WithExtras("oid", oid, "cursor", cursor, "sortBy", sortBy)
+	}
+
+	// 获取子评论
+	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
+	defer cancel()
+	eg, ctx := errgroup.WithContext(ctx)
+
+	var subs = make([]*model.PageRepliesWithTotal, len(roots.Items))
+	for i, root := range roots.Items {
+		idx, r := i, root // prevent for-loop issue
+		eg.Go(func() error {
+			return recovery.Do(func() error {
+				// 每条主评论默认展示第一页的5条子评论
+				sub, total, egErr := s.PageListSubReplies(ctx, oid, r.Id, 1, 5)
+				if egErr != nil {
+					return xerror.Wrapf(egErr, "goroutine page get sub-replies failed").
+						WithExtras("rootId", r.Id, "oid", oid).WithCtx(ctx)
+				}
+
+				subs[idx] = &model.PageRepliesWithTotal{
+					Items: sub,
+					Total: total}
+
+				return nil
+			})
+		})
+	}
+
+	err = eg.Wait()
+	if err != nil {
+		// 服务获取子评论
+		return nil, xerror.Wrapf(err, "comment srv failed to get sub replies for root").WithCtx(ctx)
+	}
+
+	// 拼装结果
+	replies := make([]*model.DetailedReplyItemV2, 0, len(roots.Items))
+	for i, root := range roots.Items {
+		replies = append(replies, &model.DetailedReplyItemV2{
+			Root: root,
+			Subs: subs[i],
+		})
+	}
+	ret := model.PageDetailedRepliesV2{
 		Items:      replies,
 		NextCursor: roots.NextCursor,
 		HasNext:    roots.HasNext,

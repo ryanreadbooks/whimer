@@ -76,9 +76,12 @@ var (
 	sqlSelByRoot         = fmt.Sprintf("SELECT %s FROM comment WHERE root=? %%s", fields)
 	sqlInsert            = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fields)
 
-	sqlSelRoots  = fmt.Sprintf("SELECT %s FROM comment WHERE %%s oid=? AND root=0 AND pin=0 ORDER BY ctime DESC LIMIT ?", fields)
-	sqlSelSubs   = fmt.Sprintf("SELECT %s FROM comment WHERE id>? AND oid=? AND root=? ORDER BY ctime ASC LIMIT ?", fields)
-	sqlCountSubs = "SELECT root, COUNT(id) cnt FROM comment WHERE root!=0 AND root IN (%s) GROUP BY root"
+	sqlSelRoots       = fmt.Sprintf("SELECT %s FROM comment WHERE %%s oid=? AND root=0 AND pin=0 ORDER BY ctime DESC LIMIT ?", fields)
+	sqlSelSubs        = fmt.Sprintf("SELECT %s FROM comment WHERE id>? AND oid=? AND root=? ORDER BY ctime ASC LIMIT ?", fields)
+	sqlBatchCountSubs = "SELECT root, COUNT(id) cnt FROM comment WHERE root!=0 AND root IN (%s) GROUP BY root"
+
+	sqlCountSubs   = "SELECT COUNT(*) FROM comment WHERE oid=? AND root=?"
+	sqlPageSelSubs = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? AND root=? ORDER BY ctime ASC, id ASC LIMIT ?,?", fields)
 )
 
 func (r *CommentDao) FindByIdForUpdate(ctx context.Context, id uint64) (*Comment, error) {
@@ -288,7 +291,7 @@ func (r *CommentDao) BatchCountSubReplies(ctx context.Context, rootIds []uint64)
 
 	batchRes := make([]RootCnt, 0)
 
-	err := r.db.QueryRowsCtx(ctx, &batchRes, fmt.Sprintf(sqlCountSubs, slices.JoinInts(rootIds)))
+	err := r.db.QueryRowsCtx(ctx, &batchRes, fmt.Sprintf(sqlBatchCountSubs, slices.JoinInts(rootIds)))
 	if err != nil {
 		return nil, xsql.ConvertError(err)
 	}
@@ -309,6 +312,31 @@ func (r *CommentDao) GetSubReplies(ctx context.Context, oid, root, cursor uint64
 	}
 
 	return res, nil
+}
+
+// 获取子评论数量
+func (r *CommentDao) CountSubReplies(ctx context.Context, oid, root uint64) (int64, error) {
+	if root == 0 {
+		return 0, nil
+	}
+
+	var res int64
+	err := r.db.QueryRowCtx(ctx, &res, sqlCountSubs, oid, root)
+
+	return res, xsql.ConvertError(err)
+}
+
+// 分页获取子评论
+// page从1开始
+func (r *CommentDao) PageGetSubReplies(ctx context.Context, oid, root uint64, page, cnt int) ([]*Comment, error) {
+	if page <= 0 || cnt <= 0 {
+		return []*Comment{}, nil
+	}
+
+	var res = make([]*Comment, 0, cnt)
+	err := r.db.QueryRowsCtx(ctx, &res, sqlPageSelSubs, oid, root, (page-1)*cnt, cnt)
+
+	return res, xsql.ConvertError(err)
 }
 
 // 置顶

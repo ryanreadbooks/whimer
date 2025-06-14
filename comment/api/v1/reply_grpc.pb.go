@@ -27,7 +27,9 @@ const (
 	ReplyService_PinReply_FullMethodName               = "/comment.api.v1.ReplyService/PinReply"
 	ReplyService_PageGetReply_FullMethodName           = "/comment.api.v1.ReplyService/PageGetReply"
 	ReplyService_PageGetSubReply_FullMethodName        = "/comment.api.v1.ReplyService/PageGetSubReply"
+	ReplyService_PageGetSubReplyV2_FullMethodName      = "/comment.api.v1.ReplyService/PageGetSubReplyV2"
 	ReplyService_PageGetDetailedReply_FullMethodName   = "/comment.api.v1.ReplyService/PageGetDetailedReply"
+	ReplyService_PageGetDetailedReplyV2_FullMethodName = "/comment.api.v1.ReplyService/PageGetDetailedReplyV2"
 	ReplyService_GetPinnedReply_FullMethodName         = "/comment.api.v1.ReplyService/GetPinnedReply"
 	ReplyService_CountReply_FullMethodName             = "/comment.api.v1.ReplyService/CountReply"
 	ReplyService_BatchCountReply_FullMethodName        = "/comment.api.v1.ReplyService/BatchCountReply"
@@ -57,8 +59,11 @@ type ReplyServiceClient interface {
 	PageGetReply(ctx context.Context, in *PageGetReplyRequest, opts ...grpc.CallOption) (*PageGetReplyResponse, error)
 	// 获取子评论信息
 	PageGetSubReply(ctx context.Context, in *PageGetSubReplyRequest, opts ...grpc.CallOption) (*PageGetSubReplyResponse, error)
+	// 分页获取子评论信息
+	PageGetSubReplyV2(ctx context.Context, in *PageGetSubReplyV2Request, opts ...grpc.CallOption) (*PageGetSubReplyV2Response, error)
 	// 获取主评论详细信息
 	PageGetDetailedReply(ctx context.Context, in *PageGetDetailedReplyRequest, opts ...grpc.CallOption) (*PageGetDetailedReplyResponse, error)
+	PageGetDetailedReplyV2(ctx context.Context, in *PageGetDetailedReplyV2Request, opts ...grpc.CallOption) (*PageGetDetailedReplyV2Response, error)
 	// 获取置顶评论
 	GetPinnedReply(ctx context.Context, in *GetPinnedReplyRequest, opts ...grpc.CallOption) (*GetPinnedReplyResponse, error)
 	// 获取某个被评对象的评论数
@@ -162,10 +167,30 @@ func (c *replyServiceClient) PageGetSubReply(ctx context.Context, in *PageGetSub
 	return out, nil
 }
 
+func (c *replyServiceClient) PageGetSubReplyV2(ctx context.Context, in *PageGetSubReplyV2Request, opts ...grpc.CallOption) (*PageGetSubReplyV2Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PageGetSubReplyV2Response)
+	err := c.cc.Invoke(ctx, ReplyService_PageGetSubReplyV2_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *replyServiceClient) PageGetDetailedReply(ctx context.Context, in *PageGetDetailedReplyRequest, opts ...grpc.CallOption) (*PageGetDetailedReplyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PageGetDetailedReplyResponse)
 	err := c.cc.Invoke(ctx, ReplyService_PageGetDetailedReply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *replyServiceClient) PageGetDetailedReplyV2(ctx context.Context, in *PageGetDetailedReplyV2Request, opts ...grpc.CallOption) (*PageGetDetailedReplyV2Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PageGetDetailedReplyV2Response)
+	err := c.cc.Invoke(ctx, ReplyService_PageGetDetailedReplyV2_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -262,8 +287,11 @@ type ReplyServiceServer interface {
 	PageGetReply(context.Context, *PageGetReplyRequest) (*PageGetReplyResponse, error)
 	// 获取子评论信息
 	PageGetSubReply(context.Context, *PageGetSubReplyRequest) (*PageGetSubReplyResponse, error)
+	// 分页获取子评论信息
+	PageGetSubReplyV2(context.Context, *PageGetSubReplyV2Request) (*PageGetSubReplyV2Response, error)
 	// 获取主评论详细信息
 	PageGetDetailedReply(context.Context, *PageGetDetailedReplyRequest) (*PageGetDetailedReplyResponse, error)
+	PageGetDetailedReplyV2(context.Context, *PageGetDetailedReplyV2Request) (*PageGetDetailedReplyV2Response, error)
 	// 获取置顶评论
 	GetPinnedReply(context.Context, *GetPinnedReplyRequest) (*GetPinnedReplyResponse, error)
 	// 获取某个被评对象的评论数
@@ -311,8 +339,14 @@ func (UnimplementedReplyServiceServer) PageGetReply(context.Context, *PageGetRep
 func (UnimplementedReplyServiceServer) PageGetSubReply(context.Context, *PageGetSubReplyRequest) (*PageGetSubReplyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PageGetSubReply not implemented")
 }
+func (UnimplementedReplyServiceServer) PageGetSubReplyV2(context.Context, *PageGetSubReplyV2Request) (*PageGetSubReplyV2Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PageGetSubReplyV2 not implemented")
+}
 func (UnimplementedReplyServiceServer) PageGetDetailedReply(context.Context, *PageGetDetailedReplyRequest) (*PageGetDetailedReplyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PageGetDetailedReply not implemented")
+}
+func (UnimplementedReplyServiceServer) PageGetDetailedReplyV2(context.Context, *PageGetDetailedReplyV2Request) (*PageGetDetailedReplyV2Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PageGetDetailedReplyV2 not implemented")
 }
 func (UnimplementedReplyServiceServer) GetPinnedReply(context.Context, *GetPinnedReplyRequest) (*GetPinnedReplyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPinnedReply not implemented")
@@ -500,6 +534,24 @@ func _ReplyService_PageGetSubReply_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ReplyService_PageGetSubReplyV2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PageGetSubReplyV2Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReplyServiceServer).PageGetSubReplyV2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReplyService_PageGetSubReplyV2_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReplyServiceServer).PageGetSubReplyV2(ctx, req.(*PageGetSubReplyV2Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ReplyService_PageGetDetailedReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PageGetDetailedReplyRequest)
 	if err := dec(in); err != nil {
@@ -514,6 +566,24 @@ func _ReplyService_PageGetDetailedReply_Handler(srv interface{}, ctx context.Con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ReplyServiceServer).PageGetDetailedReply(ctx, req.(*PageGetDetailedReplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ReplyService_PageGetDetailedReplyV2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PageGetDetailedReplyV2Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReplyServiceServer).PageGetDetailedReplyV2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReplyService_PageGetDetailedReplyV2_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReplyServiceServer).PageGetDetailedReplyV2(ctx, req.(*PageGetDetailedReplyV2Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -684,8 +754,16 @@ var ReplyService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ReplyService_PageGetSubReply_Handler,
 		},
 		{
+			MethodName: "PageGetSubReplyV2",
+			Handler:    _ReplyService_PageGetSubReplyV2_Handler,
+		},
+		{
 			MethodName: "PageGetDetailedReply",
 			Handler:    _ReplyService_PageGetDetailedReply_Handler,
+		},
+		{
+			MethodName: "PageGetDetailedReplyV2",
+			Handler:    _ReplyService_PageGetDetailedReplyV2_Handler,
 		},
 		{
 			MethodName: "GetPinnedReply",

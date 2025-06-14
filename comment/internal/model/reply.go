@@ -119,6 +119,22 @@ type PageReplies struct {
 	HasNext    bool
 }
 
+type PageRepliesWithTotal struct {
+	Items []*ReplyItem
+	Total int64
+}
+
+type DetailedReplyItemV2 struct {
+	Root *ReplyItem            // 主评论本身
+	Subs *PageRepliesWithTotal // 主评论其下子评论
+}
+
+type PageDetailedRepliesV2 struct {
+	Items      []*DetailedReplyItemV2
+	NextCursor uint64
+	HasNext    bool
+}
+
 type PageDetailedReplies struct {
 	Items      []*DetailedReplyItem
 	NextCursor uint64
@@ -142,6 +158,20 @@ func DetailedItemsAsPbs(rs []*DetailedReplyItem) []*commentv1.DetailedReplyItem 
 				Items:      ItemsAsPbs(item.Subs.Items),
 				NextCursor: item.Subs.NextCursor,
 				HasNext:    item.Subs.HasNext,
+			},
+		})
+	}
+	return r
+}
+
+func DetailedItemsV2AsPbs(rs []*DetailedReplyItemV2) []*commentv1.DetailedReplyItemV2 {
+	r := make([]*commentv1.DetailedReplyItemV2, 0, len(rs))
+	for _, item := range rs {
+		r = append(r, &commentv1.DetailedReplyItemV2{
+			Root: item.Root.AsPb(),
+			SubReplies: &commentv1.DetailedSubReplyV2{
+				Items: ItemsAsPbs(item.Subs.Items),
+				Total: item.Subs.Total,
 			},
 		})
 	}
