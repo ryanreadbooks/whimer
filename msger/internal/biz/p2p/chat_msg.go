@@ -58,12 +58,13 @@ type CreateMsgReq struct {
 type Chat struct {
 	ChatId        int64
 	UserId        int64
-	PeerId        int64
+	PeerId        int64 // 需要额外赋值
 	Unread        int64
 	LastMsgId     int64
 	LastMsgSeq    int64
 	LastReadMsgId int64
 	LastReadTime  int64
+	LastMsg       *ChatMsg // 需要额外赋值
 }
 
 func MakeChatFromPO(po *p2pdao.ChatPO) *Chat {

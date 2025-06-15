@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	maxBatchGetUserAllowed = 800 // 单次批量获取用户信息最大数目
+	maxBatchGetUserAllowed = 100 // 单次批量获取用户信息最大数目
 )
 
 type UserServiceServer struct {

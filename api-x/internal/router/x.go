@@ -20,6 +20,8 @@ func RegX(engine *rest.Server, svc *backend.Handler) {
 	regProfileRoutes(xGroup, svc)
 	// relation routes
 	regRelationRoutes(xGroup, svc)
+	regChatRoutes(xGroup, svc)
+	regUserRoutes(xGroup, svc)
 
 	mod := svc.Config.Http.Mode
 	if mod == zeroservice.DevMode || mod == zeroservice.TestMode {

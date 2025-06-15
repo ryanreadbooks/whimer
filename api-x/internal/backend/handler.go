@@ -1,8 +1,8 @@
 package backend
 
 import (
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/chat"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/comment"
+	"github.com/ryanreadbooks/whimer/api-x/internal/backend/msg"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/note"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/profile"
@@ -17,7 +17,8 @@ type Handler struct {
 	Comment  *comment.Handler
 	Note     *note.Handler
 	Relation *relation.Handler
-	Chat     *chat.Handler
+	Chat     *msg.Handler
+	User     *passport.UserHandler
 }
 
 func Init(c *config.Config) {
@@ -25,7 +26,7 @@ func Init(c *config.Config) {
 	note.Init(c)
 	comment.Init(c)
 	relation.Init(c)
-	chat.Init(c)
+	msg.Init(c)
 }
 
 func NewHandler(c *config.Config) *Handler {
@@ -35,7 +36,8 @@ func NewHandler(c *config.Config) *Handler {
 		Comment:  comment.NewHandler(c),
 		Note:     note.NewHandler(c),
 		Relation: relation.NewHandler(c),
-		Chat:     chat.NewHandler(c),
+		Chat:     msg.NewHandler(c),
+		User:     passport.NewUserHandler(c),
 	}
 
 	return h

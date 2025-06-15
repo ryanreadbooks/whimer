@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
 	gm "github.com/ryanreadbooks/whimer/msger/internal/global/model"
@@ -128,14 +129,14 @@ func (b *p2pChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg
 		return nil, xerror.Wrapf(err, "p2p biz failed to get chat").WithExtra("req", req).WithCtx(ctx)
 	}
 
-	if len(dualChats) != 2 {
+	if len(dualChats) == 0{
 		return nil, xerror.Wrap(global.ErrP2PChatNotExist)
 	}
 
 	// 检查是否允许发送
 	// 检查用户是否在会话中
 	chatUid1, chatUid2 := dualChats[0].UserId, dualChats[0].PeerId
-	if (req.Sender == chatUid1 && req.Receiver == chatUid2) ||
+	if (req.Sender == chatUid1 && req.Receiver != chatUid2) ||
 		(req.Sender == chatUid2 && req.Receiver != chatUid1) {
 		return nil, global.ErrUserNotInChat
 	}
@@ -223,7 +224,7 @@ func (b *p2pChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg
 	return resChatMsg, nil
 }
 
-func (b *p2pChatBiz) getChat(ctx context.Context, userId, chatId int64) (*p2pdao.ChatPO, error) {
+func (b *p2pChatBiz) getChatPO(ctx context.Context, userId, chatId int64) (*p2pdao.ChatPO, error) {
 	c, err := infra.Dao().P2PChatDao.GetByChatIdUserId(ctx, chatId, userId)
 	if err != nil {
 		if errors.Is(err, xsql.ErrNoRecord) {
@@ -248,7 +249,7 @@ func (b *p2pChatBiz) GetMsg(ctx context.Context, chatId, msgId int64) (*ChatMsg,
 
 // 拉取userId在chatId中的会话信息(包含自己发送的和对方发送的)
 func (b *p2pChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) ([]*ChatMsg, error) {
-	userChat, err := b.getChat(ctx, req.UserId, req.ChatId)
+	userChat, err := b.getChatPO(ctx, req.UserId, req.ChatId)
 	if err != nil {
 		return nil, xerror.Wrap(err)
 	}
@@ -290,7 +291,7 @@ func (b *p2pChatBiz) getChatMsgByIds(ctx context.Context, chat *p2pdao.ChatPO,
 
 // 获取用户会话的未读数
 func (b *p2pChatBiz) GetUnreadCount(ctx context.Context, userId, chatId int64) (int64, error) {
-	chat, err := b.getChat(ctx, userId, chatId)
+	chat, err := b.getChatPO(ctx, userId, chatId)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "p2p get unread count failed")
 	}
@@ -300,7 +301,7 @@ func (b *p2pChatBiz) GetUnreadCount(ctx context.Context, userId, chatId int64) (
 
 // 消除用户会话的未读数
 func (b *p2pChatBiz) ClearUnreadCount(ctx context.Context, userId, chatId int64) error {
-	_, err := b.getChat(ctx, userId, chatId)
+	_, err := b.getChatPO(ctx, userId, chatId)
 	if err != nil {
 		return xerror.Wrapf(err, "p2p clear unread count failed")
 	}
@@ -334,7 +335,7 @@ func (b *p2pChatBiz) RevokeMessage(ctx context.Context, userId, chatId, msgId in
 	logExtras := make([]any, 0, 4)
 	logExtras = append(logExtras, "chat_id", chatId, "msg_id", msgId, "user_id", userId)
 
-	_, err := b.getChat(ctx, userId, chatId)
+	_, err := b.getChatPO(ctx, userId, chatId)
 	if err != nil {
 		return xerror.Wrapf(err, "p2p revoke message failed").WithExtras(logExtras...).WithCtx(ctx)
 	}
@@ -391,7 +392,25 @@ func (b *p2pChatBiz) ListChat(ctx context.Context, req *ListChatReq) ([]*Chat, e
 		chats = append(chats, MakeChatFromPO(c))
 	}
 
+	if err := b.batchAssignLastMsg(ctx, chats); err != nil {
+		return nil, xerror.Wrapf(err, "assign last msg failed").WithCtx(ctx)
+	}
+
 	return chats, nil
+}
+
+func (b *p2pChatBiz) batchAssignLastMsg(ctx context.Context, chats []*Chat) error {
+	msgs, err := b.BatchGetLastMsg(ctx, chats)
+	if err != nil {
+		return xerror.Wrapf(err, "batch get last msg failed")
+	}
+
+	for _, chat := range chats {
+		lastMsg := msgs[chat.ChatId]
+		chat.LastMsg = lastMsg
+	}
+
+	return nil
 }
 
 func (b *p2pChatBiz) GetChat(ctx context.Context, userId, chatId int64) (*Chat, error) {
@@ -401,7 +420,12 @@ func (b *p2pChatBiz) GetChat(ctx context.Context, userId, chatId int64) (*Chat, 
 			WithExtras("chat_id", chatId, "user_id", userId).WithCtx(ctx)
 	}
 
-	return MakeChatFromPO(chatPo), nil
+	chat := MakeChatFromPO(chatPo)
+	if err := b.batchAssignLastMsg(ctx, []*Chat{chat}); err != nil {
+		return nil, xerror.Wrapf(err, "assign last msg failed").WithCtx(ctx)
+	}
+
+	return chat, nil
 }
 
 func (b *p2pChatBiz) BatchGetChat(ctx context.Context, userId int64, chatIds []int64) (map[int64]*Chat, error) {
@@ -416,6 +440,10 @@ func (b *p2pChatBiz) BatchGetChat(ctx context.Context, userId int64, chatIds []i
 		results[c.ChatId] = MakeChatFromPO(c)
 	}
 
+	resultChats := xmap.Values(results)
+	if err := b.batchAssignLastMsg(ctx, resultChats); err != nil {
+		return nil, xerror.Wrapf(err, "assign last msg failed").WithCtx(ctx)
+	}
 	return results, nil
 }
 
@@ -443,13 +471,16 @@ func (b *p2pChatBiz) BatchGetLastMsg(ctx context.Context, chats []*Chat) (map[in
 	// chat_id -> msg
 	results := make(map[int64]*ChatMsg)
 	for _, m := range items {
-		chat := chatMap[m.ChatId]
+		chat, ok := chatMap[m.ChatId]
 		var recv int64
-		if m.SenderId == chat.UserId {
-			recv = chat.PeerId
-		} else {
-			recv = chat.UserId
+		if ok {
+			if m.SenderId == chat.UserId {
+				recv = chat.PeerId
+			} else {
+				recv = chat.UserId
+			}
 		}
+
 		results[m.ChatId] = MakeChatMsgFromPO(m, recv)
 	}
 

@@ -9,7 +9,6 @@ import (
 	bizp2p "github.com/ryanreadbooks/whimer/msger/internal/biz/p2p"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
 	"github.com/ryanreadbooks/whimer/msger/internal/srv"
-
 )
 
 type ChatServiceServer struct {
@@ -79,6 +78,25 @@ func (s *ChatServiceServer) SendMessage(ctx context.Context, in *p2pv1.SendMessa
 	}, nil
 }
 
+func makePbMessage(m *bizp2p.ChatMsg) *pbmsg.Message {
+	if m == nil {
+		return &pbmsg.Message{}
+	}
+
+	return &pbmsg.Message{
+		MsgId:    m.MsgId,
+		ChatId:   m.ChatId,
+		Sender:   m.Sender,
+		Receiver: m.Receiver,
+		Status:   m.Status,
+		Content: &pbmsg.MsgContent{
+			Type: m.Type,
+			Data: m.Content,
+		},
+		Seq: m.Seq,
+	}
+}
+
 func (s *ChatServiceServer) ListMessage(ctx context.Context, in *p2pv1.ListMessageRequest) (
 	*p2pv1.ListMessageResponse, error) {
 	if err := checkChatIdUserId(in); err != nil {
@@ -98,18 +116,7 @@ func (s *ChatServiceServer) ListMessage(ctx context.Context, in *p2pv1.ListMessa
 
 	respMsgs := make([]*pbmsg.Message, 0, len(msgs))
 	for _, m := range msgs {
-		respMsgs = append(respMsgs, &pbmsg.Message{
-			MsgId:    m.MsgId,
-			ChatId:   m.ChatId,
-			Sender:   m.Sender,
-			Receiver: m.Receiver,
-			Status:   m.Status,
-			Content: &pbmsg.MsgContent{
-				Type: m.Type,
-				Data: m.Content,
-			},
-			Seq: m.Seq,
-		})
+		respMsgs = append(respMsgs, makePbMessage(m))
 	}
 
 	return &p2pv1.ListMessageResponse{
@@ -197,6 +204,7 @@ func (s *ChatServiceServer) ListChat(ctx context.Context, in *p2pv1.ListChatRequ
 			LastMsgSeq:    c.LastMsgSeq,
 			LastReadMsgId: c.LastReadMsgId,
 			LastReadTime:  c.LastReadTime,
+			LastMsg:       makePbMessage(c.LastMsg),
 		})
 	}
 

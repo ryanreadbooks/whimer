@@ -5,4 +5,5 @@ comment: cd comment && go run cmd/main.go -f etc/comment.yaml 2>&1 | sed -e 's/\
 relation: cd relation && go run cmd/main.go -f etc/relation.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'
 feed: cd feed && go run cmd/main.go -f etc/feed.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'
 msger: cd msger && go run cmd/main.go -f etc/msger.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'
+wslink: cd wslink && go run cmd/main.go -f etc/wslink.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'
 api-x: cd api-x && go run cmd/main.go -f etc/api-x.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'

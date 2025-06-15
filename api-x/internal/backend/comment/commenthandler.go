@@ -38,8 +38,7 @@ func (h *Handler) PublishComment() http.HandlerFunc {
 			return
 		}
 
-		resp, err := Commenter().
-			AddReply(r.Context(), req.AsPb())
+		resp, err := Commenter().AddReply(r.Context(), req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

@@ -16,6 +16,7 @@ message Chat {
   int64 last_msg_seq = 6;
   int64 last_read_msg_id = 7;
   int64 last_read_time = 8;
+  msger.api.msg.Message last_msg = 9;
 }
 
 message CreateChatRequest {
