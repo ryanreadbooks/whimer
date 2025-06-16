@@ -14,6 +14,8 @@ func regChatRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 		{
 			// 拉取消息列表
 			v1g.Get("/chat/list", svc.Chat.ListChats())
+			// 拉消息
+			v1g.Get("/message/list", svc.Chat.ListMessages())
 		}
 	}
 }
