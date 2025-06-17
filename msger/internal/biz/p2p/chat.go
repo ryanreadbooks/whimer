@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -129,7 +130,7 @@ func (b *p2pChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg
 		return nil, xerror.Wrapf(err, "p2p biz failed to get chat").WithExtra("req", req).WithCtx(ctx)
 	}
 
-	if len(dualChats) == 0{
+	if len(dualChats) == 0 {
 		return nil, xerror.Wrap(global.ErrP2PChatNotExist)
 	}
 
@@ -468,8 +469,8 @@ func (b *p2pChatBiz) BatchGetLastMsg(ctx context.Context, chats []*Chat) (map[in
 	}
 
 	// organize
-	// chat_id -> msg
-	results := make(map[int64]*ChatMsg)
+	// chat_id -> []msg
+	preResults := make(map[int64][]*ChatMsg)
 	for _, m := range items {
 		chat, ok := chatMap[m.ChatId]
 		var recv int64
@@ -481,7 +482,17 @@ func (b *p2pChatBiz) BatchGetLastMsg(ctx context.Context, chats []*Chat) (map[in
 			}
 		}
 
-		results[m.ChatId] = MakeChatMsgFromPO(m, recv)
+		preResults[m.ChatId] = append(preResults[m.ChatId], MakeChatMsgFromPO(m, recv))
+	}
+
+	results := make(map[int64]*ChatMsg, len(preResults))
+	// filter
+	for chatId, pr := range preResults {
+		sort.Slice(pr, func(i, j int) bool { return pr[i].Seq > pr[j].Seq })
+		// get the first as result
+		if len(pr) > 0 {
+			results[chatId] = pr[0]
+		}
 	}
 
 	return results, nil
