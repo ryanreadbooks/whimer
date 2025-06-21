@@ -55,6 +55,18 @@ message GetUserRecentPostRequest {
 
 message GetUserRecentPostResponse { repeated FeedNoteItem items = 1; }
 
+message ListFeedByUidRequest {
+  int64 uid = 1;
+  uint64 cursor = 2;
+  int32 count = 3;
+}
+
+message ListFeedByUidResponse {
+  repeated FeedNoteItem items = 1;
+  uint64 next_cursor = 2;
+  bool has_next = 3;
+}
+
 // note相关非管理功能服务
 service NoteFeedService {
   // 随机获取笔记内容
@@ -66,4 +78,6 @@ service NoteFeedService {
   // 获取指定用户的最近的笔记内容
   rpc GetUserRecentPost(GetUserRecentPostRequest)
       returns (GetUserRecentPostResponse);
+  // 列出指定用户公开的笔记内容
+  rpc ListFeedByUid(ListFeedByUidRequest) returns (ListFeedByUidResponse);
 }

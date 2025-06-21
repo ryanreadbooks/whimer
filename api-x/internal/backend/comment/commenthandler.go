@@ -6,8 +6,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/note"
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
+	"github.com/ryanreadbooks/whimer/api-x/internal/backend/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
@@ -38,7 +37,7 @@ func (h *Handler) PublishComment() http.HandlerFunc {
 			return
 		}
 
-		resp, err := Commenter().AddReply(r.Context(), req.AsPb())
+		resp, err := infra.Commenter().AddReply(r.Context(), req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -63,7 +62,7 @@ func (h *Handler) PageGetRoots() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		rootReplies, err := Commenter().
+		rootReplies, err := infra.Commenter().
 			PageGetReply(ctx, req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -103,7 +102,7 @@ func (h *Handler) PageGetSubs() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		subReplies, err := Commenter().
+		subReplies, err := infra.Commenter().
 			PageGetSubReply(ctx, req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -168,7 +167,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 			concurrent.SafeGo(func() {
 				defer wg.Done()
 				var err error
-				resp, err := Commenter().
+				resp, err := infra.Commenter().
 					GetPinnedReply(ctx, &commentv1.GetPinnedReplyRequest{Oid: req.Oid})
 				if err != nil {
 					logx.Errorw("rpc get pin reply err", xlog.WithUid(ctx), xlog.WithErr(err))
@@ -176,7 +175,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 				}
 				pinnedReply = resp.Reply
 
-				userResp, err := passport.Userer().
+				userResp, err := infra.Userer().
 					BatchGetUser(ctx,
 						&userv1.BatchGetUserRequest{
 							Uids: maps.Keys(extractUidsMap([]*commentv1.DetailedReplyItem{pinnedReply})),
@@ -191,7 +190,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 			})
 		}
 
-		resp, err := Commenter().
+		resp, err := infra.Commenter().
 			PageGetDetailedReply(ctx, req.AsDetailedPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -206,7 +205,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 			uidsMap := extractUidsMap(resp.Replies)
 
 			// 发起请求获取uid的详细信息
-			userResp, err := passport.Userer().
+			userResp, err := infra.Userer().
 				BatchGetUser(ctx, &userv1.BatchGetUserRequest{Uids: maps.Keys(uidsMap)})
 			if err != nil {
 				xhttp.Error(r, w, err)
@@ -247,7 +246,7 @@ func attachReplyUsers(ctx context.Context, replies []*commentv1.ReplyItem) ([]*R
 		uidsMap[root.Uid] = struct{}{}
 	}
 
-	userResp, err := passport.Userer().
+	userResp, err := infra.Userer().
 		BatchGetUser(ctx, &userv1.BatchGetUserRequest{Uids: maps.Keys(uidsMap)})
 	if err != nil {
 		return nil, err
@@ -276,7 +275,7 @@ func (h *Handler) DelComment() http.HandlerFunc {
 			return
 		}
 
-		_, err = Commenter().DelReply(r.Context(), &commentv1.DelReplyRequest{ReplyId: req.ReplyId})
+		_, err = infra.Commenter().DelReply(r.Context(), &commentv1.DelReplyRequest{ReplyId: req.ReplyId})
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -294,7 +293,7 @@ func (h *Handler) PinComment() http.HandlerFunc {
 			return
 		}
 
-		_, err = Commenter().PinReply(r.Context(), &commentv1.PinReplyRequest{
+		_, err = infra.Commenter().PinReply(r.Context(), &commentv1.PinReplyRequest{
 			Oid:    req.Oid,
 			Rid:    req.ReplyId,
 			Action: commentv1.ReplyAction(req.Action),
@@ -316,7 +315,7 @@ func (h *Handler) LikeComment() http.HandlerFunc {
 			return
 		}
 
-		_, err = Commenter().LikeAction(r.Context(), &commentv1.LikeActionRequest{
+		_, err = infra.Commenter().LikeAction(r.Context(), &commentv1.LikeActionRequest{
 			ReplyId: req.ReplyId,
 			Action:  commentv1.ReplyAction(req.Action),
 		})
@@ -337,7 +336,7 @@ func (h *Handler) DislikeComment() http.HandlerFunc {
 			return
 		}
 
-		_, err = Commenter().DislikeAction(r.Context(), &commentv1.DislikeActionRequest{
+		_, err = infra.Commenter().DislikeAction(r.Context(), &commentv1.DislikeActionRequest{
 			ReplyId: req.ReplyId,
 			Action:  commentv1.ReplyAction(req.Action),
 		})
@@ -358,7 +357,7 @@ func (h *Handler) GetCommentLikeCount() http.HandlerFunc {
 			return
 		}
 
-		res, err := Commenter().GetReplyLikeCount(r.Context(),
+		res, err := infra.Commenter().GetReplyLikeCount(r.Context(),
 			&commentv1.GetReplyLikeCountRequest{
 				ReplyId: req.ReplyId,
 			})
@@ -375,7 +374,7 @@ func (h *Handler) GetCommentLikeCount() http.HandlerFunc {
 }
 
 func (h *Handler) checkHasNote(ctx context.Context, noteId uint64) error {
-	if resp, err := note.NoteCreatorServer().IsNoteExist(ctx,
+	if resp, err := infra.NoteCreatorServer().IsNoteExist(ctx,
 		&notev1.IsNoteExistRequest{
 			NoteId: noteId,
 		}); err != nil {

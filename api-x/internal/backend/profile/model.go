@@ -2,6 +2,18 @@ package profile
 
 import "github.com/ryanreadbooks/whimer/misc/xerror"
 
+type StatReq struct {
+	UserId int64 `form:"user_id"`
+}
+
+func (r *StatReq) Validate() error {
+	if r.UserId == 0 {
+		return xerror.ErrArgs.Msg("用户不存在")
+	}
+
+	return nil
+}
+
 type HoverReq struct {
 	UserId int64 `form:"user_id"`
 }

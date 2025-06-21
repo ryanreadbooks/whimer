@@ -32,5 +32,6 @@ func initPublicGroup(root *xhttp.RouterGroup) {
 	{
 		apiv1.Get("/recommend", feedRecommend())
 		apiv1.Get("/detail", feedDetail())
+		apiv1.Get("/notes/by_user", feedByUser())
 	}
 }

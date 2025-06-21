@@ -131,6 +131,12 @@ type NoteItemImage struct {
 
 type NoteItemImageList []*NoteItemImage
 
+// 包含发起请求的用户和该笔记的交互记录
+type Interaction struct {
+	Liked     bool `json:"liked"`     // 用户是否点赞过该笔记
+	Commented bool `json:"commented"` // 用户是否评论过该笔记
+}
+
 type AdminNoteItem struct {
 	NoteId   uint64            `json:"note_id"`
 	Title    string            `json:"title"`
@@ -140,6 +146,8 @@ type AdminNoteItem struct {
 	UpdateAt int64             `json:"update_at"`
 	Images   NoteItemImageList `json:"images"`
 	Likes    uint64            `json:"likes"`
+
+	Interact Interaction `json:"interact"`
 }
 
 func NewAdminNoteItemFromPb(pb *notesdk.NoteItem) *AdminNoteItem {

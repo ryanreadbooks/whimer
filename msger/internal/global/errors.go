@@ -28,4 +28,5 @@ var (
 	ErrMsgAlreadyRevoked    = ErrArgs.Msg("消息已被撤回")
 	ErrMsgNotExist          = ErrArgs.Msg("消息不存在")
 	ErrCantRevokeMsg        = ErrPermDenied.Msg("无权撤回该消息")
+	ErrUserNotFound         = ErrArgs.Msg("用户不存在")
 )

@@ -32,34 +32,6 @@ type ListChatReq struct {
 	Unread     bool // 是否仅列出未读的会话
 }
 
-// 用户单对单会话领域
-type ChatBiz interface {
-	// 两个用户开启会话
-	InitChat(ctx context.Context, userA, userB int64) (int64, error)
-	// 获取两个用户的会话
-	GetChatIdByUsers(ctx context.Context, userA, userB int64) (int64, error)
-	// 发送消息
-	CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg, error)
-	// 列出用户的会话消息
-	ListMsg(ctx context.Context, req *ListMsgReq) ([]*ChatMsg, error)
-	// 获取某条会话消息
-	GetMsg(ctx context.Context, chatId, msgId int64) (*ChatMsg, error)
-	// 获取用户会话的未读数
-	GetUnreadCount(ctx context.Context, userId, chatId int64) (int64, error)
-	// 消除用户会话的未读数
-	ClearUnreadCount(ctx context.Context, userId, chatId int64) error
-	// 撤回会话消息
-	RevokeMessage(ctx context.Context, userId, chatId, msgId int64) error
-	// 获取用户会话列表
-	ListChat(ctx context.Context, req *ListChatReq) ([]*Chat, error)
-	// 获取会话
-	GetChat(ctx context.Context, userId, chatId int64) (*Chat, error)
-	// 批量获取会话
-	BatchGetChat(ctx context.Context, userId int64, chatIds []int64) (map[int64]*Chat, error)
-	// 批量获取最后一条消息
-	BatchGetLastMsg(ctx context.Context, chats []*Chat) (map[int64]*ChatMsg, error)
-}
-
 const (
 	chatIdGenKey  = "msger:p2p:chatid"
 	chatIdGenStep = 20000
@@ -67,15 +39,16 @@ const (
 	msgIdGenStep  = 1000
 )
 
-type p2pChatBiz struct {
+type ChatBiz struct {
 }
 
+// 用户单对单会话领域
 func NewP2PChatBiz() ChatBiz {
-	return &p2pChatBiz{}
+	return ChatBiz{}
 }
 
 // 两个用户开启会话, userA发起请求
-func (b *p2pChatBiz) InitChat(ctx context.Context, userA, userB int64) (int64, error) {
+func (b *ChatBiz) InitChat(ctx context.Context, userA, userB int64) (int64, error) {
 	seqNo, err := dep.Idgen().GetId(ctx, chatIdGenKey, chatIdGenStep)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "p2p biz failed to gen chatid").WithCtx(ctx)
@@ -103,7 +76,7 @@ func (b *p2pChatBiz) InitChat(ctx context.Context, userA, userB int64) (int64, e
 }
 
 // 获取两个用户的会话id
-func (b *p2pChatBiz) GetChatIdByUsers(ctx context.Context, userA, userB int64) (int64, error) {
+func (b *ChatBiz) GetChatIdByUsers(ctx context.Context, userA, userB int64) (int64, error) {
 	chat, err := infra.Dao().P2PChatDao.GetByUsers(ctx, userA, userB)
 	if err != nil {
 		if errors.Is(err, xsql.ErrNoRecord) {
@@ -119,7 +92,7 @@ func (b *p2pChatBiz) GetChatIdByUsers(ctx context.Context, userA, userB int64) (
 }
 
 // 发送消息
-func (b *p2pChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg, error) {
+func (b *ChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg, error) {
 	// 检查会话是否存在
 	dualChats, err := infra.Dao().P2PChatDao.GetByChatId(ctx, req.ChatId)
 	if err != nil {
@@ -225,7 +198,7 @@ func (b *p2pChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg
 	return resChatMsg, nil
 }
 
-func (b *p2pChatBiz) getChatPO(ctx context.Context, userId, chatId int64) (*p2pdao.ChatPO, error) {
+func (b *ChatBiz) getChatPO(ctx context.Context, userId, chatId int64) (*p2pdao.ChatPO, error) {
 	c, err := infra.Dao().P2PChatDao.GetByChatIdUserId(ctx, chatId, userId)
 	if err != nil {
 		if errors.Is(err, xsql.ErrNoRecord) {
@@ -238,7 +211,7 @@ func (b *p2pChatBiz) getChatPO(ctx context.Context, userId, chatId int64) (*p2pd
 	return c, nil
 }
 
-func (b *p2pChatBiz) GetMsg(ctx context.Context, chatId, msgId int64) (*ChatMsg, error) {
+func (b *ChatBiz) GetMsg(ctx context.Context, chatId, msgId int64) (*ChatMsg, error) {
 	r, err := infra.Dao().P2PMsgDao.GetByChatIdMsgId(ctx, chatId, msgId)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "msg dao failed tod get msg").
@@ -249,7 +222,7 @@ func (b *p2pChatBiz) GetMsg(ctx context.Context, chatId, msgId int64) (*ChatMsg,
 }
 
 // 拉取userId在chatId中的会话信息(包含自己发送的和对方发送的)
-func (b *p2pChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) ([]*ChatMsg, error) {
+func (b *ChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) ([]*ChatMsg, error) {
 	userChat, err := b.getChatPO(ctx, req.UserId, req.ChatId)
 	if err != nil {
 		return nil, xerror.Wrap(err)
@@ -270,7 +243,7 @@ func (b *p2pChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) ([]*ChatMsg, 
 }
 
 // 查消息
-func (b *p2pChatBiz) getChatMsgByIds(ctx context.Context, chat *p2pdao.ChatPO,
+func (b *ChatBiz) getChatMsgByIds(ctx context.Context, chat *p2pdao.ChatPO,
 	userId int64, msgIds []int64) ([]*ChatMsg, error) {
 
 	msgPos, err := infra.Dao().P2PMsgDao.GetByChatIdMsgIds(ctx, chat.ChatId, msgIds)
@@ -291,7 +264,7 @@ func (b *p2pChatBiz) getChatMsgByIds(ctx context.Context, chat *p2pdao.ChatPO,
 }
 
 // 获取用户会话的未读数
-func (b *p2pChatBiz) GetUnreadCount(ctx context.Context, userId, chatId int64) (int64, error) {
+func (b *ChatBiz) GetUnreadCount(ctx context.Context, userId, chatId int64) (int64, error) {
 	chat, err := b.getChatPO(ctx, userId, chatId)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "p2p get unread count failed")
@@ -301,7 +274,7 @@ func (b *p2pChatBiz) GetUnreadCount(ctx context.Context, userId, chatId int64) (
 }
 
 // 消除用户会话的未读数
-func (b *p2pChatBiz) ClearUnreadCount(ctx context.Context, userId, chatId int64) error {
+func (b *ChatBiz) ClearUnreadCount(ctx context.Context, userId, chatId int64) error {
 	_, err := b.getChatPO(ctx, userId, chatId)
 	if err != nil {
 		return xerror.Wrapf(err, "p2p clear unread count failed")
@@ -331,7 +304,7 @@ func (b *p2pChatBiz) ClearUnreadCount(ctx context.Context, userId, chatId int64)
 }
 
 // 撤回消息
-func (b *p2pChatBiz) RevokeMessage(ctx context.Context, userId, chatId, msgId int64) error {
+func (b *ChatBiz) RevokeMessage(ctx context.Context, userId, chatId, msgId int64) error {
 	// uid撤回chatId中msgId消息
 	logExtras := make([]any, 0, 4)
 	logExtras = append(logExtras, "chat_id", chatId, "msg_id", msgId, "user_id", userId)
@@ -376,7 +349,7 @@ func (b *p2pChatBiz) RevokeMessage(ctx context.Context, userId, chatId, msgId in
 }
 
 // 列出用户会话列表
-func (b *p2pChatBiz) ListChat(ctx context.Context, req *ListChatReq) ([]*Chat, error) {
+func (b *ChatBiz) ListChat(ctx context.Context, req *ListChatReq) ([]*Chat, error) {
 	lgExts := make([]any, 0, 4)
 	lgExts = append(lgExts, "last_msg_seq", req.LastMsgSeq, "count", req.Count, "user_id", req.UserId)
 	chatPos, err := infra.Dao().P2PChatDao.PageListByUserId(ctx,
@@ -400,7 +373,7 @@ func (b *p2pChatBiz) ListChat(ctx context.Context, req *ListChatReq) ([]*Chat, e
 	return chats, nil
 }
 
-func (b *p2pChatBiz) batchAssignLastMsg(ctx context.Context, chats []*Chat) error {
+func (b *ChatBiz) batchAssignLastMsg(ctx context.Context, chats []*Chat) error {
 	msgs, err := b.BatchGetLastMsg(ctx, chats)
 	if err != nil {
 		return xerror.Wrapf(err, "batch get last msg failed")
@@ -414,7 +387,7 @@ func (b *p2pChatBiz) batchAssignLastMsg(ctx context.Context, chats []*Chat) erro
 	return nil
 }
 
-func (b *p2pChatBiz) GetChat(ctx context.Context, userId, chatId int64) (*Chat, error) {
+func (b *ChatBiz) GetChat(ctx context.Context, userId, chatId int64) (*Chat, error) {
 	chatPo, err := infra.Dao().P2PChatDao.GetByChatIdUserId(ctx, chatId, userId)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "chat dao failed to get chat").
@@ -429,7 +402,7 @@ func (b *p2pChatBiz) GetChat(ctx context.Context, userId, chatId int64) (*Chat, 
 	return chat, nil
 }
 
-func (b *p2pChatBiz) BatchGetChat(ctx context.Context, userId int64, chatIds []int64) (map[int64]*Chat, error) {
+func (b *ChatBiz) BatchGetChat(ctx context.Context, userId int64, chatIds []int64) (map[int64]*Chat, error) {
 	chats, err := infra.Dao().P2PChatDao.BatchGetByChatIdsUserId(ctx, chatIds, userId)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "chat dao failed to batch get chat").
@@ -449,7 +422,7 @@ func (b *p2pChatBiz) BatchGetChat(ctx context.Context, userId int64, chatIds []i
 }
 
 // 批量获取会话的最近一条消息
-func (b *p2pChatBiz) BatchGetLastMsg(ctx context.Context, chats []*Chat) (map[int64]*ChatMsg, error) {
+func (b *ChatBiz) BatchGetLastMsg(ctx context.Context, chats []*Chat) (map[int64]*ChatMsg, error) {
 	if len(chats) == 0 {
 		return map[int64]*ChatMsg{}, nil
 	}

@@ -1,4 +1,4 @@
-package relation
+package infra
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
@@ -10,7 +10,7 @@ var (
 	relationer relationv1.RelationServiceClient
 )
 
-func Init(c *config.Config) {
+func InitRelation(c *config.Config) {
 	relationer = xgrpc.NewRecoverableClient(c.Backend.Relation,
 		relationv1.NewRelationServiceClient,
 		func(cc relationv1.RelationServiceClient) { relationer = cc })

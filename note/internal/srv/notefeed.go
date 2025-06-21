@@ -109,6 +109,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 	return result, nil
 }
 
+// 获取笔记详情
 func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId uint64) (*model.Note, error) {
 	var (
 		uid = metadata.Uid(ctx)
@@ -133,6 +134,28 @@ func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId uint64) (*model.
 	return res.Items[0], nil
 }
 
+// 获取用户最近发布的笔记
 func (s *NoteFeedSrv) GetUserRecentNotes(ctx context.Context, user int64, maxCount int32) (*model.Notes, error) {
-	return s.noteBiz.GetUserRecentNote(ctx, user, maxCount)
+	result, err := s.noteBiz.GetUserRecentNote(ctx, user, maxCount)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "feed srv failed to get user recent notes")
+	}
+
+	result, _ = s.noteInteractBiz.AssignNoteLikes(ctx, result)
+	result, _ = s.noteInteractBiz.AssignNoteReplies(ctx, result)
+
+	return result, nil
+}
+
+// 列出用户公开的笔记
+func (s *NoteFeedSrv) ListUserPublicNotes(ctx context.Context, user int64, cursor uint64, count int32) (*model.Notes,
+	model.PageResult, error) {
+	result, page, err := s.noteBiz.ListUserPublicNote(ctx, user, cursor, count)
+	if err != nil {
+		return nil, page, xerror.Wrapf(err, "feed srv failed to lsit user public note")
+	}
+
+	result, _ = s.noteInteractBiz.AssignNoteLikes(ctx, result)
+	result, _ = s.noteInteractBiz.AssignNoteReplies(ctx, result)
+	return result, page, nil
 }

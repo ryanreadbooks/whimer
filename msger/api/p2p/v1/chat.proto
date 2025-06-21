@@ -83,6 +83,13 @@ message ListChatResponse {
   int64 next_seq = 2;
 }
 
+message GetChatRequest {
+  int64 chat_id = 1;
+  int64 user_id = 2;
+}
+
+message GetChatResponse { Chat chat = 1; }
+
 // p2p会话相关服务
 service ChatService {
   // 创建会话
@@ -99,4 +106,6 @@ service ChatService {
   rpc RevokeMessage(RevokeMessageRequest) returns (RevokeMessageResponse);
   // 列出用户单聊会话
   rpc ListChat(ListChatRequest) returns (ListChatResponse);
+  // 拉取会话
+  rpc GetChat(GetChatRequest) returns (GetChatResponse);
 }

@@ -4,10 +4,14 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/ryanreadbooks/whimer/api-x/internal/backend/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
+	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"golang.org/x/sync/errgroup"
 
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 
@@ -21,7 +25,7 @@ func NewHandler(c *config.Config) *Handler {
 }
 
 func (h *Handler) hasNoteCheck(ctx context.Context, noteId uint64) error {
-	if resp, err := NoteCreatorServer().IsNoteExist(ctx,
+	if resp, err := infra.NoteCreatorServer().IsNoteExist(ctx,
 		&notev1.IsNoteExistRequest{
 			NoteId: noteId,
 		}); err != nil {
@@ -44,7 +48,7 @@ func (h *Handler) AdminCreateNote() http.HandlerFunc {
 		}
 
 		// service to create note
-		resp, err := NoteCreatorServer().CreateNote(r.Context(), req.AsPb())
+		resp, err := infra.NoteCreatorServer().CreateNote(r.Context(), req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -62,7 +66,7 @@ func (h *Handler) AdminUpdateNote() http.HandlerFunc {
 			return
 		}
 
-		_, err = NoteCreatorServer().UpdateNote(r.Context(), &notev1.UpdateNoteRequest{
+		_, err = infra.NoteCreatorServer().UpdateNote(r.Context(), &notev1.UpdateNoteRequest{
 			NoteId: req.NoteId,
 			Note: &notev1.CreateNoteRequest{
 				Basic:  req.Basic.AsPb(),
@@ -87,7 +91,7 @@ func (h *Handler) AdminDeleteNote() http.HandlerFunc {
 			return
 		}
 
-		_, err = NoteCreatorServer().DeleteNote(r.Context(), &notev1.DeleteNoteRequest{
+		_, err = infra.NoteCreatorServer().DeleteNote(r.Context(), &notev1.DeleteNoteRequest{
 			NoteId: req.NoteId,
 		})
 
@@ -100,6 +104,85 @@ func (h *Handler) AdminDeleteNote() http.HandlerFunc {
 	}
 }
 
+func (h *Handler) assignNoteExtra(ctx context.Context, notes []*AdminNoteItem) {
+	var (
+		noteIds      = make([]uint64, 0, len(notes))
+		oidLiked     = make(map[uint64]bool)
+		oidCommented = make(map[uint64]bool)
+		uid          = metadata.Uid(ctx)
+		eg           errgroup.Group
+	)
+
+	for _, n := range notes {
+		noteIds = append(noteIds, n.NoteId)
+	}
+
+	eg.Go(func() error {
+		mappings := make(map[int64]*notev1.NoteIdList)
+		mappings[uid] = &notev1.NoteIdList{
+			NoteIds: noteIds,
+		}
+
+		// 点赞信息
+		resp, err := infra.NoteInteractServer().BatchCheckUserLikeStatus(ctx,
+			&notev1.BatchCheckUserLikeStatusRequest{
+				Mappings: mappings,
+			})
+		if err != nil {
+			return xerror.Wrapf(err, "failed to get user like status").WithCtx(ctx)
+		}
+
+		pairs := resp.GetResults()
+		for _, likedInfo := range pairs[uid].GetList() {
+			oidLiked[likedInfo.NoteId] = likedInfo.Liked
+		}
+
+		for _, note := range notes {
+			noteId := note.NoteId
+			note.Interact.Liked = oidLiked[noteId]
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		commentMappings := make(map[int64]*commentv1.BatchCheckUserOnObjectRequest_Objects)
+		commentMappings[uid] = &commentv1.BatchCheckUserOnObjectRequest_Objects{
+			Oids: noteIds,
+		}
+		// 评论信息
+		resp, err := infra.Commenter().BatchCheckUserOnObject(ctx,
+			&commentv1.BatchCheckUserOnObjectRequest{
+				Mappings: commentMappings,
+			})
+		if err != nil {
+			return xerror.Wrapf(err, "failed to get comment status").WithCtx(ctx)
+		}
+
+		// organize result
+		pairs := resp.GetResults()
+		for _, comInfo := range pairs[uid].GetList() {
+			oidCommented[comInfo.Oid] = comInfo.Commented
+		}
+		for _, note := range notes {
+			noteId := note.NoteId
+			note.Interact.Commented = oidCommented[noteId]
+		}
+		return nil
+	})
+
+	if err := eg.Wait(); err != nil {
+		xlog.Msgf("failed to assign note extra").Err(err).Errorx(ctx)
+		return
+	}
+
+	for _, note := range notes {
+		noteId := note.NoteId
+		note.Interact.Liked = oidLiked[noteId]
+		note.Interact.Commented = oidCommented[noteId]
+	}
+}
+
 func (h *Handler) AdminListNotes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[ListReq](httpx.ParseForm, r)
@@ -107,7 +190,9 @@ func (h *Handler) AdminListNotes() http.HandlerFunc {
 			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
 			return
 		}
-		resp, err := NoteCreatorServer().ListNote(r.Context(), &notev1.ListNoteRequest{
+
+		ctx := r.Context()
+		resp, err := infra.NoteCreatorServer().ListNote(ctx, &notev1.ListNoteRequest{
 			Cursor: req.Cursor,
 			Count:  req.Count,
 		})
@@ -115,8 +200,10 @@ func (h *Handler) AdminListNotes() http.HandlerFunc {
 			xhttp.Error(r, w, err)
 			return
 		}
+		result := NewListResFromPb(resp)
+		h.assignNoteExtra(ctx, result.Items)
 
-		httpx.OkJson(w, NewListResFromPb(resp))
+		httpx.OkJson(w, result)
 	}
 }
 
@@ -128,7 +215,8 @@ func (h *Handler) AdminGetNote() http.HandlerFunc {
 			return
 		}
 
-		resp, err := NoteCreatorServer().GetNote(r.Context(), &notev1.GetNoteRequest{
+		ctx := r.Context()
+		resp, err := infra.NoteCreatorServer().GetNote(ctx, &notev1.GetNoteRequest{
 			NoteId: req.NoteId,
 		})
 		if err != nil {
@@ -136,7 +224,9 @@ func (h *Handler) AdminGetNote() http.HandlerFunc {
 			return
 		}
 
-		httpx.OkJson(w, NewAdminNoteItemFromPb(resp.Note))
+		result := NewAdminNoteItemFromPb(resp.Note)
+		h.assignNoteExtra(ctx, []*AdminNoteItem{result})
+		httpx.OkJson(w, result)
 	}
 }
 
@@ -148,7 +238,7 @@ func (h *Handler) AdminUploadNoteAuth() http.HandlerFunc {
 			return
 		}
 
-		resp, err := NoteCreatorServer().BatchGetUploadAuth(r.Context(), req.AsPb())
+		resp, err := infra.NoteCreatorServer().BatchGetUploadAuth(r.Context(), req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -166,7 +256,7 @@ func (h *Handler) AdminUploadNoteAuthV2() http.HandlerFunc {
 			return
 		}
 
-		resp, err := NoteCreatorServer().BatchGetUploadAuthV2(r.Context(), req.AsPbV2())
+		resp, err := infra.NoteCreatorServer().BatchGetUploadAuthV2(r.Context(), req.AsPbV2())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -190,7 +280,7 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 		}
 
 		nid := req.NoteId
-		_, err = NoteInteractServer().LikeNote(r.Context(), &notev1.LikeNoteRequest{
+		_, err = infra.NoteInteractServer().LikeNote(r.Context(), &notev1.LikeNoteRequest{
 			NoteId:    nid,
 			Uid:       uid,
 			Operation: notev1.LikeNoteRequest_Operation(req.Action),
@@ -213,7 +303,7 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 		}
 
 		nid := req.NoteId
-		resp, err := NoteInteractServer().GetNoteLikes(r.Context(), &notev1.GetNoteLikesRequest{NoteId: nid})
+		resp, err := infra.NoteInteractServer().GetNoteLikes(r.Context(), &notev1.GetNoteLikesRequest{NoteId: nid})
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

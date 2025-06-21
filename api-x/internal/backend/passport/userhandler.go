@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ryanreadbooks/whimer/api-x/internal/backend/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
@@ -47,7 +48,7 @@ func (h *UserHandler) ListInfos() http.HandlerFunc {
 
 		ctx := r.Context()
 		uids = xslice.Uniq(uids)
-		resp, err := userer.BatchGetUser(ctx, &userv1.BatchGetUserRequest{
+		resp, err := infra.Userer().BatchGetUser(ctx, &userv1.BatchGetUserRequest{
 			Uids: uids,
 		})
 		if err != nil {

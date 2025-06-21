@@ -23,3 +23,15 @@ func (r *FollowReq) Validate() error {
 
 	return nil
 }
+
+type GetIsFollowingReq struct {
+	UserId int64 `form:"user_id"`
+}
+
+func (r *GetIsFollowingReq) Validate() error {
+	if r.UserId == 0 {
+		return xerror.ErrArgs.Msg("用户不存在")
+	}
+
+	return nil
+}

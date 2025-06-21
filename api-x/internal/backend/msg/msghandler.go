@@ -5,8 +5,10 @@ import (
 
 	msgv1 "github.com/ryanreadbooks/whimer/msger/api/p2p/v1"
 
+	"github.com/ryanreadbooks/whimer/api-x/internal/backend/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -15,6 +17,30 @@ type Handler struct{}
 
 func NewHandler(c *config.Config) *Handler {
 	return &Handler{}
+}
+
+// 发起会话
+func (h *Handler) CreateChat() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[CreateChatReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		ctx := r.Context()
+
+		resp, err := infra.Chatter().CreateChat(ctx, &msgv1.CreateChatRequest{
+			Initiator: metadata.Uid(ctx),
+			Target:    req.Target,
+		})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, resp)
+	}
 }
 
 // 拉会话列表
@@ -35,10 +61,45 @@ func (h *Handler) ListChats() http.HandlerFunc {
 
 		ctx := r.Context()
 		uid := metadata.Uid(ctx)
-		resp, err := chatter.ListChat(ctx, &msgv1.ListChatRequest{
+		resp, err := infra.Chatter().ListChat(ctx, &msgv1.ListChatRequest{
 			UserId: uid,
 			Seq:    req.Seq,
 			Count:  int32(req.Count),
+		})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, resp)
+	}
+}
+
+type GetChatReq struct {
+	Id int64 `form:"id"`
+}
+
+func (r *GetChatReq) Validate() error {
+	if r.Id == 0 {
+		return xerror.ErrArgs.Msg("会话不存在")
+	}
+
+	return nil
+}
+
+func (h *Handler) GetChat() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[GetChatReq](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+		ctx := r.Context()
+		uid := metadata.Uid(ctx)
+
+		resp, err := infra.Chatter().GetChat(ctx, &msgv1.GetChatRequest{
+			UserId: uid,
+			ChatId: req.Id,
 		})
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -66,7 +127,7 @@ func (h *Handler) ListMessages() http.HandlerFunc {
 
 		ctx := r.Context()
 		uid := metadata.Uid(ctx)
-		messages, err := chatter.ListMessage(ctx, &msgv1.ListMessageRequest{
+		messages, err := infra.Chatter().ListMessage(ctx, &msgv1.ListMessageRequest{
 			ChatId: req.ChatId,
 			UserId: uid,
 			Seq:    req.Seq,

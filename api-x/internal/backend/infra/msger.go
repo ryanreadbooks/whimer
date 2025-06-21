@@ -1,4 +1,4 @@
-package msg
+package infra
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
@@ -12,10 +12,14 @@ var (
 	chatter msgv1.ChatServiceClient
 )
 
-func Init(c *config.Config) {
+func InitMsger(c *config.Config) {
 	chatter = xgrpc.NewRecoverableClient(c.Backend.Msger,
 		msgv1.NewChatServiceClient,
 		func(cc msgv1.ChatServiceClient) {
 			chatter = cc
 		})
+}
+
+func Chatter() msgv1.ChatServiceClient {
+	return chatter
 }

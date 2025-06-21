@@ -195,21 +195,40 @@ func (s *ChatServiceServer) ListChat(ctx context.Context, in *p2pv1.ListChatRequ
 
 	result := make([]*p2pv1.Chat, 0, len(chats))
 	for _, c := range chats {
-		result = append(result, &p2pv1.Chat{
-			ChatId:        c.ChatId,
-			UserId:        c.UserId,
-			PeerId:        c.PeerId,
-			Unread:        c.Unread,
-			LastMsgId:     c.LastMsgId,
-			LastMsgSeq:    c.LastMsgSeq,
-			LastReadMsgId: c.LastReadMsgId,
-			LastReadTime:  c.LastReadTime,
-			LastMsg:       makePbMessage(c.LastMsg),
-		})
+		result = append(result, makeChatFromBiz(c))
 	}
 
 	return &p2pv1.ListChatResponse{
 		Chats:   result,
 		NextSeq: nextSeq,
 	}, nil
+}
+
+func (s *ChatServiceServer) GetChat(ctx context.Context, in *p2pv1.GetChatRequest) (*p2pv1.GetChatResponse, error) {
+	if in.ChatId == 0 {
+		return nil, global.ErrP2PChatNotExist
+	}
+
+	chat, err := s.Svc.P2PChatSrv.GetChat(ctx, in.UserId, in.ChatId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &p2pv1.GetChatResponse{
+		Chat: makeChatFromBiz(chat),
+	}, nil
+}
+
+func makeChatFromBiz(c *bizp2p.Chat) *p2pv1.Chat {
+	return &p2pv1.Chat{
+		ChatId:        c.ChatId,
+		UserId:        c.UserId,
+		PeerId:        c.PeerId,
+		Unread:        c.Unread,
+		LastMsgId:     c.LastMsgId,
+		LastMsgSeq:    c.LastMsgSeq,
+		LastReadMsgId: c.LastReadMsgId,
+		LastReadTime:  c.LastReadTime,
+		LastMsg:       makePbMessage(c.LastMsg),
+	}
 }

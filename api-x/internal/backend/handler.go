@@ -2,6 +2,7 @@ package backend
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/comment"
+	"github.com/ryanreadbooks/whimer/api-x/internal/backend/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/msg"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/note"
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
@@ -22,11 +23,7 @@ type Handler struct {
 }
 
 func Init(c *config.Config) {
-	passport.Init(c)
-	note.Init(c)
-	comment.Init(c)
-	relation.Init(c)
-	msg.Init(c)
+	infra.Init(c)
 }
 
 func NewHandler(c *config.Config) *Handler {

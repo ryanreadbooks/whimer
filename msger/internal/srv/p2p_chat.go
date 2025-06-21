@@ -7,8 +7,12 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/msger/internal/biz"
 	bizp2p "github.com/ryanreadbooks/whimer/msger/internal/biz/p2p"
+	"github.com/ryanreadbooks/whimer/msger/internal/global"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra/dep"
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	pushv1 "github.com/ryanreadbooks/whimer/wslink/api/push/v1"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type P2PChatSrv struct {
@@ -23,7 +27,24 @@ func NewP2PChatSrv(biz biz.Biz) *P2PChatSrv {
 
 // 两个用户创建会话
 func (s *P2PChatSrv) CreateChat(ctx context.Context, initer, target int64) (int64, error) {
-	// TODO 检查initer和target
+	eg, ctx2 := errgroup.WithContext(ctx)
+	for _, user := range []int64{initer, target} {
+		var userId = user
+		eg.Go(func() error {
+			resp, err := dep.Userer().HasUser(ctx2, &userv1.HasUserRequest{Uid: userId})
+			if err != nil {
+				return xerror.Wrapf(err, "get user failed").WithCtx(ctx)
+			}
+			if resp.GetHas() {
+				return nil
+			}
+			return global.ErrUserNotFound
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return 0, err
+	}
+
 	chatId, err := s.chatBiz.InitChat(ctx, initer, target)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "p2p chat srv failed to init chat").WithCtx(ctx)
@@ -36,7 +57,6 @@ func (s *P2PChatSrv) CreateChat(ctx context.Context, initer, target int64) (int6
 func (s *P2PChatSrv) SendMessage(ctx context.Context, req *bizp2p.CreateMsgReq) (
 	*bizp2p.ChatMsg, error) {
 	// TODO req检查，type和content的检查等
-
 	msg, err := s.chatBiz.CreateMsg(ctx, req)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "p2p chat srv failed to create msg").WithCtx(ctx)
@@ -165,4 +185,8 @@ func (s *P2PChatSrv) notifyReceiver(ctx context.Context, receiver int64) {
 	if err != nil {
 		xlog.Msgf("p2p chat failed to notify user %d", receiver).Err(err).Errorx(ctx)
 	}
+}
+
+func (s *P2PChatSrv) GetChat(ctx context.Context, userId, chatId int64) (*bizp2p.Chat, error) {
+	return s.chatBiz.GetChat(ctx, userId, chatId)
 }
