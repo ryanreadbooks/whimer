@@ -30,7 +30,7 @@ func (d *InboxDao) BatchCreate(ctx context.Context, msgs []*InboxMsgPO) error {
 		return nil
 	}
 
-	now := time.Now().UnixNano()
+	now := time.Now().UnixMicro()
 
 	err := slices.BatchExec(msgs, 100, func(start, end int) error {
 		datas := msgs[start:end]

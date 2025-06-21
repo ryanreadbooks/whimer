@@ -125,7 +125,7 @@ func (b *ChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg, e
 	}
 
 	msgId := int64(msgNo)
-	seq := time.Now().UnixNano()
+	seq := time.Now().UnixMicro()
 
 	msgPo := &p2pdao.MessagePO{
 		MsgId:    msgId,

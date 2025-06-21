@@ -49,7 +49,7 @@ const (
 //
 // 数据表中新建两条记录
 func (d *ChatDao) InitChat(ctx context.Context, chatId, userA, userB int64) error {
-	now := time.Now().UnixNano()
+	now := time.Now().UnixMicro()
 	ins1 := ChatPO{
 		ChatId: chatId,
 		Ctime:  now,
@@ -73,7 +73,7 @@ func (d *ChatDao) InitChat(ctx context.Context, chatId, userA, userB int64) erro
 // 插入一条记录
 func (d *ChatDao) Create(ctx context.Context, chat *ChatPO) (int64, error) {
 	if chat.Ctime == 0 {
-		chat.Ctime = time.Now().UnixNano()
+		chat.Ctime = time.Now().UnixMicro()
 	}
 
 	res, err := d.db.ExecCtx(ctx, sqlCreateChat,
@@ -175,7 +175,7 @@ func (d *ChatDao) UpdateMsg(ctx context.Context,
 	sql += " WHERE chat_id=? AND user_id=?"
 	_, err := d.db.ExecCtx(ctx,
 		sql,
-		lastMsgId, lastMsgSeq, lastReadMsgId, time.Now().UnixNano(),
+		lastMsgId, lastMsgSeq, lastReadMsgId, time.Now().UnixMicro(),
 		chatId, userId,
 	)
 	return xsql.ConvertError(err)
@@ -183,6 +183,6 @@ func (d *ChatDao) UpdateMsg(ctx context.Context,
 
 // 清除未读数
 func (d *ChatDao) ResetUnreadCount(ctx context.Context, chatId, userId int64) error {
-	_, err := d.db.ExecCtx(ctx, sqlResetUnreadCount, time.Now().UnixNano(), chatId, userId)
+	_, err := d.db.ExecCtx(ctx, sqlResetUnreadCount, time.Now().UnixMicro(), chatId, userId)
 	return xsql.ConvertError(err)
 }

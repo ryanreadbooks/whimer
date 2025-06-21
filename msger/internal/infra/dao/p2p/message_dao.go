@@ -27,7 +27,7 @@ func (d *MessageDao) DB() *xsql.DB {
 
 func (d *MessageDao) Create(ctx context.Context, msg *MessagePO) error {
 	if msg.Utime == 0 {
-		msg.Utime = time.Now().UnixNano()
+		msg.Utime = time.Now().UnixMicro()
 	}
 	sql := fmt.Sprintf("INSERT INTO p2p_message(%s) VALUES (%s)", insMsgFields, insMsgQst)
 	_, err := d.db.ExecCtx(ctx, sql,
@@ -80,6 +80,6 @@ func (d *MessageDao) BatchGetByChatIdMsgId(ctx context.Context, chatIds, msgIds 
 func (d *MessageDao) RevokeMsg(ctx context.Context, chatId, msgId int64) error {
 	sql := "UPDATE p2p_message SET status=?, utime=? WHERE chat_id=? AND msg_id=?"
 	_, err := d.db.ExecCtx(ctx, sql,
-		gm.MsgStatusRevoked, time.Now().UnixNano(), chatId, msgId)
+		gm.MsgStatusRevoked, time.Now().UnixMicro(), chatId, msgId)
 	return xsql.ConvertError(err)
 }
