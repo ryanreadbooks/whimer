@@ -72,6 +72,22 @@ func (d *InboxDao) ListMsg(ctx context.Context,
 	return msgIds, xsql.ConvertError(err)
 }
 
+// 删除某个用户在某个会话下收到的某条消息
+func (d *InboxDao) DeleteMsg(ctx context.Context, userId, chatId, msgId int64) error {
+	sql := "DELETE FROM p2p_inbox WHERE user_id=? AND chat_id=? AND msg_id=?"
+	_, err := d.db.ExecCtx(ctx, sql, userId, chatId, msgId)
+
+	return xsql.ConvertError(err)
+}
+
+// 删除某个用户某个会话所有消息
+func (d *InboxDao) DeleteMsgs(ctx context.Context, userId, chatId int64) error {
+	sql := "DELETE FROM p2p_inbox WHERE user_id=? AND chat_id=?"
+	_, err := d.db.ExecCtx(ctx, sql, userId, chatId)
+
+	return xsql.ConvertError(err)
+}
+
 // 更新状态为已读（不包含撤回）
 func (d *InboxDao) UpdateStatusToRead(ctx context.Context, userId, chatId int64) error {
 	sql := "UPDATE p2p_inbox SET status=? WHERE user_id=? AND chat_id=? AND status!=?"

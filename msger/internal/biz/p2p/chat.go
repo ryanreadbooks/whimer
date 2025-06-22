@@ -11,6 +11,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
+	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
 	gm "github.com/ryanreadbooks/whimer/msger/internal/global/model"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra"
 	p2pdao "github.com/ryanreadbooks/whimer/msger/internal/infra/dao/p2p"
@@ -39,15 +40,14 @@ const (
 	msgIdGenStep  = 1000
 )
 
-type ChatBiz struct {
-}
+type ChatBiz struct{}
 
 // 用户单对单会话领域
 func NewP2PChatBiz() ChatBiz {
 	return ChatBiz{}
 }
 
-// 两个用户开启会话, userA发起请求
+// 用户A发起对用户B的会话
 func (b *ChatBiz) InitChat(ctx context.Context, userA, userB int64) (int64, error) {
 	seqNo, err := dep.Idgen().GetId(ctx, chatIdGenKey, chatIdGenStep)
 	if err != nil {
@@ -55,24 +55,54 @@ func (b *ChatBiz) InitChat(ctx context.Context, userA, userB int64) (int64, erro
 	}
 
 	chatId := int64(seqNo)
-
-	err = infra.Dao().P2PChatDao.InitChat(ctx, chatId, userA, userB)
+	now := time.Now().UnixMicro()
+	_, err = infra.Dao().P2PChatDao.Create(ctx, &p2pdao.ChatPO{
+		ChatId: chatId,
+		Ctime:  now,
+		UserId: userA,
+		PeerId: userB,
+	})
 	if err != nil {
-		if !errors.Is(err, xsql.ErrDuplicate) {
-			return 0, xerror.Wrapf(err, "p2p biz failed to init chat").
-				WithExtras("userA", userA, "userB", userB).
-				WithCtx(ctx)
-		}
-
-		// 会话已经创建了 直接查出来
-		cid, err := b.GetChatIdByUsers(ctx, userA, userB)
-		if err != nil {
-			return 0, err
-		}
-		chatId = cid
+		return 0, xerror.Wrapf(err, "p2p biz failed to init chat").
+			WithExtras("userA", userA, "userB", userB).
+			WithCtx(ctx)
 	}
 
+	// 会话已经创建了 直接查出来
+	cid, err := b.GetChatIdByUsers(ctx, userA, userB)
+	if err != nil {
+		return 0, err
+	}
+	chatId = cid
+
 	return chatId, nil
+}
+
+// 删除用户的会话记录 并且删除该用户会话中的消息
+func (b *ChatBiz) DeleteChat(ctx context.Context, userId, chatId int64) error {
+	// delete chat
+	err := infra.Dao().DB().Transact(ctx, func(ctx context.Context) error {
+		err := infra.Dao().P2PChatDao.DeleteByUserIdChatId(ctx, userId, chatId)
+		if err != nil {
+			return xerror.Wrapf(err, "chat dao delete failed")
+		}
+
+		// delete msgs
+		err = infra.Dao().P2PInboxDao.DeleteMsgs(ctx, userId, chatId)
+		if err != nil {
+			return xerror.Wrapf(err, "inbox dao delete failed")
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return xerror.Wrapf(err, "chat biz failed to tx delete chat").
+			WithExtras("user_id", userId, "chat_id", chatId).
+			WithCtx(ctx)
+	}
+
+	return nil
 }
 
 // 获取两个用户的会话id
@@ -94,7 +124,7 @@ func (b *ChatBiz) GetChatIdByUsers(ctx context.Context, userA, userB int64) (int
 // 发送消息
 func (b *ChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg, error) {
 	// 检查会话是否存在
-	dualChats, err := infra.Dao().P2PChatDao.GetByChatId(ctx, req.ChatId)
+	chats, err := infra.Dao().P2PChatDao.GetByChatIdUserId(ctx, req.ChatId, req.Sender)
 	if err != nil {
 		if errors.Is(err, xsql.ErrNoRecord) {
 			return nil, xerror.Wrap(global.ErrP2PChatNotExist)
@@ -103,13 +133,9 @@ func (b *ChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg, e
 		return nil, xerror.Wrapf(err, "p2p biz failed to get chat").WithExtra("req", req).WithCtx(ctx)
 	}
 
-	if len(dualChats) == 0 {
-		return nil, xerror.Wrap(global.ErrP2PChatNotExist)
-	}
-
 	// 检查是否允许发送
 	// 检查用户是否在会话中
-	chatUid1, chatUid2 := dualChats[0].UserId, dualChats[0].PeerId
+	chatUid1, chatUid2 := chats.UserId, chats.PeerId
 	if (req.Sender == chatUid1 && req.Receiver != chatUid2) ||
 		(req.Sender == chatUid2 && req.Receiver != chatUid1) {
 		return nil, global.ErrUserNotInChat
@@ -139,6 +165,19 @@ func (b *ChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg, e
 	}
 
 	err = infra.Dao().DB().Transact(ctx, func(ctx context.Context) error {
+		// 检查另一个会话是否有创建
+		_, err := infra.Dao().P2PChatDao.GetByChatIdUserId(ctx, req.ChatId, req.Receiver)
+		if err != nil {
+			if errors.Is(err, xsql.ErrNoRecord) {
+				err := infra.Dao().P2PChatDao.InitChat(ctx, req.ChatId, req.Sender, req.Receiver)
+				if err != nil {
+					return xerror.Wrapf(err, "chat dao failed to create")
+				}
+			} else {
+				return xerror.Wrapf(err, "chat dao failed to get")
+			}
+		}
+
 		// 创建消息
 		err = infra.Dao().P2PMsgDao.Create(ctx, msgPo)
 		if err != nil {
@@ -160,7 +199,7 @@ func (b *ChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg, e
 			MsgSeq: seq,
 			Status: gm.InboxUnread,
 		}
-		err := infra.Dao().P2PInboxDao.BatchCreate(ctx, []*p2pdao.InboxMsgPO{&senderInbox, &receiverInbox})
+		err = infra.Dao().P2PInboxDao.BatchCreate(ctx, []*p2pdao.InboxMsgPO{&senderInbox, &receiverInbox})
 		if err != nil {
 			return xerror.Wrapf(err, "inbox dao failed to batch create")
 		}
@@ -242,6 +281,23 @@ func (b *ChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) ([]*ChatMsg, err
 	return b.getChatMsgByIds(ctx, userChat, req.UserId, boxMsgIds)
 }
 
+// 删除一条消息
+func (b *ChatBiz) DeleteMsg(ctx context.Context, userId, chatId, msgId int64) error {
+	_, err := b.getChatPO(ctx, userId, chatId)
+	if err != nil {
+		return xerror.Wrap(err)
+	}
+
+	err = infra.Dao().P2PInboxDao.DeleteMsg(ctx, userId, chatId, msgId)
+	if err != nil {
+		return xerror.Wrapf(err, "inbox dao failed to delete msg").
+			WithExtras("user_id", userId, "chat_id", chatId, "msg_id", msgId).
+			WithCtx(ctx)
+	}
+
+	return nil
+}
+
 // 查消息
 func (b *ChatBiz) getChatMsgByIds(ctx context.Context, chat *p2pdao.ChatPO,
 	userId int64, msgIds []int64) ([]*ChatMsg, error) {
@@ -304,7 +360,7 @@ func (b *ChatBiz) ClearUnreadCount(ctx context.Context, userId, chatId int64) er
 }
 
 // 撤回消息
-func (b *ChatBiz) RevokeMessage(ctx context.Context, userId, chatId, msgId int64) error {
+func (b *ChatBiz) RevokeMsg(ctx context.Context, userId, chatId, msgId int64) error {
 	// uid撤回chatId中msgId消息
 	logExtras := make([]any, 0, 4)
 	logExtras = append(logExtras, "chat_id", chatId, "msg_id", msgId, "user_id", userId)
@@ -323,6 +379,11 @@ func (b *ChatBiz) RevokeMessage(ctx context.Context, userId, chatId, msgId int64
 	}
 	if msgPo.Status == gm.MsgStatusRevoked {
 		return global.ErrMsgAlreadyRevoked
+	}
+
+	// 检查是否超时
+	if msgPo.Seq+model.MaxRevokeTime.Microseconds() < time.Now().UnixMicro() {
+		return global.ErrMsgRevokedTimeReached
 	}
 
 	// 撤回 改消息表和对应的inbox

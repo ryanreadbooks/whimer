@@ -10,16 +10,29 @@ import (
 func regChatRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 	g := group.Group("/msg", middleware.MustLogin())
 	{
-		v1g := g.Group("/v1")
+		v1Group := g.Group("/v1")
 		{
-			// 发起会话
-			v1g.Post("/chat/create", svc.Chat.CreateChat())
-			// 拉取消息列表
-			v1g.Get("/chat/list", svc.Chat.ListChats())
-			// 获取会话
-			v1g.Get("/chat", svc.Chat.GetChat())
-			// 拉消息
-			v1g.Get("/message/list", svc.Chat.ListMessages())
+			chatGroup := v1Group.Group("/chat")
+			{
+				// 获取会话
+				chatGroup.Get("", svc.Chat.GetChat())
+				// 发起会话
+				chatGroup.Post("/create", svc.Chat.CreateChat())
+				// 删除会话
+				chatGroup.Post("/delete", svc.Chat.DeleteChat())
+				// 拉取消息列表
+				chatGroup.Get("/list", svc.Chat.ListChats())
+			}
+
+			msgGroup := v1Group.Group("/message")
+			{
+				// 拉消息
+				msgGroup.Get("/list", svc.Chat.ListMessages())
+				// 发消息
+				msgGroup.Post("/send", svc.Chat.SendMessage())
+				// 删除消息
+				msgGroup.Post("/delete", svc.Chat.DeleteMessage())
+			}
 		}
 	}
 }

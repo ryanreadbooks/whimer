@@ -30,8 +30,8 @@ var (
 	initChatFields, initChatQuest = xsql.SelectFields2(_chatInst, "chat_id", "ctime", "user_id", "peer_id")
 	insChatFields, insChatQst     = xsql.GetFields2(_chatInst, "id") // for insert
 
-	sqlInitChat    = fmt.Sprintf("INSERT INTO p2p_chat(%s) VALUES (%s), (%s)", initChatFields, initChatQuest, initChatQuest)
-	sqlCreateChat  = fmt.Sprintf("INSERT INTO p2p_chat(%s) VALUES (%s)", insChatFields, insChatQst)
+	sqlInitChat    = fmt.Sprintf("INSERT IGNORE INTO p2p_chat(%s) VALUES (%s), (%s)", initChatFields, initChatQuest, initChatQuest)
+	sqlCreateChat  = fmt.Sprintf("INSERT IGNORE INTO p2p_chat(%s) VALUES (%s)", insChatFields, insChatQst)
 	sqlGetByChatId = fmt.Sprintf("SELECT %s FROM p2p_chat WHERE chat_id=?", chatFields)
 	sqlGetByUsers  = fmt.Sprintf(
 		"SELECT %s FROM p2p_chat WHERE (user_id=? AND peer_id=?) OR (user_id=? AND peer_id=?) LIMIT 1", chatFields)
@@ -93,6 +93,12 @@ func (d *ChatDao) Create(ctx context.Context, chat *ChatPO) (int64, error) {
 
 	newId, _ := res.LastInsertId()
 	return newId, nil
+}
+
+func (d *ChatDao) DeleteByUserIdChatId(ctx context.Context, userId, chatId int64) error {
+	sql := "DELETE FROM p2p_chat WHERE user_id=? AND chat_id=?"
+	_, err := d.db.ExecCtx(ctx, sql, userId, chatId)
+	return xsql.ConvertError(err)
 }
 
 // 按照会话id获取会话记录

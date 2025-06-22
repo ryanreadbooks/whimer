@@ -90,6 +90,21 @@ message GetChatRequest {
 
 message GetChatResponse { Chat chat = 1; }
 
+message DeleteChatRequest {
+  int64 chat_id = 1;
+  int64 user_id = 2;
+}
+
+message DeleteChatResponse {}
+
+message DeleteMessageRequest {
+  int64 chat_id = 1;
+  int64 msg_id = 2;
+  int64 user_id = 3;
+}
+
+message DeleteMessageResponse {}
+
 // p2p会话相关服务
 service ChatService {
   // 创建会话
@@ -108,4 +123,8 @@ service ChatService {
   rpc ListChat(ListChatRequest) returns (ListChatResponse);
   // 拉取会话
   rpc GetChat(GetChatRequest) returns (GetChatResponse);
+  // 删除会话
+  rpc DeleteChat(DeleteChatRequest) returns (DeleteChatResponse);
+  // 删除消息
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
 }

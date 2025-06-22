@@ -3,6 +3,7 @@ package msg
 import (
 	"net/http"
 
+	"github.com/ryanreadbooks/whimer/msger/api/msg"
 	msgv1 "github.com/ryanreadbooks/whimer/msger/api/p2p/v1"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/backend/infra"
@@ -110,12 +111,6 @@ func (h *Handler) GetChat() http.HandlerFunc {
 	}
 }
 
-type ListMessagesReq struct {
-	ChatId int64 `form:"chat_id"`
-	Seq    int64 `form:"seq,optional"`
-	Count  int   `form:"count,optional"`
-}
-
 // 拉消息列表
 func (h *Handler) ListMessages() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -139,5 +134,92 @@ func (h *Handler) ListMessages() http.HandlerFunc {
 		}
 
 		xhttp.OkJson(w, messages)
+	}
+}
+
+// 发消息
+func (h *Handler) SendMessage() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[SendMessageReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		ctx := r.Context()
+		sender := metadata.Uid(ctx)
+
+		// TODO check if sender can send msg to receiver
+
+		resp, err := infra.Chatter().SendMessage(ctx, &msgv1.SendMessageRequest{
+			Sender:   sender,
+			Receiver: req.Receiver,
+			ChatId:   req.ChatId,
+			Msg: &msg.MsgContent{
+				Type: msg.MsgType(req.MsgType),
+				Data: req.Content,
+			},
+		})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, resp)
+	}
+}
+
+// 删除会话
+func (h *Handler) DeleteChat() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[DeleteChatReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		ctx := r.Context()
+		uid := metadata.Uid(ctx)
+
+		// TODO check uid can delete chat or not
+
+		_, err = infra.Chatter().DeleteChat(ctx, &msgv1.DeleteChatRequest{
+			UserId: uid,
+			ChatId: req.ChatId,
+		})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, nil)
+	}
+}
+
+// 删除消息
+func (h *Handler) DeleteMessage() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[DeleteMessageReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		ctx := r.Context()
+		uid := metadata.Uid(ctx)
+
+		// TODO check uid can delete message or not
+
+		_, err = infra.Chatter().DeleteMessage(ctx, &msgv1.DeleteMessageRequest{
+			UserId: uid,
+			ChatId: req.ChatId,
+			MsgId:  req.MsgId,
+		})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, nil)
 	}
 }

@@ -4,13 +4,11 @@ import (
 	"context"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/msger/internal/biz"
 	bizp2p "github.com/ryanreadbooks/whimer/msger/internal/biz/p2p"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra/dep"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
-	pushv1 "github.com/ryanreadbooks/whimer/wslink/api/push/v1"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -25,13 +23,16 @@ func NewP2PChatSrv(biz biz.Biz) *P2PChatSrv {
 	}
 }
 
-// 两个用户创建会话
-func (s *P2PChatSrv) CreateChat(ctx context.Context, initer, target int64) (int64, error) {
-	eg, ctx2 := errgroup.WithContext(ctx)
-	for _, user := range []int64{initer, target} {
+func (s *P2PChatSrv) GetChat(ctx context.Context, userId, chatId int64) (*bizp2p.Chat, error) {
+	return s.chatBiz.GetChat(ctx, userId, chatId)
+}
+
+func (s *P2PChatSrv) checkUsers(ctx context.Context, uid1, uid2 int64) error {
+	eg, _ := errgroup.WithContext(ctx)
+	for _, user := range []int64{uid1, uid2} {
 		var userId = user
 		eg.Go(func() error {
-			resp, err := dep.Userer().HasUser(ctx2, &userv1.HasUserRequest{Uid: userId})
+			resp, err := dep.Userer().HasUser(ctx, &userv1.HasUserRequest{Uid: userId})
 			if err != nil {
 				return xerror.Wrapf(err, "get user failed").WithCtx(ctx)
 			}
@@ -42,6 +43,15 @@ func (s *P2PChatSrv) CreateChat(ctx context.Context, initer, target int64) (int6
 		})
 	}
 	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// 两个用户创建会话
+func (s *P2PChatSrv) CreateChat(ctx context.Context, initer, target int64) (int64, error) {
+	if err := s.checkUsers(ctx, initer, target); err != nil {
 		return 0, err
 	}
 
@@ -56,7 +66,11 @@ func (s *P2PChatSrv) CreateChat(ctx context.Context, initer, target int64) (int6
 // 单聊消息发送
 func (s *P2PChatSrv) SendMessage(ctx context.Context, req *bizp2p.CreateMsgReq) (
 	*bizp2p.ChatMsg, error) {
-	// TODO req检查，type和content的检查等
+	// 发送接收检查
+	if err := s.checkUsers(ctx, req.Sender, req.Receiver); err != nil {
+		return nil, err
+	}
+
 	msg, err := s.chatBiz.CreateMsg(ctx, req)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "p2p chat srv failed to create msg").WithCtx(ctx)
@@ -105,7 +119,7 @@ func (s *P2PChatSrv) RevokeMessage(ctx context.Context, userId, chatId, msgId in
 		return xerror.Wrapf(err, "p2p chat failed to get chat")
 	}
 
-	err = s.chatBiz.RevokeMessage(ctx, userId, chatId, msgId)
+	err = s.chatBiz.RevokeMsg(ctx, userId, chatId, msgId)
 	if err != nil {
 		return xerror.Wrapf(err, "p2p chat failed to revoke message")
 	}
@@ -176,17 +190,10 @@ func (s *P2PChatSrv) ListUnreadChat(ctx context.Context, userId, seq int64, coun
 	return nil, nextSeq, nil
 }
 
-func (s *P2PChatSrv) notifyReceiver(ctx context.Context, receiver int64) {
-	// 下发通知
-	_, err := dep.Notifier().Broadcast(ctx, &pushv1.BroadcastRequest{
-		Targets: []int64{receiver},
-		Data:    []byte("MSGER"),
-	})
-	if err != nil {
-		xlog.Msgf("p2p chat failed to notify user %d", receiver).Err(err).Errorx(ctx)
-	}
+func (s *P2PChatSrv) DeleteChat(ctx context.Context, userId, chatId int64) error {
+	return s.chatBiz.DeleteChat(ctx, userId, chatId)
 }
 
-func (s *P2PChatSrv) GetChat(ctx context.Context, userId, chatId int64) (*bizp2p.Chat, error) {
-	return s.chatBiz.GetChat(ctx, userId, chatId)
+func (s *P2PChatSrv) DeleteChatMessage(ctx context.Context, userId, chatId, msgId int64) error {
+	return s.chatBiz.DeleteMsg(ctx, userId, chatId, msgId)
 }

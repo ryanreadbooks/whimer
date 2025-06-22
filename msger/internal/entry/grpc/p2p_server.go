@@ -3,11 +3,13 @@ package grpc
 import (
 	"context"
 	"math"
+	"unicode/utf8"
 
 	pbmsg "github.com/ryanreadbooks/whimer/msger/api/msg"
 	p2pv1 "github.com/ryanreadbooks/whimer/msger/api/p2p/v1"
 	bizp2p "github.com/ryanreadbooks/whimer/msger/internal/biz/p2p"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
+	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
 	"github.com/ryanreadbooks/whimer/msger/internal/srv"
 )
 
@@ -39,26 +41,48 @@ func (s *ChatServiceServer) CreateChat(ctx context.Context, in *p2pv1.CreateChat
 	}, nil
 }
 
-func (s *ChatServiceServer) SendMessage(ctx context.Context, in *p2pv1.SendMessageRequest) (
-	*p2pv1.SendMessageResponse, error) {
+func validateMsgType(t pbmsg.MsgType) bool {
+	return t == pbmsg.MsgType_MSG_TYPE_TEXT || t == pbmsg.MsgType_MSG_TYPE_IMAGE
+}
 
+func validateSendMessageRequest(in *p2pv1.SendMessageRequest) error {
 	if in.Sender == 0 {
-		return nil, global.ErrP2PChatSenderEmpty
+		return global.ErrP2PChatSenderEmpty
 	}
 	if in.Receiver == 0 {
-		return nil, global.ErrP2PChatReceiverEmpty
+		return global.ErrP2PChatReceiverEmpty
 	}
 	if in.ChatId <= 0 {
-		return nil, global.ErrP2PChatNotExist
+		return global.ErrP2PChatNotExist
 	}
 	if in.Msg == nil {
-		return nil, global.ErrChatMsgNil
+		return global.ErrChatMsgNil
 	}
-	if in.Msg.Type == pbmsg.MsgType_MSG_TYPE_UNSPECIFIED {
-		return nil, global.ErrArgs.Msg("不支持的消息类型")
+	if !validateMsgType(in.Msg.Type) {
+		return global.ErrUnsupportedMsgType
 	}
-	if len(in.Msg.Data) == 0 {
-		return nil, global.ErrArgs.Msg("消息内容为空")
+
+	dataLen := utf8.RuneCountInString(in.Msg.Data)
+	if dataLen == 0 {
+		return global.ErrEmptyMsg
+	}
+	if in.Msg.Type == pbmsg.MsgType_MSG_TYPE_TEXT {
+		if dataLen > model.MaxTextLength {
+			return global.ErrArgs.Msg("消息长度太长")
+		}
+	} else if in.Msg.Type == pbmsg.MsgType_MSG_TYPE_IMAGE {
+		// check image is the right format
+		// TODO 会话中的图片是否应该限制其它用户访问？
+		return global.ErrUnsupportedMsgType
+	}
+
+	return nil
+}
+
+func (s *ChatServiceServer) SendMessage(ctx context.Context, in *p2pv1.SendMessageRequest) (
+	*p2pv1.SendMessageResponse, error) {
+	if err := validateSendMessageRequest(in); err != nil {
+		return nil, err
 	}
 
 	respMsg, err := s.Svc.P2PChatSrv.SendMessage(ctx, &bizp2p.CreateMsgReq{
@@ -76,25 +100,6 @@ func (s *ChatServiceServer) SendMessage(ctx context.Context, in *p2pv1.SendMessa
 		MsgId: respMsg.MsgId,
 		Seq:   respMsg.Seq,
 	}, nil
-}
-
-func makePbMessage(m *bizp2p.ChatMsg) *pbmsg.Message {
-	if m == nil {
-		return &pbmsg.Message{}
-	}
-
-	return &pbmsg.Message{
-		MsgId:    m.MsgId,
-		ChatId:   m.ChatId,
-		Sender:   m.Sender,
-		Receiver: m.Receiver,
-		Status:   m.Status,
-		Content: &pbmsg.MsgContent{
-			Type: m.Type,
-			Data: m.Content,
-		},
-		Seq: m.Seq,
-	}
 }
 
 func (s *ChatServiceServer) ListMessage(ctx context.Context, in *p2pv1.ListMessageRequest) (
@@ -231,4 +236,35 @@ func makeChatFromBiz(c *bizp2p.Chat) *p2pv1.Chat {
 		LastReadTime:  c.LastReadTime,
 		LastMsg:       makePbMessage(c.LastMsg),
 	}
+}
+
+// 删除会话
+func (s *ChatServiceServer) DeleteChat(ctx context.Context, in *p2pv1.DeleteChatRequest) (
+	*p2pv1.DeleteChatResponse, error) {
+	if err := checkChatIdUserId(in); err != nil {
+		return nil, err
+	}
+
+	if err := s.Svc.P2PChatSrv.DeleteChat(ctx, in.UserId, in.ChatId); err != nil {
+		return nil, err
+	}
+
+	return &p2pv1.DeleteChatResponse{}, nil
+}
+
+// 删除消息
+func (s *ChatServiceServer) DeleteMessage(ctx context.Context, in *p2pv1.DeleteMessageRequest) (
+	*p2pv1.DeleteMessageResponse, error) {
+	if err := checkChatIdUserId(in); err != nil {
+		return nil, err
+	}
+	if err := checkChatIdMsgId(in); err != nil {
+		return nil, err
+	}
+
+	if err := s.Svc.P2PChatSrv.DeleteChatMessage(ctx, in.UserId, in.ChatId, in.MsgId); err != nil {
+		return nil, err
+	}
+
+	return &p2pv1.DeleteMessageResponse{}, nil
 }
