@@ -1,9 +1,9 @@
-passport: cd passport && go run cmd/main.go -f etc/passport.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'
-counter: cd counter && go run cmd/main.go -f etc/counter.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'
-note: cd note && go run cmd/main.go -f etc/note.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'
-comment: cd comment && go run cmd/main.go -f etc/comment.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'
-relation: cd relation && go run cmd/main.go -f etc/relation.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'
-feed: cd feed && go run cmd/main.go -f etc/feed.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'
-msger: cd msger && go run cmd/main.go -f etc/msger.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'
-wslink: cd wslink && go run cmd/main.go -f etc/wslink.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'
-api-x: cd api-x && go run cmd/main.go -f etc/api-x.yaml 2>&1 | sed -e 's/\\n/\n/g; s/\\t/\t/g'
+passport: cd passport && go run cmd/main.go -f etc/passport.yaml
+counter: cd counter && go run cmd/main.go -f etc/counter.yaml
+note: cd note && go run cmd/main.go -f etc/note.yaml
+comment: cd comment && go run cmd/main.go -f etc/comment.yaml
+relation: cd relation && go run cmd/main.go -f etc/relation.yaml
+feed: cd feed && go run cmd/main.go -f etc/feed.yaml
+msger: cd msger && go run cmd/main.go -f etc/msger.yaml
+wslink: cd wslink && go run cmd/main.go -f etc/wslink.yaml
+api-x: cd api-x && go run cmd/main.go -f etc/api-x.yaml

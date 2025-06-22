@@ -1,6 +1,6 @@
 grpc:
   mode: dev
-  name: msger-grpc
+  name: msger-rpc
   listenon: 0.0.0.0:5678
   log:
     level: debug
@@ -8,6 +8,11 @@ grpc:
     hosts:
       - 127.0.0.1:2379
     key: whimer.msger.rpc
+  telemetry:
+    Name: msger
+    Endpoint: http://127.0.0.1:14268/api/traces
+    Sampler: 1.0
+    Batcher: jaeger
 
 mysql:
   user: ${ENV_DB_USER}

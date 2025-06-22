@@ -7,10 +7,15 @@ http:
   port: 7777
   log:
     level: debug
+  telemetry:
+    Name: passport
+    Endpoint: http://127.0.0.1:14268/api/traces
+    Sampler: 1.0
+    Batcher: jaeger
 
 grpc:
   mode: dev
-  name: passport-grpc
+  name: passport-rpc
   listenon: 0.0.0.0:7778
   log:
     level: debug
@@ -18,6 +23,11 @@ grpc:
     hosts:
       - 127.0.0.1:2379
     key: whimer.passport.rpc
+  telemetry:
+    Name: passport
+    Endpoint: http://127.0.0.1:14268/api/traces
+    Sampler: 1.0
+    Batcher: jaeger
 
 mysql:
   user: ${ENV_DB_USER}

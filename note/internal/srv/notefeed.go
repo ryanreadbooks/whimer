@@ -38,7 +38,6 @@ func NewNoteFeedSrv(ctx *Service, biz biz.Biz) *NoteFeedSrv {
 }
 
 // 信息流随机获取最多count条笔记
-// TODO (refactor me in biz)
 func (s *NoteFeedSrv) FeedRandomGet(ctx context.Context, count int32) (*model.Notes, error) {
 	return s.randomGet(ctx, int(count))
 }
@@ -52,7 +51,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 	)
 
 	wg.Add(1)
-	concurrent.DoneIn(time.Second*10, func(sCtx context.Context) {
+	concurrent.DoneInCtx(ctx, time.Second*10, func(sCtx context.Context) {
 		defer wg.Done()
 		//  TODO optimize by using local cache
 		id, sErr := infra.Dao().NoteDao.GetPublicLastId(sCtx)

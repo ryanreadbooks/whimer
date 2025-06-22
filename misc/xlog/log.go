@@ -18,17 +18,6 @@ const (
 	errorFn logFnType = 4
 )
 
-var (
-	logger logx.Logger = logx.WithCallerSkip(2)
-
-	fns = map[logFnType]logFn{
-		debugFn: logger.Debugw,
-		infoFn:  logger.Infow,
-		slowFn:  logger.Sloww,
-		errorFn: logger.Errorw,
-	}
-)
-
 type LogItem struct {
 	level  logFnType
 	ctx    context.Context
@@ -96,12 +85,27 @@ func (l *LogItem) ExtraMap(ext map[string]any) *LogItem {
 	return l
 }
 
-func (l *LogItem) Do() {
+func (l *LogItem) doLog() {
 	if l == nil {
 		return
 	}
 
-	fn := fns[l.level]
+	logger := logx.WithCallerSkip(2)
+	if l.ctx != nil {
+		logger = logger.WithContext(l.ctx)
+	}
+
+	var fn logFn = logger.Infow
+	switch l.level {
+	case debugFn:
+		fn = logger.Debugw
+	case infoFn:
+		fn = logger.Infow
+	case slowFn:
+		fn = logger.Infow
+	case errorFn:
+		fn = logger.Errorw
+	}
 
 	fields := make([]logx.LogField, 0, 3)
 	if l.ctx != nil {
@@ -290,7 +294,7 @@ func (l *LogItem) Debugx(ctx context.Context) {
 	}
 	l.ctx = ctx
 	l.level = debugFn
-	l.Do()
+	l.doLog()
 }
 
 func (l *LogItem) Infox(ctx context.Context) {
@@ -299,7 +303,7 @@ func (l *LogItem) Infox(ctx context.Context) {
 	}
 	l.ctx = ctx
 	l.level = infoFn
-	l.Do()
+	l.doLog()
 }
 
 func (l *LogItem) Errorx(ctx context.Context) {
@@ -308,7 +312,7 @@ func (l *LogItem) Errorx(ctx context.Context) {
 	}
 	l.ctx = ctx
 	l.level = errorFn
-	l.Do()
+	l.doLog()
 }
 
 func (l *LogItem) Slowx(ctx context.Context) {
@@ -317,7 +321,7 @@ func (l *LogItem) Slowx(ctx context.Context) {
 	}
 	l.ctx = ctx
 	l.level = slowFn
-	l.Do()
+	l.doLog()
 }
 
 func (l *LogItem) Debug() {
@@ -325,7 +329,7 @@ func (l *LogItem) Debug() {
 		return
 	}
 	l.level = debugFn
-	l.Do()
+	l.doLog()
 }
 
 func (l *LogItem) Info() {
@@ -333,7 +337,7 @@ func (l *LogItem) Info() {
 		return
 	}
 	l.level = infoFn
-	l.Do()
+	l.doLog()
 }
 
 func (l *LogItem) Error() {
@@ -341,7 +345,7 @@ func (l *LogItem) Error() {
 		return
 	}
 	l.level = errorFn
-	l.Do()
+	l.doLog()
 }
 
 func (l *LogItem) Slow() {
@@ -349,5 +353,5 @@ func (l *LogItem) Slow() {
 		return
 	}
 	l.level = slowFn
-	l.Do()
+	l.doLog()
 }
