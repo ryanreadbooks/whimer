@@ -44,3 +44,16 @@ func Test_AESEncryptorFixNonce(t *testing.T) {
 	t.Log(err)
 	t.Log(plain)
 }
+
+func Test_AESEncryptorMd5Nonce(t *testing.T) {
+	encryptor, err := NewAes256GCMEncryptor("7a9d41b8c05f3e26a1b9d07c8f6e3a5d", WithMd5Nonce())
+	t.Log(err)
+	ctx := context.Background()
+	c, err := encryptor.Encrypt(ctx, "123723")
+	t.Log(err)
+	t.Log(c)
+
+	plain, err := encryptor.Decrypt(ctx, c)
+	t.Log(err)
+	t.Log(plain)
+}

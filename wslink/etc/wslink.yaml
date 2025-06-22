@@ -8,7 +8,7 @@ http:
 
 grpc:
   mode: dev
-  name: wslink-grpc
+  name: wslink-rpc
   listenon: 0.0.0.0:10008
   log:
     level: debug
@@ -16,6 +16,11 @@ grpc:
     hosts:
       - 127.0.0.1:2379
     key: whimer.wslink.rpc
+  telemetry:
+    Name: wslink
+    Endpoint: http://127.0.0.1:14268/api/traces
+    Sampler: 1.0
+    Batcher: jaeger
 
 ws_server:
   read_timeout: 300s

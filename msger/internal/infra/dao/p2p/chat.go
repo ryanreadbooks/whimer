@@ -1,7 +1,5 @@
 package p2p
 
-import "github.com/ryanreadbooks/whimer/misc/xsql"
-
 type ChatPO struct {
 	Id                int64 `db:"id"`
 	ChatId            int64 `db:"chat_id"`
@@ -15,9 +13,3 @@ type ChatPO struct {
 	LastReadTime      int64 `db:"last_read_time"`       // 消除未读数的时间
 }
 
-var (
-	_chatInst = &ChatPO{}
-
-	chatFields                = xsql.GetFields(_chatInst)
-	insChatFields, insChatQst = xsql.GetFields2(_chatInst, "id") // for insert
-)

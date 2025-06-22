@@ -7,7 +7,6 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/global"
 	"github.com/ryanreadbooks/whimer/comment/internal/model"
 	"github.com/ryanreadbooks/whimer/comment/internal/srv"
-
 )
 
 type ReplyServiceServer struct {
@@ -18,7 +17,7 @@ type ReplyServiceServer struct {
 
 func NewReplyServiceServer(ctx *srv.Service) *ReplyServiceServer {
 	return &ReplyServiceServer{
-		Svc:       ctx,
+		Svc: ctx,
 	}
 }
 
@@ -149,6 +148,27 @@ func (s *ReplyServiceServer) PageGetSubReply(ctx context.Context,
 	}, nil
 }
 
+func (s *ReplyServiceServer) PageGetSubReplyV2(ctx context.Context,
+	in *commentv1.PageGetSubReplyV2Request) (*commentv1.PageGetSubReplyV2Response, error) {
+	if in.Page <= 0 {
+		in.Page = 1
+	}
+
+	if in.Count >= 10 {
+		in.Count = 10
+	}
+
+	resp, total, err := s.Svc.CommentSrv.PageListSubReplies(ctx, in.Oid, in.RootId, int(in.Page), int(in.Count))
+	if err != nil {
+		return nil, err
+	}
+
+	return &commentv1.PageGetSubReplyV2Response{
+		Replies: model.ItemsAsPbs(resp),
+		Total:   total,
+	}, nil
+}
+
 func (s *ReplyServiceServer) PageGetDetailedReply(ctx context.Context,
 	in *commentv1.PageGetDetailedReplyRequest) (*commentv1.PageGetDetailedReplyResponse, error) {
 	resp, err := s.Svc.CommentSrv.PageGetObjectReplies(ctx, in.Oid, in.Cursor, int8(in.SortBy))
@@ -158,6 +178,20 @@ func (s *ReplyServiceServer) PageGetDetailedReply(ctx context.Context,
 
 	return &commentv1.PageGetDetailedReplyResponse{
 		Replies:    model.DetailedItemsAsPbs(resp.Items),
+		NextCursor: resp.NextCursor,
+		HasNext:    resp.HasNext,
+	}, nil
+}
+
+func (s *ReplyServiceServer) PageGetDetailedReplyV2(ctx context.Context,
+	in *commentv1.PageGetDetailedReplyV2Request) (*commentv1.PageGetDetailedReplyV2Response, error) {
+	resp, err := s.Svc.CommentSrv.PageGetObjectRepliesV2(ctx, in.Oid, in.Cursor, int8(in.SortBy))
+	if err != nil {
+		return nil, err
+	}
+
+	return &commentv1.PageGetDetailedReplyV2Response{
+		Replies:    model.DetailedItemsV2AsPbs(resp.Items),
 		NextCursor: resp.NextCursor,
 		HasNext:    resp.HasNext,
 	}, nil

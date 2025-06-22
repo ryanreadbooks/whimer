@@ -1,4 +1,4 @@
-package xlog_test
+package xlog
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
-	"github.com/ryanreadbooks/whimer/misc/xlog"
 )
 
 var (
@@ -19,16 +18,16 @@ func TestMain(m *testing.M) {
 }
 
 func TestLog(t *testing.T) {
-	xlog.Debugx(ctx, "hello test").Do()
-	xlog.Infox(ctx, "你好").Err(errors.New("new err")).Do()
-	xlog.Errorx(ctx, "failure").Err(nil).Extra("hello", "world").Extra("hi", "world").
-		Field("trace", "test").Field("wanner", "back").Do()
+	Debugx(ctx, "hello test").doLog()
+	Infox(ctx, "你好").Err(errors.New("new err")).doLog()
+	Errorx(ctx, "failure").Err(nil).Extra("hello", "world").Extra("hi", "world").
+		Field("trace", "test").Field("wanner", "back").doLog()
 }
 
 func TestLogV2(t *testing.T) {
-	xlog.Err(errors.New("debug err")).Debug()
-	xlog.Err(errors.New("debug err2")).Debugx(ctx)
-	xlog.Err(errors.New("debug err")).Debug()
-	xlog.Err(errors.New("debug err2")).Extra("oid", 100).Extra("nihao", "yes").Field("trace", "100").Error()
-	xlog.Err(errors.New("debug err2")).Extra("oid", 100).Extra("nihao", "yes").Field("trace", "100").Errorx(ctx)
+	Err(errors.New("debug err")).Debug()
+	Err(errors.New("debug err2")).Debugx(ctx)
+	Err(errors.New("debug err")).Debug()
+	Err(errors.New("debug err2")).Extra("oid", 100).Extra("nihao", "yes").Field("trace", "100").Error()
+	Err(errors.New("debug err2")).Extra("oid", 100).Extra("nihao", "yes").Field("trace", "100").Errorx(ctx)
 }

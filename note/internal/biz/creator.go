@@ -25,26 +25,14 @@ import (
 )
 
 // 笔记相关
-type NoteCreatorBiz interface {
-	// 创作者相关
-	CreateNote(ctx context.Context, note *model.CreateNoteRequest) (uint64, error)
-	UpdateNote(ctx context.Context, note *model.UpdateNoteRequest) error
-	DeleteNote(ctx context.Context, note *model.DeleteNoteRequest) error
-	GetNote(ctx context.Context, noteId uint64) (*model.Note, error)
-	ListNote(ctx context.Context) (*model.Notes, error)
-	PageListNote(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error)
-	// Deprecated: GetUploadAuth is deprecated, use GetUploadAuthSTS instead
-	GetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error)
-	GetUploadAuthSTS(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthSTSResponse, error)
-}
-
-type noteCreatorBiz struct {
-	noteBiz
+// 创作者相关
+type NoteCreatorBiz struct {
+	NoteBiz
 	OssKeyGen *keygen.Generator
 }
 
 func NewNoteCreatorBiz() NoteCreatorBiz {
-	b := &noteCreatorBiz{
+	b := NoteCreatorBiz{
 		OssKeyGen: keygen.NewGenerator(
 			keygen.WithBucket(config.Conf.Oss.Bucket),
 			keygen.WithPrefix(config.Conf.Oss.Prefix),
@@ -55,7 +43,7 @@ func NewNoteCreatorBiz() NoteCreatorBiz {
 	return b
 }
 
-func (b *noteCreatorBiz) CreateNote(ctx context.Context, note *model.CreateNoteRequest) (uint64, error) {
+func (b *NoteCreatorBiz) CreateNote(ctx context.Context, note *model.CreateNoteRequest) (uint64, error) {
 	var (
 		uid    = metadata.Uid(ctx)
 		noteId uint64
@@ -90,7 +78,7 @@ func (b *noteCreatorBiz) CreateNote(ctx context.Context, note *model.CreateNoteR
 	return noteId, nil
 }
 
-func (b *noteCreatorBiz) UpdateNote(ctx context.Context, note *model.UpdateNoteRequest) error {
+func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, note *model.UpdateNoteRequest) error {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -138,7 +126,7 @@ func (b *noteCreatorBiz) UpdateNote(ctx context.Context, note *model.UpdateNoteR
 	return nil
 }
 
-func (b *noteCreatorBiz) DeleteNote(ctx context.Context, note *model.DeleteNoteRequest) error {
+func (b *NoteCreatorBiz) DeleteNote(ctx context.Context, note *model.DeleteNoteRequest) error {
 	var (
 		uid    int64 = metadata.Uid(ctx)
 		noteId       = note.NoteId
@@ -164,7 +152,7 @@ func (b *noteCreatorBiz) DeleteNote(ctx context.Context, note *model.DeleteNoteR
 	return nil
 }
 
-func (b *noteCreatorBiz) CreatorGetNote(ctx context.Context, noteId uint64) (*model.Note, error) {
+func (b *NoteCreatorBiz) CreatorGetNote(ctx context.Context, noteId uint64) (*model.Note, error) {
 	var (
 		uid = metadata.Uid(ctx)
 		nid = noteId
@@ -190,7 +178,7 @@ func (b *noteCreatorBiz) CreatorGetNote(ctx context.Context, noteId uint64) (*mo
 	return res.Items[0], nil
 }
 
-func (b *noteCreatorBiz) ListNote(ctx context.Context) (*model.Notes, error) {
+func (b *NoteCreatorBiz) ListNote(ctx context.Context) (*model.Notes, error) {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -206,7 +194,7 @@ func (b *noteCreatorBiz) ListNote(ctx context.Context) (*model.Notes, error) {
 	return b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
 }
 
-func (b *noteCreatorBiz) PageListNote(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
+func (b *NoteCreatorBiz) PageListNote(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
 	var (
 		uid      = metadata.Uid(ctx)
 		nextPage = model.PageResult{}
@@ -245,11 +233,11 @@ func (b *noteCreatorBiz) PageListNote(ctx context.Context, cursor uint64, count 
 	return notesResp, nextPage, nil
 }
 
-func (b *noteCreatorBiz) GetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {
+func (b *NoteCreatorBiz) GetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {
 	return nil, xerror.Wrap(global.ErrPermDenied.Msg("服务器签名失败"))
 }
 
-func (b *noteCreatorBiz) GetUploadAuthSTS(ctx context.Context,
+func (b *NoteCreatorBiz) GetUploadAuthSTS(ctx context.Context,
 	req *model.UploadAuthRequest) (*model.UploadAuthSTSResponse, error) {
 	// 生成count个上传凭证
 	fileIds := make([]string, 0, req.Count)

@@ -3,6 +3,7 @@ package biz
 import (
 	"context"
 	"errors"
+	"math"
 
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
@@ -15,30 +16,16 @@ import (
 )
 
 // NoteBiz作为最基础的biz可以被其它biz依赖，其它biz之间不能相互依赖
-type NoteBiz interface {
-	// 获取笔记基础信息
-	GetNote(ctx context.Context, noteId uint64) (*model.Note, error)
-	// 获取用户最近发布的笔记
-	GetUserRecentNote(ctx context.Context, uid int64, count int32) (*model.Notes, error)
-	// 获取公开的笔记基础信息
-	GetPublicNote(ctx context.Context, noteId uint64) (*model.Note, error)
-	// 判断笔记是否存在
-	IsNoteExist(ctx context.Context, noteId uint64) (bool, error)
-	// 获取笔记作者
-	GetNoteOwner(ctx context.Context, noteId uint64) (int64, error)
-	// 组装笔记信息，主要是填充asset
-	AssembleNotes(ctx context.Context, notes []*model.Note) (*model.Notes, error)
-}
-
-type noteBiz struct {
+type NoteBiz struct {
 }
 
 func NewNoteBiz() NoteBiz {
-	b := &noteBiz{}
+	b := NoteBiz{}
 	return b
 }
 
-func (b *noteBiz) GetNote(ctx context.Context, noteId uint64) (*model.Note, error) {
+// 获取笔记基础信息
+func (b *NoteBiz) GetNote(ctx context.Context, noteId uint64) (*model.Note, error) {
 	note, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
 	if err != nil {
 		if xsql.IsNotFound(err) {
@@ -55,7 +42,8 @@ func (b *noteBiz) GetNote(ctx context.Context, noteId uint64) (*model.Note, erro
 	return resp.Items[0], nil
 }
 
-func (b *noteBiz) GetUserRecentNote(ctx context.Context, uid int64, count int32) (*model.Notes, error) {
+// 获取用户最近发布的笔记
+func (b *NoteBiz) GetUserRecentNote(ctx context.Context, uid int64, count int32) (*model.Notes, error) {
 	notes, err := infra.Dao().NoteDao.GetRecentPublicPosted(ctx, uid, count)
 	if err != nil {
 		if xsql.IsNotFound(err) {
@@ -74,7 +62,39 @@ func (b *noteBiz) GetUserRecentNote(ctx context.Context, uid int64, count int32)
 	return resp, nil
 }
 
-func (b *noteBiz) GetPublicNote(ctx context.Context, noteId uint64) (*model.Note, error) {
+func (b *NoteBiz) ListUserPublicNote(ctx context.Context, uid int64, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
+	var pageResult = model.PageResult{}
+	if cursor == 0 {
+		cursor = math.MaxUint64
+	}
+
+	notes, err := infra.Dao().NoteDao.ListPublicByOwnerByCursor(ctx, uid, cursor, count)
+	if err != nil {
+		if xsql.IsNotFound(err) {
+			return &model.Notes{}, pageResult, nil
+		}
+
+		return nil, pageResult, xerror.Wrapf(err, "biz list notes failed").WithExtras("uid", uid, "count", count).WithCtx(ctx)
+	}
+
+	resp, err := b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
+	if err != nil {
+		return nil, pageResult, xerror.Wrapf(err, "biz assemble notes failed when get recent notes").
+			WithExtras("uid", uid, "count", count).WithCtx(ctx)
+	}
+
+	// 计算下一次请求的游标位置
+	if len(notes) > 0 {
+		pageResult.NextCursor = notes[len(notes)-1].Id
+		if len(notes) == int(count) {
+			pageResult.HasNext = true
+		}
+	}
+
+	return resp, pageResult, nil
+}
+
+func (b *NoteBiz) GetPublicNote(ctx context.Context, noteId uint64) (*model.Note, error) {
 	note, err := b.GetNote(ctx, noteId)
 	if err != nil {
 		return nil, err
@@ -87,7 +107,8 @@ func (b *noteBiz) GetPublicNote(ctx context.Context, noteId uint64) (*model.Note
 	return note, nil
 }
 
-func (b *noteBiz) IsNoteExist(ctx context.Context, noteId uint64) (bool, error) {
+// 判断笔记是否存在
+func (b *NoteBiz) IsNoteExist(ctx context.Context, noteId uint64) (bool, error) {
 	if noteId <= 0 {
 		return false, nil
 	}
@@ -103,7 +124,8 @@ func (b *noteBiz) IsNoteExist(ctx context.Context, noteId uint64) (bool, error) 
 	return true, nil
 }
 
-func (b *noteBiz) GetNoteOwner(ctx context.Context, noteId uint64) (int64, error) {
+// 获取笔记作者
+func (b *NoteBiz) GetNoteOwner(ctx context.Context, noteId uint64) (int64, error) {
 	n, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
 	if err != nil {
 		if !xsql.IsNotFound(err) {
@@ -117,7 +139,7 @@ func (b *noteBiz) GetNoteOwner(ctx context.Context, noteId uint64) (int64, error
 
 // 组装笔记信息
 // 笔记的资源数据，点赞等
-func (b *noteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*model.Notes, error) {
+func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*model.Notes, error) {
 	var noteIds = make([]uint64, 0, len(notes))
 	for _, n := range notes {
 		noteIds = append(noteIds, n.NoteId)

@@ -1,4 +1,4 @@
-package note
+package infra
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
@@ -13,7 +13,7 @@ var (
 	noteInteract notev1.NoteInteractServiceClient
 )
 
-func Init(c *config.Config) {
+func InitNote(c *config.Config) {
 	noteCreator = xgrpc.NewRecoverableClient(c.Backend.Note,
 		notev1.NewNoteCreatorServiceClient,
 		func(cc notev1.NoteCreatorServiceClient) { noteCreator = cc })

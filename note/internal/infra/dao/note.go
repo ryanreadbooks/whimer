@@ -28,6 +28,10 @@ const (
 	sqlGetAll              = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE privacy=?"
 	sqlGetCount            = "SELECT COUNT(*) FROM note WHERE privacy=?"
 	sqlCountByUid          = "SELECT COUNT(*) FROM note WHERE owner=?"
+
+	sqlListWithPrivacyByOwnerByCursor = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note " +
+		"WHERE owner=? AND id<? AND privacy=? " +
+		"ORDER BY create_at DESC, id DESC LIMIT ?"
 )
 
 type NoteDao struct {
@@ -81,6 +85,16 @@ func (r *NoteDao) ListByOwner(ctx context.Context, uid int64) ([]*Note, error) {
 func (r *NoteDao) ListByOwnerByCursor(ctx context.Context, uid int64, cursor uint64, limit int32) ([]*Note, error) {
 	res := make([]*Note, 0, limit)
 	err := r.db.QueryRowsCtx(ctx, &res, sqlListByOwnerByCursor, uid, cursor, limit)
+	if err != nil {
+		return nil, xerror.Wrap(xsql.ConvertError(err))
+	}
+
+	return res, nil
+}
+
+func (r *NoteDao) ListPublicByOwnerByCursor(ctx context.Context, uid int64, cursor uint64, limit int32) ([]*Note, error) {
+	res := make([]*Note, 0, limit)
+	err := r.db.QueryRowsCtx(ctx, &res, sqlListWithPrivacyByOwnerByCursor, uid, cursor, global.PrivacyPublic, limit)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}

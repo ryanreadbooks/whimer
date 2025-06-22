@@ -71,3 +71,27 @@ func (s *NoteFeedServiceServer) GetUserRecentPost(ctx context.Context, in *notev
 
 	return &notev1.GetUserRecentPostResponse{Items: items}, nil
 }
+
+// 列出用户公开的笔记
+func (s *NoteFeedServiceServer) ListFeedByUid(ctx context.Context, in *notev1.ListFeedByUidRequest) (
+	*notev1.ListFeedByUidResponse, error) {
+	if in.Count > 20 {
+		in.Count = 20
+	}
+
+	resp, page, err := s.Srv.NoteFeedSrv.ListUserPublicNotes(ctx, in.Uid, in.Cursor, in.Count)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]*notev1.FeedNoteItem, 0, len(resp.Items))
+	for _, item := range resp.Items {
+		items = append(items, item.AsFeedPb())
+	}
+
+	return &notev1.ListFeedByUidResponse{
+		Items:      items,
+		NextCursor: page.NextCursor,
+		HasNext:    page.HasNext,
+	}, nil
+}

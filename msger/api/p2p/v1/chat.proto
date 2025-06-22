@@ -16,6 +16,7 @@ message Chat {
   int64 last_msg_seq = 6;
   int64 last_read_msg_id = 7;
   int64 last_read_time = 8;
+  msger.api.msg.Message last_msg = 9;
 }
 
 message CreateChatRequest {
@@ -82,6 +83,28 @@ message ListChatResponse {
   int64 next_seq = 2;
 }
 
+message GetChatRequest {
+  int64 chat_id = 1;
+  int64 user_id = 2;
+}
+
+message GetChatResponse { Chat chat = 1; }
+
+message DeleteChatRequest {
+  int64 chat_id = 1;
+  int64 user_id = 2;
+}
+
+message DeleteChatResponse {}
+
+message DeleteMessageRequest {
+  int64 chat_id = 1;
+  int64 msg_id = 2;
+  int64 user_id = 3;
+}
+
+message DeleteMessageResponse {}
+
 // p2p会话相关服务
 service ChatService {
   // 创建会话
@@ -98,4 +121,10 @@ service ChatService {
   rpc RevokeMessage(RevokeMessageRequest) returns (RevokeMessageResponse);
   // 列出用户单聊会话
   rpc ListChat(ListChatRequest) returns (ListChatResponse);
+  // 拉取会话
+  rpc GetChat(GetChatRequest) returns (GetChatResponse);
+  // 删除会话
+  rpc DeleteChat(DeleteChatRequest) returns (DeleteChatResponse);
+  // 删除消息
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
 }

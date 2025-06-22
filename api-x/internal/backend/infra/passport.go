@@ -1,4 +1,4 @@
-package passport
+package infra
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
@@ -13,7 +13,7 @@ var (
 	err    error
 )
 
-func Init(c *config.Config) {
+func InitPassport(c *config.Config) {
 	auther = auth.MustAuther(c.Backend.Passport)
 	userer = xgrpc.NewRecoverableClient(c.Backend.Passport, userv1.NewUserServiceClient, func(cc userv1.UserServiceClient) { userer = cc })
 }

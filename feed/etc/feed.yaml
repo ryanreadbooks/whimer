@@ -5,6 +5,11 @@ http:
   port: 8082
   log:
     level: debug
+  telemetry:
+    Name: feed
+    Endpoint: http://127.0.0.1:14268/api/traces
+    Sampler: 1.0
+    Batcher: jaeger
 
 backend:
   note:

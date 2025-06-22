@@ -112,6 +112,18 @@ message PageGetSubReplyResponse {
   bool has_next = 3;
 }
 
+message PageGetSubReplyV2Request {
+  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
+  uint64 root_id = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 主评论id
+  int32 page = 3;
+  int32 count = 4;
+}
+
+message PageGetSubReplyV2Response {
+  repeated ReplyItem replies = 1;
+  int64 total = 2;
+}
+
 // 代表主评论的子评论信息
 message DetailedSubReply {
   repeated ReplyItem items = 1; // 子评论的信息
@@ -133,6 +145,30 @@ message PageGetDetailedReplyRequest {
 
 message PageGetDetailedReplyResponse {
   repeated DetailedReplyItem replies = 1; // 主评论
+  uint64 next_cursor = 2;
+  bool has_next = 3;
+}
+
+message PageGetDetailedReplyV2Request {
+  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ];
+  uint64 cursor = 2;    // 起始游标
+  SortType sort_by = 3; // 排序方式
+}
+
+// 代表主评论的子评论信息
+message DetailedSubReplyV2 {
+  repeated ReplyItem items = 1; // 子评论的信息
+  int64 total = 2;              // 子评论总数量
+}
+
+// 详细的主评论的详细信息，会包含子评论
+message DetailedReplyItemV2 {
+  ReplyItem root = 1;                 // 主评论本身的信息
+  DetailedSubReplyV2 sub_replies = 2; // 子评论的信息
+}
+
+message PageGetDetailedReplyV2Response {
+  repeated DetailedReplyItemV2 replies = 1; // 主评论
   uint64 next_cursor = 2;
   bool has_next = 3;
 }
@@ -176,9 +212,15 @@ service ReplyService {
   rpc PageGetReply(PageGetReplyRequest) returns (PageGetReplyResponse);
   // 获取子评论信息
   rpc PageGetSubReply(PageGetSubReplyRequest) returns (PageGetSubReplyResponse);
+  // 分页获取子评论信息
+  rpc PageGetSubReplyV2(PageGetSubReplyV2Request)
+      returns (PageGetSubReplyV2Response);
   // 获取主评论详细信息
   rpc PageGetDetailedReply(PageGetDetailedReplyRequest)
       returns (PageGetDetailedReplyResponse);
+
+  rpc PageGetDetailedReplyV2(PageGetDetailedReplyV2Request)
+      returns (PageGetDetailedReplyV2Response);
   // 获取置顶评论
   rpc GetPinnedReply(GetPinnedReplyRequest) returns (GetPinnedReplyResponse);
   // 获取某个被评对象的评论数

@@ -17,6 +17,9 @@ func (c Discovery) AsZrpcClientConf() zrpc.RpcClientConf {
 			Hosts: c.Hosts,
 			Key:   c.Key,
 		},
+		Middlewares: zrpc.ClientMiddlewaresConf{
+			Trace: true,
+		},
 	}
 }
 

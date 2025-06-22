@@ -17,37 +17,19 @@ const (
 	DoLike   = 1 // 点赞
 )
 
-// 笔记互动
-type NoteInteractBiz interface {
-	// 点赞笔记
-	LikeNote(ctx context.Context, uid int64, noteId uint64, operation int) error
-	// 用户是否点赞笔记
-	CheckUserLikeStatus(ctx context.Context, uid int64, noteId uint64) (bool, error)
-	// 批量检查用户是否点赞笔记
-	BatchCheckUserLikeStatus(ctx context.Context, uidNoteIds map[int64][]uint64) (
-		map[int64][]*model.LikeStatus, error)
-	// 获取笔记点赞信息并填充
-	AssignNoteLikes(ctx context.Context, batch *model.Notes) (*model.Notes, error)
-	// 获取笔记点赞数量
-	GetNoteLikes(ctx context.Context, noteId uint64) (uint64, error)
-	// 获取笔记评论数量
-	GetNoteReplyCount(ctx context.Context, noteId uint64) (uint64, error)
-	// 获取笔记的评论信息并填充
-	AssignNoteReplies(ctx context.Context, batch *model.Notes) (*model.Notes, error)
-}
-
-type noteInteractBiz struct {
-	noteBiz
+// 笔记互动相关功能
+type NoteInteractBiz struct {
+	NoteBiz
 }
 
 func NewNoteInteractBiz() NoteInteractBiz {
-	b := &noteInteractBiz{}
+	b := NoteInteractBiz{}
 
 	return b
 }
 
 // 点赞笔记
-func (b *noteInteractBiz) LikeNote(ctx context.Context, uid int64, noteId uint64, operation int) error {
+func (b *NoteInteractBiz) LikeNote(ctx context.Context, uid int64, noteId uint64, operation int) error {
 	var (
 		err error
 	)
@@ -87,7 +69,7 @@ func (b *noteInteractBiz) LikeNote(ctx context.Context, uid int64, noteId uint64
 }
 
 // 获取用户是否点赞过笔记
-func (b *noteInteractBiz) CheckUserLikeStatus(ctx context.Context, uid int64, noteId uint64) (bool, error) {
+func (b *NoteInteractBiz) CheckUserLikeStatus(ctx context.Context, uid int64, noteId uint64) (bool, error) {
 	ok, err := b.IsNoteExist(ctx, noteId)
 	if err != nil {
 		return false, xerror.Wrapf(err, "GetNoteInteraction check note exists failed")
@@ -114,7 +96,7 @@ func (b *noteInteractBiz) CheckUserLikeStatus(ctx context.Context, uid int64, no
 
 // 批量获取用户是否点赞过笔记
 // 批量查找就不检查noteId是否存在
-func (b *noteInteractBiz) BatchCheckUserLikeStatus(ctx context.Context, uidNoteIds map[int64][]uint64) (
+func (b *NoteInteractBiz) BatchCheckUserLikeStatus(ctx context.Context, uidNoteIds map[int64][]uint64) (
 	map[int64][]*model.LikeStatus, error) {
 
 	var req = make(map[int64]*counterv1.ObjectList)
@@ -152,7 +134,8 @@ func (b *noteInteractBiz) BatchCheckUserLikeStatus(ctx context.Context, uidNoteI
 	return result, nil
 }
 
-func (b *noteInteractBiz) AssignNoteLikes(ctx context.Context, batch *model.Notes) (*model.Notes, error) {
+// 获取笔记点赞信息并填充
+func (b *NoteInteractBiz) AssignNoteLikes(ctx context.Context, batch *model.Notes) (*model.Notes, error) {
 	var (
 		notes   = batch.Items
 		noteIds = make([]uint64, 0, len(notes))
@@ -197,7 +180,7 @@ func (b *noteInteractBiz) AssignNoteLikes(ctx context.Context, batch *model.Note
 }
 
 // 获取笔记点赞数量
-func (b *noteInteractBiz) GetNoteLikes(ctx context.Context, noteId uint64) (uint64, error) {
+func (b *NoteInteractBiz) GetNoteLikes(ctx context.Context, noteId uint64) (uint64, error) {
 	ok, err := b.IsNoteExist(ctx, noteId)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "GetNoteInteraction check note exists failed")
@@ -218,7 +201,8 @@ func (b *noteInteractBiz) GetNoteLikes(ctx context.Context, noteId uint64) (uint
 	return resp.Count, nil
 }
 
-func (b *noteInteractBiz) GetNoteReplyCount(ctx context.Context, noteId uint64) (uint64, error) {
+// 获取笔记评论数量
+func (b *NoteInteractBiz) GetNoteReplyCount(ctx context.Context, noteId uint64) (uint64, error) {
 	ok, err := b.IsNoteExist(ctx, noteId)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "GetNoteInteraction check note exists failed")
@@ -238,7 +222,8 @@ func (b *noteInteractBiz) GetNoteReplyCount(ctx context.Context, noteId uint64) 
 	return resp.NumReply, nil
 }
 
-func (b *noteInteractBiz) AssignNoteReplies(ctx context.Context, batch *model.Notes) (*model.Notes, error) {
+// 获取笔记的评论信息并填充
+func (b *NoteInteractBiz) AssignNoteReplies(ctx context.Context, batch *model.Notes) (*model.Notes, error) {
 	var (
 		noteIds = batch.GetIds()
 	)

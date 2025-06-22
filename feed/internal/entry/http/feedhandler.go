@@ -48,3 +48,25 @@ func feedDetail() http.HandlerFunc {
 		httpx.OkJson(w, resp)
 	}
 }
+
+func feedByUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[model.FeedByUserRequest](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		resp, page, err := srv.Service.FeedBiz.ListNotesByUser(r.Context(), req.UserId, req.Cursor, req.Count)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, &model.FeedByUserResponse{
+			Items:      resp,
+			NextCursor: page.NextCursor,
+			HasNext:    page.HasNext,
+		})
+	}
+}

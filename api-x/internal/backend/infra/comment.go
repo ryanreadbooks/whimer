@@ -1,4 +1,4 @@
-package comment
+package infra
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
@@ -11,7 +11,7 @@ var (
 	commenter commentv1.ReplyServiceClient
 )
 
-func Init(c *config.Config) {
+func InitCommenter(c *config.Config) {
 	commenter = xgrpc.NewRecoverableClient(c.Backend.Comment,
 		commentv1.NewReplyServiceClient,
 		func(cc commentv1.ReplyServiceClient) { commenter = cc })

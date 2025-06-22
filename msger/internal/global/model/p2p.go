@@ -1,6 +1,8 @@
 package model
 
 import (
+	"time"
+
 	pbmsg "github.com/ryanreadbooks/whimer/msger/api/msg"
 )
 
@@ -29,4 +31,10 @@ const (
 	InboxUnread  InboxStatus = 0 // 未读
 	InboxRead    InboxStatus = 1 // 已读
 	InboxRevoked InboxStatus = 2 // 已撤回
+)
+
+// 参数定义
+const (
+	MaxTextLength = 500
+	MaxRevokeTime = time.Second * 5
 )

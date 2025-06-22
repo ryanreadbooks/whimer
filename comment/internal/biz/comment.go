@@ -30,6 +30,8 @@ type CommentBiz interface {
 	GetRootReplies(ctx context.Context, oid uint64, cursor uint64, want int, sortBy int8) (*model.PageReplies, error)
 	// 仅获取子评论
 	GetSubReplies(ctx context.Context, oid, rootId uint64, want int, cursor uint64) (*model.PageReplies, error)
+	// 仅获取子评论
+	GetSubRepliesByPage(ctx context.Context, oid, rootId uint64, page, cnt int) ([]*model.ReplyItem, int64, error)
 	// 获取评论数量
 	CountReply(ctx context.Context, oid uint64) (uint64, error)
 	// 批量获取评论数量
@@ -347,6 +349,27 @@ func (b *commentBiz) GetSubReplies(ctx context.Context, oid, rootId uint64, want
 		NextCursor: nextCursor,
 		HasNext:    hasNext,
 	}, nil
+}
+
+// 按照页码获取子评论
+func (b *commentBiz) GetSubRepliesByPage(ctx context.Context, oid, rootId uint64, page, cnt int) (
+	[]*model.ReplyItem, int64, error) {
+
+	total, err := infra.Dao().CommentDao.CountSubReplies(ctx, oid, rootId)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "comment dao failed to count subreplies").WithCtx(ctx)
+	}
+
+	data, err := infra.Dao().CommentDao.PageGetSubReplies(ctx, oid, rootId, page, cnt)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "comment dao failed to page get subreplies").WithCtx(ctx)
+	}
+	items := make([]*model.ReplyItem, 0, len(data))
+	for _, item := range data {
+		items = append(items, model.NewReplyItem(item))
+	}
+
+	return items, total, nil
 }
 
 func (b *commentBiz) CountReply(ctx context.Context, oid uint64) (uint64, error) {

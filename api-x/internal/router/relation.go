@@ -13,6 +13,8 @@ func regRelationRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 		{
 			// 关注/取关某个用户
 			v1g.Post("/follow", svc.Relation.UserFollowAction())
+			// 检查是否关注了某个用户
+			v1g.Get("/is_following", svc.Relation.GetIsFollowing())
 		}
 	}
 }

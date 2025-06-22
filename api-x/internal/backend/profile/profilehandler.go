@@ -4,9 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/note"
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/relation"
+	"github.com/ryanreadbooks/whimer/api-x/internal/backend/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/recovery"
@@ -31,8 +29,13 @@ func NewHandler(c *config.Config) *Handler {
 // 获取用户的投稿数量、点赞数量等信息
 func (h *Handler) GetProfileStat() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[HoverReq](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
 		var (
-			uid  = metadata.Uid(r.Context())
+			uid  = req.UserId
 			stat struct {
 				Posted     uint64 `json:"posted"`
 				Fans       uint64 `json:"fans"`
@@ -44,7 +47,7 @@ func (h *Handler) GetProfileStat() http.HandlerFunc {
 
 		// 用户投稿数量
 		eg.Go(func() error {
-			resp, err := note.NoteCreatorServer().GetPostedCount(ctx, &notev1.GetPostedCountRequest{
+			resp, err := infra.NoteCreatorServer().GetPostedCount(ctx, &notev1.GetPostedCountRequest{
 				Uid: uid,
 			})
 			if err != nil {
@@ -57,7 +60,7 @@ func (h *Handler) GetProfileStat() http.HandlerFunc {
 
 		// 用户粉丝数量
 		eg.Go(func() error {
-			resp, err := relation.RelationServer().GetUserFanCount(ctx,
+			resp, err := infra.RelationServer().GetUserFanCount(ctx,
 				&relationv1.GetUserFanCountRequest{
 					Uid: uid,
 				})
@@ -71,7 +74,7 @@ func (h *Handler) GetProfileStat() http.HandlerFunc {
 
 		eg.Go(func() error {
 			// 用户关注数量
-			resp, err := relation.RelationServer().GetUserFollowingCount(ctx,
+			resp, err := infra.RelationServer().GetUserFollowingCount(ctx,
 				&relationv1.GetUserFollowingCountRequest{
 					Uid: uid,
 				})
@@ -83,7 +86,7 @@ func (h *Handler) GetProfileStat() http.HandlerFunc {
 			return nil
 		})
 
-		err := eg.Wait()
+		err = eg.Wait()
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -116,7 +119,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 		// 基本信息
 		eg.Go(func() error {
 			return recovery.Do(func() error {
-				res, err := passport.Userer().GetUser(ctx, &userv1.GetUserRequest{Uid: req.UserId})
+				res, err := infra.Userer().GetUser(ctx, &userv1.GetUserRequest{Uid: req.UserId})
 				if err != nil {
 					return err
 				}
@@ -135,7 +138,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 		eg.Go(func() error {
 			return recovery.Do(func() error {
 				// 粉丝数
-				fanCntRes, err := relation.RelationServer().
+				fanCntRes, err := infra.RelationServer().
 					GetUserFanCount(ctx, &relationv1.GetUserFanCountRequest{
 						Uid: req.UserId,
 					})
@@ -146,7 +149,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 				fansCount = fanCntRes.GetCount()
 
 				// 关注数
-				followCntRes, err := relation.RelationServer().
+				followCntRes, err := infra.RelationServer().
 					GetUserFollowingCount(ctx, &relationv1.GetUserFollowingCountRequest{
 						Uid: req.UserId,
 					})
@@ -164,7 +167,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 		var postAssets = make([]PostAsset, 0, 3)
 		eg.Go(func() error {
 			return recovery.Do(func() error {
-				resp, err := note.NoteFeedServer().GetUserRecentPost(ctx, &notev1.GetUserRecentPostRequest{
+				resp, err := infra.NoteFeedServer().GetUserRecentPost(ctx, &notev1.GetUserRecentPostRequest{
 					Uid:   req.UserId,
 					Count: 3,
 				})
@@ -194,7 +197,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 			// 获取请求用户和目标用户的关注关系
 			eg.Go(func() error {
 				return recovery.Do(func() error {
-					followRes, _ := relation.RelationServer().CheckUserFollowed(ctx, &relationv1.CheckUserFollowedRequest{
+					followRes, _ := infra.RelationServer().CheckUserFollowed(ctx, &relationv1.CheckUserFollowedRequest{
 						Uid:   uid,
 						Other: req.UserId,
 					})

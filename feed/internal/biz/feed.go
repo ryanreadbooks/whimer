@@ -19,18 +19,13 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type FeedBiz interface {
-	RandomFeed(ctx context.Context, req *model.FeedRecommendRequest) ([]*model.FeedNoteItem, error)
-	GetNote(ctx context.Context, noteId uint64) (*model.FeedNoteItem, error)
+type FeedBiz struct {
 }
 
-type feedBiz struct {
-}
-
-func NewFeedBiz() FeedBiz { return &feedBiz{} }
+func NewFeedBiz() FeedBiz { return FeedBiz{} }
 
 // 收集作者信息
-func (b *feedBiz) collectAuthor(ctx context.Context, uids []int64) (map[int64]*userv1.UserInfo, error) {
+func (b *FeedBiz) collectAuthor(ctx context.Context, uids []int64) (map[int64]*userv1.UserInfo, error) {
 	authors := make(map[int64]*userv1.UserInfo)
 	resp, err := dep.Userer().BatchGetUser(ctx, &userv1.BatchGetUserRequest{
 		Uids: uids,
@@ -47,7 +42,7 @@ func (b *feedBiz) collectAuthor(ctx context.Context, uids []int64) (map[int64]*u
 }
 
 // 收集reqUid和noteIds之间的评论关系
-func (b *feedBiz) collectCommentStatus(ctx context.Context, reqUid int64, noteIds []uint64) (map[uint64]bool, error) {
+func (b *FeedBiz) collectCommentStatus(ctx context.Context, reqUid int64, noteIds []uint64) (map[uint64]bool, error) {
 	oidCommented := make(map[uint64]bool)
 	// uid -> [oid1, oid2, ...]
 	objs := make(map[int64]*commentv1.BatchCheckUserOnObjectRequest_Objects)
@@ -72,7 +67,7 @@ func (b *feedBiz) collectCommentStatus(ctx context.Context, reqUid int64, noteId
 }
 
 // 获取评论数量
-func (b *feedBiz) collectCommentNumber(ctx context.Context, noteIds []uint64) (map[uint64]uint64, error) {
+func (b *FeedBiz) collectCommentNumber(ctx context.Context, noteIds []uint64) (map[uint64]uint64, error) {
 	resp, err := dep.Commenter().BatchCountReply(ctx, &commentv1.BatchCountReplyRequest{
 		Oids: noteIds,
 	})
@@ -86,13 +81,14 @@ func (b *feedBiz) collectCommentNumber(ctx context.Context, noteIds []uint64) (m
 }
 
 // 获取reqUid和noteIds之间的点赞关系
-func (b *feedBiz) collectLikeStatus(ctx context.Context, reqUid int64, noteIds []uint64) (map[uint64]bool, error) {
+func (b *FeedBiz) collectLikeStatus(ctx context.Context, reqUid int64, noteIds []uint64) (map[uint64]bool, error) {
 	oidLiked := make(map[uint64]bool)
 	mappings := make(map[int64]*notev1.NoteIdList)
 	mappings[reqUid] = &notev1.NoteIdList{NoteIds: noteIds}
-	resp, err := dep.NoteInteracter().BatchCheckUserLikeStatus(ctx, &notev1.BatchCheckUserLikeStatusRequest{
-		Mappings: mappings,
-	})
+	resp, err := dep.NoteInteracter().BatchCheckUserLikeStatus(ctx,
+		&notev1.BatchCheckUserLikeStatusRequest{
+			Mappings: mappings,
+		})
 	if err != nil {
 		return nil, xerror.Wrapf(err, "feed biz failed to batch check user like status").WithCtx(ctx)
 	}
@@ -105,7 +101,7 @@ func (b *feedBiz) collectLikeStatus(ctx context.Context, reqUid int64, noteIds [
 	return oidLiked, nil
 }
 
-func (b *feedBiz) collectRelationStatus(ctx context.Context, reqUid int64, authorUids []int64) (map[int64]bool, error) {
+func (b *FeedBiz) collectRelationStatus(ctx context.Context, reqUid int64, authorUids []int64) (map[int64]bool, error) {
 	resp, err := dep.Relationer().BatchCheckUserFollowed(ctx,
 		&relationv1.BatchCheckUserFollowedRequest{
 			Uid:     reqUid,
@@ -119,7 +115,7 @@ func (b *feedBiz) collectRelationStatus(ctx context.Context, reqUid int64, autho
 	return resp.Status, nil
 }
 
-func (b *feedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.FeedNoteItem) (
+func (b *FeedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.FeedNoteItem) (
 	[]*model.FeedNoteItem, error) {
 	var (
 		err     error
@@ -229,7 +225,7 @@ func (b *feedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.Fe
 	return feedNotes, nil
 }
 
-func (b *feedBiz) RandomFeed(ctx context.Context, req *model.FeedRecommendRequest) ([]*model.FeedNoteItem, error) {
+func (b *FeedBiz) RandomFeed(ctx context.Context, req *model.FeedRecommendRequest) ([]*model.FeedNoteItem, error) {
 	// 1. 获取笔记基础信息
 	resp, err := dep.NoteFeeder().RandomGet(ctx, &notev1.RandomGetRequest{
 		Count: int32(req.NeedNum),
@@ -247,7 +243,7 @@ func (b *feedBiz) RandomFeed(ctx context.Context, req *model.FeedRecommendReques
 	return b.assembleNoteFeedReturn(ctx, notes)
 }
 
-func (b *feedBiz) GetNote(ctx context.Context, noteId uint64) (*model.FeedNoteItem, error) {
+func (b *FeedBiz) GetNote(ctx context.Context, noteId uint64) (*model.FeedNoteItem, error) {
 	// 1. 获取指定笔记
 	resp, err := dep.NoteFeeder().GetFeedNote(ctx, &notev1.GetFeedNoteRequest{
 		NoteId: noteId,
@@ -263,4 +259,33 @@ func (b *feedBiz) GetNote(ctx context.Context, noteId uint64) (*model.FeedNoteIt
 	}
 
 	return feeds[0], nil
+}
+
+func (b *FeedBiz) ListNotesByUser(ctx context.Context, uid int64, cursor uint64, count int) ([]*model.FeedNoteItem,
+	*model.PageResult, error) {
+
+	// 1. 笔记基础信息
+	resp, err := dep.NoteFeeder().ListFeedByUid(ctx, &notev1.ListFeedByUidRequest{
+		Uid:    uid,
+		Cursor: cursor,
+		Count:  int32(count),
+	})
+	if err != nil {
+		return nil, nil, xerror.Wrapf(err, "feed biz failed to list note").WithExtra("uid", uid).WithCtx(ctx)
+	}
+
+	notes := resp.GetItems()
+	if len(notes) == 0 {
+		return []*model.FeedNoteItem{}, &model.PageResult{}, nil
+	}
+
+	// 2. 组装所有需要的信息
+	result, err := b.assembleNoteFeedReturn(ctx, notes)
+	if err != nil {
+		return nil, nil, xerror.Wrapf(err, "feed biz failed to assemble").WithExtra("uid", uid).WithCtx(ctx)
+	}
+
+	return result,
+		&model.PageResult{NextCursor: resp.NextCursor, HasNext: resp.HasNext},
+		nil
 }
