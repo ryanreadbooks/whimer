@@ -24,6 +24,14 @@ type FeedBiz struct {
 
 func NewFeedBiz() FeedBiz { return FeedBiz{} }
 
+func isGuestFromCtx(ctx context.Context) bool {
+	return isGuest(metadata.Uid(ctx))
+}
+
+func isGuest(uid int64) bool {
+	return uid == 0
+}
+
 // 收集作者信息
 func (b *FeedBiz) collectAuthor(ctx context.Context, uids []int64) (map[int64]*userv1.UserInfo, error) {
 	authors := make(map[int64]*userv1.UserInfo)
@@ -43,6 +51,10 @@ func (b *FeedBiz) collectAuthor(ctx context.Context, uids []int64) (map[int64]*u
 
 // 收集reqUid和noteIds之间的评论关系
 func (b *FeedBiz) collectCommentStatus(ctx context.Context, reqUid int64, noteIds []uint64) (map[uint64]bool, error) {
+	if isGuestFromCtx(ctx) {
+		return map[uint64]bool{}, nil
+	}
+
 	oidCommented := make(map[uint64]bool)
 	// uid -> [oid1, oid2, ...]
 	objs := make(map[int64]*commentv1.BatchCheckUserOnObjectRequest_Objects)
@@ -82,6 +94,10 @@ func (b *FeedBiz) collectCommentNumber(ctx context.Context, noteIds []uint64) (m
 
 // 获取reqUid和noteIds之间的点赞关系
 func (b *FeedBiz) collectLikeStatus(ctx context.Context, reqUid int64, noteIds []uint64) (map[uint64]bool, error) {
+	if isGuestFromCtx(ctx) {
+		return make(map[uint64]bool), nil
+	}
+
 	oidLiked := make(map[uint64]bool)
 	mappings := make(map[int64]*notev1.NoteIdList)
 	mappings[reqUid] = &notev1.NoteIdList{NoteIds: noteIds}
@@ -102,6 +118,10 @@ func (b *FeedBiz) collectLikeStatus(ctx context.Context, reqUid int64, noteIds [
 }
 
 func (b *FeedBiz) collectRelationStatus(ctx context.Context, reqUid int64, authorUids []int64) (map[int64]bool, error) {
+	if isGuestFromCtx(ctx) {
+		return make(map[int64]bool), nil
+	}
+
 	resp, err := dep.Relationer().BatchCheckUserFollowed(ctx,
 		&relationv1.BatchCheckUserFollowedRequest{
 			Uid:     reqUid,

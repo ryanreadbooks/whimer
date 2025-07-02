@@ -33,7 +33,7 @@ func main() {
 		xgrpc.EnableReflectionIfNecessary(c.Grpc, s)
 	})
 	interceptor.InstallUnaryServerInterceptors(server,
-		interceptor.WithUnaryChecker(checker.UidExistence))
+		interceptor.WithUnaryChecker(checker.UidExistenceLoose))
 
 	syncer := job.MustNewSyncer(&c, ctx)
 
