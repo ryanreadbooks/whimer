@@ -1,13 +1,13 @@
 package router
 
 import (
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend"
+	"github.com/ryanreadbooks/whimer/api-x/internal/handler"
 	"github.com/ryanreadbooks/whimer/api-x/internal/middleware"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 )
 
 // 笔记管理路由
-func regNoteRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
+func regNoteRoutes(group *xhttp.RouterGroup, svc *handler.Handler) {
 	g := group.Group("/note")
 	{
 		// 笔记作者相关
@@ -15,21 +15,21 @@ func regNoteRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
 		{
 			v1g := creator.Group("/v1")
 			// 发布笔记
-			v1g.Post("/create", svc.Note.AdminCreateNote())
+			v1g.Post("/create", svc.Note.CreatorCreateNote())
 			// 更新笔记
-			v1g.Post("/update", svc.Note.AdminUpdateNote())
+			v1g.Post("/update", svc.Note.CreatorUpdateNote())
 			// 删除笔记
-			v1g.Post("/delete", svc.Note.AdminDeleteNote())
+			v1g.Post("/delete", svc.Note.CreatorDeleteNote())
 			// 列出笔记
-			v1g.Get("/list", svc.Note.AdminListNotes())
+			v1g.Get("/list", svc.Note.CreatorListNotes())
 			// 获取笔记
-			v1g.Get("/get/:note_id", svc.Note.AdminGetNote())
+			v1g.Get("/get/:note_id", svc.Note.CreatorGetNote())
 			// 申请笔记资源上传链接
-			v1g.Get("/upload/auth", svc.Note.AdminUploadNoteAuth(), middleware.ApiOffline()) // Deprecated
+			v1g.Get("/upload/auth", svc.Note.CreatorUploadNoteAuth(), middleware.ApiOffline()) // Deprecated
 		}
 		{
 			v2g := creator.Group("/v2")
-			v2g.Get("/upload/auth", svc.Note.AdminUploadNoteAuthV2())
+			v2g.Get("/upload/auth", svc.Note.CreatorUploadNoteAuthV2())
 		}
 
 		// 笔记互动相关接口

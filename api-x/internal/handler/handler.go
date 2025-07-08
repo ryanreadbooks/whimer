@@ -1,14 +1,15 @@
-package backend
+package handler
 
 import (
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/comment"
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/infra"
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/msg"
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/note"
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/passport"
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/profile"
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/relation"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
+	"github.com/ryanreadbooks/whimer/api-x/internal/handler/comment"
+	"github.com/ryanreadbooks/whimer/api-x/internal/handler/feed"
+	"github.com/ryanreadbooks/whimer/api-x/internal/handler/msg"
+	"github.com/ryanreadbooks/whimer/api-x/internal/handler/note"
+	"github.com/ryanreadbooks/whimer/api-x/internal/handler/passport"
+	"github.com/ryanreadbooks/whimer/api-x/internal/handler/profile"
+	"github.com/ryanreadbooks/whimer/api-x/internal/handler/relation"
+	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 )
 
 type Handler struct {
@@ -20,6 +21,7 @@ type Handler struct {
 	Relation *relation.Handler
 	Chat     *msg.Handler
 	User     *passport.UserHandler
+	Feed     *feed.Handler
 }
 
 func Init(c *config.Config) {
@@ -35,6 +37,7 @@ func NewHandler(c *config.Config) *Handler {
 		Relation: relation.NewHandler(c),
 		Chat:     msg.NewHandler(c),
 		User:     passport.NewUserHandler(c),
+		Feed:     feed.NewHandler(c),
 	}
 
 	return h

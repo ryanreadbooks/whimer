@@ -6,8 +6,8 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/api/msg"
 	msgv1 "github.com/ryanreadbooks/whimer/msger/api/p2p/v1"
 
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
+	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"

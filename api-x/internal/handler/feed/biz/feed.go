@@ -3,9 +3,9 @@ package biz
 import (
 	"context"
 
+	"github.com/ryanreadbooks/whimer/api-x/internal/handler/feed/model"
+	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
-	"github.com/ryanreadbooks/whimer/feed/internal/infra/dep"
-	"github.com/ryanreadbooks/whimer/feed/internal/model"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -35,7 +35,7 @@ func isGuest(uid int64) bool {
 // 收集作者信息
 func (b *FeedBiz) collectAuthor(ctx context.Context, uids []int64) (map[int64]*userv1.UserInfo, error) {
 	authors := make(map[int64]*userv1.UserInfo)
-	resp, err := dep.Userer().BatchGetUser(ctx, &userv1.BatchGetUserRequest{
+	resp, err := infra.Userer().BatchGetUser(ctx, &userv1.BatchGetUserRequest{
 		Uids: uids,
 	})
 	if err != nil {
@@ -61,7 +61,7 @@ func (b *FeedBiz) collectCommentStatus(ctx context.Context, reqUid int64, noteId
 	objs[reqUid] = &commentv1.BatchCheckUserOnObjectRequest_Objects{
 		Oids: noteIds,
 	}
-	resp, err := dep.Commenter().BatchCheckUserOnObject(ctx,
+	resp, err := infra.Commenter().BatchCheckUserOnObject(ctx,
 		&commentv1.BatchCheckUserOnObjectRequest{
 			Mappings: objs,
 		})
@@ -80,7 +80,7 @@ func (b *FeedBiz) collectCommentStatus(ctx context.Context, reqUid int64, noteId
 
 // 获取评论数量
 func (b *FeedBiz) collectCommentNumber(ctx context.Context, noteIds []uint64) (map[uint64]uint64, error) {
-	resp, err := dep.Commenter().BatchCountReply(ctx, &commentv1.BatchCountReplyRequest{
+	resp, err := infra.Commenter().BatchCountReply(ctx, &commentv1.BatchCountReplyRequest{
 		Oids: noteIds,
 	})
 	if err != nil {
@@ -101,7 +101,7 @@ func (b *FeedBiz) collectLikeStatus(ctx context.Context, reqUid int64, noteIds [
 	oidLiked := make(map[uint64]bool)
 	mappings := make(map[int64]*notev1.NoteIdList)
 	mappings[reqUid] = &notev1.NoteIdList{NoteIds: noteIds}
-	resp, err := dep.NoteInteracter().BatchCheckUserLikeStatus(ctx,
+	resp, err := infra.NoteInteractServer().BatchCheckUserLikeStatus(ctx,
 		&notev1.BatchCheckUserLikeStatusRequest{
 			Mappings: mappings,
 		})
@@ -122,7 +122,7 @@ func (b *FeedBiz) collectRelationStatus(ctx context.Context, reqUid int64, autho
 		return make(map[int64]bool), nil
 	}
 
-	resp, err := dep.Relationer().BatchCheckUserFollowed(ctx,
+	resp, err := infra.RelationServer().BatchCheckUserFollowed(ctx,
 		&relationv1.BatchCheckUserFollowedRequest{
 			Uid:     reqUid,
 			Targets: authorUids,
@@ -247,7 +247,7 @@ func (b *FeedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.Fe
 
 func (b *FeedBiz) RandomFeed(ctx context.Context, req *model.FeedRecommendRequest) ([]*model.FeedNoteItem, error) {
 	// 1. 获取笔记基础信息
-	resp, err := dep.NoteFeeder().RandomGet(ctx, &notev1.RandomGetRequest{
+	resp, err := infra.NoteFeedServer().RandomGet(ctx, &notev1.RandomGetRequest{
 		Count: int32(req.NeedNum),
 	})
 	if err != nil {
@@ -265,7 +265,7 @@ func (b *FeedBiz) RandomFeed(ctx context.Context, req *model.FeedRecommendReques
 
 func (b *FeedBiz) GetNote(ctx context.Context, noteId uint64) (*model.FeedNoteItem, error) {
 	// 1. 获取指定笔记
-	resp, err := dep.NoteFeeder().GetFeedNote(ctx, &notev1.GetFeedNoteRequest{
+	resp, err := infra.NoteFeedServer().GetFeedNote(ctx, &notev1.GetFeedNoteRequest{
 		NoteId: noteId,
 	})
 	if err != nil {
@@ -285,7 +285,7 @@ func (b *FeedBiz) ListNotesByUser(ctx context.Context, uid int64, cursor uint64,
 	*model.PageResult, error) {
 
 	// 1. 笔记基础信息
-	resp, err := dep.NoteFeeder().ListFeedByUid(ctx, &notev1.ListFeedByUidRequest{
+	resp, err := infra.NoteFeedServer().ListFeedByUid(ctx, &notev1.ListFeedByUidRequest{
 		Uid:    uid,
 		Cursor: cursor,
 		Count:  int32(count),

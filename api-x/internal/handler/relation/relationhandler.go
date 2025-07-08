@@ -3,8 +3,8 @@ package relation
 import (
 	"net/http"
 
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
+	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"

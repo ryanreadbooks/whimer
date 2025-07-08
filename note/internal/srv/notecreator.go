@@ -72,7 +72,7 @@ func (s *NoteCreatorSrv) BatchGetUploadAuth(ctx context.Context,
 	return resps, nil
 }
 
-// 获取零时上传凭证
+// 获取临时上传凭证
 func (s *NoteCreatorSrv) BatchGetUploadAuthSTS(ctx context.Context,
 	req *model.UploadAuthRequest) (*model.UploadAuthSTSResponse, error) {
 	res, err := s.noteCreatorBiz.GetUploadAuthSTS(ctx, &model.UploadAuthRequest{

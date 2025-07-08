@@ -1,16 +1,27 @@
-package http
+package feed
 
 import (
 	"math/rand"
 	"net/http"
 
-	"github.com/ryanreadbooks/whimer/feed/internal/model"
-	"github.com/ryanreadbooks/whimer/feed/internal/srv"
+	"github.com/ryanreadbooks/whimer/api-x/internal/config"
+	"github.com/ryanreadbooks/whimer/api-x/internal/handler/feed/biz"
+	"github.com/ryanreadbooks/whimer/api-x/internal/handler/feed/model"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func feedRecommend() http.HandlerFunc {
+type Handler struct {
+	bizz biz.FeedBiz
+}
+
+func NewHandler(c *config.Config) *Handler {
+	return &Handler{
+		bizz: biz.NewFeedBiz(),
+	}
+}
+
+func (h *Handler) GetRecommend() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[model.FeedRecommendRequest](httpx.ParseForm, r)
 		if err != nil {
@@ -18,7 +29,7 @@ func feedRecommend() http.HandlerFunc {
 			return
 		}
 
-		resp, err := srv.Service.FeedBiz.RandomFeed(r.Context(), req)
+		resp, err := h.bizz.RandomFeed(r.Context(), req)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -31,7 +42,7 @@ func feedRecommend() http.HandlerFunc {
 	}
 }
 
-func feedDetail() http.HandlerFunc {
+func (h *Handler) GetNoteDetail() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[model.FeedDetailRequest](httpx.ParseForm, r)
 		if err != nil {
@@ -39,7 +50,7 @@ func feedDetail() http.HandlerFunc {
 			return
 		}
 
-		resp, err := srv.Service.FeedBiz.GetNote(r.Context(), req.NoteId)
+		resp, err := h.bizz.GetNote(r.Context(), req.NoteId)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -49,7 +60,7 @@ func feedDetail() http.HandlerFunc {
 	}
 }
 
-func feedByUser() http.HandlerFunc {
+func (h *Handler) GetNotesByUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[model.FeedByUserRequest](httpx.ParseForm, r)
 		if err != nil {
@@ -57,7 +68,7 @@ func feedByUser() http.HandlerFunc {
 			return
 		}
 
-		resp, page, err := srv.Service.FeedBiz.ListNotesByUser(r.Context(), req.UserId, req.Cursor, req.Count)
+		resp, page, err := h.bizz.ListNotesByUser(r.Context(), req.UserId, req.Cursor, req.Count)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

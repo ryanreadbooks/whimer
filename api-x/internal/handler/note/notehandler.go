@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
+	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -39,7 +39,7 @@ func (h *Handler) hasNoteCheck(ctx context.Context, noteId uint64) error {
 	return nil
 }
 
-func (h *Handler) AdminCreateNote() http.HandlerFunc {
+func (h *Handler) CreatorCreateNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[CreateReq](httpx.ParseJsonBody, r)
 		if err != nil {
@@ -58,7 +58,7 @@ func (h *Handler) AdminCreateNote() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) AdminUpdateNote() http.HandlerFunc {
+func (h *Handler) CreatorUpdateNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[UpdateReq](httpx.ParseJsonBody, r)
 		if err != nil {
@@ -83,7 +83,7 @@ func (h *Handler) AdminUpdateNote() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) AdminDeleteNote() http.HandlerFunc {
+func (h *Handler) CreatorDeleteNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[NoteIdReq](httpx.ParseJsonBody, r)
 		if err != nil {
@@ -183,7 +183,7 @@ func (h *Handler) assignNoteExtra(ctx context.Context, notes []*AdminNoteItem) {
 	}
 }
 
-func (h *Handler) AdminListNotes() http.HandlerFunc {
+func (h *Handler) CreatorListNotes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[ListReq](httpx.ParseForm, r)
 		if err != nil {
@@ -207,7 +207,7 @@ func (h *Handler) AdminListNotes() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) AdminGetNote() http.HandlerFunc {
+func (h *Handler) CreatorGetNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[NoteIdReq](httpx.ParsePath, r)
 		if err != nil {
@@ -230,7 +230,7 @@ func (h *Handler) AdminGetNote() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) AdminUploadNoteAuth() http.HandlerFunc {
+func (h *Handler) CreatorUploadNoteAuth() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[UploadAuthReq](httpx.ParseForm, r)
 		if err != nil {
@@ -248,7 +248,7 @@ func (h *Handler) AdminUploadNoteAuth() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) AdminUploadNoteAuthV2() http.HandlerFunc {
+func (h *Handler) CreatorUploadNoteAuthV2() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[UploadAuthReq](httpx.ParseForm, r)
 		if err != nil {

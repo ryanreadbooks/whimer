@@ -1,13 +1,13 @@
 package router
 
 import (
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend"
+	"github.com/ryanreadbooks/whimer/api-x/internal/handler"
 	"github.com/ryanreadbooks/whimer/api-x/internal/middleware"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 )
 
 // 用户信息相关的一些接口
-func regProfileRoutes(group *xhttp.RouterGroup, svc *backend.Handler) {
+func regProfileRoutes(group *xhttp.RouterGroup, svc *handler.Handler) {
 	g := group.Group("/profile")
 	{
 		v1gLogin := g.Group("/v1", middleware.MustLogin())
