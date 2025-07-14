@@ -27,3 +27,7 @@ backend:
   msger:
     hosts: [127.0.0.1:2379]
     key: whimer.msger.rpc
+
+obfuscate:
+  note:
+    salt: ${ENV_OBFUSCATE_NOTE_SALT}

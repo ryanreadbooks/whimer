@@ -1,6 +1,7 @@
 package model
 
 import (
+	imodel "github.com/ryanreadbooks/whimer/api-x/internal/model"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 )
@@ -42,7 +43,7 @@ func NewAuthor(u *userv1.UserInfo) *Author {
 }
 
 type FeedNoteItem struct {
-	NoteId   uint64            `json:"note_id"`
+	NoteId   imodel.NoteId      `json:"note_id"`
 	Title    string            `json:"title"`
 	Desc     string            `json:"desc"`
 	CreateAt int64             `json:"create_at"`
@@ -76,7 +77,7 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 	}
 
 	return &FeedNoteItem{
-		NoteId:   pb.NoteId,
+		NoteId:   imodel.NoteId(pb.NoteId),
 		Title:    pb.Title,
 		Desc:     pb.Desc,
 		CreateAt: pb.CreatedAt,

@@ -1,6 +1,9 @@
 package model
 
-import "github.com/ryanreadbooks/whimer/misc/xerror"
+import (
+	imodel "github.com/ryanreadbooks/whimer/api-x/internal/model"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
+)
 
 const (
 	CategoryHomeRecommend = "home_recommend"
@@ -43,8 +46,8 @@ func (r *FeedRecommendRequest) Validate() error {
 }
 
 type FeedDetailRequest struct {
-	NoteId uint64 `form:"note_id"`
-	Source string `form:"source,optional"`
+	NoteId imodel.SNoteId `form:"note_id"`
+	Source string         `form:"source,optional"`
 }
 
 func (r *FeedDetailRequest) Validate() error {
@@ -52,7 +55,7 @@ func (r *FeedDetailRequest) Validate() error {
 		return xerror.ErrNilArg
 	}
 
-	if r.NoteId == 0 {
+	if r.NoteId == "" {
 		return xerror.ErrArgs.Msg("笔记不存在")
 	}
 

@@ -16,4 +16,13 @@ type Config struct {
 		Relation xconf.Discovery `json:"relation"`
 		Msger    xconf.Discovery `json:"msger"`
 	} `json:"backend"`
+
+	Obfuscate struct {
+		Note ObfuscateConfig `json:"note"`
+	} `json:"obfuscate"`
+}
+
+type ObfuscateConfig struct {
+	Salt      string `json:"salt"`
+	MinLength int    `json:"min_length,default=12"`
 }

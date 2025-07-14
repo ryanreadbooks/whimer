@@ -7,6 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/handler/feed/biz"
 	"github.com/ryanreadbooks/whimer/api-x/internal/handler/feed/model"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -38,7 +39,7 @@ func (h *Handler) GetRecommend() http.HandlerFunc {
 		// make it random
 		rand.Shuffle(len(resp), func(i, j int) { resp[i], resp[j] = resp[j], resp[i] })
 
-		httpx.OkJson(w, resp)
+		xhttp.OkJson(w, resp)
 	}
 }
 
@@ -50,13 +51,19 @@ func (h *Handler) GetNoteDetail() http.HandlerFunc {
 			return
 		}
 
-		resp, err := h.bizz.GetNote(r.Context(), req.NoteId)
+		noteId, err := req.NoteId.Uint64()
+		if err != nil {
+			xhttp.Error(r, w, xerror.ErrArgs.Msg("笔记不存在"))
+			return
+		}
+
+		resp, err := h.bizz.GetNote(r.Context(), noteId)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		httpx.OkJson(w, resp)
+		xhttp.OkJson(w, resp)
 	}
 }
 

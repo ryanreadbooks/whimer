@@ -1,7 +1,11 @@
 package infra
 
 import (
+	"fmt"
+
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
+
+	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 )
@@ -11,9 +15,16 @@ var (
 	noteCreator  notev1.NoteCreatorServiceClient
 	noteFeed     notev1.NoteFeedServiceClient
 	noteInteract notev1.NoteInteractServiceClient
+
+	noteIdObfuscate obfuscate.Obfuscate
 )
 
 func InitNote(c *config.Config) {
+	initNoteBackend(c)
+	initNoteObfuscate(c)
+}
+
+func initNoteBackend(c *config.Config) {
 	noteCreator = xgrpc.NewRecoverableClient(c.Backend.Note,
 		notev1.NewNoteCreatorServiceClient,
 		func(cc notev1.NoteCreatorServiceClient) { noteCreator = cc })
@@ -35,4 +46,19 @@ func NoteInteractServer() notev1.NoteInteractServiceClient {
 
 func NoteFeedServer() notev1.NoteFeedServiceClient {
 	return noteFeed
+}
+
+func GetNoteIdObfuscate() obfuscate.Obfuscate {
+	return noteIdObfuscate
+}
+
+// init note id obfuscator
+func initNoteObfuscate(c *config.Config) {
+	noteIdObfuscate, err = obfuscate.NewConfuser(
+		obfuscate.WithSalt(c.Obfuscate.Note.Salt),
+		obfuscate.WithMinLen(c.Obfuscate.Note.MinLength),
+	)
+	if err != nil {
+		panic(fmt.Errorf("init note obfuscate: %w", err))
+	}
 }

@@ -231,7 +231,7 @@ func (b *FeedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.Fe
 		}
 
 		feedNote := model.NewFeedNoteItemFromPb(note)
-		noteId := feedNote.NoteId
+		noteId := uint64(feedNote.NoteId)
 		// fill extra fields
 		feedNote.Author = model.NewAuthor(author)
 		feedNote.Comments = commentNums[noteId]
