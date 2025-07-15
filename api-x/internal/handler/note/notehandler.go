@@ -6,6 +6,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
+	"github.com/ryanreadbooks/whimer/api-x/internal/model"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -54,7 +55,7 @@ func (h *Handler) CreatorCreateNote() http.HandlerFunc {
 			return
 		}
 
-		httpx.OkJson(w, CreateRes{NoteId: resp.NoteId})
+		httpx.OkJson(w, CreateRes{NoteId: model.NoteId(resp.NoteId)})
 	}
 }
 
@@ -67,7 +68,7 @@ func (h *Handler) CreatorUpdateNote() http.HandlerFunc {
 		}
 
 		_, err = infra.NoteCreatorServer().UpdateNote(r.Context(), &notev1.UpdateNoteRequest{
-			NoteId: req.NoteId,
+			NoteId: uint64(req.NoteId),
 			Note: &notev1.CreateNoteRequest{
 				Basic:  req.Basic.AsPb(),
 				Images: req.Images.AsPb(),
@@ -92,7 +93,7 @@ func (h *Handler) CreatorDeleteNote() http.HandlerFunc {
 		}
 
 		_, err = infra.NoteCreatorServer().DeleteNote(r.Context(), &notev1.DeleteNoteRequest{
-			NoteId: req.NoteId,
+			NoteId: uint64(req.NoteId),
 		})
 
 		if err != nil {
@@ -114,7 +115,7 @@ func (h *Handler) assignNoteExtra(ctx context.Context, notes []*AdminNoteItem) {
 	)
 
 	for _, n := range notes {
-		noteIds = append(noteIds, n.NoteId)
+		noteIds = append(noteIds, uint64(n.NoteId))
 	}
 
 	eg.Go(func() error {
@@ -138,7 +139,7 @@ func (h *Handler) assignNoteExtra(ctx context.Context, notes []*AdminNoteItem) {
 		}
 
 		for _, note := range notes {
-			noteId := note.NoteId
+			noteId := uint64(note.NoteId)
 			note.Interact.Liked = oidLiked[noteId]
 		}
 
@@ -165,7 +166,7 @@ func (h *Handler) assignNoteExtra(ctx context.Context, notes []*AdminNoteItem) {
 			oidCommented[comInfo.Oid] = comInfo.Commented
 		}
 		for _, note := range notes {
-			noteId := note.NoteId
+			noteId := uint64(note.NoteId)
 			note.Interact.Commented = oidCommented[noteId]
 		}
 		return nil
@@ -177,7 +178,7 @@ func (h *Handler) assignNoteExtra(ctx context.Context, notes []*AdminNoteItem) {
 	}
 
 	for _, note := range notes {
-		noteId := note.NoteId
+		noteId := uint64(note.NoteId)
 		note.Interact.Liked = oidLiked[noteId]
 		note.Interact.Commented = oidCommented[noteId]
 	}
@@ -217,7 +218,7 @@ func (h *Handler) CreatorGetNote() http.HandlerFunc {
 
 		ctx := r.Context()
 		resp, err := infra.NoteCreatorServer().GetNote(ctx, &notev1.GetNoteRequest{
-			NoteId: req.NoteId,
+			NoteId: uint64(req.NoteId),
 		})
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -302,8 +303,9 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 			return
 		}
 
-		nid := req.NoteId
-		resp, err := infra.NoteInteractServer().GetNoteLikes(r.Context(), &notev1.GetNoteLikesRequest{NoteId: nid})
+		nid := uint64(req.NoteId)
+		resp, err := infra.NoteInteractServer().GetNoteLikes(r.Context(),
+			&notev1.GetNoteLikesRequest{NoteId: nid})
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

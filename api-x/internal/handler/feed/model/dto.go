@@ -46,8 +46,8 @@ func (r *FeedRecommendRequest) Validate() error {
 }
 
 type FeedDetailRequest struct {
-	NoteId imodel.SNoteId `form:"note_id"`
-	Source string         `form:"source,optional"`
+	NoteId imodel.NoteId `form:"note_id"`
+	Source string        `form:"source,optional"`
 }
 
 func (r *FeedDetailRequest) Validate() error {
@@ -55,7 +55,7 @@ func (r *FeedDetailRequest) Validate() error {
 		return xerror.ErrNilArg
 	}
 
-	if r.NoteId == "" {
+	if r.NoteId == 0 {
 		return xerror.ErrArgs.Msg("笔记不存在")
 	}
 

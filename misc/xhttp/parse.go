@@ -20,7 +20,7 @@ func ParseValidate[T any](parser ParserFunc, r *http.Request) (out *T, err error
 		return nil, xerror.ErrArgs.Msg(err.Error())
 	}
 
-	if validator, ok := interface{}(t).(Validator); ok && validator != nil {
+	if validator, ok := any(t).(Validator); ok && validator != nil {
 		if err := validator.Validate(); err != nil {
 			return nil, err
 		}

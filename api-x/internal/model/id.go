@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
@@ -24,6 +25,20 @@ func (id NoteId) MarshalJSON() ([]byte, error) {
 	return json.Marshal(result)
 }
 
+var (
+	ErrParseNoteId = fmt.Errorf("笔记不存在")
+)
+
+func (id *NoteId) fromBytes(data []byte) error {
+	result, err := infra.GetNoteIdObfuscate().DeMixU(xstring.FromBytes(data))
+	if err != nil {
+		return ErrParseNoteId
+	}
+
+	*id = NoteId(result)
+	return nil
+}
+
 // UnmarshalJSON implements the encoding json interface.
 func (id *NoteId) UnmarshalJSON(data []byte) error {
 	// convert null to 0
@@ -32,22 +47,15 @@ func (id *NoteId) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	// remove quotes
-	if len(data) >= 2 {
-		data = data[1 : len(data)-1]
+	if len(data) > 2 {
+		if data[0] == '"' && data[len(data)-1] == '"' {
+			data = data[1 : len(data)-1]
+		}
 	}
 
-	result, err := infra.GetNoteIdObfuscate().DeMixU(xstring.FromBytes(data))
-	if err != nil {
-		return err
-	}
-
-	*id = NoteId(result)
-	return nil
+	return id.fromBytes(data)
 }
 
-type SNoteId string
-
-func (id SNoteId) Uint64() (uint64, error) {
-	return infra.GetNoteIdObfuscate().DeMixU(string(id))
+func (id *NoteId) UnmarshalText(data []byte) error {
+	return id.fromBytes(data)
 }

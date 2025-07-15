@@ -1,6 +1,7 @@
 package note
 
 import (
+	"github.com/ryanreadbooks/whimer/api-x/internal/model"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	notesdk "github.com/ryanreadbooks/whimer/note/api/v1"
 )
@@ -73,20 +74,20 @@ func (r *CreateReq) AsPb() *notesdk.CreateNoteRequest {
 }
 
 type CreateRes struct {
-	NoteId uint64 `json:"note_id"`
+	NoteId model.NoteId `json:"note_id"`
 }
 
 type UpdateReq struct {
-	NoteId uint64 `json:"note_id"`
+	NoteId model.NoteId `json:"note_id"`
 	CreateReq
 }
 
 type UpdateRes struct {
-	NoteId uint64 `json:"note_id"`
+	NoteId model.NoteId `json:"note_id"`
 }
 
 type NoteIdReq struct {
-	NoteId uint64 `json:"note_id" path:"note_id" form:"note_id"`
+	NoteId model.NoteId `json:"note_id" path:"note_id" form:"note_id"`
 }
 
 func (r *NoteIdReq) Validate() error {
@@ -138,7 +139,7 @@ type Interaction struct {
 }
 
 type AdminNoteItem struct {
-	NoteId   uint64            `json:"note_id"`
+	NoteId   model.NoteId      `json:"note_id"`
 	Title    string            `json:"title"`
 	Desc     string            `json:"desc"`
 	Privacy  int8              `json:"privacy"`
@@ -169,7 +170,7 @@ func NewAdminNoteItemFromPb(pb *notesdk.NoteItem) *AdminNoteItem {
 	}
 
 	return &AdminNoteItem{
-		NoteId:   pb.NoteId,
+		NoteId:   model.NoteId(pb.NoteId),
 		Title:    pb.Title,
 		Desc:     pb.Desc,
 		Privacy:  int8(pb.Privacy),

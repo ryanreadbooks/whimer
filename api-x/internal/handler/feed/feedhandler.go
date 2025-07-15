@@ -7,7 +7,6 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/handler/feed/biz"
 	"github.com/ryanreadbooks/whimer/api-x/internal/handler/feed/model"
-	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -51,13 +50,7 @@ func (h *Handler) GetNoteDetail() http.HandlerFunc {
 			return
 		}
 
-		noteId, err := req.NoteId.Uint64()
-		if err != nil {
-			xhttp.Error(r, w, xerror.ErrArgs.Msg("笔记不存在"))
-			return
-		}
-
-		resp, err := h.bizz.GetNote(r.Context(), noteId)
+		resp, err := h.bizz.GetNote(r.Context(), uint64(req.NoteId))
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
