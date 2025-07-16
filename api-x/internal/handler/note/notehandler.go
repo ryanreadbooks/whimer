@@ -12,11 +12,11 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	"golang.org/x/sync/errgroup"
 
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
+	"golang.org/x/sync/errgroup"
 )
 
 type Handler struct{}
@@ -55,7 +55,7 @@ func (h *Handler) CreatorCreateNote() http.HandlerFunc {
 			return
 		}
 
-		httpx.OkJson(w, CreateRes{NoteId: model.NoteId(resp.NoteId)})
+		xhttp.OkJson(w, CreateRes{NoteId: model.NoteId(resp.NoteId)})
 	}
 }
 
@@ -80,7 +80,7 @@ func (h *Handler) CreatorUpdateNote() http.HandlerFunc {
 			return
 		}
 
-		httpx.OkJson(w, UpdateRes{NoteId: req.NoteId})
+		xhttp.OkJson(w, UpdateRes{NoteId: req.NoteId})
 	}
 }
 
@@ -204,7 +204,32 @@ func (h *Handler) CreatorListNotes() http.HandlerFunc {
 		result := NewListResFromPb(resp)
 		h.assignNoteExtra(ctx, result.Items)
 
-		httpx.OkJson(w, result)
+		xhttp.OkJson(w, result)
+	}
+}
+
+func (h *Handler) CreatorPageListNotes() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[PageListReq](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		ctx := r.Context()
+		resp, err := infra.NoteCreatorServer().PageListNote(ctx, &notev1.PageListNoteRequest{
+			Page:  req.Page,
+			Count: req.Count,
+		})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		result := NewPageListResFromPb(resp)
+		h.assignNoteExtra(ctx, result.Items)
+
+		xhttp.OkJson(w, result)
 	}
 }
 
@@ -227,7 +252,7 @@ func (h *Handler) CreatorGetNote() http.HandlerFunc {
 
 		result := NewAdminNoteItemFromPb(resp.Note)
 		h.assignNoteExtra(ctx, []*AdminNoteItem{result})
-		httpx.OkJson(w, result)
+		xhttp.OkJson(w, result)
 	}
 }
 
@@ -245,7 +270,7 @@ func (h *Handler) CreatorUploadNoteAuth() http.HandlerFunc {
 			return
 		}
 
-		httpx.OkJson(w, resp)
+		xhttp.OkJson(w, resp)
 	}
 }
 
@@ -263,7 +288,7 @@ func (h *Handler) CreatorUploadNoteAuthV2() http.HandlerFunc {
 			return
 		}
 
-		httpx.OkJson(w, resp)
+		xhttp.OkJson(w, resp)
 	}
 }
 
@@ -290,7 +315,7 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 			xhttp.Error(r, w, err)
 			return
 		}
-		httpx.OkJson(w, nil)
+		xhttp.OkJson(w, nil)
 	}
 }
 
@@ -311,7 +336,7 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 			return
 		}
 
-		httpx.OkJson(w, &GetLikesRes{
+		xhttp.OkJson(w, &GetLikesRes{
 			Count:  resp.Likes,
 			NoteId: resp.NoteId,
 		})

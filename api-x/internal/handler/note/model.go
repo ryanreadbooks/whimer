@@ -3,7 +3,7 @@ package note
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/model"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	notesdk "github.com/ryanreadbooks/whimer/note/api/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 )
 
 type CreateReqBasic struct {
@@ -12,8 +12,8 @@ type CreateReqBasic struct {
 	Privacy int    `json:"privacy"`
 }
 
-func (b *CreateReqBasic) AsPb() *notesdk.CreateReqBasic {
-	return &notesdk.CreateReqBasic{
+func (b *CreateReqBasic) AsPb() *notev1.CreateReqBasic {
+	return &notev1.CreateReqBasic{
 		Title:   b.Title,
 		Desc:    b.Desc,
 		Privacy: int32(b.Privacy),
@@ -29,10 +29,10 @@ type CreateReqImage struct {
 
 type CreateReqImageList []CreateReqImage
 
-func (r CreateReqImageList) AsPb() []*notesdk.CreateReqImage {
-	images := make([]*notesdk.CreateReqImage, 0, len(r))
+func (r CreateReqImageList) AsPb() []*notev1.CreateReqImage {
+	images := make([]*notev1.CreateReqImage, 0, len(r))
 	for _, img := range r {
-		images = append(images, &notesdk.CreateReqImage{
+		images = append(images, &notev1.CreateReqImage{
 			FileId: img.FileId,
 			Width:  img.Width,
 			Height: img.Height,
@@ -66,8 +66,8 @@ func (r *CreateReq) Validate() error {
 	return nil
 }
 
-func (r *CreateReq) AsPb() *notesdk.CreateNoteRequest {
-	return &notesdk.CreateNoteRequest{
+func (r *CreateReq) AsPb() *notev1.CreateNoteRequest {
+	return &notev1.CreateNoteRequest{
 		Basic:  r.Basic.AsPb(),
 		Images: r.Images.AsPb(),
 	}
@@ -118,6 +118,22 @@ func (r *ListReq) Validate() error {
 	return nil
 }
 
+type PageListReq struct {
+	Page  int32 `form:"page,optional"`
+	Count int32 `form:"count,default=15"`
+}
+
+func (r *PageListReq) Validate() error {
+	if r.Page <= 0 {
+		r.Page = 1
+	}
+	if r.Count >= 15 {
+		r.Count = 15
+	}
+
+	return nil
+}
+
 type NoteItemImageMeta struct {
 	Width  uint32 `json:"width"`
 	Height uint32 `json:"height"`
@@ -147,11 +163,11 @@ type AdminNoteItem struct {
 	UpdateAt int64             `json:"update_at"`
 	Images   NoteItemImageList `json:"images"`
 	Likes    uint64            `json:"likes"`
-
-	Interact Interaction `json:"interact"`
+	Replies  uint64            `json:"replies"`
+	Interact Interaction       `json:"interact"`
 }
 
-func NewAdminNoteItemFromPb(pb *notesdk.NoteItem) *AdminNoteItem {
+func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
 	if pb == nil {
 		return nil
 	}
@@ -178,6 +194,7 @@ func NewAdminNoteItemFromPb(pb *notesdk.NoteItem) *AdminNoteItem {
 		UpdateAt: pb.UpdateAt,
 		Images:   images,
 		Likes:    pb.Likes,
+		Replies:  pb.Replies,
 	}
 }
 
@@ -187,7 +204,7 @@ type AdminListRes struct {
 	HasNext    bool             `json:"has_next"`
 }
 
-func NewListResFromPb(pb *notesdk.ListNoteResponse) *AdminListRes {
+func NewListResFromPb(pb *notev1.ListNoteResponse) *AdminListRes {
 	if pb == nil {
 		return nil
 	}
@@ -201,6 +218,27 @@ func NewListResFromPb(pb *notesdk.ListNoteResponse) *AdminListRes {
 		Items:      items,
 		NextCursor: pb.NextCursor,
 		HasNext:    pb.HasNext,
+	}
+}
+
+type AdminPageListRes struct {
+	Items []*AdminNoteItem `json:"items"`
+	Total uint64           `json:"total"`
+}
+
+func NewPageListResFromPb(pb *notev1.PageListNoteResponse) *AdminPageListRes {
+	if pb == nil {
+		return nil
+	}
+
+	items := make([]*AdminNoteItem, 0, len(pb.Items))
+	for _, item := range pb.Items {
+		items = append(items, NewAdminNoteItemFromPb(item))
+	}
+
+	return &AdminPageListRes{
+		Items: items,
+		Total: uint64(pb.Total),
 	}
 }
 
@@ -222,16 +260,16 @@ func (r *UploadAuthReq) Validate() error {
 	return nil
 }
 
-func (r *UploadAuthReq) AsPb() *notesdk.BatchGetUploadAuthRequest {
-	return &notesdk.BatchGetUploadAuthRequest{
+func (r *UploadAuthReq) AsPb() *notev1.BatchGetUploadAuthRequest {
+	return &notev1.BatchGetUploadAuthRequest{
 		Resource: r.Resource,
 		Source:   r.Source,
 		Count:    r.Count,
 	}
 }
 
-func (r *UploadAuthReq) AsPbV2() *notesdk.BatchGetUploadAuthV2Request {
-	return &notesdk.BatchGetUploadAuthV2Request{
+func (r *UploadAuthReq) AsPbV2() *notev1.BatchGetUploadAuthV2Request {
+	return &notev1.BatchGetUploadAuthV2Request{
 		Resource: r.Resource,
 		Source:   r.Source,
 		Count:    r.Count,

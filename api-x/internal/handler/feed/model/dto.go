@@ -46,7 +46,7 @@ func (r *FeedRecommendRequest) Validate() error {
 }
 
 type FeedDetailRequest struct {
-	NoteId imodel.NoteId `form:"note_id"`
+	NoteId imodel.NoteId `form:"note_id" path:"note_id"`
 	Source string        `form:"source,optional"`
 }
 

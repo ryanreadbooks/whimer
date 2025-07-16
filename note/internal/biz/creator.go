@@ -194,7 +194,7 @@ func (b *NoteCreatorBiz) ListNote(ctx context.Context) (*model.Notes, error) {
 	return b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
 }
 
-func (b *NoteCreatorBiz) PageListNote(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
+func (b *NoteCreatorBiz) PageListNoteWithCursor(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
 	var (
 		uid      = metadata.Uid(ctx)
 		nextPage = model.PageResult{}
@@ -224,13 +224,41 @@ func (b *NoteCreatorBiz) PageListNote(ctx context.Context, cursor uint64, count 
 
 	notesResp, err := b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
 	if err != nil {
-		return nil, nextPage,
-			xerror.Wrapf(err, "biz note failed to assemble notes when page list notes").
-				WithCtx(ctx).
+		return nil,
+			nextPage,
+			xerror.Wrapf(err, "biz note failed to assemble notes when cursor page list notes").WithCtx(ctx).
 				WithExtras("cursor", cursor, "count", count)
 	}
 
 	return notesResp, nextPage, nil
+}
+
+// page从1开始
+func (b *NoteCreatorBiz) PageListNote(ctx context.Context, page, count int32) (*model.Notes, uint64, error) {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	total, err := infra.Dao().NoteDao.GetPostedCountByOwner(ctx, uid)
+	if err != nil {
+		if !errors.Is(err, xsql.ErrNoRecord) {
+			return nil, 0, xerror.Wrapf(err, "biz note count by owner failed").WithCtx(ctx)
+		}
+
+		return &model.Notes{}, 0, nil
+	}
+
+	notes, err := infra.Dao().NoteDao.PageListByOwner(ctx, uid, page, count)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "biz note page list failed").WithCtx(ctx)
+	}
+
+	notesResp, err := b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "biz note failed to assemble notes when page list notes")
+	}
+
+	return notesResp, total, nil
 }
 
 func (b *NoteCreatorBiz) GetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {

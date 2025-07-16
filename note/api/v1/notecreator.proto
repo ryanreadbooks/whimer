@@ -123,6 +123,16 @@ message BatchGetUploadAuthV2Response {
   string token = 5;
 }
 
+message PageListNoteRequest {
+  int32 page = 1;
+  int32 count = 2;
+}
+
+message PageListNoteResponse {
+  uint64 total = 1;
+  repeated NoteItem items = 2;
+}
+
 // 和笔记管理相关的服务
 // 比如发布笔记，修改笔记，删除笔记等管理笔记的功能
 service NoteCreatorService {
@@ -140,6 +150,8 @@ service NoteCreatorService {
   rpc GetNote(GetNoteRequest) returns (GetNoteResponse);
   // 列出笔记
   rpc ListNote(ListNoteRequest) returns (ListNoteResponse);
+  // 分页列出笔记
+  rpc PageListNote(PageListNoteRequest) returns (PageListNoteResponse);
 
   // 获取上传凭证
   //

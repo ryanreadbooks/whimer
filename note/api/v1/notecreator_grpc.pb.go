@@ -26,6 +26,7 @@ const (
 	NoteCreatorService_DeleteNote_FullMethodName           = "/note.api.v1.NoteCreatorService/DeleteNote"
 	NoteCreatorService_GetNote_FullMethodName              = "/note.api.v1.NoteCreatorService/GetNote"
 	NoteCreatorService_ListNote_FullMethodName             = "/note.api.v1.NoteCreatorService/ListNote"
+	NoteCreatorService_PageListNote_FullMethodName         = "/note.api.v1.NoteCreatorService/PageListNote"
 	NoteCreatorService_GetUploadAuth_FullMethodName        = "/note.api.v1.NoteCreatorService/GetUploadAuth"
 	NoteCreatorService_BatchGetUploadAuth_FullMethodName   = "/note.api.v1.NoteCreatorService/BatchGetUploadAuth"
 	NoteCreatorService_BatchGetUploadAuthV2_FullMethodName = "/note.api.v1.NoteCreatorService/BatchGetUploadAuthV2"
@@ -53,6 +54,8 @@ type NoteCreatorServiceClient interface {
 	GetNote(ctx context.Context, in *GetNoteRequest, opts ...grpc.CallOption) (*GetNoteResponse, error)
 	// 列出笔记
 	ListNote(ctx context.Context, in *ListNoteRequest, opts ...grpc.CallOption) (*ListNoteResponse, error)
+	// 分页列出笔记
+	PageListNote(ctx context.Context, in *PageListNoteRequest, opts ...grpc.CallOption) (*PageListNoteResponse, error)
 	// 获取上传凭证
 	//
 	// Deprecated: GetUploadAuth is deprecated, use BatchGetUploadAuthV2 instead.
@@ -146,6 +149,16 @@ func (c *noteCreatorServiceClient) ListNote(ctx context.Context, in *ListNoteReq
 	return out, nil
 }
 
+func (c *noteCreatorServiceClient) PageListNote(ctx context.Context, in *PageListNoteRequest, opts ...grpc.CallOption) (*PageListNoteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PageListNoteResponse)
+	err := c.cc.Invoke(ctx, NoteCreatorService_PageListNote_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *noteCreatorServiceClient) GetUploadAuth(ctx context.Context, in *GetUploadAuthRequest, opts ...grpc.CallOption) (*GetUploadAuthResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetUploadAuthResponse)
@@ -207,6 +220,8 @@ type NoteCreatorServiceServer interface {
 	GetNote(context.Context, *GetNoteRequest) (*GetNoteResponse, error)
 	// 列出笔记
 	ListNote(context.Context, *ListNoteRequest) (*ListNoteResponse, error)
+	// 分页列出笔记
+	PageListNote(context.Context, *PageListNoteRequest) (*PageListNoteResponse, error)
 	// 获取上传凭证
 	//
 	// Deprecated: GetUploadAuth is deprecated, use BatchGetUploadAuthV2 instead.
@@ -250,6 +265,9 @@ func (UnimplementedNoteCreatorServiceServer) GetNote(context.Context, *GetNoteRe
 }
 func (UnimplementedNoteCreatorServiceServer) ListNote(context.Context, *ListNoteRequest) (*ListNoteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListNote not implemented")
+}
+func (UnimplementedNoteCreatorServiceServer) PageListNote(context.Context, *PageListNoteRequest) (*PageListNoteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PageListNote not implemented")
 }
 func (UnimplementedNoteCreatorServiceServer) GetUploadAuth(context.Context, *GetUploadAuthRequest) (*GetUploadAuthResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUploadAuth not implemented")
@@ -410,6 +428,24 @@ func _NoteCreatorService_ListNote_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NoteCreatorService_PageListNote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PageListNoteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteCreatorServiceServer).PageListNote(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteCreatorService_PageListNote_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteCreatorServiceServer).PageListNote(ctx, req.(*PageListNoteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _NoteCreatorService_GetUploadAuth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetUploadAuthRequest)
 	if err := dec(in); err != nil {
@@ -516,6 +552,10 @@ var NoteCreatorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListNote",
 			Handler:    _NoteCreatorService_ListNote_Handler,
+		},
+		{
+			MethodName: "PageListNote",
+			Handler:    _NoteCreatorService_PageListNote_Handler,
 		},
 		{
 			MethodName: "GetUploadAuth",

@@ -42,9 +42,9 @@ func (h *Handler) GetRecommend() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) GetNoteDetail() http.HandlerFunc {
+func (h *Handler) GetNoteDetail(parser xhttp.ParserFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[model.FeedDetailRequest](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[model.FeedDetailRequest](parser, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
