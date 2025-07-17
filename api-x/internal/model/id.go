@@ -2,10 +2,10 @@ package model
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
+	"github.com/ryanreadbooks/whimer/api-x/internal/model/errors"
 	"github.com/ryanreadbooks/whimer/misc/xstring"
 )
 
@@ -25,14 +25,11 @@ func (id NoteId) MarshalJSON() ([]byte, error) {
 	return json.Marshal(result)
 }
 
-var (
-	ErrParseNoteId = fmt.Errorf("笔记不存在")
-)
 
 func (id *NoteId) fromBytes(data []byte) error {
 	result, err := infra.GetNoteIdObfuscate().DeMixU(xstring.FromBytes(data))
 	if err != nil {
-		return ErrParseNoteId
+		return errors.ErrNoteNotFound
 	}
 
 	*id = NoteId(result)

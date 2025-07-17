@@ -7,6 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/model"
+	"github.com/ryanreadbooks/whimer/api-x/internal/model/errors"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -33,7 +34,7 @@ func (h *Handler) hasNoteCheck(ctx context.Context, noteId uint64) error {
 		return err
 	} else {
 		if !resp.Exist {
-			return xerror.ErrArgs.Msg("笔记不存在")
+			return errors.ErrNoteNotFound
 		}
 	}
 

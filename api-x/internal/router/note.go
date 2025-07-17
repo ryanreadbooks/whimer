@@ -21,9 +21,9 @@ func regNoteRoutes(group *xhttp.RouterGroup, svc *handler.Handler) {
 			// 删除笔记
 			v1g.Post("/delete", svc.Note.CreatorDeleteNote())
 			// 列出笔记
-			v1g.Get("/list", svc.Note.CreatorListNotes())
+			// v1g.Get("/list", svc.Note.CreatorListNotes())
 			// 分页列出笔记
-			v1g.Get("/list/page", svc.Note.CreatorPageListNotes())
+			v1g.Get("/list", svc.Note.CreatorPageListNotes())
 			// 获取笔记
 			v1g.Get("/get/:note_id", svc.Note.CreatorGetNote())
 			// 申请笔记资源上传链接

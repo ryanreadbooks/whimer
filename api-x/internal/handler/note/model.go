@@ -2,7 +2,10 @@ package note
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/model"
+	"github.com/ryanreadbooks/whimer/api-x/internal/model/errors"
+
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 )
 
@@ -96,7 +99,7 @@ func (r *NoteIdReq) Validate() error {
 	}
 
 	if r.NoteId <= 0 {
-		return xerror.ErrArgs.Msg("笔记id错误")
+		return errors.ErrNoteNotFound
 	}
 
 	return nil
