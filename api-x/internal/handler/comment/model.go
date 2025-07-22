@@ -1,6 +1,7 @@
 package comment
 
 import (
+	"github.com/ryanreadbooks/whimer/api-x/internal/model"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xconv"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -8,18 +9,18 @@ import (
 )
 
 type PubReq struct {
-	ReplyType uint32 `json:"reply_type"`
-	Oid       uint64 `json:"oid"`
-	Content   string `json:"content"`
-	RootId    uint64 `json:"root_id,omitempty,optional"`
-	ParentId  uint64 `json:"parent_id,omitempty,optional"`
-	ReplyUid  int64  `json:"reply_uid"`
+	ReplyType uint32       `json:"reply_type"`
+	Oid       model.NoteId `json:"oid"`
+	Content   string       `json:"content"`
+	RootId    uint64       `json:"root_id,omitempty,optional"`
+	ParentId  uint64       `json:"parent_id,omitempty,optional"`
+	ReplyUid  int64        `json:"reply_uid"`
 }
 
 func (r *PubReq) AsPb() *commentv1.AddReplyRequest {
 	return &commentv1.AddReplyRequest{
 		ReplyType: r.ReplyType,
-		Oid:       r.Oid,
+		Oid:       uint64(r.Oid),
 		Content:   r.Content,
 		RootId:    r.RootId,
 		ParentId:  r.ParentId,
@@ -32,14 +33,14 @@ type PubRes struct {
 }
 
 type GetCommentsReq struct {
-	Oid    uint64 `form:"oid"`
-	Cursor uint64 `form:"cursor,optional"`
-	SortBy int    `form:"sort_by,optional"`
+	Oid    model.NoteId `form:"oid"`
+	Cursor uint64       `form:"cursor,optional"`
+	SortBy int          `form:"sort_by,optional"`
 }
 
 func (r *GetCommentsReq) AsPb() *commentv1.PageGetReplyRequest {
 	return &commentv1.PageGetReplyRequest{
-		Oid:    r.Oid,
+		Oid:    uint64(r.Oid),
 		Cursor: r.Cursor,
 		SortBy: commentv1.SortType(r.SortBy),
 	}
@@ -47,7 +48,7 @@ func (r *GetCommentsReq) AsPb() *commentv1.PageGetReplyRequest {
 
 func (r *GetCommentsReq) AsDetailedPb() *commentv1.PageGetDetailedReplyRequest {
 	return &commentv1.PageGetDetailedReplyRequest{
-		Oid:    r.Oid,
+		Oid:    uint64(r.Oid),
 		Cursor: r.Cursor,
 		SortBy: commentv1.SortType(r.SortBy),
 	}
@@ -60,35 +61,35 @@ type CommentRes struct {
 }
 
 type GetSubCommentsReq struct {
-	Oid    uint64 `form:"oid"`
-	RootId uint64 `form:"root"`
-	Cursor uint64 `form:"cursor,optional"`
+	Oid    model.NoteId `form:"oid"`
+	RootId uint64       `form:"root"`
+	Cursor uint64       `form:"cursor,optional"`
 }
 
 func (r *GetSubCommentsReq) AsPb() *commentv1.PageGetSubReplyRequest {
 	return &commentv1.PageGetSubReplyRequest{
-		Oid:    r.Oid,
+		Oid:    uint64(r.Oid),
 		RootId: r.RootId,
 		Cursor: r.Cursor,
 	}
 }
 
 type ReplyItemBase struct {
-	Id        uint64 `json:"id"`         // 评论id
-	Oid       uint64 `json:"oid"`        // 被评论对象id
-	ReplyType uint32 `json:"reply_type"` // 评论类型
-	Content   string `json:"content"`    // 评论内容
-	Uid       int64  `json:"uid"`        // 评论发表用户uid
-	RootId    uint64 `json:"root_id"`    // 根评论id
-	ParentId  uint64 `json:"parent_id"`  // 父评论id
-	Ruid      int64  `json:"ruid"`       // 被回复的用户id
-	LikeCount uint64 `json:"like_count"` // 点赞数
-	HateCount uint64 `json:"-"`          // 点踩数
-	Ctime     int64  `json:"ctime"`      // 发布时间
-	Mtime     int64  `json:"mtime"`      // 修改时间
-	Ip        string `json:"ip"`         // 发布时ip地址
-	IsPin     bool   `json:"is_pin"`     // 是否为置顶评论
-	SubsCount uint64 `json:"subs_count"` // 子评论数
+	Id        uint64       `json:"id"`         // 评论id
+	Oid       model.NoteId `json:"oid"`        // 被评论对象id
+	ReplyType uint32       `json:"reply_type"` // 评论类型
+	Content   string       `json:"content"`    // 评论内容
+	Uid       int64        `json:"uid"`        // 评论发表用户uid
+	RootId    uint64       `json:"root_id"`    // 根评论id
+	ParentId  uint64       `json:"parent_id"`  // 父评论id
+	Ruid      int64        `json:"ruid"`       // 被回复的用户id
+	LikeCount uint64       `json:"like_count"` // 点赞数
+	HateCount uint64       `json:"-"`          // 点踩数
+	Ctime     int64        `json:"ctime"`      // 发布时间
+	Mtime     int64        `json:"mtime"`      // 修改时间
+	Ip        string       `json:"ip"`         // 发布时ip地址
+	IsPin     bool         `json:"is_pin"`     // 是否为置顶评论
+	SubsCount uint64       `json:"subs_count"` // 子评论数
 }
 
 type ReplyItem struct {
@@ -103,7 +104,7 @@ func NewReplyItemBaseFromPb(p *commentv1.ReplyItem) *ReplyItemBase {
 
 	return &ReplyItemBase{
 		Id:        p.Id,
-		Oid:       p.Oid,
+		Oid:       model.NoteId(p.Oid),
 		ReplyType: p.ReplyType,
 		Content:   p.Content,
 		Uid:       p.Uid,
@@ -181,9 +182,9 @@ const (
 
 // 置顶评论
 type PinReq struct {
-	Oid     uint64    `json:"oid"`
-	ReplyId uint64    `json:"reply_id"`
-	Action  PinAction `json:"action"`
+	Oid     model.NoteId `json:"oid"`
+	ReplyId uint64       `json:"reply_id"`
+	Action  PinAction    `json:"action"`
 }
 
 func (r *PinReq) Validate() error {

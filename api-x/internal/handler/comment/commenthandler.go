@@ -56,7 +56,7 @@ func (h *Handler) PageGetRoots() http.HandlerFunc {
 			return
 		}
 
-		if err := h.checkHasNote(r.Context(), req.Oid); err != nil {
+		if err := h.checkHasNote(r.Context(), uint64(req.Oid)); err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
@@ -96,7 +96,7 @@ func (h *Handler) PageGetSubs() http.HandlerFunc {
 			return
 		}
 
-		if err := h.checkHasNote(r.Context(), req.Oid); err != nil {
+		if err := h.checkHasNote(r.Context(), uint64(req.Oid)); err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
@@ -149,7 +149,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 			return
 		}
 
-		if err := h.checkHasNote(r.Context(), req.Oid); err != nil {
+		if err := h.checkHasNote(r.Context(), uint64(req.Oid)); err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
@@ -168,7 +168,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 				defer wg.Done()
 				var err error
 				resp, err := infra.Commenter().
-					GetPinnedReply(ctx, &commentv1.GetPinnedReplyRequest{Oid: req.Oid})
+					GetPinnedReply(ctx, &commentv1.GetPinnedReplyRequest{Oid: uint64(req.Oid)})
 				if err != nil {
 					logx.Errorw("rpc get pin reply err", xlog.WithUid(ctx), xlog.WithErr(err))
 					return
@@ -294,7 +294,7 @@ func (h *Handler) PinComment() http.HandlerFunc {
 		}
 
 		_, err = infra.Commenter().PinReply(r.Context(), &commentv1.PinReplyRequest{
-			Oid:    req.Oid,
+			Oid:    uint64(req.Oid),
 			Rid:    req.ReplyId,
 			Action: commentv1.ReplyAction(req.Action),
 		})
