@@ -8,12 +8,15 @@ import (
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
+	imodel "github.com/ryanreadbooks/whimer/api-x/internal/model"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
+	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	maps "github.com/ryanreadbooks/whimer/misc/xmap"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 
@@ -79,6 +82,8 @@ func (h *Handler) PageGetRoots() http.HandlerFunc {
 			}
 		}
 
+		attachReplyItemInteract(ctx, replies)
+
 		httpx.OkJson(w, &CommentRes{
 			Replies:    replies,
 			NextCursor: rootReplies.NextCursor,
@@ -118,6 +123,8 @@ func (h *Handler) PageGetSubs() http.HandlerFunc {
 				return
 			}
 		}
+
+		attachReplyItemInteract(ctx, replies)
 
 		httpx.OkJson(w, &CommentRes{
 			Replies:    replies,
@@ -173,7 +180,11 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 					logx.Errorw("rpc get pin reply err", xlog.WithUid(ctx), xlog.WithErr(err))
 					return
 				}
-				pinnedReply = resp.Reply
+				pinnedReply = resp.GetReply()
+				if pinnedReply.GetRoot() == nil {
+					// 可能不存在置顶评论
+					return
+				}
 
 				userResp, err := infra.Userer().
 					BatchGetUser(ctx,
@@ -225,10 +236,17 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 		wg.Wait()
 		if req.Cursor == 0 {
 			// 置顶
-			if pinnedReply != nil { // 有些可能没有设置置顶评论
+			if pinnedReply != nil && pinnedReply.GetRoot() != nil { // 有些可能没有设置置顶评论
 				pinned = NewDetailedReplyItemFromPb(pinnedReply, pinnedReplyUser)
 			}
 		}
+
+		temps := make([]*DetailedReplyItem, 0, len(replies)+1)
+		temps = append(temps, replies...)
+		if pinned != nil {
+			temps = append(temps, pinned)
+		}
+		attachDetailReplyItemInteract(ctx, temps)
 
 		httpx.OkJson(w, &DetailedCommentRes{
 			Replies:    replies,
@@ -386,4 +404,73 @@ func (h *Handler) checkHasNote(ctx context.Context, noteId uint64) error {
 	}
 
 	return nil
+}
+
+func attachReplyItemInteract(ctx context.Context, items []*ReplyItem) {
+	if imodel.IsGuestFromCtx(ctx) {
+		return
+	}
+
+	var uid = metadata.Uid(ctx)
+
+	if len(items) == 0 {
+		return
+	}
+
+	// collect all reply ids
+	replyIds := make([]uint64, 0, len(items))
+	for _, item := range items {
+		replyIds = append(replyIds, item.Id)
+	}
+
+	replyIds = xslice.Uniq(replyIds)
+
+	// BatchCheckUserLikeReply有数量限制 此处需要分批处理
+	var wg sync.WaitGroup
+	var syncLikeStatus sync.Map
+	err := xslice.BatchAsyncExec(&wg, replyIds, 50, func(start, end int) error {
+		resp, err := infra.Commenter().BatchCheckUserLikeReply(ctx,
+			&commentv1.BatchCheckUserLikeReplyRequest{
+				Mappings: map[int64]*commentv1.BatchCheckUserLikeReplyRequest_ReplyIdList{
+					uid: {Ids: replyIds[start:end]},
+				},
+			})
+		if err != nil {
+			return err
+		}
+
+		if status, ok := resp.GetResults()[uid]; ok {
+			for _, status := range status.List {
+				syncLikeStatus.Store(status.GetReplyId(), status.GetLiked())
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		xlog.Msg("comment handler failed to check user like reply status").Errorx(ctx)
+		return
+	}
+
+	// fill items
+	for _, item := range items {
+		if v, ok := syncLikeStatus.Load(item.Id); ok {
+			if vv, yes := v.(bool); yes {
+				item.Interact.Liked = vv
+			}
+		}
+	}
+}
+
+func attachDetailReplyItemInteract(ctx context.Context, dItems []*DetailedReplyItem) {
+	items := make([]*ReplyItem, 0, len(dItems))
+	for _, dItem := range dItems {
+		items = append(items, dItem.Root)
+		for _, sub := range dItem.SubReplies.Items {
+			items = append(items, sub)
+		}
+	}
+
+	attachReplyItemInteract(ctx, items)
 }

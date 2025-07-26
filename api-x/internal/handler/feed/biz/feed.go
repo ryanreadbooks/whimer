@@ -5,6 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/handler/feed/model"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
+	imodel "github.com/ryanreadbooks/whimer/api-x/internal/model"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/recovery"
@@ -25,11 +26,11 @@ type FeedBiz struct {
 func NewFeedBiz() FeedBiz { return FeedBiz{} }
 
 func isGuestFromCtx(ctx context.Context) bool {
-	return isGuest(metadata.Uid(ctx))
+	return imodel.IsGuestFromCtx(ctx)
 }
 
 func isGuest(uid int64) bool {
-	return uid == 0
+	return imodel.IsGuest(uid)
 }
 
 // 收集作者信息

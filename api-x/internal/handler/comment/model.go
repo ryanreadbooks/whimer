@@ -74,6 +74,11 @@ func (r *GetSubCommentsReq) AsPb() *commentv1.PageGetSubReplyRequest {
 	}
 }
 
+// 与评论的交互信息
+type ReplyItemBaseInteract struct {
+	Liked bool `json:"liked"` // 当前请求用户是否点赞了该评论
+}
+
 type ReplyItemBase struct {
 	Id        uint64       `json:"id"`         // 评论id
 	Oid       model.NoteId `json:"oid"`        // 被评论对象id
@@ -90,6 +95,8 @@ type ReplyItemBase struct {
 	Ip        string       `json:"ip"`         // 发布时ip地址
 	IsPin     bool         `json:"is_pin"`     // 是否为置顶评论
 	SubsCount uint64       `json:"subs_count"` // 子评论数
+
+	Interact ReplyItemBaseInteract `json:"interact"` // 交互信息
 }
 
 type ReplyItem struct {

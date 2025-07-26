@@ -17,41 +17,15 @@ const (
 	ActionDo   = 1 // 执行操作，比如点赞，置顶等
 )
 
+type CommentInteractBiz struct{}
+
 // 评论交互领域 点赞 点踩 置顶 举报等
-type CommentInteractBiz interface {
-	// 用户点赞/取消点赞评论
-	LikeReply(ctx context.Context, rid uint64, action int8) error
-	// 用户点踩/取消点踩评论
-	DislikeReply(ctx context.Context, rid uint64, action int8) error
-	// 用户置顶/取消置顶评论
-	PinReply(ctx context.Context, oid, rid uint64, action int8) error
-	// 获取评论点赞数量
-	CountReplyLikes(ctx context.Context, rid uint64) (uint64, error)
-	// 获取评论点踩数量
-	// 批量获取评论点赞数量
-	BatchCountReplyLikes(ctx context.Context, rids []uint64) (map[uint64]uint64, error)
-	// 获取评论点踩数量
-	CountReplyDislikes(ctx context.Context, rid uint64) (uint64, error)
-	// 批量获取评论点踩数量
-	BatchCountReplyDislikes(ctx context.Context, rids []uint64) (map[uint64]uint64, error)
-	// 填充评论的点赞数量
-	PopulateLike(ctx context.Context, reply *model.ReplyItem) error
-	// 填充评论的点赞数量
-	PopulateLikes(ctx context.Context, replies []*model.ReplyItem) error
-	// 填充评论的点踩数量
-	PopulateHate(ctx context.Context, reply *model.ReplyItem) error
-	// 批量填充评论的点踩数量
-	PopulateHates(ctx context.Context, replies []*model.ReplyItem) error
-}
-
-type commentInteractBiz struct{}
-
 func NewCommentInteractBiz() CommentInteractBiz {
-	return &commentInteractBiz{}
+	return CommentInteractBiz{}
 }
 
 // 用户点赞/取消点赞评论
-func (b *commentInteractBiz) LikeReply(ctx context.Context, rid uint64, action int8) error {
+func (b *CommentInteractBiz) LikeReply(ctx context.Context, rid uint64, action int8) error {
 	err := b.likeOrDislike(ctx, rid, action, global.CommentLikeBizcode)
 	if err != nil {
 		return xerror.Wrapf(err, "comment interact biz failed to like reply using counter").
@@ -62,7 +36,7 @@ func (b *commentInteractBiz) LikeReply(ctx context.Context, rid uint64, action i
 }
 
 // 用户点踩/取消点踩评论
-func (b *commentInteractBiz) DislikeReply(ctx context.Context, rid uint64, action int8) error {
+func (b *CommentInteractBiz) DislikeReply(ctx context.Context, rid uint64, action int8) error {
 	err := b.likeOrDislike(ctx, rid, action, global.CommentDislikeBizcode)
 	if err != nil {
 		return xerror.Wrapf(err, "comment interact biz failed to dislike reply using counter").
@@ -72,7 +46,7 @@ func (b *commentInteractBiz) DislikeReply(ctx context.Context, rid uint64, actio
 	return nil
 }
 
-func (b *commentInteractBiz) likeOrDislike(ctx context.Context, rid uint64, action int8, bizcode int32) error {
+func (b *CommentInteractBiz) likeOrDislike(ctx context.Context, rid uint64, action int8, bizcode int32) error {
 	var (
 		uid = metadata.Uid(ctx)
 		err error
@@ -102,7 +76,7 @@ func (b *commentInteractBiz) likeOrDislike(ctx context.Context, rid uint64, acti
 
 // 用户置顶/取消置顶评论
 // 每个对象仅支持一条置顶评论，后置顶的评论会替代旧的置顶评论的置顶状态
-func (b *commentInteractBiz) PinReply(ctx context.Context, oid, rid uint64, action int8) error {
+func (b *CommentInteractBiz) PinReply(ctx context.Context, oid, rid uint64, action int8) error {
 	var (
 		err error
 	)
@@ -124,7 +98,7 @@ func (b *commentInteractBiz) PinReply(ctx context.Context, oid, rid uint64, acti
 	return nil
 }
 
-func (b *commentInteractBiz) getLikeOrDislikeCount(ctx context.Context, rid uint64, bizcode int32) (uint64, error) {
+func (b *CommentInteractBiz) getLikeOrDislikeCount(ctx context.Context, rid uint64, bizcode int32) (uint64, error) {
 	summary, err := dep.GetCounter().GetSummary(ctx, &counterv1.GetSummaryRequest{
 		BizCode: bizcode,
 		Oid:     rid,
@@ -136,7 +110,7 @@ func (b *commentInteractBiz) getLikeOrDislikeCount(ctx context.Context, rid uint
 	return summary.Count, nil
 }
 
-func (b *commentInteractBiz) batchGetLikeOrDislikeCount(ctx context.Context, rids []uint64, bizcode int32) (map[uint64]uint64, error) {
+func (b *CommentInteractBiz) batchGetLikeOrDislikeCount(ctx context.Context, rids []uint64, bizcode int32) (map[uint64]uint64, error) {
 	requests := make([]*counterv1.GetSummaryRequest, 0, len(rids))
 	for _, r := range rids {
 		requests = append(requests, &counterv1.GetSummaryRequest{
@@ -163,48 +137,49 @@ func (b *commentInteractBiz) batchGetLikeOrDislikeCount(ctx context.Context, rid
 }
 
 // 获取评论点赞数量
-func (b *commentInteractBiz) CountReplyLikes(ctx context.Context, rid uint64) (uint64, error) {
+func (b *CommentInteractBiz) CountReplyLikes(ctx context.Context, rid uint64) (uint64, error) {
 	return b.getLikeOrDislikeCount(ctx, rid, global.CommentLikeBizcode)
 }
 
 // 批量获取评论点赞数量
-func (b *commentInteractBiz) BatchCountReplyLikes(ctx context.Context, rids []uint64) (map[uint64]uint64, error) {
+func (b *CommentInteractBiz) BatchCountReplyLikes(ctx context.Context, rids []uint64) (map[uint64]uint64, error) {
 	return b.batchGetLikeOrDislikeCount(ctx, rids, global.CommentLikeBizcode)
 }
 
 // 获取评论点踩数量
-func (b *commentInteractBiz) CountReplyDislikes(ctx context.Context, rid uint64) (uint64, error) {
+func (b *CommentInteractBiz) CountReplyDislikes(ctx context.Context, rid uint64) (uint64, error) {
 	return b.getLikeOrDislikeCount(ctx, rid, global.CommentDislikeBizcode)
 }
 
 // 批量获取评论点踩数量
-func (b *commentInteractBiz) BatchCountReplyDislikes(ctx context.Context, rids []uint64) (map[uint64]uint64, error) {
+func (b *CommentInteractBiz) BatchCountReplyDislikes(ctx context.Context, rids []uint64) (map[uint64]uint64, error) {
 	return b.batchGetLikeOrDislikeCount(ctx, rids, global.CommentDislikeBizcode)
 }
 
-func (b *commentInteractBiz) PopulateLike(ctx context.Context, reply *model.ReplyItem) error {
+// 填充点赞数量
+func (b *CommentInteractBiz) PopulateLike(ctx context.Context, reply *model.ReplyItem) error {
 	replies := []*model.ReplyItem{reply}
 	return b.PopulateLikes(ctx, replies)
 }
 
-// 填充评论的点赞数量
-func (b *commentInteractBiz) PopulateLikes(ctx context.Context, replies []*model.ReplyItem) error {
+// 批量充评论的点赞数量
+func (b *CommentInteractBiz) PopulateLikes(ctx context.Context, replies []*model.ReplyItem) error {
 	return b.populateLikesOrHates(ctx, replies, global.CommentLikeBizcode)
 }
 
 // 填充评论的点踩数量
-func (b *commentInteractBiz) PopulateHate(ctx context.Context, reply *model.ReplyItem) error {
+func (b *CommentInteractBiz) PopulateHate(ctx context.Context, reply *model.ReplyItem) error {
 	replies := []*model.ReplyItem{reply}
 	return b.PopulateHates(ctx, replies)
 }
 
 // 批量填充评论的点踩数量
-func (b *commentInteractBiz) PopulateHates(ctx context.Context, replies []*model.ReplyItem) error {
+func (b *CommentInteractBiz) PopulateHates(ctx context.Context, replies []*model.ReplyItem) error {
 	return b.populateLikesOrHates(ctx, replies, global.CommentDislikeBizcode)
 }
 
 // 填充评论的点赞/点踩数量
-func (b *commentInteractBiz) populateLikesOrHates(ctx context.Context, replies []*model.ReplyItem, biz int32) error {
+func (b *CommentInteractBiz) populateLikesOrHates(ctx context.Context, replies []*model.ReplyItem, biz int32) error {
 	if len(replies) == 0 {
 		return nil
 	}
@@ -238,13 +213,59 @@ func (b *commentInteractBiz) populateLikesOrHates(ctx context.Context, replies [
 	for _, reply := range replies {
 		k := key{biz, reply.Id}
 		if cnt, ok := mapping[k]; ok {
-			if biz == global.CommentLikeBizcode {
+			switch biz {
+			case global.CommentLikeBizcode:
 				reply.LikeCount = cnt
-			} else if biz == global.CommentDislikeBizcode {
+			case global.CommentDislikeBizcode:
 				reply.HateCount = cnt
 			}
 		}
 	}
 
 	return nil
+}
+
+type ReplyLikeStatus struct {
+	ReplyId uint64
+	Liked   bool
+}
+
+// 检查用户是否点赞过某些评论
+func (b *CommentInteractBiz) BatchCheckUserLikeStatus(ctx context.Context,
+	uidReplyIds map[int64][]uint64) (map[int64][]ReplyLikeStatus, error) {
+
+	params := make(map[int64]*counterv1.ObjectList)
+	for uid, replyIds := range uidReplyIds {
+		params[uid] = &counterv1.ObjectList{
+			Oids: replyIds,
+		}
+	}
+	resp, err := dep.GetCounter().BatchGetRecord(ctx,
+		&counterv1.BatchGetRecordRequest{
+			BizCode: global.CommentLikeBizcode,
+			Params:  params,
+		})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "comment interact biz counter batch get record failed").WithCtx(ctx)
+	}
+
+	var result = make(map[int64][]ReplyLikeStatus, len(resp.GetResults()))
+	for uid, replyIds := range uidReplyIds {
+		likeRecords := resp.GetResults()[uid]
+		for _, replyId := range replyIds {
+			liked := false
+			for _, likeRecord := range likeRecords.GetList() {
+				if likeRecord.Oid == replyId && likeRecord.Act == counterv1.RecordAct_RECORD_ACT_ADD {
+					liked = true
+				}
+			}
+
+			result[uid] = append(result[uid], ReplyLikeStatus{
+				ReplyId: replyId,
+				Liked:   liked,
+			})
+		}
+	}
+
+	return result, nil
 }
