@@ -34,7 +34,7 @@ type Relation struct {
 	//
 	// 示例：(200,-2,100)==(100,2,200), (200,2,100)==(100,-2,200)
 	//			(200,-4,100)==(100,-4,200)
-	Id        uint64     `db:"id"`
+	Id        int64      `db:"id"`
 	UserAlpha int64      `db:"alpha"`  // 用户A
 	UserBeta  int64      `db:"beta"`   // 用户B
 	Link      LinkStatus `db:"link"`   // 用户的关注关系
@@ -45,7 +45,7 @@ type Relation struct {
 }
 
 type RelationUser struct {
-	Id        uint64     `db:"id"`
+	Id        int64      `db:"id"`
 	UserAlpha int64      `db:"alpha"` // 用户A
 	UserBeta  int64      `db:"beta"`  // 用户B
 	Link      LinkStatus `db:"link"`  // 用户的关注关系
@@ -231,7 +231,7 @@ func (d *RelationDao) FindByAlphaBetaAndLink(ctx context.Context, a, b int64, li
 // 找到uid关注的人 (找到发出关注连接的用户存在的用户关系)
 //
 //	alpha=uid and link=Forward/Mutual or beta=uid and link=Backward/Mutual
-func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid int64, offset uint64, limit int) (uids []int64, next uint64, more bool, err error) {
+func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid int64, offset int64, limit int) (uids []int64, next int64, more bool, err error) {
 	var (
 		rs = make([]*RelationUser, 0, 50)
 	)
@@ -343,7 +343,7 @@ func (d *RelationDao) FindBetaLinkTo(ctx context.Context, beta int64) ([]int64, 
 }
 
 // 找到关注uid的人
-func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid int64, offset uint64, limit int) (uids []int64, next uint64, more bool, err error) {
+func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid int64, offset int64, limit int) (uids []int64, next int64, more bool, err error) {
 	var (
 		rs = make([]*RelationUser, 0, 16)
 	)
@@ -424,16 +424,16 @@ func (d *RelationDao) FindBetaGotLinked(ctx context.Context, beta int64) ([]int6
 }
 
 // 获取关注uid的人数
-func (d *RelationDao) CountUidFans(ctx context.Context, uid int64) (uint64, error) {
-	var cnt uint64
+func (d *RelationDao) CountUidFans(ctx context.Context, uid int64) (int64, error) {
+	var cnt int64
 	// TODO use cache
 	err := d.db.QueryRowCtx(ctx, &cnt, sqlCountUidFans, uid, uid)
 	return cnt, xsql.ConvertError(err)
 }
 
 // 获取uid关注的人数
-func (d *RelationDao) CountUidFollowings(ctx context.Context, uid int64) (uint64, error) {
-	var cnt uint64
+func (d *RelationDao) CountUidFollowings(ctx context.Context, uid int64) (int64, error) {
+	var cnt int64
 	// TODO use cache
 	err := d.db.QueryRowCtx(ctx, &cnt, sqlCountUidFollowings, uid, uid)
 	return cnt, xsql.ConvertError(err)

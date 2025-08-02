@@ -42,19 +42,27 @@ func NewAuthor(u *userv1.UserInfo) *Author {
 	}
 }
 
+// 浏览返回的笔记结构
 type FeedNoteItem struct {
-	NoteId   imodel.NoteId      `json:"note_id"`
+	NoteId   imodel.NoteId     `json:"note_id"`
 	Title    string            `json:"title"`
 	Desc     string            `json:"desc"`
 	CreateAt int64             `json:"create_at"`
 	UpdateAt int64             `json:"update_at"`
 	Images   NoteItemImageList `json:"images"`
-	Likes    uint64            `json:"likes"` // 笔记总点赞数
+	Likes    int64             `json:"likes"` // 笔记总点赞数
 
 	// 下面这些字段要单独设置 不从note grpc接口中拿
 	Author   *Author     `json:"author"`   // 作者信息
-	Comments uint64      `json:"comments"` // 笔记总评论数
+	Comments int64       `json:"comments"` // 笔记总评论数
 	Interact Interaction `json:"interact"` // 当前请求的用户与该笔记的交互记录，比如点赞、评论、收藏等动作
+}
+
+// 笔记详情返回的结构 更加详细的信息
+type FullFeedNoteItem struct {
+	*FeedNoteItem
+
+	// TODO 更多信息
 }
 
 func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {

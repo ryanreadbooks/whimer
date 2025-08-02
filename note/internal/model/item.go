@@ -2,7 +2,7 @@ package model
 
 import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
-	"github.com/ryanreadbooks/whimer/note/internal/infra/dao"
+	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 )
 
 type NoteImageMeta struct {
@@ -38,15 +38,15 @@ func (l NoteImageList) AsPb() []*notev1.NoteImage {
 }
 
 type Note struct {
-	NoteId   uint64        `json:"note_id"`
+	NoteId   int64         `json:"note_id"`
 	Title    string        `json:"title"`
 	Desc     string        `json:"desc"`
 	Privacy  int8          `json:"privacy,omitempty"`
 	CreateAt int64         `json:"create_at,omitempty"`
 	UpdateAt int64         `json:"update_at,omitempty"`
 	Images   NoteImageList `json:"images"`
-	Likes    uint64        `json:"likes"`   // 点赞数
-	Replies  uint64        `json:"replies"` // 评论数
+	Likes    int64         `json:"likes"`   // 点赞数
+	Replies  int64         `json:"replies"` // 评论数
 	// UserInteraction UserInteraction `json:"user_interaction,omitempty"`
 
 	// unexported to user
@@ -57,7 +57,7 @@ func (n *Note) AsSlice() []*Note {
 	return []*Note{n}
 }
 
-func NoteFromDao(d *dao.Note) *Note {
+func NoteFromDao(d *notedao.Note) *Note {
 	n := &Note{}
 	if d == nil {
 		return n
@@ -73,7 +73,7 @@ func NoteFromDao(d *dao.Note) *Note {
 	return n
 }
 
-func NoteSliceFromDao(ds []*dao.Note) []*Note {
+func NoteSliceFromDao(ds []*notedao.Note) []*Note {
 	notes := make([]*Note, 0, len(ds))
 	for _, n := range ds {
 		notes = append(notes, NoteFromDao(n))
@@ -115,8 +115,8 @@ type Notes struct {
 	Items []*Note `json:"items"`
 }
 
-func (n *Notes) GetIds() []uint64 {
-	r := make([]uint64, 0, len(n.Items))
+func (n *Notes) GetIds() []int64 {
+	r := make([]int64, 0, len(n.Items))
 	for _, item := range n.Items {
 		r = append(r, item.NoteId)
 	}
@@ -124,7 +124,7 @@ func (n *Notes) GetIds() []uint64 {
 }
 
 type GetNoteReq struct {
-	NoteId uint64 `path:"note_id"`
+	NoteId int64 `path:"note_id"`
 }
 
 // 每个用户和笔记的交互情况
@@ -139,12 +139,12 @@ func (u *UserInteraction) AsPb() *notev1.NoteInteraction {
 }
 
 type LikeStatus struct {
-	NoteId uint64
+	NoteId int64
 	Liked  bool
 }
 
 type InteractStatus struct {
-	NoteId    uint64
+	NoteId    int64
 	Liked     bool
 	Starred   bool
 	Commented bool

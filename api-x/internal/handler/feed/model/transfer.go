@@ -63,9 +63,9 @@ func (r *FeedDetailRequest) Validate() error {
 }
 
 type FeedByUserRequest struct {
-	UserId int64  `form:"user_id"`
-	Cursor uint64 `form:"cursor,optional"`
-	Count  int    `form:"count,optional"`
+	UserId int64 `form:"user_id"`
+	Cursor int64 `form:"cursor,optional"`
+	Count  int   `form:"count,optional"`
 }
 
 func (r *FeedByUserRequest) Validate() error {
@@ -88,12 +88,12 @@ func (r *FeedByUserRequest) Validate() error {
 }
 
 type PageResult struct {
-	NextCursor uint64
+	NextCursor int64
 	HasNext    bool
 }
 
 type FeedByUserResponse struct {
 	Items      []*FeedNoteItem `json:"items"`
-	NextCursor uint64          `json:"next_cursor"`
+	NextCursor int64           `json:"next_cursor"`
 	HasNext    bool            `json:"has_next"`
 }

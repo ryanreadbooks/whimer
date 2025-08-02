@@ -18,7 +18,6 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 )
 
-
 const (
 	seqerReplyKey = "reply-id-seqer"
 )
@@ -56,7 +55,8 @@ func (b *CommentBiz) AddReply(ctx context.Context, req *model.AddReplyReq) (*mod
 	}
 
 	// 取一个号
-	replyId, err := dep.ReplyIdgen().GetId(ctx, seqerReplyKey, 10000)
+	resId, err := dep.ReplyIdgen().GetId(ctx, seqerReplyKey, 10000)
+	replyId := int64(resId)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "comment biz failed to gen replyId").WithCtx(ctx)
 	}
@@ -112,7 +112,7 @@ func (b *CommentBiz) AddReply(ctx context.Context, req *model.AddReplyReq) (*mod
 	return &model.AddReplyRes{Uid: uid, ReplyId: replyId}, nil
 }
 
-func (b *CommentBiz) findByIdForUpdate(ctx context.Context, rid uint64) (*model.ReplyItem, error) {
+func (b *CommentBiz) findByIdForUpdate(ctx context.Context, rid int64) (*model.ReplyItem, error) {
 	c, err := infra.Dao().CommentDao.FindByIdForUpdate(ctx, rid)
 	if err != nil {
 		if !xsql.IsNotFound(err) {
@@ -125,7 +125,7 @@ func (b *CommentBiz) findByIdForUpdate(ctx context.Context, rid uint64) (*model.
 }
 
 // 检查是否能够发布子评论
-func (b *CommentBiz) isReplyAddable(ctx context.Context, rootId, parentId uint64) error {
+func (b *CommentBiz) isReplyAddable(ctx context.Context, rootId, parentId int64) error {
 	// 两个都需要检查
 	if rootId != 0 {
 		root, err := b.findByIdForUpdate(ctx, rootId)
@@ -151,7 +151,7 @@ func (b *CommentBiz) isReplyAddable(ctx context.Context, rootId, parentId uint64
 }
 
 // 用户删除评论
-func (b *CommentBiz) DelReply(ctx context.Context, rid uint64) error {
+func (b *CommentBiz) DelReply(ctx context.Context, rid int64) error {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -207,7 +207,7 @@ func (b *CommentBiz) DelReply(ctx context.Context, rid uint64) error {
 }
 
 // 检查评论是否存在
-func (b *CommentBiz) GetReply(ctx context.Context, rid uint64) (*model.ReplyItem, error) {
+func (b *CommentBiz) GetReply(ctx context.Context, rid int64) (*model.ReplyItem, error) {
 	reply, err := infra.Dao().CommentDao.FindById(ctx, rid)
 	if err != nil {
 		if !xsql.IsNotFound(err) {
@@ -249,7 +249,7 @@ func (b *CommentBiz) isReplyDeletable(ctx context.Context, uid int64, reply *mod
 
 // 仅获取根评论, 不获取根评论下的子评论
 // 每次返回10条
-func (b *CommentBiz) GetRootReplies(ctx context.Context, oid uint64, cursor uint64, want int, sortBy int8) (*model.PageReplies, error) {
+func (b *CommentBiz) GetRootReplies(ctx context.Context, oid int64, cursor int64, want int, sortBy int8) (*model.PageReplies, error) {
 	if want <= 0 {
 		want = 18
 	}
@@ -262,7 +262,7 @@ func (b *CommentBiz) GetRootReplies(ctx context.Context, oid uint64, cursor uint
 
 	// 计算下一个cursor
 	dataLen := len(data)
-	var nextCursor uint64 = 0
+	var nextCursor int64 = 0
 	hasNext := dataLen == want
 	if dataLen > 0 {
 		nextCursor = data[dataLen-1].Id
@@ -272,7 +272,7 @@ func (b *CommentBiz) GetRootReplies(ctx context.Context, oid uint64, cursor uint
 	}
 
 	items := make([]*model.ReplyItem, 0, dataLen)
-	rootIds := make([]uint64, 0, dataLen)
+	rootIds := make([]int64, 0, dataLen)
 	for _, item := range data {
 		items = append(items, model.NewReplyItem(item))
 		rootIds = append(rootIds, item.Id)
@@ -295,7 +295,7 @@ func (b *CommentBiz) GetRootReplies(ctx context.Context, oid uint64, cursor uint
 // 仅获取子评论
 // 获取对象oid中rootId评论下的子评论
 // 每次返回5条
-func (b *CommentBiz) GetSubReplies(ctx context.Context, oid, rootId uint64, want int, cursor uint64) (*model.PageReplies, error) {
+func (b *CommentBiz) GetSubReplies(ctx context.Context, oid, rootId int64, want int, cursor int64) (*model.PageReplies, error) {
 	if want <= 0 {
 		want = 10
 	}
@@ -306,7 +306,7 @@ func (b *CommentBiz) GetSubReplies(ctx context.Context, oid, rootId uint64, want
 			WithExtras("oid", oid, "rootId", rootId, "cursor", cursor).WithCtx(ctx)
 	}
 	dataLen := len(data)
-	var nextCursor uint64 = 0
+	var nextCursor int64 = 0
 	hasNext := dataLen == want
 	if dataLen > 0 {
 		nextCursor = data[dataLen-1].Id
@@ -328,7 +328,7 @@ func (b *CommentBiz) GetSubReplies(ctx context.Context, oid, rootId uint64, want
 }
 
 // 按照页码获取子评论
-func (b *CommentBiz) GetSubRepliesByPage(ctx context.Context, oid, rootId uint64, page, cnt int) (
+func (b *CommentBiz) GetSubRepliesByPage(ctx context.Context, oid, rootId int64, page, cnt int) (
 	[]*model.ReplyItem, int64, error) {
 
 	total, err := infra.Dao().CommentDao.CountSubReplies(ctx, oid, rootId)
@@ -348,7 +348,7 @@ func (b *CommentBiz) GetSubRepliesByPage(ctx context.Context, oid, rootId uint64
 	return items, total, nil
 }
 
-func (b *CommentBiz) CountReply(ctx context.Context, oid uint64) (uint64, error) {
+func (b *CommentBiz) CountReply(ctx context.Context, oid int64) (int64, error) {
 	cnt, err := infra.Dao().CommentDao.CountByOid(ctx, oid)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "comment biz failed to get replies count").WithCtx(ctx).WithExtra("oid", oid)
@@ -358,7 +358,7 @@ func (b *CommentBiz) CountReply(ctx context.Context, oid uint64) (uint64, error)
 }
 
 // 批量获取评论数量
-func (b *CommentBiz) BatchCountReply(ctx context.Context, oids []uint64) (map[uint64]uint64, error) {
+func (b *CommentBiz) BatchCountReply(ctx context.Context, oids []int64) (map[int64]int64, error) {
 	if len(oids) == 0 {
 		return nil, xerror.ErrArgs.Msg("invalid number of oids")
 	}
@@ -371,7 +371,7 @@ func (b *CommentBiz) BatchCountReply(ctx context.Context, oids []uint64) (map[ui
 }
 
 // 检查用户是否发起了评论
-func (b *CommentBiz) CheckUserIsReplied(ctx context.Context, uid int64, oid uint64) (bool, error) {
+func (b *CommentBiz) CheckUserIsReplied(ctx context.Context, uid int64, oid int64) (bool, error) {
 	cnt, err := infra.Dao().CommentDao.CountByOidUid(ctx, oid, uid)
 	if err != nil {
 		return false, xerror.Wrapf(err, "comment biz failed to check user is replied object").
@@ -384,14 +384,14 @@ func (b *CommentBiz) CheckUserIsReplied(ctx context.Context, uid int64, oid uint
 
 // 批量检查用户是否发起了评论
 // uid => [oid1, oid2, ..., oidN]
-func (b *CommentBiz) BatchCheckUserIsReplied(ctx context.Context, uidOids map[int64][]uint64) ([]model.UidCommentOnOid, error) {
+func (b *CommentBiz) BatchCheckUserIsReplied(ctx context.Context, uidOids map[int64][]int64) ([]model.UidCommentOnOid, error) {
 	resp, err := infra.Dao().CommentDao.FindByUidsOids(ctx, uidOids)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "comment biz failed to batch check user is replied").WithCtx(ctx)
 	}
 
 	// 记录uid评论过哪些oids
-	commented := make(map[int64][]uint64, len(resp))
+	commented := make(map[int64][]int64, len(resp))
 	for _, r := range resp {
 		commented[r.Uid] = append(commented[r.Uid], r.Oid)
 	}
@@ -419,7 +419,7 @@ func (b *CommentBiz) BatchCheckUserIsReplied(ctx context.Context, uidOids map[in
 }
 
 // 获取置顶评论
-func (b *CommentBiz) GetPinnedReply(ctx context.Context, oid uint64) (*model.ReplyItem, error) {
+func (b *CommentBiz) GetPinnedReply(ctx context.Context, oid int64) (*model.ReplyItem, error) {
 	pinned, err := infra.Dao().CommentDao.GetPinned(ctx, oid)
 	if err != nil {
 		if xsql.IsNotFound(err) {
@@ -434,7 +434,7 @@ func (b *CommentBiz) GetPinnedReply(ctx context.Context, oid uint64) (*model.Rep
 
 // 填充评论的子评论数量
 func (b *CommentBiz) PopulateSubRepliesCount(ctx context.Context, replies []*model.ReplyItem) error {
-	rootIds := make([]uint64, 0, len(replies))
+	rootIds := make([]int64, 0, len(replies))
 	for _, r := range replies {
 		rootIds = append(rootIds, r.Id)
 	}

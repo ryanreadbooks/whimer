@@ -91,7 +91,7 @@ func (d *DB) QueryRows(v any, query string, args ...any) error {
 }
 
 func (d *DB) QueryRowsCtx(ctx context.Context, v any, query string, args ...any) error {
-	return d.sc.QueryRowsCtx(ctx, v, query, args...)
+	return d.getSess(ctx).QueryRowsCtx(ctx, v, query, args...)
 }
 
 func (d *DB) QueryRowsPartial(v any, query string, args ...any) error {

@@ -1,4 +1,4 @@
-package dao
+package note
 
 import (
 	"context"
@@ -12,25 +12,28 @@ import (
 )
 
 var (
-	dao *NoteDao
-	ctx = context.TODO()
+	noteDao    *NoteDao
+	noteExtDao *NoteExtDao
+	ctx        = context.TODO()
 )
 
 func TestMain(m *testing.M) {
-	db := sqlx.NewMysql(xsql.GetDsn(
+	conn := sqlx.NewMysql(xsql.GetDsn(
 		os.Getenv("ENV_DB_USER"),
 		os.Getenv("ENV_DB_PASS"),
 		os.Getenv("ENV_DB_ADDR"),
 		os.Getenv("ENV_DB_NAME"),
 	))
 
-	dao = NewNoteDao(db, nil)
+	db := xsql.New(conn)
+	noteDao = NewNoteDao(db, nil)
+	noteExtDao = NewNoteExtDao(db)
 	m.Run()
 }
 
 func TestNote_GetByCursor(t *testing.T) {
 	Convey("GetByCursor", t, func() {
-		res, err := dao.GetPublicByCursor(ctx, 129, 15)
+		res, err := noteDao.GetPublicByCursor(ctx, 129, 15)
 		So(err, ShouldBeNil)
 		for _, r := range res {
 			t.Logf("%+v\n", r)
@@ -40,10 +43,20 @@ func TestNote_GetByCursor(t *testing.T) {
 
 func TestNote_GetRecentPost(t *testing.T) {
 	Convey("GetRecentPost", t, func() {
-		res, err := dao.GetRecentPublicPosted(ctx, 200, 3)
+		res, err := noteDao.GetRecentPublicPosted(ctx, 200, 3)
 		So(err, ShouldBeNil)
 		for _, r := range res {
 			t.Logf("%+v\n", r)
 		}
+	})
+}
+
+func TestNoteExt_Upsert(t *testing.T) {
+	Convey("NoteExt Upsert", t, func() {
+		err := noteExtDao.Upsert(ctx, &Ext{
+			NoteId: 100,
+			Tags:   "9223372036854775807",
+		})
+		So(err, ShouldBeNil)
 	})
 }

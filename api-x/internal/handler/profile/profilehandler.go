@@ -37,9 +37,9 @@ func (h *Handler) GetProfileStat() http.HandlerFunc {
 		var (
 			uid  = req.UserId
 			stat struct {
-				Posted     uint64 `json:"posted"`
-				Fans       uint64 `json:"fans"`
-				Followings uint64 `json:"followings"`
+				Posted     int64 `json:"posted"`
+				Fans       int64 `json:"fans"`
+				Followings int64 `json:"followings"`
 			}
 		)
 
@@ -130,8 +130,8 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 		})
 
 		var (
-			fansCount    uint64 = 0
-			followsCount uint64 = 0
+			fansCount    int64 = 0
+			followsCount int64 = 0
 		)
 
 		// 用户的粉丝，关注等信息
@@ -225,8 +225,8 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 			res.Interaction.Fans = HideActualCount(fansCount)
 			res.Interaction.Follows = HideActualCount(followsCount)
 		} else {
-			res.Interaction.Fans = strconv.FormatUint(fansCount, 10)
-			res.Interaction.Follows = strconv.FormatUint(followsCount, 10)
+			res.Interaction.Fans = strconv.FormatInt(fansCount, 10)
+			res.Interaction.Follows = strconv.FormatInt(followsCount, 10)
 		}
 		if followed {
 			res.Relation.Status = RelationFollowing

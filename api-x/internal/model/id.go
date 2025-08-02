@@ -9,7 +9,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xstring"
 )
 
-type NoteId uint64
+type NoteId int64
 
 // MarshalJSON implements the encoding json interface.
 func (id NoteId) MarshalJSON() ([]byte, error) {
@@ -17,7 +17,7 @@ func (id NoteId) MarshalJSON() ([]byte, error) {
 		return json.Marshal(nil)
 	}
 
-	result, err := infra.GetNoteIdObfuscate().MixU(uint64(id))
+	result, err := infra.GetNoteIdObfuscate().Mix(int64(id))
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func (id NoteId) MarshalJSON() ([]byte, error) {
 
 
 func (id *NoteId) fromBytes(data []byte) error {
-	result, err := infra.GetNoteIdObfuscate().DeMixU(xstring.FromBytes(data))
+	result, err := infra.GetNoteIdObfuscate().DeMix(xstring.FromBytes(data))
 	if err != nil {
 		return errors.ErrNoteNotFound
 	}

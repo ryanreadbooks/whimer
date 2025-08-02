@@ -106,8 +106,8 @@ func (r *NoteIdReq) Validate() error {
 }
 
 type ListReq struct {
-	Cursor uint64 `form:"cursor,optional"`
-	Count  int32  `form:"count,optional"`
+	Cursor int64 `form:"cursor,optional"`
+	Count  int32 `form:"count,optional"`
 }
 
 func (r *ListReq) Validate() error {
@@ -165,8 +165,8 @@ type AdminNoteItem struct {
 	CreateAt int64             `json:"create_at"`
 	UpdateAt int64             `json:"update_at"`
 	Images   NoteItemImageList `json:"images"`
-	Likes    uint64            `json:"likes"`
-	Replies  uint64            `json:"replies"`
+	Likes    int64             `json:"likes"`
+	Replies  int64             `json:"replies"`
 	Interact Interaction       `json:"interact"`
 }
 
@@ -203,7 +203,7 @@ func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
 
 type AdminListRes struct {
 	Items      []*AdminNoteItem `json:"items"`
-	NextCursor uint64           `json:"next_cursor"`
+	NextCursor int64            `json:"next_cursor"`
 	HasNext    bool             `json:"has_next"`
 }
 
@@ -226,7 +226,7 @@ func NewListResFromPb(pb *notev1.ListNoteResponse) *AdminListRes {
 
 type AdminPageListRes struct {
 	Items []*AdminNoteItem `json:"items"`
-	Total uint64           `json:"total"`
+	Total int64            `json:"total"`
 }
 
 func NewPageListResFromPb(pb *notev1.PageListNoteResponse) *AdminPageListRes {
@@ -241,7 +241,7 @@ func NewPageListResFromPb(pb *notev1.PageListNoteResponse) *AdminPageListRes {
 
 	return &AdminPageListRes{
 		Items: items,
-		Total: uint64(pb.Total),
+		Total: int64(pb.Total),
 	}
 }
 
@@ -306,7 +306,7 @@ const (
 
 // 点赞/取消点赞
 type LikeReq struct {
-	NoteId uint64        `json:"note_id"`
+	NoteId int64         `json:"note_id"`
 	Action LikeReqAction `json:"action"`
 }
 
@@ -323,6 +323,6 @@ func (r *LikeReq) Validate() error {
 }
 
 type GetLikesRes struct {
-	NoteId uint64 `json:"note_id"`
-	Count  uint64 `json:"count"`
+	NoteId int64 `json:"note_id"`
+	Count  int64 `json:"count"`
 }

@@ -3,7 +3,7 @@ package model
 import "github.com/ryanreadbooks/whimer/note/internal/global"
 
 type DeleteNoteRequest struct {
-	NoteId uint64 `json:"note_id"`
+	NoteId int64 `json:"note_id"`
 }
 
 func (r *DeleteNoteRequest) Validate() error {

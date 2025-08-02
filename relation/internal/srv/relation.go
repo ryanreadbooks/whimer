@@ -94,7 +94,7 @@ func (s *RelationSrv) UnfollowUser(ctx context.Context, follower, unfollowed int
 	return nil
 }
 
-func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset uint64, cnt int) (fans []int64, result model.ListResult, err error) {
+func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int64, cnt int) (fans []int64, result model.ListResult, err error) {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -113,7 +113,7 @@ func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset uint
 	return
 }
 
-func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offset uint64, cnt int) (followings []int64, result model.ListResult, err error) {
+func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offset int64, cnt int) (followings []int64, result model.ListResult, err error) {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -133,12 +133,12 @@ func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offse
 }
 
 // 获取用户粉丝数
-func (s *RelationSrv) GetUserFanCount(ctx context.Context, uid int64) (uint64, error) {
+func (s *RelationSrv) GetUserFanCount(ctx context.Context, uid int64) (int64, error) {
 	return s.relationBiz.GetUserFanCount(ctx, uid)
 }
 
 // 获取用户关注数
-func (s *RelationSrv) GetUserFollowingCount(ctx context.Context, uid int64) (uint64, error) {
+func (s *RelationSrv) GetUserFollowingCount(ctx context.Context, uid int64) (int64, error) {
 	return s.relationBiz.GetUserFollowingCount(ctx, uid)
 }
 

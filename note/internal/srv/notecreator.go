@@ -29,7 +29,7 @@ func NewNoteCreatorSrv(p *Service, biz biz.Biz) *NoteCreatorSrv {
 }
 
 // 新建笔记
-func (s *NoteCreatorSrv) Create(ctx context.Context, req *model.CreateNoteRequest) (uint64, error) {
+func (s *NoteCreatorSrv) Create(ctx context.Context, req *model.CreateNoteRequest) (int64, error) {
 	return s.noteCreatorBiz.CreateNote(ctx, req)
 }
 
@@ -93,7 +93,7 @@ func (s *NoteCreatorSrv) Delete(ctx context.Context, req *model.DeleteNoteReques
 }
 
 // 列出某用户所有笔记
-func (s *NoteCreatorSrv) List(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
+func (s *NoteCreatorSrv) List(ctx context.Context, cursor int64, count int32) (*model.Notes, model.PageResult, error) {
 	resp, nextPage, err := s.noteCreatorBiz.PageListNoteWithCursor(ctx, cursor, count)
 	if err != nil {
 		return nil, nextPage, xerror.Wrapf(err, "srv creator cursor list note failed").WithCtx(ctx)
@@ -105,7 +105,7 @@ func (s *NoteCreatorSrv) List(ctx context.Context, cursor uint64, count int32) (
 	return resp, nextPage, nil
 }
 
-func (s *NoteCreatorSrv) PageList(ctx context.Context, page, count int32) (*model.Notes, uint64, error) {
+func (s *NoteCreatorSrv) PageList(ctx context.Context, page, count int32) (*model.Notes, int64, error) {
 	resp, total, err := s.noteCreatorBiz.PageListNote(ctx, page, count)
 	if err != nil {
 		return nil, 0, xerror.Wrapf(err, "srv creator page list note failed").WithCtx(ctx)
@@ -118,7 +118,7 @@ func (s *NoteCreatorSrv) PageList(ctx context.Context, page, count int32) (*mode
 }
 
 // 用于笔记作者获取笔记的详细信息
-func (s *NoteCreatorSrv) GetNote(ctx context.Context, noteId uint64) (*model.Note, error) {
+func (s *NoteCreatorSrv) GetNote(ctx context.Context, noteId int64) (*model.Note, error) {
 	note, err := s.noteCreatorBiz.GetNote(ctx, noteId)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "srv creator get note failed").WithCtx(ctx)
@@ -131,17 +131,17 @@ func (s *NoteCreatorSrv) GetNote(ctx context.Context, noteId uint64) (*model.Not
 }
 
 // 获取笔记作者
-func (s *NoteCreatorSrv) GetNoteOwner(ctx context.Context, noteId uint64) (int64, error) {
+func (s *NoteCreatorSrv) GetNoteOwner(ctx context.Context, noteId int64) (int64, error) {
 	return s.noteBiz.GetNoteOwner(ctx, noteId)
 }
 
 // 判断笔记是否存在
-func (s *NoteCreatorSrv) IsNoteExist(ctx context.Context, noteId uint64) (bool, error) {
+func (s *NoteCreatorSrv) IsNoteExist(ctx context.Context, noteId int64) (bool, error) {
 	return s.noteBiz.IsNoteExist(ctx, noteId)
 }
 
 // 获取用户发布的笔记数量
-func (s *NoteCreatorSrv) GetPostedCount(ctx context.Context, uid int64) (uint64, error) {
+func (s *NoteCreatorSrv) GetPostedCount(ctx context.Context, uid int64) (int64, error) {
 	cnt, err := infra.Dao().NoteDao.GetPostedCountByOwner(ctx, uid)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "srv creator get posted count failed").

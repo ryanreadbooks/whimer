@@ -16,8 +16,7 @@ import (
 )
 
 // NoteBiz作为最基础的biz可以被其它biz依赖，其它biz之间不能相互依赖
-type NoteBiz struct {
-}
+type NoteBiz struct {}
 
 func NewNoteBiz() NoteBiz {
 	b := NoteBiz{}
@@ -25,7 +24,7 @@ func NewNoteBiz() NoteBiz {
 }
 
 // 获取笔记基础信息
-func (b *NoteBiz) GetNote(ctx context.Context, noteId uint64) (*model.Note, error) {
+func (b *NoteBiz) GetNote(ctx context.Context, noteId int64) (*model.Note, error) {
 	note, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
 	if err != nil {
 		if xsql.IsNotFound(err) {
@@ -62,10 +61,10 @@ func (b *NoteBiz) GetUserRecentNote(ctx context.Context, uid int64, count int32)
 	return resp, nil
 }
 
-func (b *NoteBiz) ListUserPublicNote(ctx context.Context, uid int64, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
+func (b *NoteBiz) ListUserPublicNote(ctx context.Context, uid int64, cursor int64, count int32) (*model.Notes, model.PageResult, error) {
 	var pageResult = model.PageResult{}
 	if cursor == 0 {
-		cursor = math.MaxUint64
+		cursor = math.MaxInt64
 	}
 
 	notes, err := infra.Dao().NoteDao.ListPublicByOwnerByCursor(ctx, uid, cursor, count)
@@ -94,7 +93,7 @@ func (b *NoteBiz) ListUserPublicNote(ctx context.Context, uid int64, cursor uint
 	return resp, pageResult, nil
 }
 
-func (b *NoteBiz) GetPublicNote(ctx context.Context, noteId uint64) (*model.Note, error) {
+func (b *NoteBiz) GetPublicNote(ctx context.Context, noteId int64) (*model.Note, error) {
 	note, err := b.GetNote(ctx, noteId)
 	if err != nil {
 		return nil, err
@@ -108,7 +107,7 @@ func (b *NoteBiz) GetPublicNote(ctx context.Context, noteId uint64) (*model.Note
 }
 
 // 判断笔记是否存在
-func (b *NoteBiz) IsNoteExist(ctx context.Context, noteId uint64) (bool, error) {
+func (b *NoteBiz) IsNoteExist(ctx context.Context, noteId int64) (bool, error) {
 	if noteId <= 0 {
 		return false, nil
 	}
@@ -125,7 +124,7 @@ func (b *NoteBiz) IsNoteExist(ctx context.Context, noteId uint64) (bool, error) 
 }
 
 // 获取笔记作者
-func (b *NoteBiz) GetNoteOwner(ctx context.Context, noteId uint64) (int64, error) {
+func (b *NoteBiz) GetNoteOwner(ctx context.Context, noteId int64) (int64, error) {
 	n, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
 	if err != nil {
 		if !xsql.IsNotFound(err) {
@@ -140,7 +139,7 @@ func (b *NoteBiz) GetNoteOwner(ctx context.Context, noteId uint64) (int64, error
 // 组装笔记信息
 // 笔记的资源数据，点赞等
 func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*model.Notes, error) {
-	var noteIds = make([]uint64, 0, len(notes))
+	var noteIds = make([]int64, 0, len(notes))
 	for _, n := range notes {
 		noteIds = append(noteIds, n.NoteId)
 	}

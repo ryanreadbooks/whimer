@@ -1,24 +1,25 @@
 package dao
 
 import (
-	"context"
-
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
+	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
+	tagdao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/tag"
 
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 type Dao struct {
-	db sqlx.SqlConn
+	db *xsql.DB
 
-	NoteDao       *NoteDao
-	NoteAssetRepo *NoteAssetDao
+	NoteDao       *notedao.NoteDao
+	NoteAssetRepo *notedao.NoteAssetDao
+	TagDao        *tagdao.TagDao
 }
 
 func New(c *config.Config, cache *redis.Redis) *Dao {
-	db := sqlx.NewMysql(xsql.GetDsn(
+	conn := sqlx.NewMysql(xsql.GetDsn(
 		c.MySql.User,
 		c.MySql.Pass,
 		c.MySql.Addr,
@@ -26,7 +27,7 @@ func New(c *config.Config, cache *redis.Redis) *Dao {
 	))
 
 	// 启动时必须确保数据库有效
-	rdb, err := db.RawDB()
+	rdb, err := conn.RawDB()
 	if err != nil {
 		panic(err)
 	}
@@ -34,33 +35,22 @@ func New(c *config.Config, cache *redis.Redis) *Dao {
 		panic(err)
 	}
 
+	db := xsql.New(conn)
+
 	return &Dao{
 		db:            db,
-		NoteDao:       NewNoteDao(db, cache),
-		NoteAssetRepo: NewNoteAssetDao(db),
+		NoteDao:       notedao.NewNoteDao(db, cache),
+		NoteAssetRepo: notedao.NewNoteAssetDao(db),
+		TagDao:        tagdao.NewTagDao(db),
 	}
 }
 
-// 事务中执行
-func (d *Dao) TransactCtx(ctx context.Context, fns ...xsql.TransactFunc) error {
-	return d.db.TransactCtx(ctx, func(ctx context.Context, s sqlx.Session) error {
-		for _, fn := range fns {
-			err := fn(ctx, s)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-}
-
-func (d *Dao) DB() sqlx.SqlConn {
+func (d *Dao) DB() *xsql.DB {
 	return d.db
 }
 
 func (d *Dao) Close() {
-	if rd, _ := d.db.RawDB(); rd != nil {
+	if rd, _ := d.db.Conn().RawDB(); rd != nil {
 		rd.Close()
 	}
 }

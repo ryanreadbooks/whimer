@@ -14,7 +14,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
-	"github.com/ryanreadbooks/whimer/note/internal/infra/dao"
+	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
 
@@ -45,9 +45,9 @@ func (s *NoteFeedSrv) FeedRandomGet(ctx context.Context, count int32) (*model.No
 func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, error) {
 	var (
 		err    error
-		lastId uint64
+		lastId int64
 		wg     sync.WaitGroup
-		items  []*dao.Note // items为随机获取的结果
+		items  []*notedao.Note // items为随机获取的结果
 	)
 
 	wg.Add(1)
@@ -69,21 +69,21 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 
 	wg.Wait()
 
-	itemsMap := make(map[uint64]*dao.Note, count)
-	if maxCnt <= uint64(count) {
+	itemsMap := make(map[int64]*notedao.Note, count)
+	if maxCnt <= int64(count) {
 		// we fetch all
 		items, err = infra.Dao().NoteDao.GetPublicAll(ctx)
 		if err != nil {
 			return nil, xerror.Wrapf(err, "note repo get public all failed").WithCtx(ctx).WithExtra("count", count)
 		}
 	} else {
-		var notes []*dao.Note
+		var notes []*notedao.Note
 		for tryCnt := 1; tryCnt <= 8 && len(itemsMap) < count; tryCnt++ {
 			begin := rand.Int63n(int64(lastId))
 			if begin == 0 {
 				begin = 1
 			}
-			notes, err = infra.Dao().NoteDao.GetPublicByCursor(ctx, uint64(begin), count)
+			notes, err = infra.Dao().NoteDao.GetPublicByCursor(ctx, int64(begin), count)
 			if err != nil {
 				return nil, xerror.Wrapf(err, "note repo get public by cursor failed").
 					WithExtra("begin", begin).
@@ -109,7 +109,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 }
 
 // 获取笔记详情
-func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId uint64) (*model.Note, error) {
+func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId int64) (*model.Note, error) {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -147,7 +147,7 @@ func (s *NoteFeedSrv) GetUserRecentNotes(ctx context.Context, user int64, maxCou
 }
 
 // 列出用户公开的笔记
-func (s *NoteFeedSrv) ListUserPublicNotes(ctx context.Context, user int64, cursor uint64, count int32) (*model.Notes,
+func (s *NoteFeedSrv) ListUserPublicNotes(ctx context.Context, user int64, cursor int64, count int32) (*model.Notes,
 	model.PageResult, error) {
 	result, page, err := s.noteBiz.ListUserPublicNote(ctx, user, cursor, count)
 	if err != nil {

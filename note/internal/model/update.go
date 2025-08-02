@@ -5,7 +5,7 @@ import (
 )
 
 type UpdateNoteRequest struct {
-	NoteId uint64 `json:"note_id"`
+	NoteId int64 `json:"note_id"`
 	CreateNoteRequest
 }
 
@@ -19,8 +19,4 @@ func (r *UpdateNoteRequest) Validate() error {
 	}
 
 	return r.CreateNoteRequest.Validate()
-}
-
-type UpdateResponse struct {
-	NoteId string `json:"note_id"`
 }
