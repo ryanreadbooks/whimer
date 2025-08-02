@@ -301,10 +301,8 @@ func (s *CommentSrv) GetPinnedReply(ctx context.Context, oid uint64) (*model.Det
 		return nil, xerror.Wrapf(err, "comment srv get pinned reply failed")
 	}
 
-	err = s.CommentInteractBiz.PopulateLike(ctx, root)
-	if err != nil {
+	if err = s.CommentInteractBiz.PopulateLike(ctx, root); err != nil {
 		xlog.Msg("comment srv failed to populate pinned reply").Errorx(ctx)
-		err = nil
 	}
 
 	// 获取对应子评论
@@ -386,4 +384,15 @@ func (s *CommentSrv) BatchCheckUserIsReplied(ctx context.Context, uidOids map[in
 	}
 
 	return commted, nil
+}
+
+func (s *CommentSrv) BatchCheckUserLikeStatus(ctx context.Context, uidReplyIds map[int64][]uint64) (
+	map[int64][]biz.ReplyLikeStatus, error,
+) {
+	resp, err := s.CommentInteractBiz.BatchCheckUserLikeStatus(ctx, uidReplyIds)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "comment srv failed to batch check user like status").WithCtx(ctx)
+	}
+
+	return resp, err
 }

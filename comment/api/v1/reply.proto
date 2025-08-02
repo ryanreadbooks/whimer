@@ -239,6 +239,10 @@ service ReplyService {
 
   rpc BatchCheckUserOnObject(BatchCheckUserOnObjectRequest)
       returns (BatchCheckUserOnObjectResponse);
+
+  // 批量检查某个用户是否点赞了某些评论
+  rpc BatchCheckUserLikeReply(BatchCheckUserLikeReplyRequest)
+      returns (BatchCheckUserLikeReplyResponse);
 }
 
 message GetReplyLikeCountRequest {
@@ -269,8 +273,8 @@ message CheckUserOnObjectResponse { OidCommented result = 1; }
 message BatchCheckUserOnObjectRequest {
   message Objects {
     repeated uint64 oids = 1 [
-      (buf.validate.field).repeated .min_items = 1,
-      (buf.validate.field).repeated .max_items = 50
+      (buf.validate.field).repeated.min_items = 1,
+      (buf.validate.field).repeated.max_items = 50
     ];
   }
   map<int64, Objects> mappings = 1 [
@@ -288,4 +292,23 @@ message OidCommentedList { repeated OidCommented list = 1; }
 
 message BatchCheckUserOnObjectResponse {
   map<int64, OidCommentedList> results = 1;
+}
+
+message BatchCheckUserLikeReplyRequest {
+  // mappings => {uid: [rid1, rid2, ..., ridN]}
+  message ReplyIdList { repeated uint64 ids = 1; }
+
+  map<int64, ReplyIdList> mappings = 1;
+}
+
+message ReplyLiked {
+  uint64 reply_id = 1;
+  bool liked = 2;
+}
+
+message BatchCheckUserLikeReplyResponse {
+  // results => {uid: [{reply_id, liked}, {reply_id, liked}, ..., {reply_id,
+  // liked}]}
+  message ReplyLikedList { repeated ReplyLiked list = 1; }
+  map<int64, ReplyLikedList> results = 1;
 }

@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/comment/internal/global"
@@ -202,6 +203,10 @@ func (s *ReplyServiceServer) GetPinnedReply(ctx context.Context,
 	in *commentv1.GetPinnedReplyRequest) (*commentv1.GetPinnedReplyResponse, error) {
 	resp, err := s.Svc.CommentSrv.GetPinnedReply(ctx, in.Oid)
 	if err != nil {
+		if errors.Is(err, global.ErrNoPinReply) {
+			return &commentv1.GetPinnedReplyResponse{}, nil
+		}
+
 		return nil, err
 	}
 
@@ -301,4 +306,42 @@ func (s *ReplyServiceServer) BatchCheckUserOnObject(ctx context.Context,
 	}
 
 	return &commentv1.BatchCheckUserOnObjectResponse{Results: m}, nil
+}
+
+func (s *ReplyServiceServer) BatchCheckUserLikeReply(ctx context.Context,
+	in *commentv1.BatchCheckUserLikeReplyRequest) (*commentv1.BatchCheckUserLikeReplyResponse, error) {
+
+	l := len(in.Mappings)
+	if l > 50 {
+		return nil, global.ErrArgs.Msg("请求参数太多")
+	}
+
+	var req = make(map[int64][]uint64)
+	for uid, ids := range in.Mappings {
+		if len(ids.GetIds()) > 50 {
+			return nil, global.ErrArgs.Msg("请求子参数太多")
+		}
+		req[uid] = ids.GetIds()
+	}
+
+	resp, err := s.Svc.CommentSrv.BatchCheckUserLikeStatus(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make(map[int64]*commentv1.BatchCheckUserLikeReplyResponse_ReplyLikedList, len(resp))
+	for uid, statuses := range resp {
+		likeStatuses := make([]*commentv1.ReplyLiked, 0, len(statuses))
+		for _, status := range statuses {
+			likeStatuses = append(likeStatuses, &commentv1.ReplyLiked{
+				ReplyId: status.ReplyId,
+				Liked:   status.Liked,
+			})
+		}
+		results[uid] = &commentv1.BatchCheckUserLikeReplyResponse_ReplyLikedList{
+			List: likeStatuses,
+		}
+	}
+
+	return &commentv1.BatchCheckUserLikeReplyResponse{Results: results}, nil
 }

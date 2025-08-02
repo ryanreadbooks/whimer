@@ -2511,6 +2511,155 @@ func (x *BatchCheckUserOnObjectResponse) GetResults() map[int64]*OidCommentedLis
 	return nil
 }
 
+type BatchCheckUserLikeReplyRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Mappings map[int64]*BatchCheckUserLikeReplyRequest_ReplyIdList `protobuf:"bytes,1,rep,name=mappings,proto3" json:"mappings,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (x *BatchCheckUserLikeReplyRequest) Reset() {
+	*x = BatchCheckUserLikeReplyRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_v1_reply_proto_msgTypes[43]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BatchCheckUserLikeReplyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchCheckUserLikeReplyRequest) ProtoMessage() {}
+
+func (x *BatchCheckUserLikeReplyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_reply_proto_msgTypes[43]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchCheckUserLikeReplyRequest.ProtoReflect.Descriptor instead.
+func (*BatchCheckUserLikeReplyRequest) Descriptor() ([]byte, []int) {
+	return file_v1_reply_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *BatchCheckUserLikeReplyRequest) GetMappings() map[int64]*BatchCheckUserLikeReplyRequest_ReplyIdList {
+	if x != nil {
+		return x.Mappings
+	}
+	return nil
+}
+
+type ReplyLiked struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ReplyId uint64 `protobuf:"varint,1,opt,name=reply_id,json=replyId,proto3" json:"reply_id,omitempty"`
+	Liked   bool   `protobuf:"varint,2,opt,name=liked,proto3" json:"liked,omitempty"`
+}
+
+func (x *ReplyLiked) Reset() {
+	*x = ReplyLiked{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_v1_reply_proto_msgTypes[44]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReplyLiked) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplyLiked) ProtoMessage() {}
+
+func (x *ReplyLiked) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_reply_proto_msgTypes[44]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReplyLiked.ProtoReflect.Descriptor instead.
+func (*ReplyLiked) Descriptor() ([]byte, []int) {
+	return file_v1_reply_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *ReplyLiked) GetReplyId() uint64 {
+	if x != nil {
+		return x.ReplyId
+	}
+	return 0
+}
+
+func (x *ReplyLiked) GetLiked() bool {
+	if x != nil {
+		return x.Liked
+	}
+	return false
+}
+
+type BatchCheckUserLikeReplyResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Results map[int64]*BatchCheckUserLikeReplyResponse_ReplyLikedList `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (x *BatchCheckUserLikeReplyResponse) Reset() {
+	*x = BatchCheckUserLikeReplyResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_v1_reply_proto_msgTypes[45]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BatchCheckUserLikeReplyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchCheckUserLikeReplyResponse) ProtoMessage() {}
+
+func (x *BatchCheckUserLikeReplyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_reply_proto_msgTypes[45]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchCheckUserLikeReplyResponse.ProtoReflect.Descriptor instead.
+func (*BatchCheckUserLikeReplyResponse) Descriptor() ([]byte, []int) {
+	return file_v1_reply_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *BatchCheckUserLikeReplyResponse) GetResults() map[int64]*BatchCheckUserLikeReplyResponse_ReplyLikedList {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
 type BatchCheckUserOnObjectRequest_Objects struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2522,7 +2671,7 @@ type BatchCheckUserOnObjectRequest_Objects struct {
 func (x *BatchCheckUserOnObjectRequest_Objects) Reset() {
 	*x = BatchCheckUserOnObjectRequest_Objects{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_v1_reply_proto_msgTypes[44]
+		mi := &file_v1_reply_proto_msgTypes[47]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2535,7 +2684,7 @@ func (x *BatchCheckUserOnObjectRequest_Objects) String() string {
 func (*BatchCheckUserOnObjectRequest_Objects) ProtoMessage() {}
 
 func (x *BatchCheckUserOnObjectRequest_Objects) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_reply_proto_msgTypes[44]
+	mi := &file_v1_reply_proto_msgTypes[47]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2554,6 +2703,103 @@ func (*BatchCheckUserOnObjectRequest_Objects) Descriptor() ([]byte, []int) {
 func (x *BatchCheckUserOnObjectRequest_Objects) GetOids() []uint64 {
 	if x != nil {
 		return x.Oids
+	}
+	return nil
+}
+
+// mappings => {uid: [rid1, rid2, ..., ridN]}
+type BatchCheckUserLikeReplyRequest_ReplyIdList struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Ids []uint64 `protobuf:"varint,1,rep,packed,name=ids,proto3" json:"ids,omitempty"`
+}
+
+func (x *BatchCheckUserLikeReplyRequest_ReplyIdList) Reset() {
+	*x = BatchCheckUserLikeReplyRequest_ReplyIdList{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_v1_reply_proto_msgTypes[50]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BatchCheckUserLikeReplyRequest_ReplyIdList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchCheckUserLikeReplyRequest_ReplyIdList) ProtoMessage() {}
+
+func (x *BatchCheckUserLikeReplyRequest_ReplyIdList) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_reply_proto_msgTypes[50]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchCheckUserLikeReplyRequest_ReplyIdList.ProtoReflect.Descriptor instead.
+func (*BatchCheckUserLikeReplyRequest_ReplyIdList) Descriptor() ([]byte, []int) {
+	return file_v1_reply_proto_rawDescGZIP(), []int{43, 0}
+}
+
+func (x *BatchCheckUserLikeReplyRequest_ReplyIdList) GetIds() []uint64 {
+	if x != nil {
+		return x.Ids
+	}
+	return nil
+}
+
+// results => {uid: [{reply_id, liked}, {reply_id, liked}, ..., {reply_id,
+// liked}]}
+type BatchCheckUserLikeReplyResponse_ReplyLikedList struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	List []*ReplyLiked `protobuf:"bytes,1,rep,name=list,proto3" json:"list,omitempty"`
+}
+
+func (x *BatchCheckUserLikeReplyResponse_ReplyLikedList) Reset() {
+	*x = BatchCheckUserLikeReplyResponse_ReplyLikedList{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_v1_reply_proto_msgTypes[52]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BatchCheckUserLikeReplyResponse_ReplyLikedList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchCheckUserLikeReplyResponse_ReplyLikedList) ProtoMessage() {}
+
+func (x *BatchCheckUserLikeReplyResponse_ReplyLikedList) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_reply_proto_msgTypes[52]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchCheckUserLikeReplyResponse_ReplyLikedList.ProtoReflect.Descriptor instead.
+func (*BatchCheckUserLikeReplyResponse_ReplyLikedList) Descriptor() ([]byte, []int) {
+	return file_v1_reply_proto_rawDescGZIP(), []int{45, 0}
+}
+
+func (x *BatchCheckUserLikeReplyResponse_ReplyLikedList) GetList() []*ReplyLiked {
+	if x != nil {
+		return x.List
 	}
 	return nil
 }
@@ -2846,13 +3092,54 @@ var file_v1_reply_proto_rawDesc = []byte{
 	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x20, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e,
 	0x74, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x2e, 0x4f, 0x69, 0x64, 0x43, 0x6f, 0x6d, 0x6d,
 	0x65, 0x6e, 0x74, 0x65, 0x64, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
+	0x3a, 0x02, 0x38, 0x01, 0x22, 0x94, 0x02, 0x0a, 0x1e, 0x42, 0x61, 0x74, 0x63, 0x68, 0x43, 0x68,
+	0x65, 0x63, 0x6b, 0x55, 0x73, 0x65, 0x72, 0x4c, 0x69, 0x6b, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x58, 0x0a, 0x08, 0x6d, 0x61, 0x70, 0x70, 0x69,
+	0x6e, 0x67, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x3c, 0x2e, 0x63, 0x6f, 0x6d, 0x6d,
+	0x65, 0x6e, 0x74, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x2e, 0x42, 0x61, 0x74, 0x63, 0x68,
+	0x43, 0x68, 0x65, 0x63, 0x6b, 0x55, 0x73, 0x65, 0x72, 0x4c, 0x69, 0x6b, 0x65, 0x52, 0x65, 0x70,
+	0x6c, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x2e, 0x4d, 0x61, 0x70, 0x70, 0x69, 0x6e,
+	0x67, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x08, 0x6d, 0x61, 0x70, 0x70, 0x69, 0x6e, 0x67,
+	0x73, 0x1a, 0x1f, 0x0a, 0x0b, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x49, 0x64, 0x4c, 0x69, 0x73, 0x74,
+	0x12, 0x10, 0x0a, 0x03, 0x69, 0x64, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x04, 0x52, 0x03, 0x69,
+	0x64, 0x73, 0x1a, 0x77, 0x0a, 0x0d, 0x4d, 0x61, 0x70, 0x70, 0x69, 0x6e, 0x67, 0x73, 0x45, 0x6e,
+	0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03,
+	0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x50, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x3a, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x2e, 0x61,
+	0x70, 0x69, 0x2e, 0x76, 0x31, 0x2e, 0x42, 0x61, 0x74, 0x63, 0x68, 0x43, 0x68, 0x65, 0x63, 0x6b,
+	0x55, 0x73, 0x65, 0x72, 0x4c, 0x69, 0x6b, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x2e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x49, 0x64, 0x4c, 0x69, 0x73, 0x74,
+	0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0x3d, 0x0a, 0x0a, 0x52,
+	0x65, 0x70, 0x6c, 0x79, 0x4c, 0x69, 0x6b, 0x65, 0x64, 0x12, 0x19, 0x0a, 0x08, 0x72, 0x65, 0x70,
+	0x6c, 0x79, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x07, 0x72, 0x65, 0x70,
+	0x6c, 0x79, 0x49, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x6c, 0x69, 0x6b, 0x65, 0x64, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x08, 0x52, 0x05, 0x6c, 0x69, 0x6b, 0x65, 0x64, 0x22, 0xb7, 0x02, 0x0a, 0x1f, 0x42,
+	0x61, 0x74, 0x63, 0x68, 0x43, 0x68, 0x65, 0x63, 0x6b, 0x55, 0x73, 0x65, 0x72, 0x4c, 0x69, 0x6b,
+	0x65, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x56,
+	0x0a, 0x07, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32,
+	0x3c, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31,
+	0x2e, 0x42, 0x61, 0x74, 0x63, 0x68, 0x43, 0x68, 0x65, 0x63, 0x6b, 0x55, 0x73, 0x65, 0x72, 0x4c,
+	0x69, 0x6b, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x2e, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x07, 0x72,
+	0x65, 0x73, 0x75, 0x6c, 0x74, 0x73, 0x1a, 0x40, 0x0a, 0x0e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x4c,
+	0x69, 0x6b, 0x65, 0x64, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x2e, 0x0a, 0x04, 0x6c, 0x69, 0x73, 0x74,
+	0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74,
+	0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x4c, 0x69, 0x6b,
+	0x65, 0x64, 0x52, 0x04, 0x6c, 0x69, 0x73, 0x74, 0x1a, 0x7a, 0x0a, 0x0c, 0x52, 0x65, 0x73, 0x75,
+	0x6c, 0x74, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x54, 0x0a, 0x05, 0x76, 0x61,
+	0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3e, 0x2e, 0x63, 0x6f, 0x6d, 0x6d,
+	0x65, 0x6e, 0x74, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x2e, 0x42, 0x61, 0x74, 0x63, 0x68,
+	0x43, 0x68, 0x65, 0x63, 0x6b, 0x55, 0x73, 0x65, 0x72, 0x4c, 0x69, 0x6b, 0x65, 0x52, 0x65, 0x70,
+	0x6c, 0x79, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x52, 0x65, 0x70, 0x6c, 0x79,
+	0x4c, 0x69, 0x6b, 0x65, 0x64, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
 	0x3a, 0x02, 0x38, 0x01, 0x2a, 0x39, 0x0a, 0x0b, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x41, 0x63, 0x74,
 	0x69, 0x6f, 0x6e, 0x12, 0x15, 0x0a, 0x11, 0x52, 0x45, 0x50, 0x4c, 0x59, 0x5f, 0x41, 0x43, 0x54,
 	0x49, 0x4f, 0x4e, 0x5f, 0x55, 0x4e, 0x44, 0x4f, 0x10, 0x00, 0x12, 0x13, 0x0a, 0x0f, 0x52, 0x45,
 	0x50, 0x4c, 0x59, 0x5f, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x44, 0x4f, 0x10, 0x01, 0x2a,
 	0x23, 0x0a, 0x08, 0x53, 0x6f, 0x72, 0x74, 0x54, 0x79, 0x70, 0x65, 0x12, 0x0a, 0x0a, 0x06, 0x42,
 	0x79, 0x54, 0x69, 0x6d, 0x65, 0x10, 0x00, 0x12, 0x0b, 0x0a, 0x07, 0x42, 0x79, 0x54, 0x72, 0x65,
-	0x6e, 0x64, 0x10, 0x01, 0x32, 0xf5, 0x0d, 0x0a, 0x0c, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x53, 0x65,
+	0x6e, 0x64, 0x10, 0x01, 0x32, 0xf1, 0x0e, 0x0a, 0x0c, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x53, 0x65,
 	0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x4d, 0x0a, 0x08, 0x41, 0x64, 0x64, 0x52, 0x65, 0x70, 0x6c,
 	0x79, 0x12, 0x1f, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x2e, 0x61, 0x70, 0x69, 0x2e,
 	0x76, 0x31, 0x2e, 0x41, 0x64, 0x64, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65,
@@ -2963,19 +3250,26 @@ var file_v1_reply_proto_rawDesc = []byte{
 	0x62, 0x6a, 0x65, 0x63, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2e, 0x2e, 0x63,
 	0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x2e, 0x42, 0x61,
 	0x74, 0x63, 0x68, 0x43, 0x68, 0x65, 0x63, 0x6b, 0x55, 0x73, 0x65, 0x72, 0x4f, 0x6e, 0x4f, 0x62,
-	0x6a, 0x65, 0x63, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0xaa, 0x01, 0x0a,
-	0x12, 0x63, 0x6f, 0x6d, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x2e, 0x61, 0x70, 0x69,
-	0x2e, 0x76, 0x31, 0x42, 0x0a, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50,
-	0x01, 0x5a, 0x2e, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x72, 0x79,
-	0x61, 0x6e, 0x72, 0x65, 0x61, 0x64, 0x62, 0x6f, 0x6f, 0x6b, 0x73, 0x2f, 0x77, 0x68, 0x69, 0x6d,
-	0x65, 0x72, 0x2f, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x76,
-	0x31, 0xa2, 0x02, 0x03, 0x43, 0x41, 0x58, 0xaa, 0x02, 0x0e, 0x43, 0x6f, 0x6d, 0x6d, 0x65, 0x6e,
-	0x74, 0x2e, 0x41, 0x70, 0x69, 0x2e, 0x56, 0x31, 0xca, 0x02, 0x0e, 0x43, 0x6f, 0x6d, 0x6d, 0x65,
-	0x6e, 0x74, 0x5c, 0x41, 0x70, 0x69, 0x5c, 0x56, 0x31, 0xe2, 0x02, 0x1a, 0x43, 0x6f, 0x6d, 0x6d,
-	0x65, 0x6e, 0x74, 0x5c, 0x41, 0x70, 0x69, 0x5c, 0x56, 0x31, 0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65,
-	0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0xea, 0x02, 0x10, 0x43, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74,
-	0x3a, 0x3a, 0x41, 0x70, 0x69, 0x3a, 0x3a, 0x56, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x33,
+	0x6a, 0x65, 0x63, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x7a, 0x0a, 0x17,
+	0x42, 0x61, 0x74, 0x63, 0x68, 0x43, 0x68, 0x65, 0x63, 0x6b, 0x55, 0x73, 0x65, 0x72, 0x4c, 0x69,
+	0x6b, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x2e, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e,
+	0x74, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x2e, 0x42, 0x61, 0x74, 0x63, 0x68, 0x43, 0x68,
+	0x65, 0x63, 0x6b, 0x55, 0x73, 0x65, 0x72, 0x4c, 0x69, 0x6b, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2f, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e,
+	0x74, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x2e, 0x42, 0x61, 0x74, 0x63, 0x68, 0x43, 0x68,
+	0x65, 0x63, 0x6b, 0x55, 0x73, 0x65, 0x72, 0x4c, 0x69, 0x6b, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0xaa, 0x01, 0x0a, 0x12, 0x63, 0x6f, 0x6d,
+	0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x42,
+	0x0a, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x2e, 0x67,
+	0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x72, 0x79, 0x61, 0x6e, 0x72, 0x65,
+	0x61, 0x64, 0x62, 0x6f, 0x6f, 0x6b, 0x73, 0x2f, 0x77, 0x68, 0x69, 0x6d, 0x65, 0x72, 0x2f, 0x63,
+	0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x76, 0x31, 0xa2, 0x02, 0x03,
+	0x43, 0x41, 0x58, 0xaa, 0x02, 0x0e, 0x43, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x2e, 0x41, 0x70,
+	0x69, 0x2e, 0x56, 0x31, 0xca, 0x02, 0x0e, 0x43, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x5c, 0x41,
+	0x70, 0x69, 0x5c, 0x56, 0x31, 0xe2, 0x02, 0x1a, 0x43, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x5c,
+	0x41, 0x70, 0x69, 0x5c, 0x56, 0x31, 0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61,
+	0x74, 0x61, 0xea, 0x02, 0x10, 0x43, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x3a, 0x3a, 0x41, 0x70,
+	0x69, 0x3a, 0x3a, 0x56, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -2991,7 +3285,7 @@ func file_v1_reply_proto_rawDescGZIP() []byte {
 }
 
 var file_v1_reply_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_v1_reply_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
+var file_v1_reply_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
 var file_v1_reply_proto_goTypes = []any{
 	(ReplyAction)(0),                              // 0: comment.api.v1.ReplyAction
 	(SortType)(0),                                 // 1: comment.api.v1.SortType
@@ -3038,10 +3332,17 @@ var file_v1_reply_proto_goTypes = []any{
 	(*OidCommented)(nil),                          // 42: comment.api.v1.OidCommented
 	(*OidCommentedList)(nil),                      // 43: comment.api.v1.OidCommentedList
 	(*BatchCheckUserOnObjectResponse)(nil),        // 44: comment.api.v1.BatchCheckUserOnObjectResponse
-	nil,                                           // 45: comment.api.v1.BatchCountReplyResponse.NumbersEntry
-	(*BatchCheckUserOnObjectRequest_Objects)(nil), // 46: comment.api.v1.BatchCheckUserOnObjectRequest.Objects
-	nil, // 47: comment.api.v1.BatchCheckUserOnObjectRequest.MappingsEntry
-	nil, // 48: comment.api.v1.BatchCheckUserOnObjectResponse.ResultsEntry
+	(*BatchCheckUserLikeReplyRequest)(nil),        // 45: comment.api.v1.BatchCheckUserLikeReplyRequest
+	(*ReplyLiked)(nil),                            // 46: comment.api.v1.ReplyLiked
+	(*BatchCheckUserLikeReplyResponse)(nil),       // 47: comment.api.v1.BatchCheckUserLikeReplyResponse
+	nil,                                           // 48: comment.api.v1.BatchCountReplyResponse.NumbersEntry
+	(*BatchCheckUserOnObjectRequest_Objects)(nil), // 49: comment.api.v1.BatchCheckUserOnObjectRequest.Objects
+	nil, // 50: comment.api.v1.BatchCheckUserOnObjectRequest.MappingsEntry
+	nil, // 51: comment.api.v1.BatchCheckUserOnObjectResponse.ResultsEntry
+	(*BatchCheckUserLikeReplyRequest_ReplyIdList)(nil), // 52: comment.api.v1.BatchCheckUserLikeReplyRequest.ReplyIdList
+	nil, // 53: comment.api.v1.BatchCheckUserLikeReplyRequest.MappingsEntry
+	(*BatchCheckUserLikeReplyResponse_ReplyLikedList)(nil), // 54: comment.api.v1.BatchCheckUserLikeReplyResponse.ReplyLikedList
+	nil, // 55: comment.api.v1.BatchCheckUserLikeReplyResponse.ResultsEntry
 }
 var file_v1_reply_proto_depIdxs = []int32{
 	0,  // 0: comment.api.v1.LikeActionRequest.action:type_name -> comment.api.v1.ReplyAction
@@ -3062,54 +3363,61 @@ var file_v1_reply_proto_depIdxs = []int32{
 	26, // 15: comment.api.v1.DetailedReplyItemV2.sub_replies:type_name -> comment.api.v1.DetailedSubReplyV2
 	27, // 16: comment.api.v1.PageGetDetailedReplyV2Response.replies:type_name -> comment.api.v1.DetailedReplyItemV2
 	22, // 17: comment.api.v1.GetPinnedReplyResponse.reply:type_name -> comment.api.v1.DetailedReplyItem
-	45, // 18: comment.api.v1.BatchCountReplyResponse.numbers:type_name -> comment.api.v1.BatchCountReplyResponse.NumbersEntry
+	48, // 18: comment.api.v1.BatchCountReplyResponse.numbers:type_name -> comment.api.v1.BatchCountReplyResponse.NumbersEntry
 	42, // 19: comment.api.v1.CheckUserOnObjectResponse.result:type_name -> comment.api.v1.OidCommented
-	47, // 20: comment.api.v1.BatchCheckUserOnObjectRequest.mappings:type_name -> comment.api.v1.BatchCheckUserOnObjectRequest.MappingsEntry
+	50, // 20: comment.api.v1.BatchCheckUserOnObjectRequest.mappings:type_name -> comment.api.v1.BatchCheckUserOnObjectRequest.MappingsEntry
 	42, // 21: comment.api.v1.OidCommentedList.list:type_name -> comment.api.v1.OidCommented
-	48, // 22: comment.api.v1.BatchCheckUserOnObjectResponse.results:type_name -> comment.api.v1.BatchCheckUserOnObjectResponse.ResultsEntry
-	46, // 23: comment.api.v1.BatchCheckUserOnObjectRequest.MappingsEntry.value:type_name -> comment.api.v1.BatchCheckUserOnObjectRequest.Objects
-	43, // 24: comment.api.v1.BatchCheckUserOnObjectResponse.ResultsEntry.value:type_name -> comment.api.v1.OidCommentedList
-	2,  // 25: comment.api.v1.ReplyService.AddReply:input_type -> comment.api.v1.AddReplyRequest
-	4,  // 26: comment.api.v1.ReplyService.DelReply:input_type -> comment.api.v1.DelReplyRequest
-	6,  // 27: comment.api.v1.ReplyService.LikeAction:input_type -> comment.api.v1.LikeActionRequest
-	8,  // 28: comment.api.v1.ReplyService.DislikeAction:input_type -> comment.api.v1.DislikeActionRequest
-	10, // 29: comment.api.v1.ReplyService.ReportReply:input_type -> comment.api.v1.ReportReplyRequest
-	12, // 30: comment.api.v1.ReplyService.PinReply:input_type -> comment.api.v1.PinReplyRequest
-	14, // 31: comment.api.v1.ReplyService.PageGetReply:input_type -> comment.api.v1.PageGetReplyRequest
-	17, // 32: comment.api.v1.ReplyService.PageGetSubReply:input_type -> comment.api.v1.PageGetSubReplyRequest
-	19, // 33: comment.api.v1.ReplyService.PageGetSubReplyV2:input_type -> comment.api.v1.PageGetSubReplyV2Request
-	23, // 34: comment.api.v1.ReplyService.PageGetDetailedReply:input_type -> comment.api.v1.PageGetDetailedReplyRequest
-	25, // 35: comment.api.v1.ReplyService.PageGetDetailedReplyV2:input_type -> comment.api.v1.PageGetDetailedReplyV2Request
-	29, // 36: comment.api.v1.ReplyService.GetPinnedReply:input_type -> comment.api.v1.GetPinnedReplyRequest
-	31, // 37: comment.api.v1.ReplyService.CountReply:input_type -> comment.api.v1.CountReplyRequest
-	33, // 38: comment.api.v1.ReplyService.BatchCountReply:input_type -> comment.api.v1.BatchCountReplyRequest
-	35, // 39: comment.api.v1.ReplyService.GetReplyLikeCount:input_type -> comment.api.v1.GetReplyLikeCountRequest
-	37, // 40: comment.api.v1.ReplyService.GetReplyDislikeCount:input_type -> comment.api.v1.GetReplyDislikeCountRequest
-	39, // 41: comment.api.v1.ReplyService.CheckUserOnObject:input_type -> comment.api.v1.CheckUserOnObjectRequest
-	41, // 42: comment.api.v1.ReplyService.BatchCheckUserOnObject:input_type -> comment.api.v1.BatchCheckUserOnObjectRequest
-	3,  // 43: comment.api.v1.ReplyService.AddReply:output_type -> comment.api.v1.AddReplyResponse
-	5,  // 44: comment.api.v1.ReplyService.DelReply:output_type -> comment.api.v1.DelReplyResponse
-	7,  // 45: comment.api.v1.ReplyService.LikeAction:output_type -> comment.api.v1.LikeActionResponse
-	9,  // 46: comment.api.v1.ReplyService.DislikeAction:output_type -> comment.api.v1.DislikeActionResponse
-	11, // 47: comment.api.v1.ReplyService.ReportReply:output_type -> comment.api.v1.ReportReplyResponse
-	13, // 48: comment.api.v1.ReplyService.PinReply:output_type -> comment.api.v1.PinReplyResponse
-	16, // 49: comment.api.v1.ReplyService.PageGetReply:output_type -> comment.api.v1.PageGetReplyResponse
-	18, // 50: comment.api.v1.ReplyService.PageGetSubReply:output_type -> comment.api.v1.PageGetSubReplyResponse
-	20, // 51: comment.api.v1.ReplyService.PageGetSubReplyV2:output_type -> comment.api.v1.PageGetSubReplyV2Response
-	24, // 52: comment.api.v1.ReplyService.PageGetDetailedReply:output_type -> comment.api.v1.PageGetDetailedReplyResponse
-	28, // 53: comment.api.v1.ReplyService.PageGetDetailedReplyV2:output_type -> comment.api.v1.PageGetDetailedReplyV2Response
-	30, // 54: comment.api.v1.ReplyService.GetPinnedReply:output_type -> comment.api.v1.GetPinnedReplyResponse
-	32, // 55: comment.api.v1.ReplyService.CountReply:output_type -> comment.api.v1.CountReplyResponse
-	34, // 56: comment.api.v1.ReplyService.BatchCountReply:output_type -> comment.api.v1.BatchCountReplyResponse
-	36, // 57: comment.api.v1.ReplyService.GetReplyLikeCount:output_type -> comment.api.v1.GetReplyLikeCountResponse
-	38, // 58: comment.api.v1.ReplyService.GetReplyDislikeCount:output_type -> comment.api.v1.GetReplyDislikeCountResponse
-	40, // 59: comment.api.v1.ReplyService.CheckUserOnObject:output_type -> comment.api.v1.CheckUserOnObjectResponse
-	44, // 60: comment.api.v1.ReplyService.BatchCheckUserOnObject:output_type -> comment.api.v1.BatchCheckUserOnObjectResponse
-	43, // [43:61] is the sub-list for method output_type
-	25, // [25:43] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	51, // 22: comment.api.v1.BatchCheckUserOnObjectResponse.results:type_name -> comment.api.v1.BatchCheckUserOnObjectResponse.ResultsEntry
+	53, // 23: comment.api.v1.BatchCheckUserLikeReplyRequest.mappings:type_name -> comment.api.v1.BatchCheckUserLikeReplyRequest.MappingsEntry
+	55, // 24: comment.api.v1.BatchCheckUserLikeReplyResponse.results:type_name -> comment.api.v1.BatchCheckUserLikeReplyResponse.ResultsEntry
+	49, // 25: comment.api.v1.BatchCheckUserOnObjectRequest.MappingsEntry.value:type_name -> comment.api.v1.BatchCheckUserOnObjectRequest.Objects
+	43, // 26: comment.api.v1.BatchCheckUserOnObjectResponse.ResultsEntry.value:type_name -> comment.api.v1.OidCommentedList
+	52, // 27: comment.api.v1.BatchCheckUserLikeReplyRequest.MappingsEntry.value:type_name -> comment.api.v1.BatchCheckUserLikeReplyRequest.ReplyIdList
+	46, // 28: comment.api.v1.BatchCheckUserLikeReplyResponse.ReplyLikedList.list:type_name -> comment.api.v1.ReplyLiked
+	54, // 29: comment.api.v1.BatchCheckUserLikeReplyResponse.ResultsEntry.value:type_name -> comment.api.v1.BatchCheckUserLikeReplyResponse.ReplyLikedList
+	2,  // 30: comment.api.v1.ReplyService.AddReply:input_type -> comment.api.v1.AddReplyRequest
+	4,  // 31: comment.api.v1.ReplyService.DelReply:input_type -> comment.api.v1.DelReplyRequest
+	6,  // 32: comment.api.v1.ReplyService.LikeAction:input_type -> comment.api.v1.LikeActionRequest
+	8,  // 33: comment.api.v1.ReplyService.DislikeAction:input_type -> comment.api.v1.DislikeActionRequest
+	10, // 34: comment.api.v1.ReplyService.ReportReply:input_type -> comment.api.v1.ReportReplyRequest
+	12, // 35: comment.api.v1.ReplyService.PinReply:input_type -> comment.api.v1.PinReplyRequest
+	14, // 36: comment.api.v1.ReplyService.PageGetReply:input_type -> comment.api.v1.PageGetReplyRequest
+	17, // 37: comment.api.v1.ReplyService.PageGetSubReply:input_type -> comment.api.v1.PageGetSubReplyRequest
+	19, // 38: comment.api.v1.ReplyService.PageGetSubReplyV2:input_type -> comment.api.v1.PageGetSubReplyV2Request
+	23, // 39: comment.api.v1.ReplyService.PageGetDetailedReply:input_type -> comment.api.v1.PageGetDetailedReplyRequest
+	25, // 40: comment.api.v1.ReplyService.PageGetDetailedReplyV2:input_type -> comment.api.v1.PageGetDetailedReplyV2Request
+	29, // 41: comment.api.v1.ReplyService.GetPinnedReply:input_type -> comment.api.v1.GetPinnedReplyRequest
+	31, // 42: comment.api.v1.ReplyService.CountReply:input_type -> comment.api.v1.CountReplyRequest
+	33, // 43: comment.api.v1.ReplyService.BatchCountReply:input_type -> comment.api.v1.BatchCountReplyRequest
+	35, // 44: comment.api.v1.ReplyService.GetReplyLikeCount:input_type -> comment.api.v1.GetReplyLikeCountRequest
+	37, // 45: comment.api.v1.ReplyService.GetReplyDislikeCount:input_type -> comment.api.v1.GetReplyDislikeCountRequest
+	39, // 46: comment.api.v1.ReplyService.CheckUserOnObject:input_type -> comment.api.v1.CheckUserOnObjectRequest
+	41, // 47: comment.api.v1.ReplyService.BatchCheckUserOnObject:input_type -> comment.api.v1.BatchCheckUserOnObjectRequest
+	45, // 48: comment.api.v1.ReplyService.BatchCheckUserLikeReply:input_type -> comment.api.v1.BatchCheckUserLikeReplyRequest
+	3,  // 49: comment.api.v1.ReplyService.AddReply:output_type -> comment.api.v1.AddReplyResponse
+	5,  // 50: comment.api.v1.ReplyService.DelReply:output_type -> comment.api.v1.DelReplyResponse
+	7,  // 51: comment.api.v1.ReplyService.LikeAction:output_type -> comment.api.v1.LikeActionResponse
+	9,  // 52: comment.api.v1.ReplyService.DislikeAction:output_type -> comment.api.v1.DislikeActionResponse
+	11, // 53: comment.api.v1.ReplyService.ReportReply:output_type -> comment.api.v1.ReportReplyResponse
+	13, // 54: comment.api.v1.ReplyService.PinReply:output_type -> comment.api.v1.PinReplyResponse
+	16, // 55: comment.api.v1.ReplyService.PageGetReply:output_type -> comment.api.v1.PageGetReplyResponse
+	18, // 56: comment.api.v1.ReplyService.PageGetSubReply:output_type -> comment.api.v1.PageGetSubReplyResponse
+	20, // 57: comment.api.v1.ReplyService.PageGetSubReplyV2:output_type -> comment.api.v1.PageGetSubReplyV2Response
+	24, // 58: comment.api.v1.ReplyService.PageGetDetailedReply:output_type -> comment.api.v1.PageGetDetailedReplyResponse
+	28, // 59: comment.api.v1.ReplyService.PageGetDetailedReplyV2:output_type -> comment.api.v1.PageGetDetailedReplyV2Response
+	30, // 60: comment.api.v1.ReplyService.GetPinnedReply:output_type -> comment.api.v1.GetPinnedReplyResponse
+	32, // 61: comment.api.v1.ReplyService.CountReply:output_type -> comment.api.v1.CountReplyResponse
+	34, // 62: comment.api.v1.ReplyService.BatchCountReply:output_type -> comment.api.v1.BatchCountReplyResponse
+	36, // 63: comment.api.v1.ReplyService.GetReplyLikeCount:output_type -> comment.api.v1.GetReplyLikeCountResponse
+	38, // 64: comment.api.v1.ReplyService.GetReplyDislikeCount:output_type -> comment.api.v1.GetReplyDislikeCountResponse
+	40, // 65: comment.api.v1.ReplyService.CheckUserOnObject:output_type -> comment.api.v1.CheckUserOnObjectResponse
+	44, // 66: comment.api.v1.ReplyService.BatchCheckUserOnObject:output_type -> comment.api.v1.BatchCheckUserOnObjectResponse
+	47, // 67: comment.api.v1.ReplyService.BatchCheckUserLikeReply:output_type -> comment.api.v1.BatchCheckUserLikeReplyResponse
+	49, // [49:68] is the sub-list for method output_type
+	30, // [30:49] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_v1_reply_proto_init() }
@@ -3634,8 +3942,68 @@ func file_v1_reply_proto_init() {
 				return nil
 			}
 		}
+		file_v1_reply_proto_msgTypes[43].Exporter = func(v any, i int) any {
+			switch v := v.(*BatchCheckUserLikeReplyRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 		file_v1_reply_proto_msgTypes[44].Exporter = func(v any, i int) any {
+			switch v := v.(*ReplyLiked); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_v1_reply_proto_msgTypes[45].Exporter = func(v any, i int) any {
+			switch v := v.(*BatchCheckUserLikeReplyResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_v1_reply_proto_msgTypes[47].Exporter = func(v any, i int) any {
 			switch v := v.(*BatchCheckUserOnObjectRequest_Objects); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_v1_reply_proto_msgTypes[50].Exporter = func(v any, i int) any {
+			switch v := v.(*BatchCheckUserLikeReplyRequest_ReplyIdList); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_v1_reply_proto_msgTypes[52].Exporter = func(v any, i int) any {
+			switch v := v.(*BatchCheckUserLikeReplyResponse_ReplyLikedList); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3653,7 +4021,7 @@ func file_v1_reply_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_v1_reply_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   47,
+			NumMessages:   54,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

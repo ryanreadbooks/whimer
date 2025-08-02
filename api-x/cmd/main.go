@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
+	backend "github.com/ryanreadbooks/whimer/api-x/internal/handler"
 	"github.com/ryanreadbooks/whimer/api-x/internal/router"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"

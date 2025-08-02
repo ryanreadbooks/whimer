@@ -19,24 +19,25 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ReplyService_AddReply_FullMethodName               = "/comment.api.v1.ReplyService/AddReply"
-	ReplyService_DelReply_FullMethodName               = "/comment.api.v1.ReplyService/DelReply"
-	ReplyService_LikeAction_FullMethodName             = "/comment.api.v1.ReplyService/LikeAction"
-	ReplyService_DislikeAction_FullMethodName          = "/comment.api.v1.ReplyService/DislikeAction"
-	ReplyService_ReportReply_FullMethodName            = "/comment.api.v1.ReplyService/ReportReply"
-	ReplyService_PinReply_FullMethodName               = "/comment.api.v1.ReplyService/PinReply"
-	ReplyService_PageGetReply_FullMethodName           = "/comment.api.v1.ReplyService/PageGetReply"
-	ReplyService_PageGetSubReply_FullMethodName        = "/comment.api.v1.ReplyService/PageGetSubReply"
-	ReplyService_PageGetSubReplyV2_FullMethodName      = "/comment.api.v1.ReplyService/PageGetSubReplyV2"
-	ReplyService_PageGetDetailedReply_FullMethodName   = "/comment.api.v1.ReplyService/PageGetDetailedReply"
-	ReplyService_PageGetDetailedReplyV2_FullMethodName = "/comment.api.v1.ReplyService/PageGetDetailedReplyV2"
-	ReplyService_GetPinnedReply_FullMethodName         = "/comment.api.v1.ReplyService/GetPinnedReply"
-	ReplyService_CountReply_FullMethodName             = "/comment.api.v1.ReplyService/CountReply"
-	ReplyService_BatchCountReply_FullMethodName        = "/comment.api.v1.ReplyService/BatchCountReply"
-	ReplyService_GetReplyLikeCount_FullMethodName      = "/comment.api.v1.ReplyService/GetReplyLikeCount"
-	ReplyService_GetReplyDislikeCount_FullMethodName   = "/comment.api.v1.ReplyService/GetReplyDislikeCount"
-	ReplyService_CheckUserOnObject_FullMethodName      = "/comment.api.v1.ReplyService/CheckUserOnObject"
-	ReplyService_BatchCheckUserOnObject_FullMethodName = "/comment.api.v1.ReplyService/BatchCheckUserOnObject"
+	ReplyService_AddReply_FullMethodName                = "/comment.api.v1.ReplyService/AddReply"
+	ReplyService_DelReply_FullMethodName                = "/comment.api.v1.ReplyService/DelReply"
+	ReplyService_LikeAction_FullMethodName              = "/comment.api.v1.ReplyService/LikeAction"
+	ReplyService_DislikeAction_FullMethodName           = "/comment.api.v1.ReplyService/DislikeAction"
+	ReplyService_ReportReply_FullMethodName             = "/comment.api.v1.ReplyService/ReportReply"
+	ReplyService_PinReply_FullMethodName                = "/comment.api.v1.ReplyService/PinReply"
+	ReplyService_PageGetReply_FullMethodName            = "/comment.api.v1.ReplyService/PageGetReply"
+	ReplyService_PageGetSubReply_FullMethodName         = "/comment.api.v1.ReplyService/PageGetSubReply"
+	ReplyService_PageGetSubReplyV2_FullMethodName       = "/comment.api.v1.ReplyService/PageGetSubReplyV2"
+	ReplyService_PageGetDetailedReply_FullMethodName    = "/comment.api.v1.ReplyService/PageGetDetailedReply"
+	ReplyService_PageGetDetailedReplyV2_FullMethodName  = "/comment.api.v1.ReplyService/PageGetDetailedReplyV2"
+	ReplyService_GetPinnedReply_FullMethodName          = "/comment.api.v1.ReplyService/GetPinnedReply"
+	ReplyService_CountReply_FullMethodName              = "/comment.api.v1.ReplyService/CountReply"
+	ReplyService_BatchCountReply_FullMethodName         = "/comment.api.v1.ReplyService/BatchCountReply"
+	ReplyService_GetReplyLikeCount_FullMethodName       = "/comment.api.v1.ReplyService/GetReplyLikeCount"
+	ReplyService_GetReplyDislikeCount_FullMethodName    = "/comment.api.v1.ReplyService/GetReplyDislikeCount"
+	ReplyService_CheckUserOnObject_FullMethodName       = "/comment.api.v1.ReplyService/CheckUserOnObject"
+	ReplyService_BatchCheckUserOnObject_FullMethodName  = "/comment.api.v1.ReplyService/BatchCheckUserOnObject"
+	ReplyService_BatchCheckUserLikeReply_FullMethodName = "/comment.api.v1.ReplyService/BatchCheckUserLikeReply"
 )
 
 // ReplyServiceClient is the client API for ReplyService service.
@@ -77,6 +78,8 @@ type ReplyServiceClient interface {
 	// 获取某个用户是否评论了某个对象
 	CheckUserOnObject(ctx context.Context, in *CheckUserOnObjectRequest, opts ...grpc.CallOption) (*CheckUserOnObjectResponse, error)
 	BatchCheckUserOnObject(ctx context.Context, in *BatchCheckUserOnObjectRequest, opts ...grpc.CallOption) (*BatchCheckUserOnObjectResponse, error)
+	// 批量检查某个用户是否点赞了某些评论
+	BatchCheckUserLikeReply(ctx context.Context, in *BatchCheckUserLikeReplyRequest, opts ...grpc.CallOption) (*BatchCheckUserLikeReplyResponse, error)
 }
 
 type replyServiceClient struct {
@@ -267,6 +270,16 @@ func (c *replyServiceClient) BatchCheckUserOnObject(ctx context.Context, in *Bat
 	return out, nil
 }
 
+func (c *replyServiceClient) BatchCheckUserLikeReply(ctx context.Context, in *BatchCheckUserLikeReplyRequest, opts ...grpc.CallOption) (*BatchCheckUserLikeReplyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchCheckUserLikeReplyResponse)
+	err := c.cc.Invoke(ctx, ReplyService_BatchCheckUserLikeReply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ReplyServiceServer is the server API for ReplyService service.
 // All implementations must embed UnimplementedReplyServiceServer
 // for forward compatibility.
@@ -305,6 +318,8 @@ type ReplyServiceServer interface {
 	// 获取某个用户是否评论了某个对象
 	CheckUserOnObject(context.Context, *CheckUserOnObjectRequest) (*CheckUserOnObjectResponse, error)
 	BatchCheckUserOnObject(context.Context, *BatchCheckUserOnObjectRequest) (*BatchCheckUserOnObjectResponse, error)
+	// 批量检查某个用户是否点赞了某些评论
+	BatchCheckUserLikeReply(context.Context, *BatchCheckUserLikeReplyRequest) (*BatchCheckUserLikeReplyResponse, error)
 	mustEmbedUnimplementedReplyServiceServer()
 }
 
@@ -368,6 +383,9 @@ func (UnimplementedReplyServiceServer) CheckUserOnObject(context.Context, *Check
 }
 func (UnimplementedReplyServiceServer) BatchCheckUserOnObject(context.Context, *BatchCheckUserOnObjectRequest) (*BatchCheckUserOnObjectResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchCheckUserOnObject not implemented")
+}
+func (UnimplementedReplyServiceServer) BatchCheckUserLikeReply(context.Context, *BatchCheckUserLikeReplyRequest) (*BatchCheckUserLikeReplyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchCheckUserLikeReply not implemented")
 }
 func (UnimplementedReplyServiceServer) mustEmbedUnimplementedReplyServiceServer() {}
 func (UnimplementedReplyServiceServer) testEmbeddedByValue()                      {}
@@ -714,6 +732,24 @@ func _ReplyService_BatchCheckUserOnObject_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ReplyService_BatchCheckUserLikeReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchCheckUserLikeReplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReplyServiceServer).BatchCheckUserLikeReply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ReplyService_BatchCheckUserLikeReply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReplyServiceServer).BatchCheckUserLikeReply(ctx, req.(*BatchCheckUserLikeReplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ReplyService_ServiceDesc is the grpc.ServiceDesc for ReplyService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -792,6 +828,10 @@ var ReplyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BatchCheckUserOnObject",
 			Handler:    _ReplyService_BatchCheckUserOnObject_Handler,
+		},
+		{
+			MethodName: "BatchCheckUserLikeReply",
+			Handler:    _ReplyService_BatchCheckUserLikeReply_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

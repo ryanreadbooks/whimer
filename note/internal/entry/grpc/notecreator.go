@@ -265,3 +265,27 @@ func (s *NoteCreatorServiceServer) BatchGetUploadAuthV2(ctx context.Context,
 
 	return res.AsPb(), nil
 }
+
+func (s *NoteCreatorServiceServer) PageListNote(ctx context.Context,
+	in *notev1.PageListNoteRequest) (*notev1.PageListNoteResponse, error) {
+	if in.Page <= 0 {
+		in.Page = 1
+	}
+	if in.Count >= 20 {
+		in.Count = 20
+	}
+	data, total, err := s.Srv.NoteCreatorSrv.PageList(ctx, in.Page, in.Count)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]*notev1.NoteItem, 0, len(data.Items))
+	for _, item := range data.Items {
+		items = append(items, item.AsPb())
+	}
+
+	return &notev1.PageListNoteResponse{
+		Items: items,
+		Total: total,
+	}, nil
+}

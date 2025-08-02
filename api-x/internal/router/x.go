@@ -1,14 +1,14 @@
 package router
 
 import (
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend"
+	"github.com/ryanreadbooks/whimer/api-x/internal/handler"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 
 	zeroservice "github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/rest"
 )
 
-func RegX(engine *rest.Server, svc *backend.Handler) {
+func RegX(engine *rest.Server, svc *handler.Handler) {
 	root := xhttp.NewRouterGroup(engine)
 	xGroup := root.Group("/x")
 
@@ -22,6 +22,9 @@ func RegX(engine *rest.Server, svc *backend.Handler) {
 	regRelationRoutes(xGroup, svc)
 	regChatRoutes(xGroup, svc)
 	regUserRoutes(xGroup, svc)
+
+	// feed routes
+	regFeedRoutes(xGroup, svc)
 
 	mod := svc.Config.Http.Mode
 	if mod == zeroservice.DevMode || mod == zeroservice.TestMode {

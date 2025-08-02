@@ -2,6 +2,7 @@ FROM openresty/openresty:bionic
 
 # system dependencies
 RUN mkdir -p /app
+RUN mkdir -p /var/cache/nginx
 
 COPY --from=hairyhenderson/gomplate:stable /gomplate /bin/gomplate
 

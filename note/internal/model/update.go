@@ -15,7 +15,7 @@ func (r *UpdateNoteRequest) Validate() error {
 	}
 
 	if r.NoteId == 0 {
-		return global.ErrArgs.Msg("笔记id错误")
+		return global.ErrArgs.Msg("笔记不存在")
 	}
 
 	return r.CreateNoteRequest.Validate()

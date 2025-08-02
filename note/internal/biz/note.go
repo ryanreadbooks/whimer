@@ -169,10 +169,14 @@ func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 			assetMeta := model.NewAssetImageMetaFromJson(asset.AssetMeta)
 			if note.NoteId == asset.NoteId {
 				// pureKey := strings.TrimLeft(asset.AssetKey, config.Conf.Oss.Bucket+"/") // 此处要去掉桶名称
+
+				url := imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, k, s, imgproxy.WithQuality("15"))
+				urlPrv := imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, k, s, imgproxy.WithQuality("1"))
+
 				item.Images = append(item.Images, &model.NoteImage{
 					// TODO 大图片的占用还是太大了
-					Url:    imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, k, s, imgproxy.WithQuality("15")),
-					UrlPrv: imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, k, s, imgproxy.WithQuality("1")),
+					Url:    url,
+					UrlPrv: urlPrv,
 					Type:   int(asset.AssetType),
 					Meta: model.NoteImageMeta{
 						Width:  assetMeta.Width,

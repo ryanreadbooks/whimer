@@ -29,7 +29,7 @@ func NewPushService(b biz.Biz) *PushService {
 
 // 给特定uid的特定device设备发送data
 func (s *PushService) Push(ctx context.Context, uid int64, device model.Device, data []byte) error {
-	locals, nonLocals, err := s.sessBiz.RespectivelyGetSessionByUid(ctx, []int64{uid})
+	locals, nonLocals, err := s.sessBiz.RespectivelyGetSessionByUids(ctx, []int64{uid})
 	if err != nil {
 		return xerror.Wrapf(err, "failed to get session by uid").WithCtx(ctx)
 	}
@@ -154,7 +154,7 @@ func (s *PushService) Broadcast(ctx context.Context, uids []int64, data []byte) 
 	if len(uids) == 0 {
 		return nil
 	}
-	locals, nonLocals, err := s.sessBiz.RespectivelyGetSessionByUid(ctx, uids)
+	locals, nonLocals, err := s.sessBiz.RespectivelyGetSessionByUids(ctx, uids)
 	if err != nil {
 		return xerror.Wrapf(err, "failed to get session by uid").WithCtx(ctx)
 	}

@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/ryanreadbooks/whimer/api-x/internal/backend/infra"
+	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	"github.com/ryanreadbooks/whimer/passport/pkg/middleware/auth"
 	"github.com/zeromicro/go-zero/rest"
 )

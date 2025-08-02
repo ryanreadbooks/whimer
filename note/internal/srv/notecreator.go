@@ -72,7 +72,7 @@ func (s *NoteCreatorSrv) BatchGetUploadAuth(ctx context.Context,
 	return resps, nil
 }
 
-// 获取零时上传凭证
+// 获取临时上传凭证
 func (s *NoteCreatorSrv) BatchGetUploadAuthSTS(ctx context.Context,
 	req *model.UploadAuthRequest) (*model.UploadAuthSTSResponse, error) {
 	res, err := s.noteCreatorBiz.GetUploadAuthSTS(ctx, &model.UploadAuthRequest{
@@ -94,15 +94,27 @@ func (s *NoteCreatorSrv) Delete(ctx context.Context, req *model.DeleteNoteReques
 
 // 列出某用户所有笔记
 func (s *NoteCreatorSrv) List(ctx context.Context, cursor uint64, count int32) (*model.Notes, model.PageResult, error) {
-	resp, nextPage, err := s.noteCreatorBiz.PageListNote(ctx, cursor, count)
+	resp, nextPage, err := s.noteCreatorBiz.PageListNoteWithCursor(ctx, cursor, count)
 	if err != nil {
-		return nil, nextPage, xerror.Wrapf(err, "srv creator list note failed").WithCtx(ctx)
+		return nil, nextPage, xerror.Wrapf(err, "srv creator cursor list note failed").WithCtx(ctx)
 	}
 
 	resp, _ = s.noteInteractBiz.AssignNoteLikes(ctx, resp)
 	resp, _ = s.noteInteractBiz.AssignNoteReplies(ctx, resp)
 
 	return resp, nextPage, nil
+}
+
+func (s *NoteCreatorSrv) PageList(ctx context.Context, page, count int32) (*model.Notes, uint64, error) {
+	resp, total, err := s.noteCreatorBiz.PageListNote(ctx, page, count)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "srv creator page list note failed").WithCtx(ctx)
+	}
+
+	resp, _ = s.noteInteractBiz.AssignNoteLikes(ctx, resp)
+	resp, _ = s.noteInteractBiz.AssignNoteReplies(ctx, resp)
+
+	return resp, total, nil
 }
 
 // 用于笔记作者获取笔记的详细信息

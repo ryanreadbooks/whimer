@@ -40,7 +40,7 @@ type sessionNoSend struct {
 	*dao.Session
 }
 
-var _ = (UnSendableSession)(*&sessionNoSend{})
+var _ UnSendableSession = &sessionNoSend{}
 
 type Session interface {
 	UnSendableSession
@@ -65,7 +65,7 @@ type SessionBiz interface {
 	GetUnSendSessionByUid(ctx context.Context, uid int64) ([]UnSendableSession, error)
 	GetUnSendSessionByUidDevice(ctx context.Context, uid int64, device model.Device) ([]UnSendableSession, error)
 
-	RespectivelyGetSessionByUid(ctx context.Context, uid []int64) ([]Session, []UnSendableSession, error)
+	RespectivelyGetSessionByUids(ctx context.Context, uid []int64) ([]Session, []UnSendableSession, error)
 	// 按照sessIds批量获取，分开本机和非本机
 	RespectivelyGetSessionByIds(ctx context.Context, sessIds []string) ([]Session, []UnSendableSession, error)
 }
@@ -368,7 +368,7 @@ func (s *sessionBiz) seperateLocalAndNonLocal(sessions []*dao.Session) ([]Sessio
 	return local, unlocal
 }
 
-func (s *sessionBiz) RespectivelyGetSessionByUid(ctx context.Context, uid []int64) ([]Session, []UnSendableSession, error) {
+func (s *sessionBiz) RespectivelyGetSessionByUids(ctx context.Context, uid []int64) ([]Session, []UnSendableSession, error) {
 	logExts := []any{"uid", uid}
 
 	sessionsMap, err := infra.Dao().SessionDao.BatchGetByUid(ctx, uid)
