@@ -350,3 +350,25 @@ func (h *Handler) GetLikeNotes() http.HandlerFunc {
 
 	}
 }
+
+// 创建新标签
+func (h *Handler) AddNewTag() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[AddTagReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		ctx := r.Context()
+		resp, err := infra.NoteCreatorServer().AddTag(ctx, &notev1.AddTagRequest{
+			Name: req.Name,
+		})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, &AddTagRes{TagId: model.TagId(resp.Id)})
+	}
+}

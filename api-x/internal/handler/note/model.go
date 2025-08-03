@@ -1,6 +1,9 @@
 package note
 
 import (
+	"unicode"
+	"unicode/utf8"
+
 	"github.com/ryanreadbooks/whimer/api-x/internal/model"
 	"github.com/ryanreadbooks/whimer/api-x/internal/model/errors"
 
@@ -264,4 +267,55 @@ func (r *LikeReq) Validate() error {
 type GetLikesRes struct {
 	NoteId int64 `json:"note_id"`
 	Count  int64 `json:"count"`
+}
+
+const maxTagNameLen = 255
+
+func checkTagName(s string) error {
+	if !utf8.ValidString(s) {
+		return xerror.ErrInvalidArgs.Msg("不支持的字符格式")
+	}
+
+	for _, r := range s {
+		if unicode.IsSpace(r) {
+			return xerror.ErrInvalidArgs.Msg("标签不能存在空格")
+		}
+	}
+
+	for _, r := range s {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			return xerror.ErrInvalidArgs.Msg("标签名不能包含特殊字符")
+		}
+	}
+
+	return nil
+}
+
+// 新增标签
+type AddTagReq struct {
+	Name string `json:"name"`
+}
+
+func (r *AddTagReq) Validate() error {
+	if r == nil {
+		return xerror.ErrNilArg
+	}
+
+	if r.Name == "" {
+		return xerror.ErrInvalidArgs.Msg("标签名为空")
+	}
+
+	if l := utf8.RuneCountInString(r.Name); l > maxTagNameLen {
+		return xerror.ErrInvalidArgs.Msg("标签名太长")
+	}
+
+	if err := checkTagName(r.Name); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type AddTagRes struct {
+	TagId model.TagId `json:"tag_id"`
 }
