@@ -43,7 +43,7 @@ func New(c *config.Config, cache *redis.Redis) *Dao {
 		NoteDao:       notedao.NewNoteDao(db, cache),
 		NoteAssetRepo: notedao.NewNoteAssetDao(db),
 		NoteExtDao:    notedao.NewNoteExtDao(db),
-		TagDao:        tagdao.NewTagDao(db),
+		TagDao:        tagdao.NewTagDao(db, cache),
 	}
 }
 
