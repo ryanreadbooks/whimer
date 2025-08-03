@@ -60,3 +60,28 @@ func TestNoteExt_Upsert(t *testing.T) {
 		So(err, ShouldBeNil)
 	})
 }
+
+func TestNoteExt_Get(t *testing.T) {
+	Convey("NoteExt Get", t, func() {
+		err := noteExtDao.Upsert(ctx, &Ext{
+			NoteId: 100,
+			Tags:   "1",
+		})
+		So(err, ShouldBeNil)
+		err = noteExtDao.Upsert(ctx, &Ext{
+			NoteId: 200,
+			Tags:   "2",
+		})
+		So(err, ShouldBeNil)
+		err = noteExtDao.Upsert(ctx, &Ext{
+			NoteId: 300,
+			Tags:   "3",
+		})
+		So(err, ShouldBeNil)
+
+		gots, err := noteExtDao.BatchGetById(ctx, []int64{100, 300, 200})
+		So(err, ShouldBeNil)
+		So(len(gots), ShouldEqual, 3)
+
+	})
+}

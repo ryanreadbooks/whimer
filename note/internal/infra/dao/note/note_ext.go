@@ -2,9 +2,11 @@ package note
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
 
@@ -34,7 +36,7 @@ func (d *NoteExtDao) Upsert(ctx context.Context, ext *Ext) error {
 
 	const sql = "INSERT INTO note_ext(note_id,tags,ctime,utime) VALUES(?,?,?,?) " +
 		" ON DUPLICATE KEY UPDATE tags=VALUES(tags),utime=VALUES(utime)"
-		
+
 	_, err := d.db.ExecCtx(ctx, sql, ext.NoteId, ext.Tags, ext.Ctime, ext.Utime)
 	return xerror.Wrap(xsql.ConvertError(err))
 }
@@ -43,4 +45,18 @@ func (d *NoteExtDao) Delete(ctx context.Context, noteId int64) error {
 	const sql = "DELETE FROM note_ext WHERE note_id=? LIMIT 1"
 	_, err := d.db.ExecCtx(ctx, sql, noteId)
 	return xerror.Wrap(xsql.ConvertError(err))
+}
+
+func (d *NoteExtDao) GetById(ctx context.Context, noteId int64) (*Ext, error) {
+	const sql = "SELECT note_id,tags,ctime,utime FROM note_ext WHERE note_id=?"
+	var ext Ext
+	err := d.db.QueryRowCtx(ctx, &ext, sql)
+	return &ext, xerror.Wrap(xsql.ConvertError(err))
+}
+
+func (d *NoteExtDao) BatchGetById(ctx context.Context, noteIds []int64) ([]*Ext, error) {
+	var exts []*Ext
+	const sql = "SELECT note_id,tags,ctime,utime FROM note_ext WHERE note_id IN (%s)"
+	err := d.db.QueryRowsCtx(ctx, &exts, fmt.Sprintf(sql, xslice.JoinInts(noteIds)))
+	return exts, xerror.Wrap(xsql.ConvertError(err))
 }

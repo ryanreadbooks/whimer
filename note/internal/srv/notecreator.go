@@ -5,7 +5,6 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
-	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 
 	"golang.org/x/sync/errgroup"
@@ -119,7 +118,7 @@ func (s *NoteCreatorSrv) PageList(ctx context.Context, page, count int32) (*mode
 
 // 用于笔记作者获取笔记的详细信息
 func (s *NoteCreatorSrv) GetNote(ctx context.Context, noteId int64) (*model.Note, error) {
-	note, err := s.noteCreatorBiz.GetNote(ctx, noteId)
+	note, err := s.noteCreatorBiz.CreatorGetNote(ctx, noteId)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "srv creator get note failed").WithCtx(ctx)
 	}
@@ -142,12 +141,20 @@ func (s *NoteCreatorSrv) IsNoteExist(ctx context.Context, noteId int64) (bool, e
 
 // 获取用户发布的笔记数量
 func (s *NoteCreatorSrv) GetPostedCount(ctx context.Context, uid int64) (int64, error) {
-	cnt, err := infra.Dao().NoteDao.GetPostedCountByOwner(ctx, uid)
+	cnt, err := s.noteCreatorBiz.GetUserPostedCount(ctx, uid)
 	if err != nil {
-		return 0, xerror.Wrapf(err, "srv creator get posted count failed").
-			WithExtra("uid", uid).
-			WithCtx(ctx)
+		return 0, xerror.Wrapf(err, "srv creator get count failed").WithCtx(ctx)
 	}
 
 	return cnt, nil
+}
+
+// 用户添加标签
+func (s *NoteCreatorSrv) AddTag(ctx context.Context, name string) (int64, error) {
+	id, err := s.noteCreatorBiz.AddTag(ctx, name)
+	if err != nil {
+		return 0, xerror.Wrapf(err, "srv creator add tag failed").WithCtx(ctx)
+	}
+
+	return id, nil
 }

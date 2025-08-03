@@ -15,6 +15,7 @@ type Dao struct {
 
 	NoteDao       *notedao.NoteDao
 	NoteAssetRepo *notedao.NoteAssetDao
+	NoteExtDao    *notedao.NoteExtDao
 	TagDao        *tagdao.TagDao
 }
 
@@ -41,6 +42,7 @@ func New(c *config.Config, cache *redis.Redis) *Dao {
 		db:            db,
 		NoteDao:       notedao.NewNoteDao(db, cache),
 		NoteAssetRepo: notedao.NewNoteAssetDao(db),
+		NoteExtDao:    notedao.NewNoteExtDao(db),
 		TagDao:        tagdao.NewTagDao(db),
 	}
 }

@@ -2,9 +2,11 @@ package tag
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
 
@@ -55,4 +57,11 @@ func (d *TagDao) FindById(ctx context.Context, id int64) (*Tag, error) {
 	var tag Tag
 	err := d.db.QueryRowCtx(ctx, &tag, sqlFind, id)
 	return &tag, xerror.Wrap(xsql.ConvertError(err))
+}
+
+func (d *TagDao) BatchGetById(ctx context.Context, ids []int64) ([]*Tag, error) {
+	const sql = "SELECT id,name,ctime FROM tag WHERE id IN (%s)"
+	var tags []*Tag
+	err := d.db.QueryRowsCtx(ctx, &tags, fmt.Sprintf(sql, xslice.JoinInts(ids)))
+	return tags, xerror.Wrap(xsql.ConvertError(err))
 }

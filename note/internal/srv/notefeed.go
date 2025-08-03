@@ -123,13 +123,17 @@ func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId int64) (*model.N
 		return nil, global.ErrNoteNotPublic
 	}
 
-	res, err := s.noteBiz.AssembleNotes(ctx, note.AsSlice())
-	if err != nil || len(res.Items) == 0 {
-		return nil, xerror.Wrapf(err, "assemble notes failed").WithExtra("noteId", noteId).WithCtx(ctx)
+	res := &model.Notes{Items: []*model.Note{note}}
+
+	// 详细信息需要ext
+	err = s.noteBiz.AssembleNotesExt(ctx, res.Items)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "assemble notes ext failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
 	res, _ = s.noteInteractBiz.AssignNoteLikes(ctx, res)
 	res, _ = s.noteInteractBiz.AssignNoteReplies(ctx, res)
+
 	return res.Items[0], nil
 }
 

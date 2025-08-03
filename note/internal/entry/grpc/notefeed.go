@@ -4,6 +4,7 @@ import (
 	"context"
 
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	"github.com/ryanreadbooks/whimer/note/internal/model"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
 )
 
@@ -49,7 +50,11 @@ func (s *NoteFeedServiceServer) GetFeedNote(ctx context.Context, in *notev1.GetF
 		return nil, err
 	}
 
-	return &notev1.GetFeedNoteResponse{Item: resp.AsFeedPb()}, nil
+	return &notev1.GetFeedNoteResponse{
+		Item: resp.AsFeedPb(),
+		Ext: &notev1.FeedNoteItemExt{
+			Tags: model.NoteTagListAsPb(resp.Tags),
+		}}, nil
 }
 
 // 获取指定用户的最近的笔记内容

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 )
@@ -37,6 +38,35 @@ func (l NoteImageList) AsPb() []*notev1.NoteImage {
 	return images
 }
 
+type NoteTag struct {
+	Id   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+func (t *NoteTag) AsPb() *notev1.NoteTag {
+	if t == nil {
+		return nil
+	}
+
+	return &notev1.NoteTag{
+		Id:   t.Id,
+		Name: t.Name,
+	}
+}
+
+func NoteTagListAsPb(tags []*NoteTag) []*notev1.NoteTag {
+	if len(tags) == 0 {
+		return nil
+	}
+
+	var r []*notev1.NoteTag
+	for _, t := range tags {
+		r = append(r, t.AsPb())
+	}
+
+	return r
+}
+
 type Note struct {
 	NoteId   int64         `json:"note_id"`
 	Title    string        `json:"title"`
@@ -47,7 +77,7 @@ type Note struct {
 	Images   NoteImageList `json:"images"`
 	Likes    int64         `json:"likes"`   // 点赞数
 	Replies  int64         `json:"replies"` // 评论数
-	// UserInteraction UserInteraction `json:"user_interaction,omitempty"`
+	Tags     []*NoteTag    `json:"tags,omitempty"`
 
 	// unexported to user
 	Owner int64 `json:"-"`
@@ -82,7 +112,7 @@ func NoteSliceFromDao(ds []*notedao.Note) []*Note {
 }
 
 func (i *Note) AsPb() *notev1.NoteItem {
-	return &notev1.NoteItem{
+	res := &notev1.NoteItem{
 		NoteId:   i.NoteId,
 		Title:    i.Title,
 		Desc:     i.Desc,
@@ -92,7 +122,18 @@ func (i *Note) AsPb() *notev1.NoteItem {
 		Images:   i.Images.AsPb(),
 		Likes:    i.Likes,
 		Replies:  i.Replies,
+		Owner:    i.Owner,
 	}
+
+	if len(i.Tags) > 0 {
+		for _, t := range i.Tags {
+			if t != nil {
+				res.Tags = append(res.Tags, t.AsPb())
+			}
+		}
+	}
+
+	return res
 }
 
 // 转换成pb并隐藏一些不公开的属性
@@ -107,7 +148,6 @@ func (i *Note) AsFeedPb() *notev1.FeedNoteItem {
 		Likes:     i.Likes,
 		Author:    i.Owner,
 		Replies:   i.Replies,
-		// Interaction: i.UserInteraction.AsPb(),
 	}
 }
 
@@ -121,6 +161,14 @@ func (n *Notes) GetIds() []int64 {
 		r = append(r, item.NoteId)
 	}
 	return r
+}
+
+type NoteExt struct {
+	TagIds []int64
+}
+
+func (e *NoteExt) SetTagIds(s string) {
+	e.TagIds = xslice.SplitInts[int64](s, ",")
 }
 
 type GetNoteReq struct {

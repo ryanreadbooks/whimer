@@ -62,7 +62,8 @@ type FeedNoteItem struct {
 type FullFeedNoteItem struct {
 	*FeedNoteItem
 
-	// TODO 更多信息
+	// 更多信息
+	TagList []*imodel.NoteTag `json:"tag_list,omitempty"`
 }
 
 func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {

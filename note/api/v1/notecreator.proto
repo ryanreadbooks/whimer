@@ -36,9 +36,7 @@ message CreateReqImage {
   string format = 4;
 }
 
-message CreateReqTag {
-  repeated int64 tag_list = 1;
-}
+message CreateReqTag { repeated int64 tag_list = 1; }
 
 message CreateNoteRequest {
   CreateReqBasic basic = 1;
@@ -138,6 +136,10 @@ message PageListNoteResponse {
   repeated NoteItem items = 2;
 }
 
+message AddTagRequest { string name = 1; }
+
+message AddTagResponse { int64 id = 1; }
+
 // 和笔记管理相关的服务
 // 比如发布笔记，修改笔记，删除笔记等管理笔记的功能
 service NoteCreatorService {
@@ -175,4 +177,7 @@ service NoteCreatorService {
       returns (BatchGetUploadAuthV2Response);
   // 获取用户投稿数量
   rpc GetPostedCount(GetPostedCountRequest) returns (GetPostedCountResponse);
+
+  // 新增标签
+  rpc AddTag(AddTagRequest) returns (AddTagResponse);
 }

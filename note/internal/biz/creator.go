@@ -14,11 +14,13 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/oss/keygen"
 	"github.com/ryanreadbooks/whimer/misc/utils"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
+	tagdao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/tag"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 
 	jwtv5 "github.com/golang-jwt/jwt/v5"
@@ -43,7 +45,19 @@ func NewNoteCreatorBiz() NoteCreatorBiz {
 	return b
 }
 
-func (b *NoteCreatorBiz) CreateNote(ctx context.Context, note *model.CreateNoteRequest) (int64, error) {
+func isNoteExtValid(ext *notedao.Ext) bool {
+	if ext == nil {
+		return false
+	}
+
+	if ext.Tags != "" {
+		return true
+	}
+
+	return false
+}
+
+func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *model.CreateNoteRequest) (int64, error) {
 	var (
 		uid    = metadata.Uid(ctx)
 		noteId int64
@@ -51,14 +65,14 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, note *model.CreateNoteR
 
 	now := time.Now().Unix()
 	newNote := &notedao.Note{
-		Title:   note.Basic.Title,
-		Desc:    note.Basic.Desc,
-		Privacy: int8(note.Basic.Privacy),
+		Title:   req.Basic.Title,
+		Desc:    req.Basic.Desc,
+		Privacy: int8(req.Basic.Privacy),
 		Owner:   uid,
 	}
 
-	var noteAssets = make([]*notedao.Asset, 0, len(note.Images))
-	for _, img := range note.Images {
+	var noteAssets = make([]*notedao.Asset, 0, len(req.Images))
+	for _, img := range req.Images {
 		imgMeta := model.NewAssetImageMeta(img.Width, img.Height, img.Format).String()
 		noteAssets = append(noteAssets, &notedao.Asset{
 			AssetKey:  img.FileId, // 包含桶名称
@@ -88,47 +102,64 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, note *model.CreateNoteR
 			return xerror.Wrapf(errTx, "note asset dao batch insert tx failed")
 		}
 
+		var ext = notedao.Ext{
+			NoteId: noteId,
+		}
+		// 笔记额外信息
+		if len(req.TagIds) > 0 {
+			tagIdList := xslice.JoinInts(req.TagIds)
+			ext.Tags = tagIdList
+		}
+
+		if isNoteExtValid(&ext) {
+			errTx = infra.Dao().NoteExtDao.Upsert(ctx, &ext)
+			if errTx != nil {
+				return xerror.Wrapf(errTx, "note ext insert tx failed")
+			}
+		}
+
 		return nil
 	})
+
 	if err != nil {
-		return 0, xerror.Wrapf(err, "biz create note failed").WithExtra("note", note).WithCtx(ctx)
+		return 0, xerror.Wrapf(err, "biz create note failed").WithExtra("note", req).WithCtx(ctx)
 	}
 
 	return noteId, nil
 }
 
-func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, note *model.UpdateNoteRequest) error {
+func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *model.UpdateNoteRequest) error {
 	var (
 		uid = metadata.Uid(ctx)
 	)
 
 	now := time.Now().Unix()
-	noteId := note.NoteId
-	queried, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
+	noteId := req.NoteId
+	oldNote, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
 	if errors.Is(err, xsql.ErrNoRecord) {
 		return global.ErrNoteNotFound
 	}
 	if err != nil {
-		return xerror.Wrapf(err, "biz find one note failed").WithExtra("note", note).WithCtx(ctx)
+		return xerror.Wrapf(err, "biz find one note failed").WithExtra("note", req).WithCtx(ctx)
 	}
 
 	// 确保更新者uid和笔记作者uid相同
-	if uid != queried.Owner {
+	if uid != oldNote.Owner {
 		return global.ErrPermDenied.Msg("你不拥有该笔记")
 	}
 
 	newNote := &notedao.Note{
 		Id:       noteId,
-		Title:    note.Basic.Title,
-		Desc:     note.Basic.Desc,
-		Privacy:  int8(note.Basic.Privacy),
-		Owner:    queried.Owner,
-		CreateAt: queried.CreateAt,
+		Title:    req.Basic.Title,
+		Desc:     req.Basic.Desc,
+		Privacy:  int8(req.Basic.Privacy),
+		Owner:    oldNote.Owner,
+		CreateAt: oldNote.CreateAt,
 		UpdateAt: now,
 	}
 
-	assets := make([]*notedao.Asset, 0, len(note.Images))
-	for _, img := range note.Images {
+	assets := make([]*notedao.Asset, 0, len(req.Images))
+	for _, img := range req.Images {
 		assets = append(assets, &notedao.Asset{
 			AssetKey:  img.FileId,
 			AssetType: global.AssetTypeImage,
@@ -191,19 +222,29 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, note *model.UpdateNoteR
 			return xerror.Wrapf(err, "noteasset dao batch insert tx failed")
 		}
 
+		// ext处理
+		ext := notedao.Ext{
+			NoteId: oldNote.Id,
+			Tags:   xslice.JoinInts(req.TagIds),
+		}
+		err = infra.Dao().NoteExtDao.Upsert(ctx, &ext)
+		if err != nil {
+			return xerror.Wrapf(err, "noteext dao upsert tx failed")
+		}
+
 		return nil
 	})
 	if err != nil {
-		return xerror.Wrapf(err, "biz update note failed").WithExtras("req", note).WithCtx(ctx)
+		return xerror.Wrapf(err, "biz update note failed").WithExtras("req", req).WithCtx(ctx)
 	}
 
 	return nil
 }
 
-func (b *NoteCreatorBiz) DeleteNote(ctx context.Context, note *model.DeleteNoteRequest) error {
+func (b *NoteCreatorBiz) DeleteNote(ctx context.Context, req *model.DeleteNoteRequest) error {
 	var (
 		uid    int64 = metadata.Uid(ctx)
-		noteId       = note.NoteId
+		noteId       = req.NoteId
 	)
 
 	queried, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
@@ -211,7 +252,7 @@ func (b *NoteCreatorBiz) DeleteNote(ctx context.Context, note *model.DeleteNoteR
 		return global.ErrNoteNotFound
 	}
 	if err != nil {
-		return xerror.Wrapf(err, "repo find one note failed").WithExtra("req", note).WithCtx(ctx)
+		return xerror.Wrapf(err, "repo find one note failed").WithExtra("req", req).WithCtx(ctx)
 	}
 
 	if uid != queried.Owner {
@@ -229,10 +270,15 @@ func (b *NoteCreatorBiz) DeleteNote(ctx context.Context, note *model.DeleteNoteR
 			return xerror.Wrapf(err, "dao delete note asset tx failed")
 		}
 
+		err = infra.Dao().NoteExtDao.Delete(ctx, noteId)
+		if err != nil {
+			return xerror.Wrapf(err, "dao delete note ext tx failed")
+		}
+
 		return nil
 	})
 	if err != nil {
-		return xerror.Wrapf(err, "biz delete note failed").WithExtras("req", note).WithCtx(ctx)
+		return xerror.Wrapf(err, "biz delete note failed").WithExtras("req", req).WithCtx(ctx)
 	}
 
 	return nil
@@ -261,6 +307,11 @@ func (b *NoteCreatorBiz) CreatorGetNote(ctx context.Context, noteId int64) (*mod
 		return nil, xerror.Wrapf(err, "assemble notes failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
+	err = b.AssembleNotesExt(ctx, res.Items)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "assemble note ext failed").WithExtra("noteId", noteId).WithCtx(ctx)
+	}
+
 	return res.Items[0], nil
 }
 
@@ -277,7 +328,17 @@ func (b *NoteCreatorBiz) ListNote(ctx context.Context) (*model.Notes, error) {
 		return nil, xerror.Wrapf(err, "biz note list by owner failed").WithCtx(ctx)
 	}
 
-	return b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
+	res, err := b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
+	if err != nil {
+		return nil, xerror.Wrapf(err, "biz note assemble note failed").WithCtx(ctx)
+	}
+
+	err = b.AssembleNotesExt(ctx, res.Items)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "biz note assemble note ext failed").WithCtx(ctx)
+	}
+
+	return res, nil
 }
 
 func (b *NoteCreatorBiz) PageListNoteWithCursor(ctx context.Context, cursor int64, count int32) (*model.Notes, model.PageResult, error) {
@@ -315,6 +376,10 @@ func (b *NoteCreatorBiz) PageListNoteWithCursor(ctx context.Context, cursor int6
 			xerror.Wrapf(err, "biz note failed to assemble notes when cursor page list notes").WithCtx(ctx).
 				WithExtras("cursor", cursor, "count", count)
 	}
+	err = b.AssembleNotesExt(ctx, notesResp.Items)
+	if err != nil {
+		return nil, nextPage, xerror.Wrapf(err, "biz note assemble note ext failed").WithCtx(ctx)
+	}
 
 	return notesResp, nextPage, nil
 }
@@ -342,6 +407,11 @@ func (b *NoteCreatorBiz) PageListNote(ctx context.Context, page, count int32) (*
 	notesResp, err := b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
 	if err != nil {
 		return nil, 0, xerror.Wrapf(err, "biz note failed to assemble notes when page list notes")
+	}
+
+	err = b.AssembleNotesExt(ctx, notesResp.Items)
+	if err != nil {
+		return nil, total, xerror.Wrapf(err, "biz note assemble note ext failed").WithCtx(ctx)
 	}
 
 	return notesResp, total, nil
@@ -415,4 +485,35 @@ func newStsUploadAuthClaim(now, expireAt time.Time, resource, source string) *st
 			ExpiresAt: jwtv5.NewNumericDate(expireAt),
 		},
 	}
+}
+
+// 新增笔记标签
+func (b *NoteCreatorBiz) AddTag(ctx context.Context, name string) (int64, error) {
+	id, err := infra.Dao().TagDao.Create(ctx, &tagdao.Tag{Name: name})
+	if err != nil {
+		if errors.Is(err, xsql.ErrDuplicate) {
+			// already exist
+			got, err := infra.Dao().TagDao.Find(ctx, name)
+			if err != nil {
+				return 0, xerror.Wrapf(err, "tag dao failed to find by name").WithExtra("name", name)
+			}
+
+			return got.Id, nil
+		}
+
+		return 0, xerror.Wrapf(err, "tag dao failed to create").WithExtra("name", name)
+	}
+
+	return id, nil
+}
+
+func (b *NoteCreatorBiz) GetUserPostedCount(ctx context.Context, uid int64) (int64, error) {
+	cnt, err := infra.Dao().NoteDao.GetPostedCountByOwner(ctx, uid)
+	if err != nil {
+		return 0, xerror.Wrapf(err, "note dao get posted count failed").
+			WithExtra("uid", uid).
+			WithCtx(ctx)
+	}
+
+	return cnt, nil
 }

@@ -27,13 +27,6 @@ const (
 	sqlGetAll              = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE privacy=?"
 	sqlGetCount            = "SELECT COUNT(*) FROM note WHERE privacy=?"
 	sqlCountByUid          = "SELECT COUNT(*) FROM note WHERE owner=?"
-
-	sqlListWithPrivacyByOwnerByCursor = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note " +
-		"WHERE owner=? AND id<? AND privacy=? " +
-		"ORDER BY create_at DESC, id DESC LIMIT ?"
-
-	sqlPageListByOwner = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note " +
-		"WHERE owner=? ORDER BY create_at DESC, id DESC LIMIT ?,?"
 )
 
 type NoteDao struct {
@@ -95,8 +88,12 @@ func (r *NoteDao) ListByOwnerByCursor(ctx context.Context, uid int64, cursor int
 }
 
 func (r *NoteDao) ListPublicByOwnerByCursor(ctx context.Context, uid int64, cursor int64, limit int32) ([]*Note, error) {
+	const sql = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note " +
+		"WHERE owner=? AND id<? AND privacy=? " +
+		"ORDER BY create_at DESC, id DESC LIMIT ?"
+
 	res := make([]*Note, 0, limit)
-	err := r.db.QueryRowsCtx(ctx, &res, sqlListWithPrivacyByOwnerByCursor, uid, cursor, global.PrivacyPublic, limit)
+	err := r.db.QueryRowsCtx(ctx, &res, sql, uid, cursor, global.PrivacyPublic, limit)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
@@ -105,8 +102,11 @@ func (r *NoteDao) ListPublicByOwnerByCursor(ctx context.Context, uid int64, curs
 }
 
 func (r *NoteDao) PageListByOwner(ctx context.Context, uid int64, page, count int32) ([]*Note, error) {
+	const sql = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note " +
+		"WHERE owner=? ORDER BY create_at DESC, id DESC LIMIT ?,?"
+
 	res := make([]*Note, 0, count)
-	err := r.db.QueryRowsCtx(ctx, &res, sqlPageListByOwner, uid, (page-1)*count, count)
+	err := r.db.QueryRowsCtx(ctx, &res, sql, uid, (page-1)*count, count)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}

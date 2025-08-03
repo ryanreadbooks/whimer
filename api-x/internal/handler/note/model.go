@@ -47,8 +47,11 @@ func (r CreateReqImageList) AsPb() []*notev1.CreateReqImage {
 }
 
 type CreateReq struct {
-	Basic  CreateReqBasic     `json:"basic"`
-	Images CreateReqImageList `json:"images"`
+	Basic   CreateReqBasic     `json:"basic"`
+	Images  CreateReqImageList `json:"images"`
+	TagList []struct {         // 必须再包一层 直接用数组无法解析
+		Id model.TagId `json:"id"`
+	} `json:"tag_list,omitempty"`
 }
 
 func (r *CreateReq) Validate() error {
@@ -66,13 +69,22 @@ func (r *CreateReq) Validate() error {
 		}
 	}
 
+	if len(r.TagList) > 10 {
+		return xerror.ErrArgs.Msg("标签超出限制")
+	}
+
 	return nil
 }
 
 func (r *CreateReq) AsPb() *notev1.CreateNoteRequest {
+	tagList := []int64{}
+	for _, t := range r.TagList {
+		tagList = append(tagList, int64(t.Id))
+	}
 	return &notev1.CreateNoteRequest{
 		Basic:  r.Basic.AsPb(),
 		Images: r.Images.AsPb(),
+		Tags:   &notev1.CreateReqTag{TagList: tagList},
 	}
 }
 
@@ -137,74 +149,10 @@ func (r *PageListReq) Validate() error {
 	return nil
 }
 
-type NoteItemImageMeta struct {
-	Width  uint32 `json:"width"`
-	Height uint32 `json:"height"`
-}
-
-type NoteItemImage struct {
-	Url    string            `json:"url"`
-	Type   int               `json:"type"`
-	Meta   NoteItemImageMeta `json:"meta"`
-	UrlPrv string            `json:"url_prv"`
-}
-
-type NoteItemImageList []*NoteItemImage
-
-// 包含发起请求的用户和该笔记的交互记录
-type Interaction struct {
-	Liked     bool `json:"liked"`     // 用户是否点赞过该笔记
-	Commented bool `json:"commented"` // 用户是否评论过该笔记
-}
-
-type AdminNoteItem struct {
-	NoteId   model.NoteId      `json:"note_id"`
-	Title    string            `json:"title"`
-	Desc     string            `json:"desc"`
-	Privacy  int8              `json:"privacy"`
-	CreateAt int64             `json:"create_at"`
-	UpdateAt int64             `json:"update_at"`
-	Images   NoteItemImageList `json:"images"`
-	Likes    int64             `json:"likes"`
-	Replies  int64             `json:"replies"`
-	Interact Interaction       `json:"interact"`
-}
-
-func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
-	if pb == nil {
-		return nil
-	}
-
-	images := make(NoteItemImageList, 0, len(pb.Images))
-	for _, img := range pb.Images {
-		images = append(images, &NoteItemImage{
-			Url:    img.Url,
-			Type:   int(img.Type),
-			UrlPrv: img.UrlPrv,
-			Meta: NoteItemImageMeta{
-				Width:  img.Meta.Width,
-				Height: img.Meta.Height,
-			},
-		})
-	}
-
-	return &AdminNoteItem{
-		NoteId:   model.NoteId(pb.NoteId),
-		Title:    pb.Title,
-		Desc:     pb.Desc,
-		Privacy:  int8(pb.Privacy),
-		CreateAt: pb.CreateAt,
-		UpdateAt: pb.UpdateAt,
-		Images:   images,
-		Likes:    pb.Likes,
-		Replies:  pb.Replies,
-	}
-}
-
 type AdminListRes struct {
-	Items      []*AdminNoteItem `json:"items"`
-	NextCursor int64            `json:"next_cursor"`
-	HasNext    bool             `json:"has_next"`
+	Items      []*model.AdminNoteItem `json:"items"`
+	NextCursor int64                  `json:"next_cursor"`
+	HasNext    bool                   `json:"has_next"`
 }
 
 func NewListResFromPb(pb *notev1.ListNoteResponse) *AdminListRes {
@@ -212,9 +160,9 @@ func NewListResFromPb(pb *notev1.ListNoteResponse) *AdminListRes {
 		return nil
 	}
 
-	items := make([]*AdminNoteItem, 0, len(pb.Items))
+	items := make([]*model.AdminNoteItem, 0, len(pb.Items))
 	for _, item := range pb.Items {
-		items = append(items, NewAdminNoteItemFromPb(item))
+		items = append(items, model.NewAdminNoteItemFromPb(item))
 	}
 
 	return &AdminListRes{
@@ -225,8 +173,8 @@ func NewListResFromPb(pb *notev1.ListNoteResponse) *AdminListRes {
 }
 
 type AdminPageListRes struct {
-	Items []*AdminNoteItem `json:"items"`
-	Total int64            `json:"total"`
+	Items []*model.AdminNoteItem `json:"items"`
+	Total int64                  `json:"total"`
 }
 
 func NewPageListResFromPb(pb *notev1.PageListNoteResponse) *AdminPageListRes {
@@ -234,9 +182,9 @@ func NewPageListResFromPb(pb *notev1.PageListNoteResponse) *AdminPageListRes {
 		return nil
 	}
 
-	items := make([]*AdminNoteItem, 0, len(pb.Items))
+	items := make([]*model.AdminNoteItem, 0, len(pb.Items))
 	for _, item := range pb.Items {
-		items = append(items, NewAdminNoteItemFromPb(item))
+		items = append(items, model.NewAdminNoteItemFromPb(item))
 	}
 
 	return &AdminPageListRes{
@@ -296,18 +244,9 @@ type UploadAuthRes struct {
 }
 
 // 点赞/取消点赞
-
-type LikeReqAction uint8
-
-const (
-	LikeReqActionUndo LikeReqAction = 0
-	LikeReqActionDo   LikeReqAction = 1
-)
-
-// 点赞/取消点赞
 type LikeReq struct {
-	NoteId int64         `json:"note_id"`
-	Action LikeReqAction `json:"action"`
+	NoteId model.NoteId        `json:"note_id"`
+	Action model.LikeReqAction `json:"action"`
 }
 
 func (r *LikeReq) Validate() error {

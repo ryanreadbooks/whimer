@@ -8,15 +8,18 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
+	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
+	tagdao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/tag"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 
 	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
 
 // NoteBiz作为最基础的biz可以被其它biz依赖，其它biz之间不能相互依赖
-type NoteBiz struct {}
+type NoteBiz struct{}
 
 func NewNoteBiz() NoteBiz {
 	b := NoteBiz{}
@@ -24,6 +27,7 @@ func NewNoteBiz() NoteBiz {
 }
 
 // 获取笔记基础信息
+// 不包含点赞等互动信息和标签
 func (b *NoteBiz) GetNote(ctx context.Context, noteId int64) (*model.Note, error) {
 	note, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
 	if err != nil {
@@ -136,9 +140,12 @@ func (b *NoteBiz) GetNoteOwner(ctx context.Context, noteId int64) (int64, error)
 	return n.Owner, nil
 }
 
-// 组装笔记信息
-// 笔记的资源数据，点赞等
+// 组装笔记信息 笔记的资源数据
 func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*model.Notes, error) {
+	var (
+		res model.Notes
+	)
+
 	var noteIds = make([]int64, 0, len(notes))
 	for _, n := range notes {
 		noteIds = append(noteIds, n.NoteId)
@@ -151,7 +158,6 @@ func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 	}
 
 	// 组合notes和noteAssets
-	var res model.Notes
 	for _, note := range notes {
 		item := &model.Note{
 			NoteId:   note.NoteId,
@@ -190,4 +196,68 @@ func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 	}
 
 	return &res, nil
+}
+
+// 按需填充ext所属内容
+func (b *NoteBiz) AssembleNotesExt(ctx context.Context, notes []*model.Note) error {
+	if len(notes) == 0 {
+		return nil
+	}
+
+	noteIds := make([]int64, 0, len(notes))
+	for _, n := range notes {
+		noteIds = append(noteIds, n.NoteId)
+	}
+
+	noteIds = xslice.Uniq(noteIds)
+	exts, err := infra.Dao().NoteExtDao.BatchGetById(ctx, noteIds)
+	if err != nil {
+		return xerror.Wrapf(err, "note ext dao failed to batch get")
+	}
+
+	// noteId -> ext
+	res := xslice.MakeMap(exts, func(e *notedao.Ext) int64 { return e.NoteId })
+	extMap := make(map[int64]*model.NoteExt, len(res))
+	totalTagIds := make([]int64, 0, len(res))
+
+	for noteId, extPo := range res {
+		if extPo == nil {
+			continue
+		}
+
+		tIds := xslice.SplitInts[int64](extPo.Tags, ",")
+		totalTagIds = append(totalTagIds, tIds...)
+		extMap[noteId] = &model.NoteExt{}
+		extMap[noteId].TagIds = tIds
+	}
+
+	totalTagIds = xslice.Uniq(totalTagIds)
+	var tagMap = make(map[int64]*tagdao.Tag)
+	// query tags
+	if len(totalTagIds) != 0 {
+		tags, err := infra.Dao().TagDao.BatchGetById(ctx, totalTagIds)
+		if err != nil {
+			return xerror.Wrapf(err, "tag dao failed to batch get")
+		}
+		tagMap = xslice.MakeMap(tags, func(e *tagdao.Tag) int64 { return e.Id })
+	}
+
+	// do the assignment
+	for _, n := range notes {
+		if ext, ok := extMap[n.NoteId]; ok && ext != nil {
+			// 1. tags
+			for _, tagId := range ext.TagIds {
+				if tag, tagOk := tagMap[tagId]; tagOk {
+					n.Tags = append(n.Tags, &model.NoteTag{
+						Id:   tag.Id,
+						Name: tag.Name,
+					})
+				}
+			}
+
+			// other ext attributes
+		}
+	}
+
+	return nil
 }

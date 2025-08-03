@@ -31,3 +31,7 @@ backend:
 obfuscate:
   note:
     salt: ${ENV_OBFUSCATE_NOTE_SALT}
+  tag:
+    salt: ${ENV_OBFUSCATE_TAG_SALT}
+    min_length: 24
+    alphabet: 0123456789abcdef

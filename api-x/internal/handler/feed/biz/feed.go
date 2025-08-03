@@ -265,7 +265,7 @@ func (b *FeedBiz) RandomFeed(ctx context.Context, req *model.FeedRecommendReques
 }
 
 // 获取详细的笔记信息
-func (b *FeedBiz) GetNote(ctx context.Context, noteId int64) (*model.FeedNoteItem, error) {
+func (b *FeedBiz) GetNote(ctx context.Context, noteId int64) (*model.FullFeedNoteItem, error) {
 	// 1. 获取指定笔记
 	resp, err := infra.NoteFeedServer().GetFeedNote(ctx, &notev1.GetFeedNoteRequest{
 		NoteId: noteId,
@@ -280,7 +280,10 @@ func (b *FeedBiz) GetNote(ctx context.Context, noteId int64) (*model.FeedNoteIte
 		return nil, err
 	}
 
-	return feeds[0], nil
+	return &model.FullFeedNoteItem{
+		FeedNoteItem: feeds[0],
+		TagList:      imodel.NoteTagsFromPbs(resp.GetExt().GetTags()),
+	}, nil
 }
 
 func (b *FeedBiz) ListNotesByUser(ctx context.Context, uid int64, cursor int64, count int) ([]*model.FeedNoteItem,

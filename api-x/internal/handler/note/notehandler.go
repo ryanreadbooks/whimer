@@ -106,7 +106,7 @@ func (h *Handler) CreatorDeleteNote() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) assignNoteExtra(ctx context.Context, notes []*AdminNoteItem) {
+func (h *Handler) assignNoteExtra(ctx context.Context, notes []*model.AdminNoteItem) {
 	var (
 		noteIds      = make([]int64, 0, len(notes))
 		oidLiked     = make(map[int64]bool)
@@ -251,8 +251,8 @@ func (h *Handler) CreatorGetNote() http.HandlerFunc {
 			return
 		}
 
-		result := NewAdminNoteItemFromPb(resp.Note)
-		h.assignNoteExtra(ctx, []*AdminNoteItem{result})
+		result := model.NewAdminNoteItemFromPb(resp.Note)
+		h.assignNoteExtra(ctx, []*model.AdminNoteItem{result})
 		xhttp.OkJson(w, result)
 	}
 }
@@ -308,7 +308,7 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 
 		nid := req.NoteId
 		_, err = infra.NoteInteractServer().LikeNote(r.Context(), &notev1.LikeNoteRequest{
-			NoteId:    nid,
+			NoteId:    int64(nid),
 			Uid:       uid,
 			Operation: notev1.LikeNoteRequest_Operation(req.Action),
 		})

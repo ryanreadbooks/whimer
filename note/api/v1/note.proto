@@ -9,7 +9,7 @@ message NoteTag {
   string name = 2;
 }
 
-// 面向创作者的笔记
+// 笔记全量信息
 message NoteItem {
   int64 note_id = 1;
   string title = 2;
@@ -21,6 +21,7 @@ message NoteItem {
   int64 likes = 8;            // 点赞数量
   int64 replies = 9;          //评论数量
   repeated NoteTag tags = 10; // 笔记的标签
+  int64 owner = 11;
 }
 
 message NoteImageMeta {
