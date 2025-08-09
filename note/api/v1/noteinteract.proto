@@ -8,7 +8,7 @@ import "v1/note.proto";
 option go_package = "github.com/ryanreadbooks/whimer/note/api/v1";
 
 message LikeNoteRequest {
-  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 笔记id
+  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ]; // 笔记id
   int64 uid = 2; // 执行点赞的用户id
   enum Operation {
     OPERATION_UNDO_LIKE = 0; // 取消点赞
@@ -20,18 +20,18 @@ message LikeNoteRequest {
 message LikeNoteResponse {}
 
 message GetNoteLikesRequest {
-  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; //笔记id
+  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ]; //笔记id
 }
 
 message GetNoteLikesResponse {
-  uint64 note_id = 1;
-  uint64 likes = 2; // 点赞数量
+  int64 note_id = 1;
+  int64 likes = 2; // 点赞数量
 }
 
 // 检查用户是否点赞过某篇笔记
 message CheckUserLikeStatusRequest {
-  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; //笔记id
-  int64 uid = 2;                                             // 用户id
+  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ]; //笔记id
+  int64 uid = 2;                                           // 用户id
 }
 
 message CheckUserLikeStatusResponse {
@@ -45,7 +45,7 @@ message NoteInteraction {
 }
 
 message NoteIdList {
-  repeated uint64 note_ids = 1 [
+  repeated int64 note_ids = 1 [
     (buf.validate.field).repeated .min_items = 1,
     (buf.validate.field).repeated .max_items = 50
   ];
@@ -61,7 +61,7 @@ message BatchCheckUserLikeStatusRequest {
 }
 
 message LikeStatus {
-  uint64 note_id = 1;
+  int64 note_id = 1;
   bool liked = 2;
 }
 
@@ -73,8 +73,8 @@ message BatchCheckUserLikeStatusResponse {
 }
 
 message GetNoteInteractionRequest {
-  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; //笔记id
-  int64 uid = 2;                                             // 用户id
+  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ]; //笔记id
+  int64 uid = 2;                                           // 用户id
 }
 
 message GetNoteInteractionResponse { NoteInteraction interaction = 1; }

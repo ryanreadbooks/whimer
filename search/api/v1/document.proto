@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package search.api.v1;
+
+import "v1/note_tag.proto";
+
+option go_package = "github.com/ryanreadbooks/whimer/search/api/v1";
+
+message BatchAddNoteTagRequest { repeated NoteTag note_tags = 1; }
+
+message BatchAddNoteTagResponse {}
+
+// 搜索数据写入服务
+service DocumentService {
+  rpc BatchAddNoteTag(BatchAddNoteTagRequest) returns (BatchAddNoteTagResponse);
+}

@@ -10,6 +10,7 @@ const (
 	maxTitleLen = 20
 	maxDescLen  = 1000
 	maxImageLen = 9
+	maxTagCount = 10
 )
 
 const (
@@ -34,6 +35,7 @@ type CreateNoteRequestImage struct {
 type CreateNoteRequest struct {
 	Basic  CreateNoteRequestBasic   `json:"basic"`
 	Images []CreateNoteRequestImage `json:"images"`
+	TagIds []int64                  `json:"tag_ids"`
 }
 
 func (r *CreateNoteRequest) Validate() error {
@@ -60,6 +62,10 @@ func (r *CreateNoteRequest) Validate() error {
 
 	if r.Basic.Privacy != PrivacyPublic && r.Basic.Privacy != PrivacyPrivate {
 		return global.ErrArgs.Msg("笔记参数权限不支持")
+	}
+
+	if len(r.TagIds) >= maxTagCount {
+		return global.ErrArgs.Msg(fmt.Sprintf("笔记最多支持%d个标签", maxTagCount))
 	}
 
 	return nil

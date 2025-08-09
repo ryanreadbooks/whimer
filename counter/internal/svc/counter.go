@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"math/bits"
 	"strconv"
 	"strings"
@@ -43,9 +44,9 @@ func NewCounterSvc(ctx *ServiceContext, repo *repo.Repo, cache *redis.Redis) *Co
 	return s
 }
 
-func (s *CounterSvc) summaryKey(oid uint64, bizcode int) string {
+func (s *CounterSvc) summaryKey(oid int64, bizcode int) string {
 	// summary:biz:oid
-	return "summary:" + strconv.Itoa(bizcode) + ":" + strconv.FormatUint(oid, 10)
+	return "summary:" + strconv.Itoa(bizcode) + ":" + strconv.FormatInt(oid, 10)
 }
 
 // 新增计数记录
@@ -138,13 +139,13 @@ func (s *CounterSvc) CancelRecord(ctx context.Context,
 	return &counterv1.CancelRecordResponse{}, nil
 }
 
-func (s *CounterSvc) updateSummary(ctx context.Context, oid uint64, biz int32, positive bool) {
+func (s *CounterSvc) updateSummary(ctx context.Context, oid int64, biz int32, positive bool) {
 	// TODO determine to use updateSummaryNow or cacheSummary based on database overload
 	// s.cacheSummary(ctx, oid, biz, positive)
 	s.updateSummaryNow(ctx, oid, biz, positive)
 }
 
-func (s *CounterSvc) updateSummaryNow(ctx context.Context, oid uint64, biz int32, positive bool) error {
+func (s *CounterSvc) updateSummaryNow(ctx context.Context, oid int64, biz int32, positive bool) error {
 	var err error
 	if positive {
 		err = s.repo.SummaryRepo.InsertOrIncr(ctx, int(biz), oid)
@@ -164,7 +165,7 @@ func (s *CounterSvc) updateSummaryNow(ctx context.Context, oid uint64, biz int32
 	return err
 }
 
-func (s *CounterSvc) cacheSummary(ctx context.Context, oid uint64, biz int32, positive bool) {
+func (s *CounterSvc) cacheSummary(ctx context.Context, oid int64, biz int32, positive bool) {
 	k := s.summaryKey(oid, int(biz))
 	if _, ok := s.sumcounter.Get(k); ok {
 		if positive {
@@ -217,7 +218,7 @@ func (s *CounterSvc) GetRecord(ctx context.Context,
 	}}, nil
 }
 
-func (s *CounterSvc) BatchGetRecord(ctx context.Context, uidOids map[int64][]uint64, biz int) (
+func (s *CounterSvc) BatchGetRecord(ctx context.Context, uidOids map[int64][]int64, biz int) (
 	map[int64][]*counterv1.Record, error) {
 	datas, err := s.repo.RecordRepo.BatchFind(ctx, uidOids, biz)
 	var uidRecords = make(map[int64][]*counterv1.Record, len(datas))
@@ -276,7 +277,7 @@ func (s *CounterSvc) BatchGetSummary(ctx context.Context, req *counterv1.BatchGe
 	const batchsize = 200
 
 	var (
-		summaryRes = make([]map[summary.PrimaryKey]uint64, 0)
+		summaryRes = make([]map[summary.PrimaryKey]int64, 0)
 		wg         sync.WaitGroup
 		mu         sync.Mutex
 	)
@@ -308,7 +309,7 @@ func (s *CounterSvc) BatchGetSummary(ctx context.Context, req *counterv1.BatchGe
 	}
 
 	// 整理结果
-	merged := make(map[summary.PrimaryKey]uint64, len(summaryRes))
+	merged := make(map[summary.PrimaryKey]int64, len(summaryRes))
 	for _, sumRes := range summaryRes {
 		for k, v := range sumRes {
 			merged[k] = v
@@ -337,7 +338,7 @@ func (s *CounterSvc) SyncCacheSummary(ctx context.Context) error {
 	s.sumcounter.Flush() // 重新开始计数
 	type delta struct {
 		Biz   int32
-		Oid   uint64
+		Oid   int64
 		Delta int64
 	}
 	deltas := make([]*delta, 0, len(items))
@@ -348,7 +349,7 @@ func (s *CounterSvc) SyncCacheSummary(ctx context.Context) error {
 		if err != nil {
 			continue
 		}
-		oid, err := strconv.ParseUint(seps[2], 10, 64)
+		oid, err := strconv.ParseInt(seps[2], 10, 64)
 		if err != nil {
 			continue
 		}
@@ -383,28 +384,36 @@ func (s *CounterSvc) SyncCacheSummary(ctx context.Context) error {
 		}
 
 		// 再设置回去
-		newVals := make(map[summary.PrimaryKey]uint64)
+		newVals := make(map[summary.PrimaryKey]int64)
 		for key, cur := range result {
 			num := deltaMaps[key] // > or < or == 0
 			// cur为当前计数 num为需要变化的计数
-			var newCur uint64
+			var newCur int64
 			if num >= 0 {
-				sum, overflow := bits.Add64(cur, uint64(num), 0)
+				sum, overflow := bits.Add64(uint64(cur), uint64(num), 0)
 				if overflow != 0 {
 					// overflow.
 					xlog.Msg("sync summary bits.Add64 overflow").Extra("cur", cur).Extra("num", num).Error()
 					newCur = cur // stays the same
 				} else {
-					newCur = sum
+					if sum > math.MaxInt64 {
+						xlog.Msg("sync summary sum overflow").Extra("cur", cur).Extra("num", num).Error()
+					} else {
+						newCur = int64(sum)
+					}
 				}
 			} else {
 				num = -num // abs, > 0
-				diff, underflow := bits.Sub64(cur, uint64(num), 0)
+				diff, underflow := bits.Sub64(uint64(cur), uint64(num), 0)
 				if underflow != 0 {
 					xlog.Msg("sync summary bits.Sub64 underflow").Extra("cur", cur).Extra("num", num).Error()
 					newCur = 0
 				} else {
-					newCur = diff
+					if diff > math.MaxInt64 {
+						xlog.Msg("sync summary sum overflow").Extra("cur", cur).Extra("num", num).Error()
+					} else {
+						newCur = int64(diff)
+					}
 				}
 			}
 

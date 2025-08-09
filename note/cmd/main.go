@@ -6,6 +6,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/entry/grpc"
+	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
 
 	"github.com/zeromicro/go-zero/core/conf"
@@ -22,6 +23,7 @@ func main() {
 	if err := config.Conf.Init(); err != nil {
 		panic(fmt.Errorf("panic: config init: %w", err))
 	}
+	infra.Init(&config.Conf)
 	svc := srv.NewService(&config.Conf)
 
 	grpcServer := grpc.Init(config.Conf.Grpc, svc)

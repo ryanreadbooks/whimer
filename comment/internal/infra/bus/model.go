@@ -26,21 +26,21 @@ type (
 
 	// 删除评论所需数据
 	DelReplyData struct {
-		ReplyId uint64       `json:"reply_id"`
+		ReplyId int64        `json:"reply_id"`
 		Reply   *dao.Comment `json:"reply"`
 	}
 
 	BinaryReplyData struct {
-		Uid     int64  `json:"uid"`
-		ReplyId uint64 `json:"reply_id"`
-		Action  int    `json:"action"` // do or undo
-		Type    int    `json:"type"`   // like or dislike
+		Uid     int64 `json:"uid"`
+		ReplyId int64 `json:"reply_id"`
+		Action  int   `json:"action"` // do or undo
+		Type    int   `json:"type"`   // like or dislike
 	}
 
 	PinReplyData struct {
-		ReplyId uint64 `json:"reply_id"`
-		Action  int    `json:"action"` // do or undo
-		Oid     uint64 `json:"oid"`
+		ReplyId int64 `json:"reply_id"`
+		Action  int   `json:"action"` // do or undo
+		Oid     int64 `json:"oid"`
 	}
 )
 

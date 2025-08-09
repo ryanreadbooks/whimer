@@ -25,6 +25,13 @@ func (e *Error) Error() string {
 	return ne.Json()
 }
 
+func (e *Error) AsResult() *Result {
+	return &Result{
+		Code: e.Code,
+		Msg:  e.Message,
+	}
+}
+
 func (e *Error) Json() string {
 	if e == nil {
 		return ""

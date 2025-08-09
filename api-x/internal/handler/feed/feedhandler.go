@@ -50,7 +50,7 @@ func (h *Handler) GetNoteDetail() http.HandlerFunc {
 			return
 		}
 
-		resp, err := h.bizz.GetNote(r.Context(), uint64(req.NoteId))
+		resp, err := h.bizz.GetNote(r.Context(), int64(req.NoteId))
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

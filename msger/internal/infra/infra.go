@@ -15,7 +15,7 @@ var (
 
 func Init(c *config.Config) {
 	// cache := redis.MustNewRedis(c.Redis)
-	dao = infradao.New(c)
+	dao = infradao.MustNew(c)
 }
 
 func Dao() *infradao.Dao {

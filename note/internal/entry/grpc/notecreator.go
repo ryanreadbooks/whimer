@@ -67,6 +67,7 @@ func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.Cr
 			Privacy: int(in.Basic.Privacy),
 		},
 		Images: images,
+		TagIds: in.GetTags().GetTagList(),
 	}
 
 	if err := req.Validate(); err != nil {
@@ -288,4 +289,20 @@ func (s *NoteCreatorServiceServer) PageListNote(ctx context.Context,
 		Items: items,
 		Total: total,
 	}, nil
+}
+
+func (s *NoteCreatorServiceServer) AddTag(ctx context.Context, in *notev1.AddTagRequest) (
+	*notev1.AddTagResponse, error,
+) {
+
+	if in.Name == "" {
+		return nil, global.ErrArgs.Msg("标签名为空")
+	}
+
+	id, err := s.Srv.NoteCreatorSrv.AddTag(ctx, in.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &notev1.AddTagResponse{Id: id}, nil
 }

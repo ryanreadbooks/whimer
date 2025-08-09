@@ -57,7 +57,7 @@ func TestSummaryRepo_Get(t *testing.T) {
 	Convey("Get", t, func() {
 		for _, m := range []struct {
 			Biz int
-			Oid uint64
+			Oid int64
 		}{
 			{Biz: 1000, Oid: 1000},
 			{Biz: 1000, Oid: 12003},

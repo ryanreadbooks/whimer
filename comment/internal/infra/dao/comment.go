@@ -7,13 +7,13 @@ const (
 
 // comment表
 type Comment struct {
-	Id       uint64 `json:"id" db:"id"`
-	Oid      uint64 `json:"oid" db:"oid"`
+	Id       int64  `json:"id" db:"id"`
+	Oid      int64  `json:"oid" db:"oid"`
 	CType    int8   `json:"ctype" db:"ctype"`
 	Content  string `json:"content" db:"content"`
 	Uid      int64  `json:"uid" db:"uid"`
-	RootId   uint64 `json:"root" db:"root"`
-	ParentId uint64 `json:"parent" db:"parent"`
+	RootId   int64  `json:"root" db:"root"`
+	ParentId int64  `json:"parent" db:"parent"`
 	ReplyUid int64  `json:"ruid" db:"ruid"`
 	State    int8   `json:"state" db:"state"`
 	Like     int    `json:"like" db:"like"`
@@ -26,19 +26,19 @@ type Comment struct {
 }
 
 type RootParent struct {
-	Id       uint64 `json:"id" db:"id"`
-	RootId   uint64 `json:"root" db:"root"`
-	ParentId uint64 `json:"parent" db:"parent"`
-	Oid      uint64 `json:"oid" db:"oid"`
-	IsPin    int8   `json:"is_pin" db:"pin"`
+	Id       int64 `json:"id" db:"id"`
+	RootId   int64 `json:"root" db:"root"`
+	ParentId int64 `json:"parent" db:"parent"`
+	Oid      int64 `json:"oid" db:"oid"`
+	IsPin    int8  `json:"is_pin" db:"pin"`
 }
 
 type UidOid struct {
 	Uid int64
-	Oid uint64
+	Oid int64
 }
 
 type RootCnt struct {
-	Root uint64 `db:"root"`
-	Cnt  uint64 `db:"cnt"`
+	Root int64 `db:"root"`
+	Cnt  int64 `db:"cnt"`
 }

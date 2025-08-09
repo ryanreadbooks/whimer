@@ -13,7 +13,7 @@ type ServiceContext struct {
 
 // 初始化一个service
 func NewServiceContext(c *config.Config) *ServiceContext {
-	dao := repo.New(c)
+	dao := repo.MustNew(c)
 	ctx := &ServiceContext{
 		Config: c,
 	}

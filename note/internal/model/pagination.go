@@ -1,6 +1,6 @@
 package model
 
 type PageResult struct {
-	NextCursor uint64
+	NextCursor int64
 	HasNext    bool
 }

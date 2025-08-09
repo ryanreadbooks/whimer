@@ -19,7 +19,7 @@ var (
 
 func Init(c *config.Config) {
 	cache = redis.MustNewRedis(c.Redis)
-	dao = infradao.New(c, cache)
+	dao = infradao.MustNew(c, cache)
 	var err error
 	enc, err = aes.NewAes256GCMEncryptor(c.Encrypt.Key, aes.WithMd5Nonce())
 	if err != nil {

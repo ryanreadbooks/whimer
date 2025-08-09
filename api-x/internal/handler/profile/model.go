@@ -58,7 +58,7 @@ const (
 )
 
 // 模糊化处理数字
-func HideActualCount(cnt uint64) string {
+func HideActualCount(cnt int64) string {
 	if cnt == 0 {
 		return "0"
 	}

@@ -9,10 +9,10 @@ import (
 // 发表评论参数
 type AddReplyReq struct {
 	Type     ReplyType `json:"type"`    // 评论类型 (0-文本; 1-图文)
-	Oid      uint64    `json:"nid"`     // 对象id
+	Oid      int64     `json:"nid"`     // 对象id
 	Content  string    `json:"content"` // 评论内容
-	RootId   uint64    `json:"pid"`     // 根评论id
-	ParentId uint64    `json:"rid"`     // 被回复的评论id
+	RootId   int64     `json:"pid"`     // 根评论id
+	ParentId int64     `json:"rid"`     // 被回复的评论id
 	ReplyUid int64     `json:"ruid"`    // 被回复的用户id
 }
 
@@ -57,6 +57,6 @@ func (r *AddReplyReq) Validate() error {
 
 // 发表评论结果
 type AddReplyRes struct {
-	ReplyId uint64
+	ReplyId int64
 	Uid     int64
 }

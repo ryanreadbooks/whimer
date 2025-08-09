@@ -1,6 +1,6 @@
 package model
 
 type ListResult struct {
-	NextOffset uint64 
-	HasMore bool
+	NextOffset int64
+	HasMore    bool
 }

@@ -8,8 +8,8 @@ import "v1/note.proto";
 option go_package = "github.com/ryanreadbooks/whimer/note/api/v1";
 
 message IsUserOwnNoteRequest {
-  int64 uid = 1;                                             // 用户id
-  uint64 note_id = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 笔记id
+  int64 uid = 1;                                           // 用户id
+  int64 note_id = 2 [ (buf.validate.field).int64.gt = 0 ]; // 笔记id
 }
 
 message IsUserOwnNoteResponse {
@@ -18,7 +18,7 @@ message IsUserOwnNoteResponse {
 }
 
 message IsNoteExistRequest {
-  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ];
 }
 
 message IsNoteExistResponse { bool exist = 1; }
@@ -36,40 +36,43 @@ message CreateReqImage {
   string format = 4;
 }
 
+message CreateReqTag { repeated int64 tag_list = 1; }
+
 message CreateNoteRequest {
   CreateReqBasic basic = 1;
   repeated CreateReqImage images = 2;
+  CreateReqTag tags = 3;
 }
 
-message CreateNoteResponse { uint64 note_id = 1; }
+message CreateNoteResponse { int64 note_id = 1; }
 
 message DeleteNoteRequest {
-  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ];
 }
 
 message DeleteNoteResponse {}
 
 message UpdateNoteRequest {
-  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ];
   CreateNoteRequest note = 2;
 }
 
-message UpdateNoteResponse { uint64 note_id = 1; }
+message UpdateNoteResponse { int64 note_id = 1; }
 
 message GetNoteRequest {
-  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ];
 }
 
 message GetNoteResponse { NoteItem note = 1; }
 
 message ListNoteRequest {
-  uint64 cursor = 1;
+  int64 cursor = 1;
   int32 count = 2;
 }
 
 message ListNoteResponse {
   repeated NoteItem items = 1;
-  uint64 next_cursor = 2;
+  int64 next_cursor = 2;
   bool has_next = 3;
 }
 
@@ -107,7 +110,7 @@ message GetPostedCountRequest {
   int64 uid = 1; // 用户id
 }
 
-message GetPostedCountResponse { uint64 count = 1; }
+message GetPostedCountResponse { int64 count = 1; }
 
 message BatchGetUploadAuthV2Request {
   string resource = 1;
@@ -129,9 +132,13 @@ message PageListNoteRequest {
 }
 
 message PageListNoteResponse {
-  uint64 total = 1;
+  int64 total = 1;
   repeated NoteItem items = 2;
 }
+
+message AddTagRequest { string name = 1; }
+
+message AddTagResponse { int64 id = 1; }
 
 // 和笔记管理相关的服务
 // 比如发布笔记，修改笔记，删除笔记等管理笔记的功能
@@ -170,4 +177,7 @@ service NoteCreatorService {
       returns (BatchGetUploadAuthV2Response);
   // 获取用户投稿数量
   rpc GetPostedCount(GetPostedCountRequest) returns (GetPostedCountResponse);
+
+  // 新增标签
+  rpc AddTag(AddTagRequest) returns (AddTagResponse);
 }

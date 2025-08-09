@@ -7,12 +7,12 @@ import (
 	"testing"
 )
 
-func fk1(oid uint64, biz int) string {
+func fk1(oid int64, biz int) string {
 	return fmt.Sprintf("summary:%d:%d", biz, oid)
 }
 
-func fk2(oid uint64, biz int) string {
-	return "summary:" + strconv.Itoa(biz) + ":" + strconv.FormatUint(oid, 10)
+func fk2(oid int64, biz int) string {
+	return "summary:" + strconv.Itoa(biz) + ":" + strconv.FormatInt(oid, 10)
 }
 
 func BenchmarkFormKeyFk1(b *testing.B) {

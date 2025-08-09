@@ -13,22 +13,22 @@ func New(db sqlx.SqlConn) *Repo {
 }
 
 type Model struct {
-	BizCode int32    `db:"biz_code"`
-	Oid     uint64 `db:"oid"`
-	Cnt     uint64 `db:"cnt"`
-	Ctime   int64  `db:"ctime"`
-	Mtime   int64  `db:"mtime"`
+	BizCode int32 `db:"biz_code"`
+	Oid     int64 `db:"oid"`
+	Cnt     int64 `db:"cnt"`
+	Ctime   int64 `db:"ctime"`
+	Mtime   int64 `db:"mtime"`
 }
 
 type PrimaryKey struct {
-	BizCode int32    `db:"biz_code"`
-	Oid     uint64 `db:"oid"`
+	BizCode int32 `db:"biz_code"`
+	Oid     int64 `db:"oid"`
 }
 
 type PrimaryKeyList []*PrimaryKey
 
-func (l PrimaryKeyList) Oids() []uint64 {
-	r := make([]uint64, 0, len(l))
+func (l PrimaryKeyList) Oids() []int64 {
+	r := make([]int64, 0, len(l))
 	for _, item := range l {
 		r = append(r, item.Oid)
 	}
@@ -44,7 +44,7 @@ func (l PrimaryKeyList) BizCodes() []int32 {
 }
 
 type GetsResult struct {
-	BizCode int32    `db:"biz_code"`
-	Oid     uint64 `db:"oid"`
-	Cnt     uint64 `db:"cnt"`
+	BizCode int32 `db:"biz_code"`
+	Oid     int64 `db:"oid"`
+	Cnt     int64 `db:"cnt"`
 }

@@ -18,7 +18,7 @@ var (
 
 func Init(c *config.Config) {
 	cache := redis.MustNewRedis(c.Redis) // TODO make it less dependent
-	dao = infradao.New(c, cache)
+	dao = infradao.MustNew(c, cache)
 	queue = bus.New(c)
 	dep.Init(c)
 }

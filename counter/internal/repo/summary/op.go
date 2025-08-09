@@ -57,9 +57,9 @@ func modelAsInsertSql(data *Model, builder *strings.Builder) {
 	builder.WriteByte('(')
 	builder.WriteString(strconv.Itoa(int(data.BizCode)))
 	builder.WriteByte(',')
-	builder.WriteString(strconv.FormatUint(data.Oid, 10))
+	builder.WriteString(strconv.FormatInt(data.Oid, 10))
 	builder.WriteByte(',')
-	builder.WriteString(strconv.FormatUint(data.Cnt, 10))
+	builder.WriteString(strconv.FormatInt(data.Cnt, 10))
 	builder.WriteByte(',')
 	builder.WriteString(strconv.FormatInt(data.Ctime, 10))
 	builder.WriteByte(',')
@@ -98,8 +98,8 @@ func (r *Repo) BatchInsert(ctx context.Context, datas []*Model) error {
 	return xsql.ConvertError(err)
 }
 
-func (r *Repo) Get(ctx context.Context, biz int, oid uint64) (uint64, error) {
-	var cnt uint64
+func (r *Repo) Get(ctx context.Context, biz int, oid int64) (int64, error) {
+	var cnt int64
 	err := r.db.QueryRowCtx(ctx, &cnt, sqlGet, oid, biz)
 	if err != nil {
 		return 0, xsql.ConvertError(err)
@@ -108,7 +108,7 @@ func (r *Repo) Get(ctx context.Context, biz int, oid uint64) (uint64, error) {
 	return cnt, nil
 }
 
-func (r *Repo) Gets(ctx context.Context, keys PrimaryKeyList) (map[PrimaryKey]uint64, error) {
+func (r *Repo) Gets(ctx context.Context, keys PrimaryKeyList) (map[PrimaryKey]int64, error) {
 	oids := slices.JoinInts(slices.Uniq(keys.Oids()))
 	bizs := slices.JoinInts(slices.Uniq(keys.BizCodes()))
 	sql := fmt.Sprintf(sqlGets, oids, bizs)
@@ -119,7 +119,7 @@ func (r *Repo) Gets(ctx context.Context, keys PrimaryKeyList) (map[PrimaryKey]ui
 		return nil, xsql.ConvertError(err)
 	}
 
-	ret := make(map[PrimaryKey]uint64, len(keys))
+	ret := make(map[PrimaryKey]int64, len(keys))
 	for _, item := range data {
 		k := PrimaryKey{BizCode: item.BizCode, Oid: item.Oid}
 		ret[k] = item.Cnt
@@ -128,18 +128,18 @@ func (r *Repo) Gets(ctx context.Context, keys PrimaryKeyList) (map[PrimaryKey]ui
 	return ret, nil
 }
 
-func (r *Repo) Incr(ctx context.Context, biz int, oid uint64) error {
+func (r *Repo) Incr(ctx context.Context, biz int, oid int64) error {
 	_, err := r.db.ExecCtx(ctx, sqlIncr, oid, biz)
 	return xsql.ConvertError(err)
 }
 
-func (r *Repo) Decr(ctx context.Context, biz int, oid uint64) error {
+func (r *Repo) Decr(ctx context.Context, biz int, oid int64) error {
 	_, err := r.db.ExecCtx(ctx, sqlDecr, oid, biz)
 	return xsql.ConvertError(err)
 }
 
 // "biz_code,oid,cnt,ctime,mtime"
-func (r *Repo) InsertOrIncr(ctx context.Context, biz int, oid uint64) error {
+func (r *Repo) InsertOrIncr(ctx context.Context, biz int, oid int64) error {
 	now := time.Now().Unix()
 	_, err := r.db.ExecCtx(ctx, fmt.Sprintf(sqlInsertIncr, fields),
 		biz,
@@ -151,7 +151,7 @@ func (r *Repo) InsertOrIncr(ctx context.Context, biz int, oid uint64) error {
 	return xsql.ConvertError(err)
 }
 
-func (r *Repo) InsertOrDecr(ctx context.Context, biz int, oid uint64) error {
+func (r *Repo) InsertOrDecr(ctx context.Context, biz int, oid int64) error {
 	now := time.Now().Unix()
 	_, err := r.db.ExecCtx(ctx, fmt.Sprintf(sqlInsertDecr, fields),
 		biz,

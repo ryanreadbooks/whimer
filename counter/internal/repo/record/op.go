@@ -89,7 +89,7 @@ func (r *Repo) Update(ctx context.Context, data *Model) error {
 	return xsql.ConvertError(err)
 }
 
-func (r *Repo) Find(ctx context.Context, uid int64, oid uint64, biz int) (*Model, error) {
+func (r *Repo) Find(ctx context.Context, uid int64, oid int64, biz int) (*Model, error) {
 	var ret Model
 	err := r.db.QueryRowCtx(ctx, &ret, sqlFind, uid, oid, biz)
 	if err != nil {
@@ -99,12 +99,12 @@ func (r *Repo) Find(ctx context.Context, uid int64, oid uint64, biz int) (*Model
 	return &ret, nil
 }
 
-func (r *Repo) BatchFind(ctx context.Context, uidOids map[int64][]uint64, biz int) ([]Model, error) {
+func (r *Repo) BatchFind(ctx context.Context, uidOids map[int64][]int64, biz int) ([]Model, error) {
 	var batchRes []Model
 	// 分批操作
-	err := maps.BatchExec(uidOids, 200, func(target map[int64][]uint64) error {
+	err := maps.BatchExec(uidOids, 200, func(target map[int64][]int64) error {
 		uids, oids := maps.All(target)
-		var allOids []uint64 = oids[0]
+		var allOids []int64 = oids[0]
 		for i := 1; i < len(oids); i++ {
 			allOids = slices.Concat(allOids, oids[i])
 		}
@@ -127,8 +127,8 @@ func (r *Repo) BatchFind(ctx context.Context, uidOids map[int64][]uint64, biz in
 	return batchRes, nil
 }
 
-func (r *Repo) Count(ctx context.Context, oid uint64, biz int) (uint64, error) {
-	var cnt uint64
+func (r *Repo) Count(ctx context.Context, oid int64, biz int) (int64, error) {
+	var cnt int64
 	err := r.db.QueryRowCtx(ctx, &cnt, sqlCount, oid, biz, ActDo)
 	if err != nil {
 		return 0, xsql.ConvertError(err)
@@ -137,7 +137,7 @@ func (r *Repo) Count(ctx context.Context, oid uint64, biz int) (uint64, error) {
 	return cnt, nil
 }
 
-func (r *Repo) PageGet(ctx context.Context, id uint64, act int, limit uint64) ([]*Model, error) {
+func (r *Repo) PageGet(ctx context.Context, id int64, act int, limit int64) ([]*Model, error) {
 	var res = make([]*Model, 0)
 	err := r.db.QueryRowsCtx(ctx, &res, fmt.Sprintf(sqlPageGet, allFields), id, act, limit)
 	if err != nil {
@@ -147,8 +147,8 @@ func (r *Repo) PageGet(ctx context.Context, id uint64, act int, limit uint64) ([
 	return res, nil
 }
 
-func (r *Repo) CountAll(ctx context.Context) (uint64, error) {
-	var cnt uint64
+func (r *Repo) CountAll(ctx context.Context) (int64, error) {
+	var cnt int64
 	err := r.db.QueryRowCtx(ctx, &cnt, sqlCountAll, ActDo)
 	if err != nil {
 		return 0, xsql.ConvertError(err)

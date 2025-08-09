@@ -42,7 +42,7 @@ func (s *CommentSrv) AddReply(ctx context.Context, req *model.AddReplyReq) (*mod
 }
 
 // 用户删除评论
-func (s *CommentSrv) DelReply(ctx context.Context, rid uint64) error {
+func (s *CommentSrv) DelReply(ctx context.Context, rid int64) error {
 	err := s.CommentBiz.DelReply(ctx, rid)
 	if err != nil {
 		return xerror.Wrapf(err, "comment srv failed to del reply").
@@ -54,7 +54,7 @@ func (s *CommentSrv) DelReply(ctx context.Context, rid uint64) error {
 }
 
 // 用户点赞/取消点赞某条评论
-func (s *CommentSrv) LikeReply(ctx context.Context, rid uint64, action int8) error {
+func (s *CommentSrv) LikeReply(ctx context.Context, rid int64, action int8) error {
 	err := s.CommentInteractBiz.LikeReply(ctx, rid, action)
 	if err != nil {
 		return xerror.Wrapf(err, "comment srv failed to do like reply").
@@ -66,7 +66,7 @@ func (s *CommentSrv) LikeReply(ctx context.Context, rid uint64, action int8) err
 }
 
 // 用户点踩/取消点踩某条评论
-func (s *CommentSrv) DislikeReply(ctx context.Context, rid uint64, action int8) error {
+func (s *CommentSrv) DislikeReply(ctx context.Context, rid int64, action int8) error {
 	err := s.CommentInteractBiz.DislikeReply(ctx, rid, action)
 	if err != nil {
 		return xerror.Wrapf(err, "comment srv failed to do dislike reply").
@@ -78,7 +78,7 @@ func (s *CommentSrv) DislikeReply(ctx context.Context, rid uint64, action int8) 
 }
 
 // 置顶评论/取消置顶评论
-func (s *CommentSrv) PinReply(ctx context.Context, oid, rid uint64, action int8) error {
+func (s *CommentSrv) PinReply(ctx context.Context, oid, rid int64, action int8) error {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -123,7 +123,7 @@ func (s *CommentSrv) PinReply(ctx context.Context, oid, rid uint64, action int8)
 }
 
 // 分页获取主评论
-func (s *CommentSrv) PageGetRootReplies(ctx context.Context, oid, cursor uint64, sortBy int8) (*model.PageReplies, error) {
+func (s *CommentSrv) PageGetRootReplies(ctx context.Context, oid, cursor int64, sortBy int8) (*model.PageReplies, error) {
 	const (
 		want = 18
 	)
@@ -142,7 +142,7 @@ func (s *CommentSrv) PageGetRootReplies(ctx context.Context, oid, cursor uint64,
 }
 
 // 分页获取子评论
-func (s *CommentSrv) PageGetSubReplies(ctx context.Context, oid, rootId uint64, cursor uint64) (*model.PageReplies, error) {
+func (s *CommentSrv) PageGetSubReplies(ctx context.Context, oid, rootId int64, cursor int64) (*model.PageReplies, error) {
 	const (
 		want = 4
 	)
@@ -161,7 +161,7 @@ func (s *CommentSrv) PageGetSubReplies(ctx context.Context, oid, rootId uint64, 
 }
 
 // 按照指定分页页码获取子评论
-func (s *CommentSrv) PageListSubReplies(ctx context.Context, oid, rootId uint64, page, count int) ([]*model.ReplyItem, int64, error) {
+func (s *CommentSrv) PageListSubReplies(ctx context.Context, oid, rootId int64, page, count int) ([]*model.ReplyItem, int64, error) {
 	lgExts := []any{"oid", oid, "root_id", rootId}
 	subReplies, total, err := s.CommentBiz.GetSubRepliesByPage(ctx, oid, rootId, page, count)
 	if err != nil {
@@ -178,7 +178,7 @@ func (s *CommentSrv) PageListSubReplies(ctx context.Context, oid, rootId uint64,
 }
 
 // 获取对象的评论，包含主评论及其下的子评论
-func (s *CommentSrv) PageGetObjectReplies(ctx context.Context, oid, cursor uint64, sortBy int8) (
+func (s *CommentSrv) PageGetObjectReplies(ctx context.Context, oid, cursor int64, sortBy int8) (
 	*model.PageDetailedReplies, error,
 ) {
 
@@ -234,7 +234,7 @@ func (s *CommentSrv) PageGetObjectReplies(ctx context.Context, oid, cursor uint6
 	return &ret, nil
 }
 
-func (s *CommentSrv) PageGetObjectRepliesV2(ctx context.Context, oid, cursor uint64, sortBy int8) (
+func (s *CommentSrv) PageGetObjectRepliesV2(ctx context.Context, oid, cursor int64, sortBy int8) (
 	*model.PageDetailedRepliesV2, error,
 ) {
 	// 先拿主评论
@@ -294,7 +294,7 @@ func (s *CommentSrv) PageGetObjectRepliesV2(ctx context.Context, oid, cursor uin
 }
 
 // 获取置顶评论
-func (s *CommentSrv) GetPinnedReply(ctx context.Context, oid uint64) (*model.DetailedReplyItem, error) {
+func (s *CommentSrv) GetPinnedReply(ctx context.Context, oid int64) (*model.DetailedReplyItem, error) {
 	// 先找出置顶主评论
 	root, err := s.CommentBiz.GetPinnedReply(ctx, oid)
 	if err != nil {
@@ -322,7 +322,7 @@ func (s *CommentSrv) GetPinnedReply(ctx context.Context, oid uint64) (*model.Det
 }
 
 // 获取评论数量
-func (s *CommentSrv) GetReplyCount(ctx context.Context, oid uint64) (uint64, error) {
+func (s *CommentSrv) GetReplyCount(ctx context.Context, oid int64) (int64, error) {
 	cnt, err := s.CommentBiz.CountReply(ctx, oid)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "comment srv failed to count reply").WithExtra("oid", oid).WithCtx(ctx)
@@ -332,7 +332,7 @@ func (s *CommentSrv) GetReplyCount(ctx context.Context, oid uint64) (uint64, err
 }
 
 // 获取评论点赞数量
-func (s *CommentSrv) GetReplyLikesCount(ctx context.Context, rid uint64) (uint64, error) {
+func (s *CommentSrv) GetReplyLikesCount(ctx context.Context, rid int64) (int64, error) {
 	cnt, err := s.CommentInteractBiz.CountReplyLikes(ctx, rid)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "comment srv failed to get reply likes count").WithExtra("rid", rid).WithCtx(ctx)
@@ -342,7 +342,7 @@ func (s *CommentSrv) GetReplyLikesCount(ctx context.Context, rid uint64) (uint64
 }
 
 // 获取评论点踩数量
-func (s *CommentSrv) GetReplyDislikesCount(ctx context.Context, rid uint64) (uint64, error) {
+func (s *CommentSrv) GetReplyDislikesCount(ctx context.Context, rid int64) (int64, error) {
 	cnt, err := s.CommentInteractBiz.CountReplyDislikes(ctx, rid)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "comment srv failed to get reply dislikes count").WithExtra("rid", rid).WithCtx(ctx)
@@ -352,7 +352,7 @@ func (s *CommentSrv) GetReplyDislikesCount(ctx context.Context, rid uint64) (uin
 }
 
 // 检查用户是否发起了评论
-func (s *CommentSrv) CheckUserIsReplied(ctx context.Context, uid int64, oid uint64) (bool, error) {
+func (s *CommentSrv) CheckUserIsReplied(ctx context.Context, uid int64, oid int64) (bool, error) {
 	ok, err := s.CommentBiz.CheckUserIsReplied(ctx, uid, oid)
 	if err != nil {
 		return false, xerror.Wrapf(err, "comment srv failed to check user replied on").
@@ -364,7 +364,7 @@ func (s *CommentSrv) CheckUserIsReplied(ctx context.Context, uid int64, oid uint
 }
 
 // 获取多个对象的评论数
-func (s *CommentSrv) BatchGetCountReply(ctx context.Context, oids []uint64) (map[uint64]uint64, error) {
+func (s *CommentSrv) BatchGetCountReply(ctx context.Context, oids []int64) (map[int64]int64, error) {
 	if len(oids) == 0 {
 		return nil, xerror.ErrArgs.Msg("invalid number of oids")
 	}
@@ -377,7 +377,7 @@ func (s *CommentSrv) BatchGetCountReply(ctx context.Context, oids []uint64) (map
 	return cnts, nil
 }
 
-func (s *CommentSrv) BatchCheckUserIsReplied(ctx context.Context, uidOids map[int64][]uint64) ([]model.UidCommentOnOid, error) {
+func (s *CommentSrv) BatchCheckUserIsReplied(ctx context.Context, uidOids map[int64][]int64) ([]model.UidCommentOnOid, error) {
 	commted, err := s.CommentBiz.BatchCheckUserIsReplied(ctx, uidOids)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "comment srv failed to batch check user replied on").WithCtx(ctx)
@@ -386,7 +386,7 @@ func (s *CommentSrv) BatchCheckUserIsReplied(ctx context.Context, uidOids map[in
 	return commted, nil
 }
 
-func (s *CommentSrv) BatchCheckUserLikeStatus(ctx context.Context, uidReplyIds map[int64][]uint64) (
+func (s *CommentSrv) BatchCheckUserLikeStatus(ctx context.Context, uidReplyIds map[int64][]int64) (
 	map[int64][]biz.ReplyLikeStatus, error,
 ) {
 	resp, err := s.CommentInteractBiz.BatchCheckUserLikeStatus(ctx, uidReplyIds)

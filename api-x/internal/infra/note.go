@@ -17,11 +17,13 @@ var (
 	noteInteract notev1.NoteInteractServiceClient
 
 	noteIdObfuscate obfuscate.Obfuscate
+	tagIdObfuscate  obfuscate.Obfuscate
 )
 
 func InitNote(c *config.Config) {
 	initNoteBackend(c)
 	initNoteObfuscate(c)
+	initTagObfuscate(c)
 }
 
 func initNoteBackend(c *config.Config) {
@@ -52,13 +54,21 @@ func GetNoteIdObfuscate() obfuscate.Obfuscate {
 	return noteIdObfuscate
 }
 
+func GetTagIdObfuscate() obfuscate.Obfuscate {
+	return tagIdObfuscate
+}
+
 // init note id obfuscator
 func initNoteObfuscate(c *config.Config) {
-	noteIdObfuscate, err = obfuscate.NewConfuser(
-		obfuscate.WithSalt(c.Obfuscate.Note.Salt),
-		obfuscate.WithMinLen(c.Obfuscate.Note.MinLength),
-	)
+	noteIdObfuscate, err = obfuscate.NewConfuser(c.Obfuscate.Note.Options()...)
 	if err != nil {
 		panic(fmt.Errorf("init note obfuscate: %w", err))
+	}
+}
+
+func initTagObfuscate(c *config.Config) {
+	tagIdObfuscate, err = obfuscate.NewConfuser(c.Obfuscate.Tag.Options()...)
+	if err != nil {
+		panic(fmt.Errorf("init tag obfuscate: %w", err))
 	}
 }

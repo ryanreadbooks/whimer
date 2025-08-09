@@ -59,7 +59,7 @@ func (h *Handler) PageGetRoots() http.HandlerFunc {
 			return
 		}
 
-		if err := h.checkHasNote(r.Context(), uint64(req.Oid)); err != nil {
+		if err := h.checkHasNote(r.Context(), int64(req.Oid)); err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
@@ -101,7 +101,7 @@ func (h *Handler) PageGetSubs() http.HandlerFunc {
 			return
 		}
 
-		if err := h.checkHasNote(r.Context(), uint64(req.Oid)); err != nil {
+		if err := h.checkHasNote(r.Context(), int64(req.Oid)); err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
@@ -156,7 +156,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 			return
 		}
 
-		if err := h.checkHasNote(r.Context(), uint64(req.Oid)); err != nil {
+		if err := h.checkHasNote(r.Context(), int64(req.Oid)); err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
@@ -175,7 +175,7 @@ func (h *Handler) PageGetReplies() http.HandlerFunc {
 				defer wg.Done()
 				var err error
 				resp, err := infra.Commenter().
-					GetPinnedReply(ctx, &commentv1.GetPinnedReplyRequest{Oid: uint64(req.Oid)})
+					GetPinnedReply(ctx, &commentv1.GetPinnedReplyRequest{Oid: int64(req.Oid)})
 				if err != nil {
 					logx.Errorw("rpc get pin reply err", xlog.WithUid(ctx), xlog.WithErr(err))
 					return
@@ -312,7 +312,7 @@ func (h *Handler) PinComment() http.HandlerFunc {
 		}
 
 		_, err = infra.Commenter().PinReply(r.Context(), &commentv1.PinReplyRequest{
-			Oid:    uint64(req.Oid),
+			Oid:    int64(req.Oid),
 			Rid:    req.ReplyId,
 			Action: commentv1.ReplyAction(req.Action),
 		})
@@ -391,7 +391,7 @@ func (h *Handler) GetCommentLikeCount() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) checkHasNote(ctx context.Context, noteId uint64) error {
+func (h *Handler) checkHasNote(ctx context.Context, noteId int64) error {
 	if resp, err := infra.NoteCreatorServer().IsNoteExist(ctx,
 		&notev1.IsNoteExistRequest{
 			NoteId: noteId,
@@ -418,7 +418,7 @@ func attachReplyItemInteract(ctx context.Context, items []*ReplyItem) {
 	}
 
 	// collect all reply ids
-	replyIds := make([]uint64, 0, len(items))
+	replyIds := make([]int64, 0, len(items))
 	for _, item := range items {
 		replyIds = append(replyIds, item.Id)
 	}

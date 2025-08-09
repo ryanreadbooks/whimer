@@ -62,7 +62,7 @@ func (s *NoteInteractSrv) LikeNote(ctx context.Context, in *notev1.LikeNoteReque
 }
 
 // 获取笔记点赞数量
-func (s *NoteInteractSrv) GetNoteLikes(ctx context.Context, noteId uint64) (uint64, error) {
+func (s *NoteInteractSrv) GetNoteLikes(ctx context.Context, noteId int64) (int64, error) {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -79,11 +79,11 @@ func (s *NoteInteractSrv) GetNoteLikes(ctx context.Context, noteId uint64) (uint
 	return s.noteInteractBiz.GetNoteLikes(ctx, noteId)
 }
 
-func (s *NoteInteractSrv) CheckUserLikeStatus(ctx context.Context, uid int64, noteId uint64) (bool, error) {
+func (s *NoteInteractSrv) CheckUserLikeStatus(ctx context.Context, uid int64, noteId int64) (bool, error) {
 	return s.noteInteractBiz.CheckUserLikeStatus(ctx, uid, noteId)
 }
 
-func (s *NoteInteractSrv) BatchCheckUserLikeStatus(ctx context.Context, req map[int64][]uint64) (
+func (s *NoteInteractSrv) BatchCheckUserLikeStatus(ctx context.Context, req map[int64][]int64) (
 	map[int64][]*model.LikeStatus, error) {
 	// 批量查找就不检查noteId是否存在
 	uidsCheckStatus, err := s.noteInteractBiz.BatchCheckUserLikeStatus(ctx, req)
@@ -95,7 +95,7 @@ func (s *NoteInteractSrv) BatchCheckUserLikeStatus(ctx context.Context, req map[
 }
 
 // 获取笔记的交互信息
-func (s *NoteInteractSrv) GetNoteInteraction(ctx context.Context, noteId uint64) (*model.UserInteraction, error) {
+func (s *NoteInteractSrv) GetNoteInteraction(ctx context.Context, noteId int64) (*model.UserInteraction, error) {
 	var (
 		uid = metadata.Uid(ctx)
 	)

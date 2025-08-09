@@ -1,4 +1,4 @@
-package dao
+package note
 
 import (
 	"context"
@@ -13,11 +13,11 @@ const (
 	noteCacheKey = "note:note:%d"
 )
 
-func getNoteCacheKey(nid uint64) string {
+func getNoteCacheKey(nid int64) string {
 	return fmt.Sprintf(noteCacheKey, nid)
 }
 
-func (d *NoteDao) CacheGetNote(ctx context.Context, nid uint64) (*Note, error) {
+func (d *NoteDao) CacheGetNote(ctx context.Context, nid int64) (*Note, error) {
 	if d.cache == nil {
 		return nil, nil
 	}
@@ -36,7 +36,7 @@ func (d *NoteDao) CacheGetNote(ctx context.Context, nid uint64) (*Note, error) {
 	return &ret, nil
 }
 
-func (d *NoteDao) CacheDelNote(ctx context.Context, nid uint64) error {
+func (d *NoteDao) CacheDelNote(ctx context.Context, nid int64) error {
 	if d.cache == nil {
 		return nil
 	}

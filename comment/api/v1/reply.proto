@@ -14,27 +14,27 @@ enum ReplyAction {
 // 发布评论
 message AddReplyRequest {
   uint32 reply_type = 1; // 评论类型
-  uint64 oid = 2;        // 被评论对象id
+  int64 oid = 2;        // 被评论对象id
   string content = 3;    // 评论内容
-  uint64 root_id = 4;    // 根评论id
-  uint64 parent_id = 5;  // 被回复的评论id
+  int64 root_id = 4;    // 根评论id
+  int64 parent_id = 5;  // 被回复的评论id
   int64 reply_uid = 6;   // 被回复的用户id
 }
 
 message AddReplyResponse {
-  uint64 reply_id = 1; // 评论id
+  int64 reply_id = 1; // 评论id
 }
 
 // 删除评论
 message DelReplyRequest {
-  uint64 reply_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 评论id
+  int64 reply_id = 1 [ (buf.validate.field).int64.gt = 0 ]; // 评论id
 }
 
 message DelReplyResponse {}
 
 // 点赞/取消点赞
 message LikeActionRequest {
-  uint64 reply_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 评论id
+  int64 reply_id = 1 [ (buf.validate.field).int64.gt = 0 ]; // 评论id
   ReplyAction action = 2; // 取消点赞还是点赞
 }
 
@@ -42,7 +42,7 @@ message LikeActionResponse {}
 
 // 点踩/取消点踩
 message DislikeActionRequest {
-  uint64 reply_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 评论id
+  int64 reply_id = 1 [ (buf.validate.field).int64.gt = 0 ]; // 评论id
   ReplyAction action = 2; // 取消点踩还是点踩
 }
 
@@ -55,8 +55,8 @@ message ReportReplyResponse {}
 
 // 置顶
 message PinReplyRequest {
-  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
-  uint64 rid = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 评论id
+  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ]; // 被评论对象id
+  int64 rid = 2 [ (buf.validate.field).int64.gt = 0 ]; // 评论id
   ReplyAction action = 3;
 }
 
@@ -69,52 +69,52 @@ enum SortType {
 
 // 获取评论
 message PageGetReplyRequest {
-  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ];
-  uint64 cursor = 2;    // 起始游标
+  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ];
+  int64 cursor = 2;    // 起始游标
   SortType sort_by = 3; // 排序方式
 }
 
 // 评论实体
 message ReplyItem {
-  uint64 id = 1;          // 评论id
-  uint64 oid = 2;         // 被评论对象id
+  int64 id = 1;          // 评论id
+  int64 oid = 2;         // 被评论对象id
   uint32 reply_type = 3;  // 评论类型
   string content = 4;     // 评论内容
   int64 uid = 5;          // 评论发表用户uid
-  uint64 root_id = 6;     // 根评论id
-  uint64 parent_id = 7;   // 父评论id
+  int64 root_id = 6;     // 根评论id
+  int64 parent_id = 7;   // 父评论id
   int64 ruid = 8;         // 被回复的用户id
-  uint64 like_count = 9;  // 点赞数
-  uint64 hate_count = 10; // 点踩数
+  int64 like_count = 9;  // 点赞数
+  int64 hate_count = 10; // 点踩数
   int64 ctime = 11;       // 发布时间
   int64 mtime = 12;       // 修改时间
   string ip = 13;         // 发布时ip地址
   bool is_pin = 14;       // 是否为置顶评论
-  uint64 subs_count = 15; // 子评论数
+  int64 subs_count = 15; // 子评论数
 }
 
 message PageGetReplyResponse {
   repeated ReplyItem replies = 1; // 评论数据
-  uint64 next_cursor = 2;         // 分页获取下一次请求的游标
+  int64 next_cursor = 2;         // 分页获取下一次请求的游标
   bool has_next = 3;              // 是否还有数据
 }
 
 // 获取子评论
 message PageGetSubReplyRequest {
-  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
-  uint64 root_id = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 主评论id
-  uint64 cursor = 3;                                         // 起始游标
+  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ]; // 被评论对象id
+  int64 root_id = 2 [ (buf.validate.field).int64.gt = 0 ]; // 主评论id
+  int64 cursor = 3;                                         // 起始游标
 }
 
 message PageGetSubReplyResponse {
   repeated ReplyItem replies = 1;
-  uint64 next_cursor = 2;
+  int64 next_cursor = 2;
   bool has_next = 3;
 }
 
 message PageGetSubReplyV2Request {
-  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
-  uint64 root_id = 2 [ (buf.validate.field).uint64.gt = 0 ]; // 主评论id
+  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ]; // 被评论对象id
+  int64 root_id = 2 [ (buf.validate.field).int64.gt = 0 ]; // 主评论id
   int32 page = 3;
   int32 count = 4;
 }
@@ -127,7 +127,7 @@ message PageGetSubReplyV2Response {
 // 代表主评论的子评论信息
 message DetailedSubReply {
   repeated ReplyItem items = 1; // 子评论的信息
-  uint64 next_cursor = 2;
+  int64 next_cursor = 2;
   bool has_next = 3;
 }
 
@@ -138,20 +138,20 @@ message DetailedReplyItem {
 }
 
 message PageGetDetailedReplyRequest {
-  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ];
-  uint64 cursor = 2;    // 起始游标
+  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ];
+  int64 cursor = 2;    // 起始游标
   SortType sort_by = 3; // 排序方式
 }
 
 message PageGetDetailedReplyResponse {
   repeated DetailedReplyItem replies = 1; // 主评论
-  uint64 next_cursor = 2;
+  int64 next_cursor = 2;
   bool has_next = 3;
 }
 
 message PageGetDetailedReplyV2Request {
-  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ];
-  uint64 cursor = 2;    // 起始游标
+  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ];
+  int64 cursor = 2;    // 起始游标
   SortType sort_by = 3; // 排序方式
 }
 
@@ -169,13 +169,13 @@ message DetailedReplyItemV2 {
 
 message PageGetDetailedReplyV2Response {
   repeated DetailedReplyItemV2 replies = 1; // 主评论
-  uint64 next_cursor = 2;
+  int64 next_cursor = 2;
   bool has_next = 3;
 }
 
 // 获取置顶评论
 message GetPinnedReplyRequest {
-  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
+  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ]; // 被评论对象id
 }
 
 message GetPinnedReplyResponse {
@@ -184,16 +184,16 @@ message GetPinnedReplyResponse {
 
 // 获取被评论对象的评论数量
 message CountReplyRequest {
-  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
+  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ]; // 被评论对象id
 }
 
 message CountReplyResponse {
-  uint64 num_reply = 1; // 评论数量
+  int64 num_reply = 1; // 评论数量
 }
 
-message BatchCountReplyRequest { repeated uint64 oids = 1; }
+message BatchCountReplyRequest { repeated int64 oids = 1; }
 
-message BatchCountReplyResponse { map<uint64, uint64> numbers = 1; }
+message BatchCountReplyResponse { map<int64, int64> numbers = 1; }
 
 service ReplyService {
   // 发表评论
@@ -246,25 +246,25 @@ service ReplyService {
 }
 
 message GetReplyLikeCountRequest {
-  uint64 reply_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 评论id
+  int64 reply_id = 1 [ (buf.validate.field).int64.gt = 0 ]; // 评论id
 }
 
 message GetReplyLikeCountResponse {
-  uint64 reply_id = 1;
-  uint64 count = 2; // 点赞数量
+  int64 reply_id = 1;
+  int64 count = 2; // 点赞数量
 }
 
 message GetReplyDislikeCountRequest {
-  uint64 reply_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 评论id
+  int64 reply_id = 1 [ (buf.validate.field).int64.gt = 0 ]; // 评论id
 }
 
 message GetReplyDislikeCountResponse {
-  uint64 reply_id = 1;
-  uint64 count = 2; // 点赞数量
+  int64 reply_id = 1;
+  int64 count = 2; // 点赞数量
 }
 
 message CheckUserOnObjectRequest {
-  uint64 oid = 1 [ (buf.validate.field).uint64.gt = 0 ]; // 被评论对象id
+  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ]; // 被评论对象id
   int64 uid = 2;                                         // 用户id
 }
 
@@ -272,7 +272,7 @@ message CheckUserOnObjectResponse { OidCommented result = 1; }
 
 message BatchCheckUserOnObjectRequest {
   message Objects {
-    repeated uint64 oids = 1 [
+    repeated int64 oids = 1 [
       (buf.validate.field).repeated.min_items = 1,
       (buf.validate.field).repeated.max_items = 50
     ];
@@ -284,7 +284,7 @@ message BatchCheckUserOnObjectRequest {
 }
 
 message OidCommented {
-  uint64 oid = 1;
+  int64 oid = 1;
   bool commented = 2;
 }
 
@@ -296,13 +296,13 @@ message BatchCheckUserOnObjectResponse {
 
 message BatchCheckUserLikeReplyRequest {
   // mappings => {uid: [rid1, rid2, ..., ridN]}
-  message ReplyIdList { repeated uint64 ids = 1; }
+  message ReplyIdList { repeated int64 ids = 1; }
 
   map<int64, ReplyIdList> mappings = 1;
 }
 
 message ReplyLiked {
-  uint64 reply_id = 1;
+  int64 reply_id = 1;
   bool liked = 2;
 }
 

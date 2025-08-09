@@ -16,3 +16,4 @@ inputs:
   - directory: relation/api
   - directory: msger/api
   - directory: wslink/api
+  - directory: search/api

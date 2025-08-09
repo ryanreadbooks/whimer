@@ -54,7 +54,7 @@ func (b *Bus) AddReply(ctx context.Context, data *dao.Comment) error {
 	})
 }
 
-func (b *Bus) DelReply(ctx context.Context, rid uint64, reply *dao.Comment) error {
+func (b *Bus) DelReply(ctx context.Context, rid int64, reply *dao.Comment) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActDelReply,
 		DelReplyData: &DelReplyData{
@@ -64,7 +64,7 @@ func (b *Bus) DelReply(ctx context.Context, rid uint64, reply *dao.Comment) erro
 	})
 }
 
-func (b *Bus) LikeReply(ctx context.Context, rid uint64, uid int64) error {
+func (b *Bus) LikeReply(ctx context.Context, rid int64, uid int64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActLikeReply,
 		LikeReplyData: &BinaryReplyData{
@@ -76,7 +76,7 @@ func (b *Bus) LikeReply(ctx context.Context, rid uint64, uid int64) error {
 	})
 }
 
-func (b *Bus) UnLikeReply(ctx context.Context, rid uint64, uid int64) error {
+func (b *Bus) UnLikeReply(ctx context.Context, rid int64, uid int64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActLikeReply,
 		LikeReplyData: &BinaryReplyData{
@@ -88,7 +88,7 @@ func (b *Bus) UnLikeReply(ctx context.Context, rid uint64, uid int64) error {
 	})
 }
 
-func (b *Bus) DisLikeReply(ctx context.Context, rid uint64, uid int64) error {
+func (b *Bus) DisLikeReply(ctx context.Context, rid int64, uid int64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActDislikeReply,
 		LikeReplyData: &BinaryReplyData{
@@ -100,7 +100,7 @@ func (b *Bus) DisLikeReply(ctx context.Context, rid uint64, uid int64) error {
 	})
 }
 
-func (b *Bus) UnDisLikeReply(ctx context.Context, rid uint64, uid int64) error {
+func (b *Bus) UnDisLikeReply(ctx context.Context, rid int64, uid int64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActDislikeReply,
 		LikeReplyData: &BinaryReplyData{
@@ -113,7 +113,7 @@ func (b *Bus) UnDisLikeReply(ctx context.Context, rid uint64, uid int64) error {
 }
 
 // 置顶评论
-func (b *Bus) PinReply(ctx context.Context, oid, rid uint64) error {
+func (b *Bus) PinReply(ctx context.Context, oid, rid int64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActPinReply,
 		PinReplyData: &PinReplyData{
@@ -125,7 +125,7 @@ func (b *Bus) PinReply(ctx context.Context, oid, rid uint64) error {
 }
 
 // 取消置顶
-func (b *Bus) UnPinReply(ctx context.Context, oid, rid uint64) error {
+func (b *Bus) UnPinReply(ctx context.Context, oid, rid int64) error {
 	return b.pushReplyAct(ctx, &Data{
 		Action: ActPinReply,
 		PinReplyData: &PinReplyData{

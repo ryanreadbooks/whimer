@@ -31,6 +31,7 @@ const (
 	NoteCreatorService_BatchGetUploadAuth_FullMethodName   = "/note.api.v1.NoteCreatorService/BatchGetUploadAuth"
 	NoteCreatorService_BatchGetUploadAuthV2_FullMethodName = "/note.api.v1.NoteCreatorService/BatchGetUploadAuthV2"
 	NoteCreatorService_GetPostedCount_FullMethodName       = "/note.api.v1.NoteCreatorService/GetPostedCount"
+	NoteCreatorService_AddTag_FullMethodName               = "/note.api.v1.NoteCreatorService/AddTag"
 )
 
 // NoteCreatorServiceClient is the client API for NoteCreatorService service.
@@ -69,6 +70,8 @@ type NoteCreatorServiceClient interface {
 	BatchGetUploadAuthV2(ctx context.Context, in *BatchGetUploadAuthV2Request, opts ...grpc.CallOption) (*BatchGetUploadAuthV2Response, error)
 	// 获取用户投稿数量
 	GetPostedCount(ctx context.Context, in *GetPostedCountRequest, opts ...grpc.CallOption) (*GetPostedCountResponse, error)
+	// 新增标签
+	AddTag(ctx context.Context, in *AddTagRequest, opts ...grpc.CallOption) (*AddTagResponse, error)
 }
 
 type noteCreatorServiceClient struct {
@@ -199,6 +202,16 @@ func (c *noteCreatorServiceClient) GetPostedCount(ctx context.Context, in *GetPo
 	return out, nil
 }
 
+func (c *noteCreatorServiceClient) AddTag(ctx context.Context, in *AddTagRequest, opts ...grpc.CallOption) (*AddTagResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddTagResponse)
+	err := c.cc.Invoke(ctx, NoteCreatorService_AddTag_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NoteCreatorServiceServer is the server API for NoteCreatorService service.
 // All implementations must embed UnimplementedNoteCreatorServiceServer
 // for forward compatibility.
@@ -235,6 +248,8 @@ type NoteCreatorServiceServer interface {
 	BatchGetUploadAuthV2(context.Context, *BatchGetUploadAuthV2Request) (*BatchGetUploadAuthV2Response, error)
 	// 获取用户投稿数量
 	GetPostedCount(context.Context, *GetPostedCountRequest) (*GetPostedCountResponse, error)
+	// 新增标签
+	AddTag(context.Context, *AddTagRequest) (*AddTagResponse, error)
 	mustEmbedUnimplementedNoteCreatorServiceServer()
 }
 
@@ -280,6 +295,9 @@ func (UnimplementedNoteCreatorServiceServer) BatchGetUploadAuthV2(context.Contex
 }
 func (UnimplementedNoteCreatorServiceServer) GetPostedCount(context.Context, *GetPostedCountRequest) (*GetPostedCountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPostedCount not implemented")
+}
+func (UnimplementedNoteCreatorServiceServer) AddTag(context.Context, *AddTagRequest) (*AddTagResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddTag not implemented")
 }
 func (UnimplementedNoteCreatorServiceServer) mustEmbedUnimplementedNoteCreatorServiceServer() {}
 func (UnimplementedNoteCreatorServiceServer) testEmbeddedByValue()                            {}
@@ -518,6 +536,24 @@ func _NoteCreatorService_GetPostedCount_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NoteCreatorService_AddTag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddTagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteCreatorServiceServer).AddTag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteCreatorService_AddTag_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteCreatorServiceServer).AddTag(ctx, req.(*AddTagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NoteCreatorService_ServiceDesc is the grpc.ServiceDesc for NoteCreatorService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -572,6 +608,10 @@ var NoteCreatorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPostedCount",
 			Handler:    _NoteCreatorService_GetPostedCount_Handler,
+		},
+		{
+			MethodName: "AddTag",
+			Handler:    _NoteCreatorService_AddTag_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
