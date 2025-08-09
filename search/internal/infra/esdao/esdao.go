@@ -1,6 +1,7 @@
 package esdao
 
 import (
+	"context"
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/v8"
@@ -35,6 +36,14 @@ func MustNew(c *config.Config) *EsDao {
 
 func (d *EsDao) Init() error {
 	// 初始化索引
+	err := d.NoteTagIndexer.Init(context.Background(), &index.NoteTagIndexerOption{
+		NumberOfReplicas: 0,
+		NumbefOfShards:   1,
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
