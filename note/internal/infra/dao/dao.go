@@ -19,7 +19,7 @@ type Dao struct {
 	TagDao        *tagdao.TagDao
 }
 
-func New(c *config.Config, cache *redis.Redis) *Dao {
+func MustNew(c *config.Config, cache *redis.Redis) *Dao {
 	conn := sqlx.NewMysql(xsql.GetDsn(
 		c.MySql.User,
 		c.MySql.Pass,

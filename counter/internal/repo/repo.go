@@ -15,7 +15,7 @@ type Repo struct {
 	SummaryRepo *summary.Repo
 }
 
-func New(c *config.Config) *Repo {
+func MustNew(c *config.Config) *Repo {
 	db := sqlx.NewMysql(xsql.GetDsn(
 		c.MySql.User,
 		c.MySql.Pass,

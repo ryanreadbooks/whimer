@@ -2,27 +2,24 @@ package main
 
 import (
 	"flag"
-	"fmt"
 
-	"github.com/ryanreadbooks/whimer/note/internal/config"
-	"github.com/ryanreadbooks/whimer/note/internal/entry/grpc"
-	"github.com/ryanreadbooks/whimer/note/internal/infra"
-	"github.com/ryanreadbooks/whimer/note/internal/srv"
+	"github.com/ryanreadbooks/whimer/search/internal/config"
+	"github.com/ryanreadbooks/whimer/search/internal/entry/grpc"
+	"github.com/ryanreadbooks/whimer/search/internal/infra"
+	"github.com/ryanreadbooks/whimer/search/internal/srv"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/service"
 )
 
-var configFile = flag.String("f", "etc/note.yaml", "the config file")
+var configFile = flag.String("f", "etc/search.yaml", "the config file")
 
 func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
-	if err := config.Conf.Init(); err != nil {
-		panic(fmt.Errorf("panic: config init: %w", err))
-	}
+
 	infra.Init(&config.Conf)
 	svc := srv.NewService(&config.Conf)
 
@@ -32,7 +29,6 @@ func main() {
 	defer group.Stop()
 
 	group.Add(grpcServer)
-	group.Add(srv.AsService{})
-	logx.Info("note is serving...")
+	logx.Info("search is serving...")
 	group.Start()
 }
