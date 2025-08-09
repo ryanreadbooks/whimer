@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	sessionTTL = 30 // 30 seconds
+	sessionTTL = 60 * 5 // 5 mins
 )
 
 type UnSendableSession interface {
@@ -126,7 +126,7 @@ func (b *sessionBiz) doKeepAlive(now time.Time) {
 			}
 			// put back to heap if id is still valid
 			if b.sessions.Has(cdt.Id) {
-				sec := xrand.Range(10, 20) // 10-20秒后继续续期
+				sec := xrand.Range(60, 120) // 继续续期
 				cdt.NextTime = now.Add(time.Second * time.Duration(sec)).Unix()
 				heap.Push(b.sessionsHeap, cdt)
 			}
