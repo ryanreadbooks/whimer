@@ -15,7 +15,7 @@ enum RecordAct {
 message Record {
   int32 biz_code = 1;
   int64 uid = 2;
-  uint64 oid = 3;
+  int64 oid = 3;
   RecordAct act = 4;
   int64 ctime = 5;
   int64 mtime = 6;
@@ -26,7 +26,7 @@ message RecordList { repeated Record list = 1; }
 message AddRecordRequest {
   int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
   int64 uid = 2;
-  uint64 oid = 3 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 oid = 3 [ (buf.validate.field).int64.gt = 0 ];
 }
 
 message AddRecordResponse {}
@@ -34,7 +34,7 @@ message AddRecordResponse {}
 message CancelRecordRequest {
   int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
   int64 uid = 2;
-  uint64 oid = 3 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 oid = 3 [ (buf.validate.field).int64.gt = 0 ];
 }
 
 message CancelRecordResponse {}
@@ -42,7 +42,7 @@ message CancelRecordResponse {}
 message DelRecordRequest {
   int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
   int64 uid = 2;
-  uint64 oid = 3 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 oid = 3 [ (buf.validate.field).int64.gt = 0 ];
 }
 
 message DelRecordResponse {}
@@ -50,20 +50,20 @@ message DelRecordResponse {}
 message GetRecordRequest {
   int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
   int64 uid = 2;
-  uint64 oid = 3 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 oid = 3 [ (buf.validate.field).int64.gt = 0 ];
 }
 
 message GetRecordResponse { Record record = 2; }
 
 message GetSummaryRequest {
   int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
-  uint64 oid = 2 [ (buf.validate.field).uint64.gt = 0 ];
+  int64 oid = 2 [ (buf.validate.field).int64.gt = 0 ];
 }
 
 message GetSummaryResponse {
   int32 biz_code = 1;
-  uint64 oid = 2;
-  uint64 count = 3;
+  int64 oid = 2;
+  int64 count = 3;
 }
 
 message BatchGetSummaryRequest { repeated GetSummaryRequest requests = 1; }
@@ -71,7 +71,7 @@ message BatchGetSummaryRequest { repeated GetSummaryRequest requests = 1; }
 message BatchGetSummaryResponse { repeated GetSummaryResponse responses = 1; }
 
 message ObjectList {
-  repeated uint64 oids = 1 [ (buf.validate.field).repeated .min_items = 1 ];
+  repeated int64 oids = 1 [ (buf.validate.field).repeated .min_items = 1 ];
 }
 
 message BatchGetRecordRequest {

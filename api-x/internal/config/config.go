@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/zeromicro/go-zero/rest"
 )
@@ -15,14 +16,30 @@ type Config struct {
 		Passport xconf.Discovery `json:"passport"`
 		Relation xconf.Discovery `json:"relation"`
 		Msger    xconf.Discovery `json:"msger"`
+		Search   xconf.Discovery `json:"search"`
 	} `json:"backend"`
 
 	Obfuscate struct {
 		Note ObfuscateConfig `json:"note"`
+		Tag  ObfuscateConfig `json:"tag"`
 	} `json:"obfuscate"`
 }
 
 type ObfuscateConfig struct {
 	Salt      string `json:"salt"`
 	MinLength int    `json:"min_length,default=12"`
+	Alphabet  string `json:"alphabet,optional"`
+}
+
+func (c *ObfuscateConfig) Options() []obfuscate.Option {
+	opts := []obfuscate.Option{
+		obfuscate.WithSalt(c.Salt),
+		obfuscate.WithMinLen(c.MinLength),
+	}
+
+	if c.Alphabet != "" {
+		opts = append(opts, obfuscate.WithAlphabet(c.Alphabet))
+	}
+
+	return opts
 }

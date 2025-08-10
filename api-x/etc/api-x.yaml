@@ -27,7 +27,14 @@ backend:
   msger:
     hosts: [127.0.0.1:2379]
     key: whimer.msger.rpc
+  search:
+    hosts: [127.0.0.1:2379]
+    key: whimer.search.rpc
 
 obfuscate:
   note:
     salt: ${ENV_OBFUSCATE_NOTE_SALT}
+  tag:
+    salt: ${ENV_OBFUSCATE_TAG_SALT}
+    min_length: 24
+    alphabet: 0123456789abcdef

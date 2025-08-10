@@ -8,6 +8,7 @@ modules:
   - path: relation/api
   - path: msger/api
   - path: wslink/api
+  - path: search/api
 lint:
   use:
     - DEFAULT

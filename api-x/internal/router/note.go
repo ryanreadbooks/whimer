@@ -34,6 +34,12 @@ func regNoteRoutes(group *xhttp.RouterGroup, svc *handler.Handler) {
 			v2g.Get("/upload/auth", svc.Note.CreatorUploadNoteAuthV2())
 		}
 
+		tag := g.Group("/tag", middleware.MustLogin())
+		{
+			tag.Post("/v1/create", svc.Note.AddNewTag())
+			tag.Post("/v1/search", svc.Note.SearchTag())
+		}
+
 		// 笔记互动相关接口
 		interact := g.Group("/interact", middleware.MustLogin())
 		{

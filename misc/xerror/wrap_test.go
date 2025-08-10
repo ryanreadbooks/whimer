@@ -109,9 +109,29 @@ func TestWrap_UnwindMsg(t *testing.T) {
 	}
 	convey.Convey("Log ErrProxy\n", t, func() {
 		for _, c := range cases {
-			msg,underErr := UnwrapMsg(c.err)
+			msg, underErr := UnwrapMsg(c.err)
 			t.Log(msg)
 			t.Log(underErr)
 		}
 	})
+}
+
+func TestStripFrames(t *testing.T) {
+	err := api()
+	sts := UnwrapFrames(err)
+	fmt.Println(stacktrace.FormatFrames(sts))
+	t.Log(err)
+
+	t.Log("-------------------------")
+
+	err2 := StripFrames(err)
+	sts2 := UnwrapFrames(err2)
+	fmt.Println(stacktrace.FormatFrames(sts2))
+	t.Log(err2)
+
+	err3 := StripFrames(nil)
+	t.Log(err3)
+
+	err3 = StripFrames(fmt.Errorf("hello"))
+	t.Log(err3)
 }

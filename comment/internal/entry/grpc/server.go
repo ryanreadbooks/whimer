@@ -284,7 +284,7 @@ func (s *ReplyServiceServer) BatchCheckUserOnObject(ctx context.Context,
 	in *commentv1.BatchCheckUserOnObjectRequest) (
 	*commentv1.BatchCheckUserOnObjectResponse, error) {
 
-	var uidObjects = make(map[int64][]uint64, len(in.Mappings))
+	var uidObjects = make(map[int64][]int64, len(in.Mappings))
 	for uid, m := range in.GetMappings() {
 		uidObjects[uid] = append(uidObjects[uid], m.Oids...)
 	}
@@ -316,7 +316,7 @@ func (s *ReplyServiceServer) BatchCheckUserLikeReply(ctx context.Context,
 		return nil, global.ErrArgs.Msg("请求参数太多")
 	}
 
-	var req = make(map[int64][]uint64)
+	var req = make(map[int64][]int64)
 	for uid, ids := range in.Mappings {
 		if len(ids.GetIds()) > 50 {
 			return nil, global.ErrArgs.Msg("请求子参数太多")

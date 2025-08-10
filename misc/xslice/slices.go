@@ -2,6 +2,7 @@ package xslice
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/ryanreadbooks/whimer/misc/generics"
@@ -47,6 +48,32 @@ func Uniq[T comparable](v []T) []T {
 	return u
 }
 
+func SplitInts[T generics.Integer](s string, sep string) []T {
+	res := strings.Split(s, sep)
+	// convert string to T
+	var ints []T
+	if len(res) == 0 {
+		return ints
+	}
+
+	var zero T
+	for _, part := range res {
+		switch any(zero).(type) {
+		case int, int8, int16, int32, int64:
+			tmp, err := strconv.ParseInt(part, 10, 64)
+			if err == nil {
+				ints = append(ints, T(tmp))
+			}
+		case uint, uint8, uint16, uint32, uint64:
+			tmp, err := strconv.ParseUint(part, 10, 64)
+			if err == nil {
+				ints = append(ints, T(tmp))
+			}
+		}
+	}
+	return ints
+}
+
 // 拼接两个slice
 //
 // 比如 [1,2,3] + [2,3,4] -> [1,2,3,2,3,4]
@@ -71,6 +98,15 @@ func AsMap[T comparable](a []T) map[T]struct{} {
 	}
 
 	return m
+}
+
+func MakeMap[T any, K comparable](t []T, keyFn func(v T) K) map[K]T {
+	var r = make(map[K]T, len(t))
+	for _, e := range t {
+		r[keyFn(e)] = e
+	}
+
+	return r
 }
 
 func Repeat[T any](v T, n int) []T {

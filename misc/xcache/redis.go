@@ -3,6 +3,7 @@ package xcache
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/generics"
@@ -40,15 +41,6 @@ type getOpt[T any] struct {
 }
 
 func (o getOpt[T]) Default() getOpt[T] {
-	return getOpt[T]{
-		unmarshaler: json.Unmarshal,
-		marshaler:   json.Marshal,
-		bgSet:       false,
-		fallback:    nil,
-	}
-}
-
-func getOptDefault[T any]() getOpt[T] {
 	return getOpt[T]{
 		unmarshaler: json.Unmarshal,
 		marshaler:   json.Marshal,
@@ -106,6 +98,130 @@ func (c *Cache[T]) Get(ctx context.Context, key string, opts ...GetOpt[T]) (t T,
 	if err != nil {
 		return
 	}
+	return
+}
+
+type MGetFallbackFn[T any] func(ctx context.Context, keys []string) (t map[string]T, err error)
+
+type mgetOpt[T any] struct {
+	unmarshaler unmarshaler
+	marshaler   marshaler
+	fallback    MGetFallbackFn[T]
+	fSec        int
+	bgSet       bool
+}
+
+func (o mgetOpt[T]) Default() mgetOpt[T] {
+	return mgetOpt[T]{
+		unmarshaler: json.Unmarshal,
+		marshaler:   json.Marshal,
+		fallback:    nil,
+		fSec:        -1,
+		bgSet:       true,
+	}
+}
+
+type MGetOpt[T any] func(o *mgetOpt[T])
+
+func WithMGetUnmarshaler[T any](um func([]byte, any) error) MGetOpt[T] {
+	return func(o *mgetOpt[T]) {
+		o.unmarshaler = um
+	}
+}
+
+func WithMGetFallback[T any](fn MGetFallbackFn[T]) MGetOpt[T] {
+	return func(o *mgetOpt[T]) {
+		o.fallback = fn
+	}
+}
+
+func WithMGetBgSet[T any](b bool) MGetOpt[T] {
+	return func(o *mgetOpt[T]) {
+		o.bgSet = b
+	}
+}
+
+func WithMGetFallbackSec[T any](sec int) MGetOpt[T] {
+	return func(o *mgetOpt[T]) {
+		o.fSec = sec
+	}
+}
+
+func (c *Cache[T]) MGet(ctx context.Context, keys []string, opts ...MGetOpt[T]) (t map[string]T, err error) {
+	opt := generics.MakeOpt(opts...)
+	resp, err := c.r.MgetCtx(ctx, keys...)
+	t = make(map[string]T, len(keys))
+
+	setFn := func(m map[string]T) {
+		c.r.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
+			for k, v := range m {
+				mv, merr := opt.marshaler(v)
+				if merr == nil {
+					p.Set(ctx, k, mv, time.Second*time.Duration(opt.fSec))
+				}
+			}
+
+			return nil
+		})
+	}
+
+	if err != nil {
+		if opt.fallback == nil {
+			return
+		}
+		// 发生错误全都要fallback
+		t, err = opt.fallback(ctx, keys)
+		if err != nil {
+			return
+		}
+
+		// set back to cache
+		if opt.bgSet {
+			concurrent.SafeGo(func() { setFn(t) })
+			return
+		}
+		setFn(t)
+	} else {
+		// 找出哪些需要调用fallback
+		fallbackKeys := []string{}
+		for idx, str := range resp {
+			if str == "" {
+				fallbackKeys = append(fallbackKeys, keys[idx])
+				continue
+			}
+
+			var tmp T
+			opt.unmarshaler(utils.StringToBytes(str), &tmp)
+			t[keys[idx]] = tmp
+		}
+
+		if len(fallbackKeys) == 0 {
+			return
+		}
+
+		// we need to fallback
+		if opt.fallback != nil {
+			var (
+				ftm map[string]T
+			)
+			ftm, err = opt.fallback(ctx, fallbackKeys)
+			if err != nil {
+				return
+			}
+
+			for k, v := range ftm {
+				t[k] = v
+			}
+
+			// set ftm back to cache
+			if opt.bgSet {
+				concurrent.SafeGo(func() { setFn(ftm) })
+				return
+			}
+			setFn(ftm)
+		}
+	}
+
 	return
 }
 

@@ -51,14 +51,14 @@ func errorHandler(ctx context.Context, err error) (stcode int, retErr any) {
 	err = Cause(err)
 	xerr, ok := err.(*Error)
 	if ok {
-		return xerr.StatusCode, xerr
+		return xerr.StatusCode, xerr.AsResult()
 	}
 
 	// 尝试解析处理grpc错误
 	gerr, ok := status.FromError(err)
 	if ok {
 		httpCode := runtime.HTTPStatusFromCode(gerr.Code())
-		return httpCode, NewError(httpCode, CodeOther, gerr.Message())
+		return httpCode, NewError(httpCode, CodeOther, gerr.Message()).AsResult()
 	}
 
 	return http.StatusInternalServerError, err

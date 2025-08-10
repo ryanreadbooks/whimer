@@ -21,8 +21,6 @@ func NewService(c *config.Config) *Service {
 		Config: c,
 	}
 
-	// 基础设施初始化
-	infra.Init(c)
 	// 业务初始化
 	biz := biz.New()
 	// 各个子service初始化

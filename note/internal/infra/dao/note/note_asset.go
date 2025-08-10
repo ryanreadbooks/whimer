@@ -1,4 +1,4 @@
-package dao
+package note
 
 import (
 	"context"
@@ -9,8 +9,6 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	uslices "github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 // all sqls here
@@ -27,26 +25,26 @@ const (
 )
 
 type NoteAssetDao struct {
-	db sqlx.SqlConn
+	db *xsql.DB
 }
 
-func NewNoteAssetDao(db sqlx.SqlConn) *NoteAssetDao {
+func NewNoteAssetDao(db *xsql.DB) *NoteAssetDao {
 	return &NoteAssetDao{
 		db: db,
 	}
 }
 
-type NoteAsset struct {
-	Id        uint64 `db:"id"`
+type Asset struct {
+	Id        int64  `db:"id"`
 	AssetKey  string `db:"asset_key"`  // 资源key 包含bucket name
 	AssetType int8   `db:"asset_type"` // 资源类型
-	NoteId    uint64 `db:"note_id"`    // 所属笔记id
+	NoteId    int64  `db:"note_id"`    // 所属笔记id
 	CreateAt  int64  `db:"create_at"`  // 创建时间
 	AssetMeta string `db:"asset_meta"` // 资源的元数据 存储格式为一个json字符串
 }
 
-func (r *NoteAssetDao) FindOne(ctx context.Context, id uint64) (*NoteAsset, error) {
-	model := new(NoteAsset)
+func (r *NoteAssetDao) FindOne(ctx context.Context, id int64) (*Asset, error) {
+	model := new(Asset)
 	err := r.db.QueryRowCtx(ctx, model, sqlFindAllById, id)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
@@ -54,9 +52,9 @@ func (r *NoteAssetDao) FindOne(ctx context.Context, id uint64) (*NoteAsset, erro
 	return model, nil
 }
 
-func (r *NoteAssetDao) insert(ctx context.Context, sess sqlx.Session, asset *NoteAsset) error {
+func (r *NoteAssetDao) insert(ctx context.Context, asset *Asset) error {
 	now := time.Now().Unix()
-	_, err := sess.ExecCtx(ctx, sqlInsert,
+	_, err := r.db.ExecCtx(ctx, sqlInsert,
 		asset.AssetKey,
 		asset.AssetType,
 		asset.NoteId,
@@ -66,45 +64,33 @@ func (r *NoteAssetDao) insert(ctx context.Context, sess sqlx.Session, asset *Not
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteAssetDao) Insert(ctx context.Context, asset *NoteAsset) error {
-	return r.insert(ctx, r.db, asset)
+func (r *NoteAssetDao) Insert(ctx context.Context, asset *Asset) error {
+	return r.insert(ctx, asset)
 }
 
-func (r *NoteAssetDao) InsertTx(ctx context.Context, tx sqlx.Session, asset *NoteAsset) error {
-	return r.insert(ctx, tx, asset)
-}
-
-func (r *NoteAssetDao) findImageByNoteId(ctx context.Context, sess sqlx.Session, noteId uint64) ([]*NoteAsset, error) {
-	res := make([]*NoteAsset, 0)
-	err := sess.QueryRowsCtx(ctx, &res, sqlFindImageByNoteId, noteId)
+func (r *NoteAssetDao) findImageByNoteId(ctx context.Context, noteId int64) ([]*Asset, error) {
+	res := make([]*Asset, 0)
+	err := r.db.QueryRowsCtx(ctx, &res, sqlFindImageByNoteId, noteId)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
 	return res, nil
 }
 
-func (r *NoteAssetDao) FindImageByNoteId(ctx context.Context, noteId uint64) ([]*NoteAsset, error) {
-	return r.findImageByNoteId(ctx, r.db, noteId)
+func (r *NoteAssetDao) FindImageByNoteId(ctx context.Context, noteId int64) ([]*Asset, error) {
+	return r.findImageByNoteId(ctx, noteId)
 }
 
-func (r *NoteAssetDao) FindImageByNoteIdTx(ctx context.Context, tx sqlx.Session, noteId uint64) ([]*NoteAsset, error) {
-	return r.findImageByNoteId(ctx, tx, noteId)
-}
-
-func (r *NoteAssetDao) deleteByNoteId(ctx context.Context, sess sqlx.Session, noteId uint64) error {
-	_, err := sess.ExecCtx(ctx, sqlDeleteByNoteId, noteId)
+func (r *NoteAssetDao) deleteByNoteId(ctx context.Context, noteId int64) error {
+	_, err := r.db.ExecCtx(ctx, sqlDeleteByNoteId, noteId)
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteAssetDao) DeleteByNoteId(ctx context.Context, noteId uint64) error {
-	return r.deleteByNoteId(ctx, r.db, noteId)
+func (r *NoteAssetDao) DeleteByNoteId(ctx context.Context, noteId int64) error {
+	return r.deleteByNoteId(ctx, noteId)
 }
 
-func (r *NoteAssetDao) DeleteByNoteIdTx(ctx context.Context, tx sqlx.Session, noteId uint64) error {
-	return r.deleteByNoteId(ctx, tx, noteId)
-}
-
-func (r *NoteAssetDao) excludeDeleteImageByNoteId(ctx context.Context, sess sqlx.Session, noteId uint64, assetKeys []string) error {
+func (r *NoteAssetDao) excludeDeleteImageByNoteId(ctx context.Context, noteId int64, assetKeys []string) error {
 	var alen = len(assetKeys)
 	var args []any = make([]any, 0, alen)
 	args = append(args, noteId)
@@ -121,19 +107,15 @@ func (r *NoteAssetDao) excludeDeleteImageByNoteId(ctx context.Context, sess sqlx
 		}
 		query += fmt.Sprintf(" and `asset_key` not in (%s)", tmpl)
 	}
-	_, err := sess.ExecCtx(ctx, query, args...)
+	_, err := r.db.ExecCtx(ctx, query, args...)
 
 	return xerror.Wrap(xsql.ConvertError(err))
 }
-func (r *NoteAssetDao) ExcludeDeleteImageByNoteId(ctx context.Context, noteId uint64, assetKeys []string) error {
-	return r.excludeDeleteImageByNoteId(ctx, r.db, noteId, assetKeys)
+func (r *NoteAssetDao) ExcludeDeleteImageByNoteId(ctx context.Context, noteId int64, assetKeys []string) error {
+	return r.excludeDeleteImageByNoteId(ctx, noteId, assetKeys)
 }
 
-func (r *NoteAssetDao) ExcludeDeleteImageByNoteIdTx(ctx context.Context, tx sqlx.Session, noteId uint64, assetKeys []string) error {
-	return r.excludeDeleteImageByNoteId(ctx, tx, noteId, assetKeys)
-}
-
-func (r *NoteAssetDao) batchInsert(ctx context.Context, sess sqlx.Session, assets []*NoteAsset) error {
+func (r *NoteAssetDao) batchInsert(ctx context.Context, assets []*Asset) error {
 	if len(assets) == 0 {
 		return nil
 	}
@@ -151,23 +133,19 @@ func (r *NoteAssetDao) batchInsert(ctx context.Context, sess sqlx.Session, asset
 
 	// insert into %s (%s) values (?,?,?,?,?),(?,?,?,?,?)
 	query := fmt.Sprintf(sqlBatchInsert, builder.String())
-	_, err := sess.ExecCtx(ctx, query, args...)
+	_, err := r.db.ExecCtx(ctx, query, args...)
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteAssetDao) BatchInsert(ctx context.Context, assets []*NoteAsset) error {
-	return r.batchInsert(ctx, r.db, assets)
+func (r *NoteAssetDao) BatchInsert(ctx context.Context, assets []*Asset) error {
+	return r.batchInsert(ctx, assets)
 }
-func (r *NoteAssetDao) BatchInsertTx(ctx context.Context, tx sqlx.Session, assets []*NoteAsset) error {
-	return r.batchInsert(ctx, tx, assets)
-}
-
-func (r *NoteAssetDao) FindByNoteIds(ctx context.Context, noteIds []uint64) ([]*NoteAsset, error) {
+func (r *NoteAssetDao) FindByNoteIds(ctx context.Context, noteIds []int64) ([]*Asset, error) {
 	if len(noteIds) == 0 {
-		return []*NoteAsset{}, nil
+		return []*Asset{}, nil
 	}
 	query := fmt.Sprintf(sqlFindByNoteIds, uslices.JoinInts(noteIds))
-	res := make([]*NoteAsset, 0)
+	res := make([]*Asset, 0)
 	err := r.db.QueryRowsCtx(ctx, &res, query)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
@@ -175,8 +153,8 @@ func (r *NoteAssetDao) FindByNoteIds(ctx context.Context, noteIds []uint64) ([]*
 	return res, nil
 }
 
-func (r *NoteAssetDao) FindImageAssetByKey(ctx context.Context, assetKey string) (*NoteAsset, error) {
-	var asset NoteAsset
+func (r *NoteAssetDao) FindImageAssetByKey(ctx context.Context, assetKey string) (*Asset, error) {
+	var asset Asset
 	err := r.db.QueryRowCtx(ctx, &asset, sqlFindImageByKey, assetKey)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))

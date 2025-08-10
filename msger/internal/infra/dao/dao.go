@@ -16,7 +16,7 @@ type Dao struct {
 	P2PInboxDao *p2p.InboxDao
 }
 
-func New(c *config.Config) *Dao {
+func MustNew(c *config.Config) *Dao {
 	conn := sqlx.NewMysql(xsql.GetDsn(
 		c.MySql.User,
 		c.MySql.Pass,

@@ -81,7 +81,7 @@ func TestRepo_CountGroupByOidLimit(t *testing.T) {
 
 func TestRepo_BatchCountSubReplies(t *testing.T) {
 	Convey("BatchCountSubReplies", t, func() {
-		res, err := commentDao.BatchCountSubReplies(ctx, []uint64{50})
+		res, err := commentDao.BatchCountSubReplies(ctx, []int64{50})
 		So(err, ShouldBeNil)
 		So(res, ShouldNotBeNil)
 		t.Logf("res = %v\n", res)

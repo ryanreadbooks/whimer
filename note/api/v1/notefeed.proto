@@ -20,23 +20,29 @@ message RandomGetResponse {
   int32 count = 2;
 }
 
+// 首页笔记信息的概览
 message FeedNoteItem {
-  uint64 note_id = 1;
+  int64 note_id = 1;
   string title = 2;
   string desc = 3;
   int64 created_at = 4;
   repeated NoteImage images = 5;
-  uint64 likes = 6;   // 点赞数量
-  int64 author = 7;   // 笔记作者
-  uint64 replies = 8; // 点赞数
+  int64 likes = 6;   // 点赞数量
+  int64 author = 7;  // 笔记作者
+  int64 replies = 8; // 点赞数
   int64 updated_at = 9;
 }
 
 message GetFeedNoteRequest {
-  uint64 note_id = 1 [ (buf.validate.field).uint64.gt = 0 ]; //笔记id
+  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ]; //笔记id
 }
 
-message GetFeedNoteResponse { FeedNoteItem item = 1; }
+message FeedNoteItemExt { repeated NoteTag tags = 1; }
+
+message GetFeedNoteResponse {
+  FeedNoteItem item = 1;
+  FeedNoteItemExt ext = 2;
+}
 
 message RecommendGetRequest {
   int64 uid = 1; // 用户id
@@ -57,14 +63,22 @@ message GetUserRecentPostResponse { repeated FeedNoteItem items = 1; }
 
 message ListFeedByUidRequest {
   int64 uid = 1;
-  uint64 cursor = 2;
+  int64 cursor = 2;
   int32 count = 3;
 }
 
 message ListFeedByUidResponse {
   repeated FeedNoteItem items = 1;
-  uint64 next_cursor = 2;
+  int64 next_cursor = 2;
   bool has_next = 3;
+}
+
+message GetTagInfoRequest {
+  int64 id = 1;
+}
+
+message GetTagInfoResponse {
+  NoteTag tag = 1;
 }
 
 // note相关非管理功能服务
@@ -80,4 +94,7 @@ service NoteFeedService {
       returns (GetUserRecentPostResponse);
   // 列出指定用户公开的笔记内容
   rpc ListFeedByUid(ListFeedByUidRequest) returns (ListFeedByUidResponse);
+
+  // 获取笔记标签
+  rpc GetTagInfo(GetTagInfoRequest) returns (GetTagInfoResponse);
 }

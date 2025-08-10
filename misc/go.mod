@@ -6,6 +6,7 @@ require gopkg.in/yaml.v3 v3.0.1
 
 require (
 	github.com/bufbuild/protovalidate-go v0.6.5
+	github.com/elastic/go-elasticsearch/v8 v8.19.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0
@@ -15,6 +16,7 @@ require (
 	github.com/speps/go-hashids/v2 v2.0.1
 	github.com/zeromicro/go-queue v1.2.2
 	github.com/zeromicro/go-zero v1.7.3
+	go.opentelemetry.io/otel v1.28.0
 	go.opentelemetry.io/otel/trace v1.28.0
 	golang.org/x/image v0.23.0
 	google.golang.org/grpc v1.65.0
@@ -92,7 +94,6 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.15 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.15 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.15 // indirect
-	go.opentelemetry.io/otel v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.28.0 // indirect

@@ -9,10 +9,12 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/model"
 	"github.com/ryanreadbooks/whimer/api-x/internal/model/errors"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 
@@ -26,7 +28,7 @@ func NewHandler(c *config.Config) *Handler {
 	return &Handler{}
 }
 
-func (h *Handler) hasNoteCheck(ctx context.Context, noteId uint64) error {
+func (h *Handler) hasNoteCheck(ctx context.Context, noteId int64) error {
 	if resp, err := infra.NoteCreatorServer().IsNoteExist(ctx,
 		&notev1.IsNoteExistRequest{
 			NoteId: noteId,
@@ -69,7 +71,7 @@ func (h *Handler) CreatorUpdateNote() http.HandlerFunc {
 		}
 
 		_, err = infra.NoteCreatorServer().UpdateNote(r.Context(), &notev1.UpdateNoteRequest{
-			NoteId: uint64(req.NoteId),
+			NoteId: int64(req.NoteId),
 			Note: &notev1.CreateNoteRequest{
 				Basic:  req.Basic.AsPb(),
 				Images: req.Images.AsPb(),
@@ -94,7 +96,7 @@ func (h *Handler) CreatorDeleteNote() http.HandlerFunc {
 		}
 
 		_, err = infra.NoteCreatorServer().DeleteNote(r.Context(), &notev1.DeleteNoteRequest{
-			NoteId: uint64(req.NoteId),
+			NoteId: int64(req.NoteId),
 		})
 
 		if err != nil {
@@ -106,17 +108,17 @@ func (h *Handler) CreatorDeleteNote() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) assignNoteExtra(ctx context.Context, notes []*AdminNoteItem) {
+func (h *Handler) assignNoteExtra(ctx context.Context, notes []*model.AdminNoteItem) {
 	var (
-		noteIds      = make([]uint64, 0, len(notes))
-		oidLiked     = make(map[uint64]bool)
-		oidCommented = make(map[uint64]bool)
+		noteIds      = make([]int64, 0, len(notes))
+		oidLiked     = make(map[int64]bool)
+		oidCommented = make(map[int64]bool)
 		uid          = metadata.Uid(ctx)
 		eg           errgroup.Group
 	)
 
 	for _, n := range notes {
-		noteIds = append(noteIds, uint64(n.NoteId))
+		noteIds = append(noteIds, int64(n.NoteId))
 	}
 
 	eg.Go(func() error {
@@ -140,7 +142,7 @@ func (h *Handler) assignNoteExtra(ctx context.Context, notes []*AdminNoteItem) {
 		}
 
 		for _, note := range notes {
-			noteId := uint64(note.NoteId)
+			noteId := int64(note.NoteId)
 			note.Interact.Liked = oidLiked[noteId]
 		}
 
@@ -167,7 +169,7 @@ func (h *Handler) assignNoteExtra(ctx context.Context, notes []*AdminNoteItem) {
 			oidCommented[comInfo.Oid] = comInfo.Commented
 		}
 		for _, note := range notes {
-			noteId := uint64(note.NoteId)
+			noteId := int64(note.NoteId)
 			note.Interact.Commented = oidCommented[noteId]
 		}
 		return nil
@@ -179,7 +181,7 @@ func (h *Handler) assignNoteExtra(ctx context.Context, notes []*AdminNoteItem) {
 	}
 
 	for _, note := range notes {
-		noteId := uint64(note.NoteId)
+		noteId := int64(note.NoteId)
 		note.Interact.Liked = oidLiked[noteId]
 		note.Interact.Commented = oidCommented[noteId]
 	}
@@ -244,15 +246,15 @@ func (h *Handler) CreatorGetNote() http.HandlerFunc {
 
 		ctx := r.Context()
 		resp, err := infra.NoteCreatorServer().GetNote(ctx, &notev1.GetNoteRequest{
-			NoteId: uint64(req.NoteId),
+			NoteId: int64(req.NoteId),
 		})
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		result := NewAdminNoteItemFromPb(resp.Note)
-		h.assignNoteExtra(ctx, []*AdminNoteItem{result})
+		result := model.NewAdminNoteItemFromPb(resp.Note)
+		h.assignNoteExtra(ctx, []*model.AdminNoteItem{result})
 		xhttp.OkJson(w, result)
 	}
 }
@@ -308,7 +310,7 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 
 		nid := req.NoteId
 		_, err = infra.NoteInteractServer().LikeNote(r.Context(), &notev1.LikeNoteRequest{
-			NoteId:    nid,
+			NoteId:    int64(nid),
 			Uid:       uid,
 			Operation: notev1.LikeNoteRequest_Operation(req.Action),
 		})
@@ -329,7 +331,7 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 			return
 		}
 
-		nid := uint64(req.NoteId)
+		nid := int64(req.NoteId)
 		resp, err := infra.NoteInteractServer().GetNoteLikes(r.Context(),
 			&notev1.GetNoteLikesRequest{NoteId: nid})
 		if err != nil {
@@ -348,5 +350,95 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 func (h *Handler) GetLikeNotes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
+	}
+}
+
+// 创建新标签
+func (h *Handler) AddNewTag() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[AddTagReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		ctx := r.Context()
+		resp, err := infra.NoteCreatorServer().AddTag(ctx,
+			&notev1.AddTagRequest{
+				Name: req.Name,
+			})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+			Name: "add_new_tag",
+			Job: func(newCtx context.Context) error {
+				// 再查一遍
+				newTag, err := infra.NoteFeedServer().GetTagInfo(newCtx,
+					&notev1.GetTagInfoRequest{
+						Id: resp.Id,
+					})
+				if err != nil {
+					xlog.Msg("after adding new tag, get tag info failed").Extra("tag_id", resp.Id).Err(err).Errorx(newCtx)
+					return err
+				}
+
+				tagId := model.TagId(newTag.Tag.Id).String()
+
+				_, err = infra.DocumentServer().BatchAddNoteTag(newCtx, &searchv1.BatchAddNoteTagRequest{
+					NoteTags: []*searchv1.NoteTag{
+						{
+							Id:    tagId,
+							Name:  newTag.Tag.Name,
+							Ctime: newTag.Tag.Ctime,
+						},
+					},
+				})
+				if err != nil {
+					xlog.Msg("after adding new tag, failed to insert tag document").
+						Extras("tag_id", resp.Id, "stag_id", tagId).
+						Err(err).
+						Errorx(newCtx)
+					return err
+				}
+
+				return nil
+			},
+		})
+
+		xhttp.OkJson(w, &AddTagRes{TagId: model.TagId(resp.Id)})
+	}
+}
+
+// 搜索笔记标签
+func (h *Handler) SearchTag() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[SearchTagReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		ctx := r.Context()
+		resp, err := infra.SearchServer().SearchNoteTags(ctx, &searchv1.SearchNoteTagsRequest{
+			Text: req.Name,
+		})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		result := make([]SearchedNoteTag, len(resp.Items))
+		for idx, item := range resp.Items {
+			if item == nil {
+				continue
+			}
+			result[idx].Id = item.Id
+			result[idx].Name = item.Name
+		}
+
+		xhttp.OkJson(w, result)
 	}
 }

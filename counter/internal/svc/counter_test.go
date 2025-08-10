@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	testRepo = repo.New(config.ConfigForTest())
+	testRepo = repo.MustNew(config.ConfigForTest())
 	ctx      = context.TODO()
 )
 

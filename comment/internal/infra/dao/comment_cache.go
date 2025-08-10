@@ -25,11 +25,11 @@ const (
 	countCmtKey  = "comment:count:%d"  // 评论数量
 )
 
-func getPinnedCmtKey(oid uint64) string {
+func getPinnedCmtKey(oid int64) string {
 	return fmt.Sprintf(pinnedCmtKey, oid)
 }
 
-func getCountCmtKey(oid uint64) string {
+func getCountCmtKey(oid int64) string {
 	return fmt.Sprintf(countCmtKey, oid)
 }
 
@@ -48,12 +48,12 @@ func NewCommentCache(rd *redis.Redis) *CommentCache {
 }
 
 // 被评论对象的评论数量
-func (c *CommentCache) GetReplyCount(ctx context.Context, oid uint64) (uint64, error) {
+func (c *CommentCache) GetReplyCount(ctx context.Context, oid int64) (int64, error) {
 	cnt, err := c.rd.GetCtx(ctx, getCountCmtKey(oid))
 	if err != nil {
 		return 0, err
 	}
-	num, err := strconv.ParseUint(cnt, 10, 64)
+	num, err := strconv.ParseInt(cnt, 10, 64)
 	if err != nil {
 		return 0, err
 	}
@@ -61,7 +61,7 @@ func (c *CommentCache) GetReplyCount(ctx context.Context, oid uint64) (uint64, e
 	return num, nil
 }
 
-func (c *CommentCache) BatchGetReplyCount(ctx context.Context, oids []uint64) (map[uint64]uint64, error) {
+func (c *CommentCache) BatchGetReplyCount(ctx context.Context, oids []int64) (map[int64]int64, error) {
 	keys := make([]string, 0, len(oids))
 	for _, oid := range oids {
 		keys = append(keys, getCountCmtKey(oid))
@@ -75,12 +75,12 @@ func (c *CommentCache) BatchGetReplyCount(ctx context.Context, oids []uint64) (m
 		return nil, global.ErrInternal.Msg("缓存出错")
 	}
 
-	result := make(map[uint64]uint64)
+	result := make(map[int64]int64)
 	// 返回结果是按照顺序的
 	for i := 0; i < len(oids); i++ {
 		oid := oids[i]
 		cnt := cnts[i]
-		num, err := strconv.ParseUint(cnt, 10, 64)
+		num, err := strconv.ParseInt(cnt, 10, 64)
 		if err != nil {
 			num = 0
 		}
@@ -90,14 +90,14 @@ func (c *CommentCache) BatchGetReplyCount(ctx context.Context, oids []uint64) (m
 	return result, nil
 }
 
-func (c *CommentCache) SetReplyCount(ctx context.Context, oid, count uint64) error {
-	return c.rd.SetCtx(ctx, getCountCmtKey(oid), strconv.FormatUint(count, 10))
+func (c *CommentCache) SetReplyCount(ctx context.Context, oid, count int64) error {
+	return c.rd.SetCtx(ctx, getCountCmtKey(oid), strconv.FormatInt(count, 10))
 }
 
-func (c *CommentCache) BatchSetReplyCount(ctx context.Context, batch map[uint64]uint64) error {
+func (c *CommentCache) BatchSetReplyCount(ctx context.Context, batch map[int64]int64) error {
 	err := c.rd.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
 		for oid, cnt := range batch {
-			p.Set(ctx, getCountCmtKey(oid), strconv.FormatUint(cnt, 10), 0)
+			p.Set(ctx, getCountCmtKey(oid), strconv.FormatInt(cnt, 10), 0)
 			p.Expire(ctx, getCountCmtKey(oid), xtime.HourJitter(time.Hour*2))
 		}
 		return nil
@@ -105,23 +105,23 @@ func (c *CommentCache) BatchSetReplyCount(ctx context.Context, batch map[uint64]
 	return err
 }
 
-func (c *CommentCache) IncrReplyCount(ctx context.Context, oid uint64, increment int64) error {
+func (c *CommentCache) IncrReplyCount(ctx context.Context, oid int64, increment int64) error {
 	_, err := c.rd.IncrbyCtx(ctx, getCountCmtKey(oid), increment)
 	return err
 }
 
-func (c *CommentCache) DecrReplyCount(ctx context.Context, oid uint64, decrement int64) error {
+func (c *CommentCache) DecrReplyCount(ctx context.Context, oid int64, decrement int64) error {
 	_, err := c.rd.DecrbyCtx(ctx, getCountCmtKey(oid), decrement)
 	return err
 }
 
-func (c *CommentCache) DelReplyCount(ctx context.Context, oid uint64) error {
+func (c *CommentCache) DelReplyCount(ctx context.Context, oid int64) error {
 	_, err := c.rd.DelCtx(ctx, getCountCmtKey(oid))
 	return err
 }
 
 // 已经存在缓存才执行操作，否则不执行，尽可能防止数据出错
-func (c *CommentCache) IncrReplyCountWhenExist(ctx context.Context, oid uint64, increment int64) error {
+func (c *CommentCache) IncrReplyCountWhenExist(ctx context.Context, oid int64, increment int64) error {
 	const script = `
 		local key = KEYS[1]
 		loval value = 1
@@ -145,7 +145,7 @@ func (c *CommentCache) IncrReplyCountWhenExist(ctx context.Context, oid uint64, 
 }
 
 // 已经存在缓存才执行操作，否则不执行，尽可能防止数据出错
-func (c *CommentCache) DecrReplyCountWhenExist(ctx context.Context, oid uint64, decrement int64) error {
+func (c *CommentCache) DecrReplyCountWhenExist(ctx context.Context, oid int64, decrement int64) error {
 	const script = `
 		local key = KEYS[1]
 		loval value = 1

@@ -35,13 +35,13 @@ const (
 )
 
 type ReplyItem struct {
-	Id         uint64 `json:"id"`
-	Oid        uint64 `json:"oid"`
+	Id         int64  `json:"id"`
+	Oid        int64  `json:"oid"`
 	ReplyType  int8   `json:"reply_type"`
 	Content    string `json:"content"`
 	Uid        int64  `json:"uid"`
-	RootId     uint64 `json:"root_id"`
-	ParentId   uint64 `json:"parent_id"`
+	RootId     int64  `json:"root_id"`
+	ParentId   int64  `json:"parent_id"`
 	RepliedUid int64  `json:"replied_uid"`
 	Ctime      int64  `json:"ctime"`
 	Mtime      int64  `json:"mtime"`
@@ -49,9 +49,9 @@ type ReplyItem struct {
 	IsPin      bool   `json:"is_pin"`
 
 	// 下面的字段需要额外填充
-	LikeCount uint64 `json:"like_count"`
-	HateCount uint64 `json:"hate_count"`
-	SubsCount uint64 `json:"subs_count"` // 其下子评论的数量
+	LikeCount int64 `json:"like_count"`
+	HateCount int64 `json:"hate_count"`
+	SubsCount int64 `json:"subs_count"` // 其下子评论的数量
 }
 
 func NewReplyItem(d *dao.Comment) *ReplyItem {
@@ -64,8 +64,8 @@ func NewReplyItem(d *dao.Comment) *ReplyItem {
 		RootId:     d.RootId,
 		ParentId:   d.ParentId,
 		RepliedUid: d.ReplyUid,
-		LikeCount:  uint64(d.Like),
-		HateCount:  uint64(d.Dislike),
+		LikeCount:  int64(d.Like),
+		HateCount:  int64(d.Dislike),
 		Ctime:      d.Ctime,
 		Mtime:      d.Mtime,
 		Ip:         xnet.IntAsIp(uint32(d.Ip)),
@@ -115,7 +115,7 @@ func (r *DetailedReplyItem) AsPb() *commentv1.DetailedReplyItem {
 
 type PageReplies struct {
 	Items      []*ReplyItem
-	NextCursor uint64
+	NextCursor int64
 	HasNext    bool
 }
 
@@ -131,13 +131,13 @@ type DetailedReplyItemV2 struct {
 
 type PageDetailedRepliesV2 struct {
 	Items      []*DetailedReplyItemV2
-	NextCursor uint64
+	NextCursor int64
 	HasNext    bool
 }
 
 type PageDetailedReplies struct {
 	Items      []*DetailedReplyItem
-	NextCursor uint64
+	NextCursor int64
 	HasNext    bool
 }
 
@@ -178,13 +178,13 @@ func DetailedItemsV2AsPbs(rs []*DetailedReplyItemV2) []*commentv1.DetailedReplyI
 	return r
 }
 
-func IsRoot(rootId, parentId uint64) bool {
+func IsRoot(rootId, parentId int64) bool {
 	return rootId == 0 && parentId == 0
 }
 
 type UidCommentOnOid struct {
 	Uid       int64
-	Oid       uint64
+	Oid       int64
 	Commented bool
 }
 

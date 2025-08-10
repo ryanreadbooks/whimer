@@ -18,7 +18,7 @@ message FollowUserRequest {
 }
 
 message QueryCondition {
-  uint64 offset = 1;
+  int64 offset = 1;
   int32 count = 2 [
     (buf.validate.field).int32.gt = 0,
     (buf.validate.field).int32.lte = 20
@@ -34,7 +34,7 @@ message GetUserFanListRequest {
 
 message GetUserFanListResponse {
   repeated int64 fans = 1;
-  uint64 next_offset = 2;
+  int64 next_offset = 2;
   bool has_more = 3;
 }
 
@@ -45,7 +45,7 @@ message GetUserFollowingListRequest {
 
 message GetUserFollowingListResponse {
   repeated int64 followings = 1;
-  uint64 next_offset = 2;
+  int64 next_offset = 2;
   bool has_more = 3;
 }
 
@@ -60,13 +60,13 @@ message GetUserFanCountRequest {
   int64 uid = 1; // 目标uid
 }
 
-message GetUserFanCountResponse { uint64 count = 1; }
+message GetUserFanCountResponse { int64 count = 1; }
 
 message GetUserFollowingCountRequest {
   int64 uid = 1; // 目标uid
 }
 
-message GetUserFollowingCountResponse { uint64 count = 1; }
+message GetUserFollowingCountResponse { int64 count = 1; }
 
 message BatchCheckUserFollowedRequest {
   int64 uid = 1;              // 用户uid

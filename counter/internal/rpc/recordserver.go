@@ -15,7 +15,7 @@ type CounterServer struct {
 
 func NewCounterServer(ctx *svc.ServiceContext) *CounterServer {
 	return &CounterServer{
-		Svc:       ctx,
+		Svc: ctx,
 	}
 }
 
@@ -36,7 +36,7 @@ func (s *CounterServer) GetRecord(ctx context.Context, req *counterv1.GetRecordR
 
 func (s *CounterServer) BatchGetRecord(ctx context.Context, req *counterv1.BatchGetRecordRequest) (
 	*counterv1.BatchGetRecordResponse, error) {
-	var uidOids = make(map[int64][]uint64, len(req.Params))
+	var uidOids = make(map[int64][]int64, len(req.Params))
 	for uid, oids := range req.Params {
 		uidOids[uid] = append(uidOids[uid], oids.Oids...)
 	}

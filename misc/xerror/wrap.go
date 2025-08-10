@@ -235,6 +235,26 @@ func FramesWrapped(err error) bool {
 	return len(UnwrapFrames(err)) != 0
 }
 
+// 去除error中包含的堆栈信息
+func StripFrames(err error) error {
+	var originErr = err
+	for err != nil {
+		proxyer, ok := err.(*errProxy)
+		if ok && proxyer != nil {
+			proxyer.stack = nil
+		}
+
+		if causer, ok := err.(Causer); !ok || causer == nil {
+			break
+		} else {
+			err = causer.Cause()
+		}
+	}
+
+	return originErr
+}
+
+// 从error中提取出堆栈信息
 func UnwrapFrames(err error) stacktrace.Frames {
 	var frames stacktrace.Frames
 	for err != nil {
@@ -255,6 +275,7 @@ func UnwrapFrames(err error) stacktrace.Frames {
 	return frames
 }
 
+// 从error中提取出msg信息
 func UnwrapMsg(err error) (string, error) {
 	var (
 		msbd          strings.Builder
