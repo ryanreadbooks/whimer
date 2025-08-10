@@ -6,7 +6,7 @@ type Result struct {
 	Data any    `json:"data,omitempty"`
 }
 
-func NewResult(msg string, data interface{}) *Result {
+func NewResult(msg string, data any) *Result {
 	return &Result{
 		Code: 0, // 固定为0表示成功
 		Msg:  msg,

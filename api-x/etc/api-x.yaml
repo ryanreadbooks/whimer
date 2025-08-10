@@ -27,6 +27,9 @@ backend:
   msger:
     hosts: [127.0.0.1:2379]
     key: whimer.msger.rpc
+  search:
+    hosts: [127.0.0.1:2379]
+    key: whimer.search.rpc
 
 obfuscate:
   note:

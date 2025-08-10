@@ -16,6 +16,7 @@ type Config struct {
 		Passport xconf.Discovery `json:"passport"`
 		Relation xconf.Discovery `json:"relation"`
 		Msger    xconf.Discovery `json:"msger"`
+		Search   xconf.Discovery `json:"search"`
 	} `json:"backend"`
 
 	Obfuscate struct {

@@ -22,6 +22,7 @@ func main() {
 
 	infra.Init(&config.Conf)
 	svc := srv.NewService(&config.Conf)
+	defer svc.Stop()
 
 	grpcServer := grpc.Init(config.Conf.Grpc, svc)
 

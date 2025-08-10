@@ -162,3 +162,12 @@ func (s *NoteFeedSrv) ListUserPublicNotes(ctx context.Context, user int64, curso
 	result, _ = s.noteInteractBiz.AssignNoteReplies(ctx, result)
 	return result, page, nil
 }
+
+func (s *NoteFeedSrv) GetTagInfo(ctx context.Context, id int64) (*model.NoteTag, error) {
+	tag, err := s.noteBiz.GetTag(ctx, id)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "note biz failed to get tag")
+	}
+
+	return tag, nil
+}

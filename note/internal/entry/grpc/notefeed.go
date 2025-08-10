@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
@@ -98,5 +99,23 @@ func (s *NoteFeedServiceServer) ListFeedByUid(ctx context.Context, in *notev1.Li
 		Items:      items,
 		NextCursor: page.NextCursor,
 		HasNext:    page.HasNext,
+	}, nil
+}
+
+// 按照tag id获取标签信息
+func (s *NoteFeedServiceServer) GetTagInfo(ctx context.Context,
+	in *notev1.GetTagInfoRequest) (*notev1.GetTagInfoResponse, error) {
+
+	if in.Id == 0 {
+		return nil, xerror.ErrArgs.Msg("tag not found")
+	}
+
+	tag, err := s.Srv.NoteFeedSrv.GetTagInfo(ctx, in.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &notev1.GetTagInfoResponse{
+		Tag: tag.AsPb(),
 	}, nil
 }

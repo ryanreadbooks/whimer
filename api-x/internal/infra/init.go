@@ -8,4 +8,5 @@ func Init(c *config.Config) {
 	InitCommenter(c)
 	InitRelation(c)
 	InitMsger(c)
+	InitSearch(c)
 }

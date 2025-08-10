@@ -11,7 +11,7 @@ var (
 
 func Init(c *config.Config) {
 	esDao = esdao.MustNew(c)
-	esDao.MustInit()
+	esDao.MustInit(c)
 }
 
 func EsDao() *esdao.EsDao {

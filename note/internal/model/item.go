@@ -39,8 +39,9 @@ func (l NoteImageList) AsPb() []*notev1.NoteImage {
 }
 
 type NoteTag struct {
-	Id   int64  `json:"id"`
-	Name string `json:"name"`
+	Id    int64  `json:"id"`
+	Name  string `json:"name"`
+	Ctime int64  `json:"ctime"`
 }
 
 func (t *NoteTag) AsPb() *notev1.NoteTag {
@@ -49,8 +50,9 @@ func (t *NoteTag) AsPb() *notev1.NoteTag {
 	}
 
 	return &notev1.NoteTag{
-		Id:   t.Id,
-		Name: t.Name,
+		Id:    t.Id,
+		Name:  t.Name,
+		Ctime: t.Ctime,
 	}
 }
 

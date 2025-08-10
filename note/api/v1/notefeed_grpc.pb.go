@@ -24,6 +24,7 @@ const (
 	NoteFeedService_RecommendGet_FullMethodName      = "/note.api.v1.NoteFeedService/RecommendGet"
 	NoteFeedService_GetUserRecentPost_FullMethodName = "/note.api.v1.NoteFeedService/GetUserRecentPost"
 	NoteFeedService_ListFeedByUid_FullMethodName     = "/note.api.v1.NoteFeedService/ListFeedByUid"
+	NoteFeedService_GetTagInfo_FullMethodName        = "/note.api.v1.NoteFeedService/GetTagInfo"
 )
 
 // NoteFeedServiceClient is the client API for NoteFeedService service.
@@ -42,6 +43,8 @@ type NoteFeedServiceClient interface {
 	GetUserRecentPost(ctx context.Context, in *GetUserRecentPostRequest, opts ...grpc.CallOption) (*GetUserRecentPostResponse, error)
 	// 列出指定用户公开的笔记内容
 	ListFeedByUid(ctx context.Context, in *ListFeedByUidRequest, opts ...grpc.CallOption) (*ListFeedByUidResponse, error)
+	// 获取笔记标签
+	GetTagInfo(ctx context.Context, in *GetTagInfoRequest, opts ...grpc.CallOption) (*GetTagInfoResponse, error)
 }
 
 type noteFeedServiceClient struct {
@@ -102,6 +105,16 @@ func (c *noteFeedServiceClient) ListFeedByUid(ctx context.Context, in *ListFeedB
 	return out, nil
 }
 
+func (c *noteFeedServiceClient) GetTagInfo(ctx context.Context, in *GetTagInfoRequest, opts ...grpc.CallOption) (*GetTagInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTagInfoResponse)
+	err := c.cc.Invoke(ctx, NoteFeedService_GetTagInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NoteFeedServiceServer is the server API for NoteFeedService service.
 // All implementations must embed UnimplementedNoteFeedServiceServer
 // for forward compatibility.
@@ -118,6 +131,8 @@ type NoteFeedServiceServer interface {
 	GetUserRecentPost(context.Context, *GetUserRecentPostRequest) (*GetUserRecentPostResponse, error)
 	// 列出指定用户公开的笔记内容
 	ListFeedByUid(context.Context, *ListFeedByUidRequest) (*ListFeedByUidResponse, error)
+	// 获取笔记标签
+	GetTagInfo(context.Context, *GetTagInfoRequest) (*GetTagInfoResponse, error)
 	mustEmbedUnimplementedNoteFeedServiceServer()
 }
 
@@ -142,6 +157,9 @@ func (UnimplementedNoteFeedServiceServer) GetUserRecentPost(context.Context, *Ge
 }
 func (UnimplementedNoteFeedServiceServer) ListFeedByUid(context.Context, *ListFeedByUidRequest) (*ListFeedByUidResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListFeedByUid not implemented")
+}
+func (UnimplementedNoteFeedServiceServer) GetTagInfo(context.Context, *GetTagInfoRequest) (*GetTagInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTagInfo not implemented")
 }
 func (UnimplementedNoteFeedServiceServer) mustEmbedUnimplementedNoteFeedServiceServer() {}
 func (UnimplementedNoteFeedServiceServer) testEmbeddedByValue()                         {}
@@ -254,6 +272,24 @@ func _NoteFeedService_ListFeedByUid_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NoteFeedService_GetTagInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTagInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteFeedServiceServer).GetTagInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteFeedService_GetTagInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteFeedServiceServer).GetTagInfo(ctx, req.(*GetTagInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NoteFeedService_ServiceDesc is the grpc.ServiceDesc for NoteFeedService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -280,6 +316,10 @@ var NoteFeedService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListFeedByUid",
 			Handler:    _NoteFeedService_ListFeedByUid_Handler,
+		},
+		{
+			MethodName: "GetTagInfo",
+			Handler:    _NoteFeedService_GetTagInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

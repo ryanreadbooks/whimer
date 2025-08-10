@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 	"github.com/ryanreadbooks/whimer/search/internal/srv"
 )
@@ -26,6 +27,12 @@ func (s *DocumentServiceServerImpl) BatchAddNoteTag(ctx context.Context,
 	var resp = &searchv1.BatchAddNoteTagResponse{}
 	if len(in.GetNoteTags()) == 0 {
 		return resp, nil
+	}
+
+	for _, t := range in.GetNoteTags() {
+		if len(t.Id) == 0 {
+			return nil, xerror.ErrArgs.Msg("note tags contain empty tag id")
+		}
 	}
 
 	err := s.svc.DocumentSrv.AddNoteTagDocs(ctx, in.GetNoteTags())

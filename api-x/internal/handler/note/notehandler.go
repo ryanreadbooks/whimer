@@ -9,10 +9,12 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/model"
 	"github.com/ryanreadbooks/whimer/api-x/internal/model/errors"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 
@@ -361,14 +363,76 @@ func (h *Handler) AddNewTag() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		resp, err := infra.NoteCreatorServer().AddTag(ctx, &notev1.AddTagRequest{
-			Name: req.Name,
+		resp, err := infra.NoteCreatorServer().AddTag(ctx,
+			&notev1.AddTagRequest{
+				Name: req.Name,
+			})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		concurrent.SafeGo2(ctx, func(newCtx context.Context) {
+			// 再查一遍
+			newTag, err := infra.NoteFeedServer().GetTagInfo(newCtx,
+				&notev1.GetTagInfoRequest{
+					Id: resp.Id,
+				})
+			if err != nil {
+				xlog.Msg("after adding new tag, get tag info failed").Extra("tag_id", resp.Id).Err(err).Errorx(ctx)
+				return
+			}
+
+			tagId := model.TagId(newTag.Tag.Id).String()
+
+			_, err = infra.DocumentServer().BatchAddNoteTag(newCtx, &searchv1.BatchAddNoteTagRequest{
+				NoteTags: []*searchv1.NoteTag{
+					{
+						Id:    tagId,
+						Name:  newTag.Tag.Name,
+						Ctime: newTag.Tag.Ctime,
+					},
+				},
+			})
+			if err != nil {
+				xlog.Msg("after adding new tag, failed to insert tag document").
+					Extras("tag_id", resp.Id, "stag_id", tagId).
+					Err(err).
+					Errorx(newCtx)
+			}
+		})
+
+		xhttp.OkJson(w, &AddTagRes{TagId: model.TagId(resp.Id)})
+	}
+}
+
+// 搜索笔记标签
+func (h *Handler) SearchTag() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[SearchTagReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		ctx := r.Context()
+		resp, err := infra.SearchServer().SearchNoteTags(ctx, &searchv1.SearchNoteTagsRequest{
+			Text: req.Name,
 		})
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		xhttp.OkJson(w, &AddTagRes{TagId: model.TagId(resp.Id)})
+		result := make([]SearchedNoteTag, len(resp.Items))
+		for idx, item := range resp.Items {
+			if item == nil {
+				continue
+			}
+			result[idx].Id = item.Id
+			result[idx].Name = item.Name
+		}
+
+		xhttp.OkJson(w, result)
 	}
 }

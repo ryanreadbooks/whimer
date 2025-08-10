@@ -261,3 +261,16 @@ func (b *NoteBiz) AssembleNotesExt(ctx context.Context, notes []*model.Note) err
 
 	return nil
 }
+
+func (b *NoteBiz) GetTag(ctx context.Context, tagId int64) (*model.NoteTag, error) {
+	tag, err := infra.Dao().TagDao.FindById(ctx, tagId)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "tag dao failed to get").WithExtra("tag_id", tagId).WithCtx(ctx)
+	}
+
+	return &model.NoteTag{
+		Id:    tag.Id,
+		Name:  tag.Name,
+		Ctime: tag.Ctime,
+	}, nil
+}

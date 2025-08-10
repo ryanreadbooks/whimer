@@ -37,6 +37,7 @@ func regNoteRoutes(group *xhttp.RouterGroup, svc *handler.Handler) {
 		tag := g.Group("/tag", middleware.MustLogin())
 		{
 			tag.Post("/v1/create", svc.Note.AddNewTag())
+			tag.Post("/v1/search", svc.Note.SearchTag())
 		}
 
 		// 笔记互动相关接口

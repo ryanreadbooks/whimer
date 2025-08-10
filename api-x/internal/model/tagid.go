@@ -10,6 +10,11 @@ import (
 
 type TagId int64
 
+func (id TagId) String() string {
+	res, _ := infra.GetTagIdObfuscate().Mix(int64(id))
+	return res
+}
+
 // MarshalJSON implements the encoding json interface.
 func (id TagId) MarshalJSON() ([]byte, error) {
 	if id == 0 {

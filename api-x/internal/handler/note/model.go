@@ -1,6 +1,7 @@
 package note
 
 import (
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -318,4 +319,34 @@ func (r *AddTagReq) Validate() error {
 
 type AddTagRes struct {
 	TagId model.TagId `json:"tag_id"`
+}
+
+type SearchTagReq struct {
+	Name string `json:"name"`
+}
+
+func (r *SearchTagReq) Validate() error {
+	if r == nil {
+		return xerror.ErrNilArg
+	}
+
+	r.Name = strings.TrimSpace(r.Name)
+	if r.Name == "" {
+		return xerror.ErrInvalidArgs.Msg("输入标签目标")
+	}
+
+	if err := checkTagName(r.Name); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type SearchedNoteTag struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type SearchTagRes struct {
+	Items []SearchedNoteTag `json:"items"`
 }

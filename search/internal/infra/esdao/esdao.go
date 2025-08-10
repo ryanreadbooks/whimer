@@ -34,11 +34,11 @@ func MustNew(c *config.Config) *EsDao {
 	}
 }
 
-func (d *EsDao) Init() error {
+func (d *EsDao) Init(c *config.Config) error {
 	// 初始化索引
 	err := d.NoteTagIndexer.Init(context.Background(), &index.NoteTagIndexerOption{
-		NumberOfReplicas: 0,
-		NumbefOfShards:   1,
+		NumberOfReplicas: c.Indices.NoteTag.NumReplicas,
+		NumbefOfShards:   c.Indices.NoteTag.NumShards,
 	})
 	if err != nil {
 		return err
@@ -47,8 +47,8 @@ func (d *EsDao) Init() error {
 	return nil
 }
 
-func (d *EsDao) MustInit() {
-	if err := d.Init(); err != nil {
+func (d *EsDao) MustInit(c *config.Config) {
+	if err := d.Init(c); err != nil {
 		panic(err)
 	}
 }

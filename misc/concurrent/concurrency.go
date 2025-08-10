@@ -19,6 +19,19 @@ func SafeGo(job func()) {
 	}()
 }
 
+func SafeGo2(ctx context.Context, job func(ctx context.Context)) {
+	newCtx := context.WithoutCancel(ctx)
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				logx.ErrorStackf("panic: %v", err)
+			}
+		}()
+
+		job(newCtx)
+	}()
+}
+
 type DoneInJob func(ctx context.Context)
 
 func DoneIn(duration time.Duration, job DoneInJob) {

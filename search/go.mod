@@ -4,6 +4,7 @@ go 1.22
 
 require (
 	github.com/elastic/go-elasticsearch/v8 v8.19.0
+	github.com/panjf2000/ants/v2 v2.11.3
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/zeromicro/go-zero v1.8.5
 	google.golang.org/grpc v1.65.0
@@ -82,6 +83,7 @@ require (
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
