@@ -381,7 +381,7 @@ func (h *Handler) AddNewTag() http.HandlerFunc {
 						Id: resp.Id,
 					})
 				if err != nil {
-					xlog.Msg("after adding new tag, get tag info failed").Extra("tag_id", resp.Id).Err(err).Errorx(ctx)
+					xlog.Msg("after adding new tag, get tag info failed").Extra("tag_id", resp.Id).Err(err).Errorx(newCtx)
 					return err
 				}
 

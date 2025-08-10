@@ -467,9 +467,7 @@ func attachDetailReplyItemInteract(ctx context.Context, dItems []*DetailedReplyI
 	items := make([]*ReplyItem, 0, len(dItems))
 	for _, dItem := range dItems {
 		items = append(items, dItem.Root)
-		for _, sub := range dItem.SubReplies.Items {
-			items = append(items, sub)
-		}
+		items = append(items, dItem.SubReplies.Items...)
 	}
 
 	attachReplyItemInteract(ctx, items)
