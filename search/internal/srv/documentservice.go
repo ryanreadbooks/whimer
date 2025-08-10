@@ -42,24 +42,32 @@ func (s *DocumentService) AddNoteTagDocs(ctx context.Context, tags []*searchv1.N
 	}
 
 	// 借助pool来控制写入速度
-	concurrent.SafeGo2(ctx, func(newCtx context.Context) {
-		errSubmit := s.pool.Submit(func() {
-			errExec := xslice.BatchExec(tags, 200, func(start, end int) error {
-				errAdd := infra.EsDao().NoteTagIndexer.BulkAdd(newCtx, tgs[start:end])
-				if errAdd != nil {
-					return errAdd
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "add_note_tag_docs",
+		Job: func(newCtx context.Context) error {
+			errSubmit := s.pool.Submit(func() {
+				errExec := xslice.BatchExec(tags, 200, func(start, end int) error {
+					errAdd := infra.EsDao().NoteTagIndexer.BulkAdd(newCtx, tgs[start:end])
+					if errAdd != nil {
+						return errAdd
+					}
+					
+					return nil
+				})
+
+				if errExec != nil {
+					xlog.Msg("document note tag add failed").Err(errExec).Errorx(newCtx)
 				}
-				return nil
 			})
 
-			if errExec != nil {
-				xlog.Msg("document note tag add failed").Err(errExec).Errorx(newCtx)
+			if errSubmit != nil {
+				xlog.Msg("document submit notetag add task failed").Err(errSubmit).Errorx(newCtx)
+				// fail
+				return errSubmit
 			}
-		})
 
-		if errSubmit != nil {
-			xlog.Msg("document submit notetag add task failed").Err(errSubmit).Errorx(newCtx)
-		}
+			return nil
+		},
 	})
 
 	return nil

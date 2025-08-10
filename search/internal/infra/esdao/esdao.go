@@ -7,6 +7,8 @@ import (
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/ryanreadbooks/whimer/search/internal/config"
 	"github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index"
+
+	"go.opentelemetry.io/otel"
 )
 
 type EsDao struct {
@@ -17,10 +19,12 @@ type EsDao struct {
 
 func MustNew(c *config.Config) *EsDao {
 	addresses := strings.Split(c.ElasticSearch.Addr, ",")
+
 	esc := elasticsearch.Config{
-		Addresses: addresses,
-		Username:  c.ElasticSearch.User,
-		Password:  c.ElasticSearch.Password,
+		Addresses:       addresses,
+		Username:        c.ElasticSearch.User,
+		Password:        c.ElasticSearch.Password,
+		Instrumentation: elasticsearch.NewOpenTelemetryInstrumentation(otel.GetTracerProvider(), false),
 	}
 
 	client, err := elasticsearch.NewTypedClient(esc)

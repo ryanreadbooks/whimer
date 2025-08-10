@@ -1,11 +1,12 @@
 package index
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"math"
 	"strconv"
+	"strings"
 
 	mg "github.com/ryanreadbooks/whimer/misc/generics"
 	xelastic "github.com/ryanreadbooks/whimer/misc/xelastic/analyzer"
@@ -15,7 +16,6 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 
 	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/elastic/go-elasticsearch/v8/esutil"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/dynamicmapping"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/operator"
@@ -180,11 +180,7 @@ func (n *NoteTagIndexer) Add(ctx context.Context, tag *NoteTag) error {
 }
 
 func (n *NoteTagIndexer) BulkAdd(ctx context.Context, tags []*NoteTag) error {
-	bulk, _ := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
-		Client:  n.es,
-		Index:   _noteTagIns.AliasIndex(),
-		Refresh: refresh.True.String(),
-	})
+	bulk := n.es.Bulk().Index(_noteTagIns.AliasIndex())
 
 	for _, tag := range tags {
 		body, err := json.Marshal(tag)
@@ -192,26 +188,35 @@ func (n *NoteTagIndexer) BulkAdd(ctx context.Context, tags []*NoteTag) error {
 			continue
 		}
 
-		err = bulk.Add(ctx, esutil.BulkIndexerItem{
-			Index:      _noteTagIns.AliasIndex(),
-			DocumentID: fmtNoteTagDocId(tag),
-			Action:     "create",
-			Body:       bytes.NewReader(body),
-			OnFailure: func(ctx context.Context, bii esutil.BulkIndexerItem, biri esutil.BulkIndexerResponseItem, err error) {
-				if err != nil {
-					xlog.Msgf("note tag indexer item %s failed", bii.DocumentID).Err(err).Errorx(ctx)
-				}
-			},
-		})
-
+		err = bulk.CreateOp(*types.NewCreateOperation(), body)
 		if err != nil {
-			xlog.Msgf("note tag indexer bulk add %s failed", tag.Id).Err(err).Errorx(ctx)
+			return xelaserror.Convert(err)
 		}
 	}
 
-	err := bulk.Close(ctx)
+	resp, err := bulk.Do(ctx)
+	if err != nil {
+		return xelaserror.Convert(err)
+	}
 
-	return xelaserror.Convert(err)
+	// 一个或者多个错误
+	if resp.Errors {
+		var errLogs strings.Builder
+		errLogs.Grow(256)
+		for _, respItem := range resp.Items {
+			for k, v := range respItem {
+				if v.Error != nil {
+					log, _ := v.Error.MarshalJSON()
+					errLogs.WriteString(fmt.Sprintf("bulk %s | err: %s", k, log))
+				}
+			}
+		}
+		if errLogs.Len() > 0 {
+			xlog.Msg(errLogs.String()).Errorx(ctx)
+		}
+	}
+
+	return nil
 }
 
 // 分页检索
@@ -220,7 +225,7 @@ func (n *NoteTagIndexer) BulkAdd(ctx context.Context, tags []*NoteTag) error {
 func (n *NoteTagIndexer) Search(ctx context.Context, text string, page, count int) ([]*NoteTag, int64, error) {
 	from := (page - 1) * count
 	from = min(from, math.MaxInt32)
-	
+
 	search := n.es.Search().Index(_noteTagIns.AliasIndex()).
 		Query(&types.Query{
 			Match: map[string]types.MatchQuery{

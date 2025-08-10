@@ -372,34 +372,40 @@ func (h *Handler) AddNewTag() http.HandlerFunc {
 			return
 		}
 
-		concurrent.SafeGo2(ctx, func(newCtx context.Context) {
-			// 再查一遍
-			newTag, err := infra.NoteFeedServer().GetTagInfo(newCtx,
-				&notev1.GetTagInfoRequest{
-					Id: resp.Id,
-				})
-			if err != nil {
-				xlog.Msg("after adding new tag, get tag info failed").Extra("tag_id", resp.Id).Err(err).Errorx(ctx)
-				return
-			}
+		concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+			Name: "add_new_tag",
+			Job: func(newCtx context.Context) error {
+				// 再查一遍
+				newTag, err := infra.NoteFeedServer().GetTagInfo(newCtx,
+					&notev1.GetTagInfoRequest{
+						Id: resp.Id,
+					})
+				if err != nil {
+					xlog.Msg("after adding new tag, get tag info failed").Extra("tag_id", resp.Id).Err(err).Errorx(ctx)
+					return err
+				}
 
-			tagId := model.TagId(newTag.Tag.Id).String()
+				tagId := model.TagId(newTag.Tag.Id).String()
 
-			_, err = infra.DocumentServer().BatchAddNoteTag(newCtx, &searchv1.BatchAddNoteTagRequest{
-				NoteTags: []*searchv1.NoteTag{
-					{
-						Id:    tagId,
-						Name:  newTag.Tag.Name,
-						Ctime: newTag.Tag.Ctime,
+				_, err = infra.DocumentServer().BatchAddNoteTag(newCtx, &searchv1.BatchAddNoteTagRequest{
+					NoteTags: []*searchv1.NoteTag{
+						{
+							Id:    tagId,
+							Name:  newTag.Tag.Name,
+							Ctime: newTag.Tag.Ctime,
+						},
 					},
-				},
-			})
-			if err != nil {
-				xlog.Msg("after adding new tag, failed to insert tag document").
-					Extras("tag_id", resp.Id, "stag_id", tagId).
-					Err(err).
-					Errorx(newCtx)
-			}
+				})
+				if err != nil {
+					xlog.Msg("after adding new tag, failed to insert tag document").
+						Extras("tag_id", resp.Id, "stag_id", tagId).
+						Err(err).
+						Errorx(newCtx)
+					return err
+				}
+
+				return nil
+			},
 		})
 
 		xhttp.OkJson(w, &AddTagRes{TagId: model.TagId(resp.Id)})
