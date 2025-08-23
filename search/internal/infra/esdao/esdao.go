@@ -40,7 +40,7 @@ func MustNew(c *config.Config) *EsDao {
 
 func (d *EsDao) Init(c *config.Config) error {
 	// 初始化索引
-	err := d.NoteTagIndexer.Init(context.Background(), &index.NoteTagIndexerOption{
+	err := d.NoteTagIndexer.Init(context.Background(), &index.IndexerOption{
 		NumberOfReplicas: c.Indices.NoteTag.NumReplicas,
 		NumbefOfShards:   c.Indices.NoteTag.NumShards,
 	})

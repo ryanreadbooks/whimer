@@ -7,6 +7,7 @@ require (
 	github.com/panjf2000/ants/v2 v2.11.3
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/zeromicro/go-zero v1.8.5
+	go.opentelemetry.io/otel v1.28.0
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.36.5
 )
@@ -65,7 +66,6 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.15 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.15 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.15 // indirect
-	go.opentelemetry.io/otel v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.28.0 // indirect

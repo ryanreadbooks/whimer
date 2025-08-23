@@ -41,17 +41,17 @@ func (s *DocumentService) AddNoteTagDocs(ctx context.Context, tags []*searchv1.N
 		})
 	}
 
-	// 借助pool来控制写入速度
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
 		Name: "add_note_tag_docs",
 		Job: func(newCtx context.Context) error {
+			// 借助pool来控制写入速度
 			errSubmit := s.pool.Submit(func() {
 				errExec := xslice.BatchExec(tags, 200, func(start, end int) error {
 					errAdd := infra.EsDao().NoteTagIndexer.BulkAdd(newCtx, tgs[start:end])
 					if errAdd != nil {
 						return errAdd
 					}
-					
+
 					return nil
 				})
 
