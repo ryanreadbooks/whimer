@@ -15,6 +15,7 @@ type EsDao struct {
 	es *elasticsearch.TypedClient
 
 	NoteTagIndexer *index.NoteTagIndexer
+	NoteIndexer    *index.NoteIndexer
 }
 
 func MustNew(c *config.Config) *EsDao {
@@ -35,14 +36,23 @@ func MustNew(c *config.Config) *EsDao {
 	return &EsDao{
 		es:             client,
 		NoteTagIndexer: index.NewNoteTagIndexer(client),
+		NoteIndexer:    index.NewNoteIndexer(client),
 	}
 }
 
 func (d *EsDao) Init(c *config.Config) error {
 	// 初始化索引
-	err := d.NoteTagIndexer.Init(context.Background(), &index.IndexerOption{
+	ctx := context.Background()
+	err := d.NoteTagIndexer.Init(ctx, &index.IndexerOption{
 		NumberOfReplicas: c.Indices.NoteTag.NumReplicas,
 		NumbefOfShards:   c.Indices.NoteTag.NumShards,
+	})
+	if err != nil {
+		return err
+	}
+	err = d.NoteIndexer.Init(ctx, &index.IndexerOption{
+		NumberOfReplicas: c.Indices.Note.NumReplicas,
+		NumbefOfShards:   c.Indices.Note.NumShards,
 	})
 	if err != nil {
 		return err

@@ -42,3 +42,26 @@ func (s *DocumentServiceServerImpl) BatchAddNoteTag(ctx context.Context,
 
 	return resp, nil
 }
+
+// 批量添加笔记文档
+func (s *DocumentServiceServerImpl) BatchAddNote(ctx context.Context,
+	in *searchv1.BatchAddNoteRequest) (*searchv1.BatchAddNoteResponse, error) {
+
+	var resp = &searchv1.BatchAddNoteResponse{}
+	if len(in.GetNotes()) == 0 {
+		return resp, nil
+	}
+
+	for _, n := range in.GetNotes() {
+		if len(n.NoteId) == 0 {
+			return nil, xerror.ErrArgs.Msg("notes contain empty note id")
+		}
+	}
+
+	err := s.svc.DocumentSrv.AddNoteDocs(ctx, in.GetNotes())
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}

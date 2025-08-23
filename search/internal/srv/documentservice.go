@@ -42,7 +42,7 @@ func (s *DocumentService) AddNoteTagDocs(ctx context.Context, tags []*searchv1.N
 	}
 
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "add_note_tag_docs",
+		Name: "bulk_add_note_tag_docs",
 		Job: func(newCtx context.Context) error {
 			// 借助pool来控制写入速度
 			errSubmit := s.pool.Submit(func() {
@@ -62,6 +62,64 @@ func (s *DocumentService) AddNoteTagDocs(ctx context.Context, tags []*searchv1.N
 
 			if errSubmit != nil {
 				xlog.Msg("document submit notetag add task failed").Err(errSubmit).Errorx(newCtx)
+				// fail
+				return errSubmit
+			}
+
+			return nil
+		},
+	})
+
+	return nil
+}
+
+func (s *DocumentService) AddNoteDocs(ctx context.Context, notes []*searchv1.Note) error {
+	nts := make([]*index.Note, 0, len(notes))
+	for _, n := range notes {
+		tgs := make([]*index.NoteTag, 0, len(n.GetTagList()))
+		for _, t := range n.GetTagList() {
+			tgs = append(tgs, &index.NoteTag{
+				Id:    t.Id,
+				Name:  t.Name,
+				Ctime: t.Ctime,
+			})
+		}
+
+		nts = append(nts, &index.Note{
+			NoteId:   n.NoteId,
+			Title:    n.Title,
+			Desc:     n.Desc,
+			CreateAt: n.CreateAt,
+			UpdateAt: n.UpdateAt,
+			Author: index.NoteAuthor{
+				Uid:      n.Author.Uid,
+				Nickname: n.Author.Nickname,
+			},
+			TagList: tgs,
+		})
+	}
+
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "bulk_add_note_docs",
+		Job: func(newCtx context.Context) error {
+			// 借助pool来控制写入速度
+			errSubmit := s.pool.Submit(func() {
+				errExec := xslice.BatchExec(nts, 200, func(start, end int) error {
+					errAdd := infra.EsDao().NoteIndexer.BulkAdd(newCtx, nts[start:end])
+					if errAdd != nil {
+						return errAdd
+					}
+
+					return nil
+				})
+
+				if errExec != nil {
+					xlog.Msg("document note add failed").Err(errExec).Errorx(newCtx)
+				}
+			})
+
+			if errSubmit != nil {
+				xlog.Msg("document submit note add task failed").Err(errSubmit).Errorx(newCtx)
 				// fail
 				return errSubmit
 			}

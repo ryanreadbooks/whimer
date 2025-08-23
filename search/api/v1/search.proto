@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package search.api.v1;
 
-import "v1/note_tag.proto";
+import "v1/index.proto";
 
 option go_package = "github.com/ryanreadbooks/whimer/search/api/v1";
 

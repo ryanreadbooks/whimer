@@ -13,6 +13,7 @@ type Config struct {
 	ElasticSearch ElasticSearch `json:"elasticsearch"`
 	Indices       struct {
 		NoteTag Index `json:"note_tag"`
+		Note    Index `json:"note"`
 	} `json:"indices"`
 }
 

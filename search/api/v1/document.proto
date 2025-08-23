@@ -2,15 +2,22 @@ syntax = "proto3";
 
 package search.api.v1;
 
-import "v1/note_tag.proto";
+import "v1/index.proto";
 
 option go_package = "github.com/ryanreadbooks/whimer/search/api/v1";
+
+// 搜索数据写入服务
+service DocumentService {
+  // 批量写入笔记标签
+  rpc BatchAddNoteTag(BatchAddNoteTagRequest) returns (BatchAddNoteTagResponse);
+  // 批量写入笔记
+  rpc BatchAddNote(BatchAddNoteRequest) returns (BatchAddNoteResponse);
+}
 
 message BatchAddNoteTagRequest { repeated NoteTag note_tags = 1; }
 
 message BatchAddNoteTagResponse {}
 
-// 搜索数据写入服务
-service DocumentService {
-  rpc BatchAddNoteTag(BatchAddNoteTagRequest) returns (BatchAddNoteTagResponse);
-}
+message BatchAddNoteRequest { repeated Note notes = 1; }
+
+message BatchAddNoteResponse {}

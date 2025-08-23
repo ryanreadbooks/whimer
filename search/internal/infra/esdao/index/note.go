@@ -23,7 +23,7 @@ type Note struct {
 	CreateAt int64      `json:"create_at"`
 	UpdateAt int64      `json:"update_at"`
 	Author   NoteAuthor `json:"author"`
-	TagList  []NoteTag  `json:"tag_list"`
+	TagList  []*NoteTag  `json:"tag_list"`
 }
 
 type NoteAuthor struct {
