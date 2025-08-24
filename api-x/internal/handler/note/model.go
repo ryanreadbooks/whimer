@@ -13,6 +13,16 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 )
 
+const (
+	VisibilityPublic  = 1
+	VisibilityPrivate = 2
+)
+
+const (
+	AssetTypeImage = 1
+	AssetTypeVideo = 2
+)
+
 type CreateReqBasic struct {
 	Title   string `json:"title"`
 	Desc    string `json:"desc"`

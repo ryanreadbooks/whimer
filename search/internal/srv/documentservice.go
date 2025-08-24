@@ -76,7 +76,9 @@ func (s *DocumentService) AddNoteDocs(ctx context.Context, notes []*searchv1.Not
 				Uid:      n.Author.Uid,
 				Nickname: n.Author.Nickname,
 			},
-			TagList: indexTags,
+			TagList:    indexTags,
+			AssetType:  index.NoteAssetConverter[n.GetAssetType()],
+			Visibility: index.NoteVisibilityConverter[n.GetVisibility()],
 		})
 	}
 

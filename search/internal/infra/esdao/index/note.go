@@ -7,6 +7,7 @@ import (
 	xelasticanalyzer "github.com/ryanreadbooks/whimer/misc/xelastic/analyzer"
 	xelaserror "github.com/ryanreadbooks/whimer/misc/xelastic/errors"
 	xelasformat "github.com/ryanreadbooks/whimer/misc/xelastic/format"
+	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
@@ -15,15 +16,45 @@ import (
 
 var _noteIns = Note{}
 
+type NoteAssetType string
+
+const (
+	NoteAssetTypeImage NoteAssetType = "image"
+	NoteAssetTypeVideo NoteAssetType = "video"
+)
+
+var (
+	NoteAssetConverter = map[searchv1.Note_AssetType]NoteAssetType{
+		searchv1.Note_ASSET_TYPE_UNSPECIFIED: "all",
+		searchv1.Note_ASSET_TYPE_IMAGE:       NoteAssetTypeImage,
+	}
+)
+
+type NoteVisibility string
+
+const (
+	VisibilityPublic  NoteVisibility = "public"
+	VisibilityPrivate NoteVisibility = "private"
+)
+
+var (
+	NoteVisibilityConverter = map[searchv1.Note_Visibility]NoteVisibility{
+		searchv1.Note_VISIBILITY_PUBLIC:  VisibilityPublic,
+		searchv1.Note_VISIBILITY_PRIVATE: VisibilityPrivate,
+	}
+)
+
 // 笔记索引模型
 type Note struct {
-	NoteId   string     `json:"note_id"`
-	Title    string     `json:"title"`
-	Desc     string     `json:"desc"`
-	CreateAt int64      `json:"create_at"`
-	UpdateAt int64      `json:"update_at"`
-	Author   NoteAuthor `json:"author"`
-	TagList  []*NoteTag `json:"tag_list"`
+	NoteId     string         `json:"note_id"`
+	Title      string         `json:"title"`
+	Desc       string         `json:"desc"`
+	CreateAt   int64          `json:"create_at"`
+	UpdateAt   int64          `json:"update_at"`
+	Author     NoteAuthor     `json:"author"`
+	TagList    []*NoteTag     `json:"tag_list"`
+	AssetType  NoteAssetType  `json:"asset_type"`
+	Visibility NoteVisibility `json:"visibility"`
 }
 
 type NoteAuthor struct {
@@ -89,6 +120,8 @@ func (Note) Mappings() *types.TypeMapping {
 					},
 				},
 			},
+			"asset_type": types.NewKeywordProperty(),
+			"visibility": types.NewKeywordProperty(),
 		},
 	}
 }

@@ -44,6 +44,13 @@ func (h *Handler) creatorSyncNoteToSearcher(ctx context.Context, noteId int64) {
 					Ctime: tag.GetCtime(),
 				})
 			}
+
+			vis := searchv1.Note_VISIBILITY_PUBLIC
+			if curNote.Note.GetPrivacy() == VisibilityPrivate {
+				vis = searchv1.Note_VISIBILITY_PRIVATE
+			}
+			assetType := searchv1.Note_ASSET_TYPE_IMAGE // for now
+
 			docNote := []*searchv1.Note{{
 				NoteId:   string(nid),
 				Title:    curNote.Note.GetTitle(),
@@ -54,7 +61,9 @@ func (h *Handler) creatorSyncNoteToSearcher(ctx context.Context, noteId int64) {
 					Uid:      curNote.Note.GetOwner(),
 					Nickname: metadata.UserNickname(ctx),
 				},
-				TagList: tagList,
+				TagList:    tagList,
+				Visibility: vis,
+				AssetType:  assetType,
 			}}
 
 			_, err = infra.DocumentServer().BatchAddNote(ctx, &searchv1.BatchAddNoteRequest{
