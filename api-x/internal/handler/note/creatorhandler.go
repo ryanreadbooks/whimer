@@ -33,6 +33,10 @@ func (h *Handler) creatorSyncNoteToSearcher(ctx context.Context, noteId int64) {
 				return xerror.Wrapf(err, "get note failed").WithExtra("note_id", noteId).WithCtx(ctx)
 			}
 
+			if curNote.Note.GetPrivacy() == VisibilityPrivate {
+				return nil
+			}
+
 			// 2. add to searcher
 			nid := model.NoteId(noteId).String()
 			tagList := make([]*searchv1.NoteTag, 0, len(curNote.Note.GetTags()))
