@@ -1,4 +1,4 @@
-package svc
+package biz
 
 import (
 	"fmt"

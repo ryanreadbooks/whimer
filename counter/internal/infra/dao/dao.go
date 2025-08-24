@@ -1,21 +1,21 @@
-package repo
+package dao
 
 import (
 	"github.com/ryanreadbooks/whimer/counter/internal/config"
-	"github.com/ryanreadbooks/whimer/counter/internal/repo/record"
-	"github.com/ryanreadbooks/whimer/counter/internal/repo/summary"
+	"github.com/ryanreadbooks/whimer/counter/internal/infra/dao/record"
+	"github.com/ryanreadbooks/whimer/counter/internal/infra/dao/summary"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-type Repo struct {
+type Dao struct {
 	db sqlx.SqlConn
 
 	RecordRepo  *record.Repo
 	SummaryRepo *summary.Repo
 }
 
-func MustNew(c *config.Config) *Repo {
+func MustNew(c *config.Config) *Dao {
 	db := sqlx.NewMysql(xsql.GetDsn(
 		c.MySql.User,
 		c.MySql.Pass,
@@ -32,7 +32,7 @@ func MustNew(c *config.Config) *Repo {
 		panic(err)
 	}
 
-	r := &Repo{
+	r := &Dao{
 		db:          db,
 		RecordRepo:  record.New(db),
 		SummaryRepo: summary.New(db),
@@ -41,6 +41,8 @@ func MustNew(c *config.Config) *Repo {
 	return r
 }
 
-func (d *Repo) DB() sqlx.SqlConn {
+var ()
+
+func (d *Dao) DB() sqlx.SqlConn {
 	return d.db
 }

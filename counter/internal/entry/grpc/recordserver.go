@@ -1,19 +1,19 @@
-package rpc
+package grpc
 
 import (
 	"context"
 
 	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
-	"github.com/ryanreadbooks/whimer/counter/internal/svc"
+	"github.com/ryanreadbooks/whimer/counter/internal/srv"
 )
 
 type CounterServer struct {
 	counterv1.UnimplementedCounterServiceServer
 
-	Svc *svc.ServiceContext
+	Svc *srv.Service
 }
 
-func NewCounterServer(ctx *svc.ServiceContext) *CounterServer {
+func NewCounterServer(ctx *srv.Service) *CounterServer {
 	return &CounterServer{
 		Svc: ctx,
 	}
@@ -21,17 +21,17 @@ func NewCounterServer(ctx *svc.ServiceContext) *CounterServer {
 
 func (s *CounterServer) AddRecord(ctx context.Context, req *counterv1.AddRecordRequest) (
 	*counterv1.AddRecordResponse, error) {
-	return s.Svc.RecordSvc.AddRecord(ctx, req)
+	return s.Svc.CounterSrv.AddRecord(ctx, req)
 }
 
 func (s *CounterServer) CancelRecord(ctx context.Context, req *counterv1.CancelRecordRequest) (
 	*counterv1.CancelRecordResponse, error) {
-	return s.Svc.RecordSvc.CancelRecord(ctx, req)
+	return s.Svc.CounterSrv.CancelRecord(ctx, req)
 }
 
 func (s *CounterServer) GetRecord(ctx context.Context, req *counterv1.GetRecordRequest) (
 	*counterv1.GetRecordResponse, error) {
-	return s.Svc.RecordSvc.GetRecord(ctx, req)
+	return s.Svc.CounterSrv.GetRecord(ctx, req)
 }
 
 func (s *CounterServer) BatchGetRecord(ctx context.Context, req *counterv1.BatchGetRecordRequest) (
@@ -41,7 +41,7 @@ func (s *CounterServer) BatchGetRecord(ctx context.Context, req *counterv1.Batch
 		uidOids[uid] = append(uidOids[uid], oids.Oids...)
 	}
 
-	resp, err := s.Svc.RecordSvc.BatchGetRecord(ctx, uidOids, int(req.BizCode))
+	resp, err := s.Svc.CounterSrv.BatchGetRecord(ctx, uidOids, int(req.BizCode))
 	if err != nil {
 		return nil, err
 	}
@@ -56,10 +56,10 @@ func (s *CounterServer) BatchGetRecord(ctx context.Context, req *counterv1.Batch
 
 func (s *CounterServer) GetSummary(ctx context.Context, req *counterv1.GetSummaryRequest) (
 	*counterv1.GetSummaryResponse, error) {
-	return s.Svc.RecordSvc.GetSummary(ctx, req)
+	return s.Svc.CounterSrv.GetSummary(ctx, req)
 }
 
 func (s *CounterServer) BatchGetSummary(ctx context.Context, req *counterv1.BatchGetSummaryRequest) (
 	*counterv1.BatchGetSummaryResponse, error) {
-	return s.Svc.RecordSvc.BatchGetSummary(ctx, req)
+	return s.Svc.CounterSrv.BatchGetSummary(ctx, req)
 }
