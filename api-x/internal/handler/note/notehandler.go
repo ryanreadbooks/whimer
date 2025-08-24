@@ -14,9 +14,8 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
-
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 	"golang.org/x/sync/errgroup"
@@ -28,7 +27,8 @@ func NewHandler(c *config.Config) *Handler {
 	return &Handler{}
 }
 
-func (h *Handler) hasNoteCheck(ctx context.Context, noteId int64) error {
+// 检查笔记是否存在
+func (h *Handler) CheckNoteExistence(ctx context.Context, noteId int64) error {
 	if resp, err := infra.NoteCreatorServer().IsNoteExist(ctx,
 		&notev1.IsNoteExistRequest{
 			NoteId: noteId,
@@ -43,71 +43,7 @@ func (h *Handler) hasNoteCheck(ctx context.Context, noteId int64) error {
 	return nil
 }
 
-func (h *Handler) CreatorCreateNote() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[CreateReq](httpx.ParseJsonBody, r)
-		if err != nil {
-			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
-			return
-		}
-
-		// service to create note
-		resp, err := infra.NoteCreatorServer().CreateNote(r.Context(), req.AsPb())
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		xhttp.OkJson(w, CreateRes{NoteId: model.NoteId(resp.NoteId)})
-	}
-}
-
-func (h *Handler) CreatorUpdateNote() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[UpdateReq](httpx.ParseJsonBody, r)
-		if err != nil {
-			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
-			return
-		}
-
-		_, err = infra.NoteCreatorServer().UpdateNote(r.Context(), &notev1.UpdateNoteRequest{
-			NoteId: int64(req.NoteId),
-			Note: &notev1.CreateNoteRequest{
-				Basic:  req.Basic.AsPb(),
-				Images: req.Images.AsPb(),
-			},
-		})
-
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		xhttp.OkJson(w, UpdateRes{NoteId: req.NoteId})
-	}
-}
-
-func (h *Handler) CreatorDeleteNote() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[NoteIdReq](httpx.ParseJsonBody, r)
-		if err != nil {
-			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
-			return
-		}
-
-		_, err = infra.NoteCreatorServer().DeleteNote(r.Context(), &notev1.DeleteNoteRequest{
-			NoteId: int64(req.NoteId),
-		})
-
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		httpx.OkJson(w, nil)
-	}
-}
-
+// 设置笔记的额外信息
 func (h *Handler) assignNoteExtra(ctx context.Context, notes []*model.AdminNoteItem) {
 	var (
 		noteIds      = make([]int64, 0, len(notes))
@@ -184,114 +120,6 @@ func (h *Handler) assignNoteExtra(ctx context.Context, notes []*model.AdminNoteI
 		noteId := int64(note.NoteId)
 		note.Interact.Liked = oidLiked[noteId]
 		note.Interact.Commented = oidCommented[noteId]
-	}
-}
-
-func (h *Handler) CreatorListNotes() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[ListReq](httpx.ParseForm, r)
-		if err != nil {
-			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
-			return
-		}
-
-		ctx := r.Context()
-		resp, err := infra.NoteCreatorServer().ListNote(ctx, &notev1.ListNoteRequest{
-			Cursor: req.Cursor,
-			Count:  req.Count,
-		})
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-		result := NewListResFromPb(resp)
-		h.assignNoteExtra(ctx, result.Items)
-
-		xhttp.OkJson(w, result)
-	}
-}
-
-func (h *Handler) CreatorPageListNotes() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[PageListReq](httpx.ParseForm, r)
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		ctx := r.Context()
-		resp, err := infra.NoteCreatorServer().PageListNote(ctx, &notev1.PageListNoteRequest{
-			Page:  req.Page,
-			Count: req.Count,
-		})
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		result := NewPageListResFromPb(resp)
-		h.assignNoteExtra(ctx, result.Items)
-
-		xhttp.OkJson(w, result)
-	}
-}
-
-func (h *Handler) CreatorGetNote() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[NoteIdReq](httpx.ParsePath, r)
-		if err != nil {
-			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
-			return
-		}
-
-		ctx := r.Context()
-		resp, err := infra.NoteCreatorServer().GetNote(ctx, &notev1.GetNoteRequest{
-			NoteId: int64(req.NoteId),
-		})
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		result := model.NewAdminNoteItemFromPb(resp.Note)
-		h.assignNoteExtra(ctx, []*model.AdminNoteItem{result})
-		xhttp.OkJson(w, result)
-	}
-}
-
-func (h *Handler) CreatorUploadNoteAuth() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[UploadAuthReq](httpx.ParseForm, r)
-		if err != nil {
-			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
-			return
-		}
-
-		resp, err := infra.NoteCreatorServer().BatchGetUploadAuth(r.Context(), req.AsPb())
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		xhttp.OkJson(w, resp)
-	}
-}
-
-func (h *Handler) CreatorUploadNoteAuthV2() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[UploadAuthReq](httpx.ParseForm, r)
-		if err != nil {
-			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
-			return
-		}
-
-		resp, err := infra.NoteCreatorServer().BatchGetUploadAuthV2(r.Context(), req.AsPbV2())
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		xhttp.OkJson(w, resp)
 	}
 }
 

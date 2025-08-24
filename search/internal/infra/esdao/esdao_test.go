@@ -46,7 +46,7 @@ func TestMappings(t *testing.T) {
 func TestNoteTagIndex(t *testing.T) {
 	ctx := context.TODO()
 	indx := index.NewNoteTagIndexer(testEsDao.es)
-	err := indx.Init(ctx, &index.NoteTagIndexerOption{
+	err := indx.Init(ctx, &index.IndexerOption{
 		NumberOfReplicas: 0,
 		NumbefOfShards:   1,
 	})

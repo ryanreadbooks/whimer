@@ -3,24 +3,18 @@ package index
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math"
-	"strconv"
-	"strings"
 
 	mg "github.com/ryanreadbooks/whimer/misc/generics"
-	xelastic "github.com/ryanreadbooks/whimer/misc/xelastic/analyzer"
 	xelasticanalyzer "github.com/ryanreadbooks/whimer/misc/xelastic/analyzer"
 	xelaserror "github.com/ryanreadbooks/whimer/misc/xelastic/errors"
 	xelasformat "github.com/ryanreadbooks/whimer/misc/xelastic/format"
-	"github.com/ryanreadbooks/whimer/misc/xlog"
 
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/dynamicmapping"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/operator"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/refresh"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/tokenchar"
 )
 
 var _noteTagIns = NoteTag{}
@@ -46,49 +40,8 @@ func (n NoteTag) Alias() map[string]types.Alias {
 	}
 }
 
-func NewCleanNormalizer() types.Normalizer {
-	return &types.CustomNormalizer{
-		Filter: []string{"lowercase", "asciifolding", "trim"},
-	}
-}
-
-func (NoteTag) Settings(opt *NoteTagIndexerOption) *types.IndexSettings {
-	return &types.IndexSettings{
-		MaxNgramDiff: mg.Ptr(5),
-		Analysis: &types.IndexSettingsAnalysis{
-			// 自定义normalizer和tokenizer和analyzer
-			Normalizer: map[string]types.Normalizer{
-				"cust_clean_normalizer": NewCleanNormalizer(),
-			},
-			Tokenizer: map[string]types.Tokenizer{
-				"cust_edge_ngram_tokenizer": &types.EdgeNGramTokenizer{
-					MinGram:    mg.Ptr(2),
-					MaxGram:    mg.Ptr(7),
-					TokenChars: []tokenchar.TokenChar{tokenchar.Letter, tokenchar.Digit},
-				},
-				"cust_ngram_tokenizer": &types.NGramTokenizer{
-					MinGram:    mg.Ptr(2),
-					MaxGram:    mg.Ptr(7),
-					TokenChars: []tokenchar.TokenChar{tokenchar.Letter, tokenchar.Digit},
-				},
-			},
-			Analyzer: map[string]types.Analyzer{
-				"default": xelasticanalyzer.NewIkMaxWordAnalyzer(), // 指定默认analyzer
-				"cust_prefix_analyzer": &types.CustomAnalyzer{
-					CharFilter: []string{"html_strip"},
-					Filter:     []string{"lowercase", "asciifolding", "trim"},
-					Tokenizer:  "cust_edge_ngram_tokenizer",
-				},
-				"cust_ngram_analyzer": &types.CustomAnalyzer{
-					CharFilter: []string{"html_strip"},
-					Filter:     []string{"lowercase", "asciifolding", "trim"},
-					Tokenizer:  "cust_ngram_tokenizer",
-				},
-			},
-		},
-		NumberOfReplicas: mg.Ptr(strconv.Itoa(opt.NumberOfReplicas)),
-		NumberOfShards:   mg.Ptr(strconv.Itoa(opt.NumbefOfShards)),
-	}
+func (NoteTag) Settings(opt *IndexerOption) *types.IndexSettings {
+	return defaultSettings(opt)
 }
 
 func (NoteTag) Mappings() *types.TypeMapping {
@@ -98,24 +51,18 @@ func (NoteTag) Mappings() *types.TypeMapping {
 			"id": types.NewKeywordProperty(),
 			"name": &types.TextProperty{
 				Analyzer:       mg.Ptr(xelasticanalyzer.IkMaxWord),
-				SearchAnalyzer: mg.Ptr(xelastic.IkSmart),
-				Fields: map[string]types.Property{
-					"keyword": &types.KeywordProperty{
-						Normalizer: mg.Ptr("cust_clean_normalizer"),
-					},
-					"prefix": &types.TextProperty{
-						Analyzer: mg.Ptr("cust_prefix_analyzer"),
-					},
-					"ngram": &types.TextProperty{
-						Analyzer: mg.Ptr("cust_ngram_analyzer"),
-					},
-				},
+				SearchAnalyzer: mg.Ptr(xelasticanalyzer.IkSmart),
+				Fields:         defaultTextFields,
 			},
 			"ctime": &types.DateProperty{
 				Format: mg.Ptr(xelasformat.DateEpochSecond),
 			},
 		},
 	}
+}
+
+func (n *NoteTag) GetId() string {
+	return fmtNoteTagDocId(n)
 }
 
 type NoteTagIndexer struct {
@@ -128,17 +75,12 @@ func NewNoteTagIndexer(es *elasticsearch.TypedClient) *NoteTagIndexer {
 	}
 }
 
-type NoteTagIndexerOption struct {
-	NumberOfReplicas int
-	NumbefOfShards   int
-}
-
 func fmtNoteTagDocId(n *NoteTag) string {
 	return "note_tags:" + n.Id
 }
 
 // 初始化
-func (n *NoteTagIndexer) Init(ctx context.Context, opt *NoteTagIndexerOption) error {
+func (n *NoteTagIndexer) Init(ctx context.Context, opt *IndexerOption) error {
 	exist, err := n.es.Indices.Exists(_noteTagIns.Index()).Do(ctx)
 	if err != nil {
 		return xelaserror.Convert(err)
@@ -180,43 +122,7 @@ func (n *NoteTagIndexer) Add(ctx context.Context, tag *NoteTag) error {
 }
 
 func (n *NoteTagIndexer) BulkAdd(ctx context.Context, tags []*NoteTag) error {
-	bulk := n.es.Bulk().Index(_noteTagIns.AliasIndex())
-
-	for _, tag := range tags {
-		body, err := json.Marshal(tag)
-		if err != nil {
-			continue
-		}
-
-		err = bulk.CreateOp(*types.NewCreateOperation(), body)
-		if err != nil {
-			return xelaserror.Convert(err)
-		}
-	}
-
-	resp, err := bulk.Do(ctx)
-	if err != nil {
-		return xelaserror.Convert(err)
-	}
-
-	// 一个或者多个错误
-	if resp.Errors {
-		var errLogs strings.Builder
-		errLogs.Grow(256)
-		for _, respItem := range resp.Items {
-			for k, v := range respItem {
-				if v.Error != nil {
-					log, _ := v.Error.MarshalJSON()
-					errLogs.WriteString(fmt.Sprintf("bulk %s | err: %s", k, log))
-				}
-			}
-		}
-		if errLogs.Len() > 0 {
-			xlog.Msg(errLogs.String()).Errorx(ctx)
-		}
-	}
-
-	return nil
+	return doBulkCreate(ctx, n.es, tags)
 }
 
 // 分页检索

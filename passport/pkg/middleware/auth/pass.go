@@ -7,6 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	accessv1 "github.com/ryanreadbooks/whimer/passport/api/access/v1"
+	v1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -74,7 +75,7 @@ func (a *Auth) getCookie(r *http.Request) (sessId string, err error) {
 	return
 }
 
-func (a *Auth) User(ctx context.Context, r *http.Request) (uid int64, sessId string, err error) {
+func (a *Auth) User(ctx context.Context, r *http.Request) (user *v1.UserInfo, sessId string, err error) {
 	sessId, err = a.getCookie(r)
 	if err != nil {
 		return
@@ -90,12 +91,12 @@ func (a *Auth) User(ctx context.Context, r *http.Request) (uid int64, sessId str
 		return
 	}
 
-	uid = resp.User.Uid
+	user = resp.User
 
 	return
 }
 
-func (a *Auth) UserWeb(ctx context.Context, r *http.Request) (uid int64, sessId string, err error) {
+func (a *Auth) UserWeb(ctx context.Context, r *http.Request) (user *v1.UserInfo, sessId string, err error) {
 	sessId, err = a.getCookie(r)
 	if err != nil {
 		return
@@ -111,7 +112,7 @@ func (a *Auth) UserWeb(ctx context.Context, r *http.Request) (uid int64, sessId 
 		return
 	}
 
-	uid = resp.User.Uid
+	user = resp.User
 
 	return
 }

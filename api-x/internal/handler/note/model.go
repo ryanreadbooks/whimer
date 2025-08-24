@@ -13,6 +13,16 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 )
 
+const (
+	VisibilityPublic  = 1
+	VisibilityPrivate = 2
+)
+
+const (
+	AssetTypeImage = 1
+	AssetTypeVideo = 2
+)
+
 type CreateReqBasic struct {
 	Title   string `json:"title"`
 	Desc    string `json:"desc"`
@@ -53,9 +63,11 @@ func (r CreateReqImageList) AsPb() []*notev1.CreateReqImage {
 type CreateReq struct {
 	Basic   CreateReqBasic     `json:"basic"`
 	Images  CreateReqImageList `json:"images"`
-	TagList []struct {         // 必须再包一层 直接用数组无法解析
-		Id model.TagId `json:"id"`
-	} `json:"tag_list,omitempty"`
+	TagList []TagId            `json:"tag_list,omitempty,optional"`
+}
+
+type TagId struct { // 必须再包一层 直接用数组无法解析
+	Id model.TagId `json:"id"`
 }
 
 func (r *CreateReq) Validate() error {
