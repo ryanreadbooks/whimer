@@ -65,9 +65,11 @@ func (h *Handler) creatorSyncNoteToSearcher(ctx context.Context, noteId int64) {
 					Uid:      curNote.Note.GetOwner(),
 					Nickname: metadata.UserNickname(ctx),
 				},
-				TagList:    tagList,
-				Visibility: vis,
-				AssetType:  assetType,
+				TagList:       tagList,
+				Visibility:    vis,
+				AssetType:     assetType,
+				LikesCount:    curNote.Note.Likes,
+				CommentsCount: curNote.Note.Replies,
 			}}
 
 			_, err = infra.DocumentServer().BatchAddNote(ctx, &searchv1.BatchAddNoteRequest{

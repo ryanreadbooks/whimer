@@ -9,6 +9,7 @@ import (
 	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 	"github.com/ryanreadbooks/whimer/search/internal/infra"
 	"github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index"
+	"github.com/ryanreadbooks/whimer/search/pkg"
 
 	"github.com/panjf2000/ants/v2"
 )
@@ -77,8 +78,8 @@ func (s *DocumentService) AddNoteDocs(ctx context.Context, notes []*searchv1.Not
 				Nickname: n.Author.Nickname,
 			},
 			TagList:    indexTags,
-			AssetType:  index.NoteAssetConverter[n.GetAssetType()],
-			Visibility: index.NoteVisibilityConverter[n.GetVisibility()],
+			AssetType:  pkg.NoteAssetConverter[n.GetAssetType()],
+			Visibility: pkg.NoteVisibilityConverter[n.GetVisibility()],
 		})
 	}
 

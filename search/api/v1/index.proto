@@ -36,4 +36,6 @@ message Note {
   repeated NoteTag tag_list = 7;
   AssetType asset_type = 8;
   Visibility visibility = 9;
+  int64 likes_count = 10;
+  int64 comments_count = 11;
 }

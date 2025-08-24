@@ -5,6 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
 	"github.com/ryanreadbooks/whimer/comment/internal/entry/grpc"
+	"github.com/ryanreadbooks/whimer/comment/internal/infra"
 	"github.com/ryanreadbooks/whimer/comment/internal/srv"
 
 	"github.com/zeromicro/go-zero/core/conf"
@@ -18,6 +19,7 @@ func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
+	infra.Init(&config.Conf)
 	svc := srv.NewService(&config.Conf)
 	server := grpc.Init(config.Conf.Grpc, svc)
 
