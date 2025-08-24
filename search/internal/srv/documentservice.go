@@ -32,60 +32,41 @@ func (s *DocumentService) Close() {
 
 // 异步提交写入
 func (s *DocumentService) AddNoteTagDocs(ctx context.Context, tags []*searchv1.NoteTag) error {
-	tgs := make([]*index.NoteTag, 0, len(tags))
+	indexTags := make([]*index.NoteTag, 0, len(tags))
 	for _, t := range tags {
-		tgs = append(tgs, &index.NoteTag{
+		indexTags = append(indexTags, &index.NoteTag{
 			Id:    t.Id,
 			Name:  t.Name,
 			Ctime: t.Ctime,
 		})
 	}
 
-	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "bulk_add_note_tag_docs",
-		Job: func(newCtx context.Context) error {
-			// 借助pool来控制写入速度
-			errSubmit := s.pool.Submit(func() {
-				errExec := xslice.BatchExec(tags, 200, func(start, end int) error {
-					errAdd := infra.EsDao().NoteTagIndexer.BulkAdd(newCtx, tgs[start:end])
-					if errAdd != nil {
-						return errAdd
-					}
+	controllableExec(ctx, s.pool, indexTags, func(ctx context.Context, datas []*index.NoteTag) error {
+		err := infra.EsDao().NoteTagIndexer.BulkAdd(ctx, datas)
+		if err != nil {
+			xlog.Msg("document note tag add failed").Err(err).Errorx(ctx)
+			return err
+		}
 
-					return nil
-				})
-
-				if errExec != nil {
-					xlog.Msg("document note tag add failed").Err(errExec).Errorx(newCtx)
-				}
-			})
-
-			if errSubmit != nil {
-				xlog.Msg("document submit notetag add task failed").Err(errSubmit).Errorx(newCtx)
-				// fail
-				return errSubmit
-			}
-
-			return nil
-		},
+		return nil
 	})
 
 	return nil
 }
 
 func (s *DocumentService) AddNoteDocs(ctx context.Context, notes []*searchv1.Note) error {
-	nts := make([]*index.Note, 0, len(notes))
+	indexNotes := make([]*index.Note, 0, len(notes))
 	for _, n := range notes {
-		tgs := make([]*index.NoteTag, 0, len(n.GetTagList()))
+		indexTags := make([]*index.NoteTag, 0, len(n.GetTagList()))
 		for _, t := range n.GetTagList() {
-			tgs = append(tgs, &index.NoteTag{
+			indexTags = append(indexTags, &index.NoteTag{
 				Id:    t.Id,
 				Name:  t.Name,
 				Ctime: t.Ctime,
 			})
 		}
 
-		nts = append(nts, &index.Note{
+		indexNotes = append(indexNotes, &index.Note{
 			NoteId:   n.NoteId,
 			Title:    n.Title,
 			Desc:     n.Desc,
@@ -95,38 +76,68 @@ func (s *DocumentService) AddNoteDocs(ctx context.Context, notes []*searchv1.Not
 				Uid:      n.Author.Uid,
 				Nickname: n.Author.Nickname,
 			},
-			TagList: tgs,
+			TagList: indexTags,
 		})
 	}
 
+	controllableExec(ctx, s.pool, indexNotes, func(ctx context.Context, datas []*index.Note) error {
+		err := infra.EsDao().NoteIndexer.BulkAdd(ctx, datas)
+		if err != nil {
+			xlog.Msg("document note add failed").Err(err).Errorx(ctx)
+			return err
+		}
+
+		return nil
+	})
+
+	return nil
+}
+
+func (s *DocumentService) DeleteNoteDocs(ctx context.Context, ids []string) error {
+	controllableExec(ctx, s.pool, ids, func(ctx context.Context, datas []string) error {
+		err := infra.EsDao().NoteIndexer.BulkDelete(ctx, datas)
+		if err != nil {
+			xlog.Msg("document note delete failed").Err(err).Errorx(ctx)
+			return err
+		}
+
+		return nil
+	})
+
+	return nil
+}
+
+func controllableExec[T any](ctx context.Context,
+	pool *ants.Pool,
+	datas []T,
+	job func(ctx context.Context, datas []T) error) {
+
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "bulk_add_note_docs",
+		Name: "controllable_exec",
 		Job: func(newCtx context.Context) error {
 			// 借助pool来控制写入速度
-			errSubmit := s.pool.Submit(func() {
-				errExec := xslice.BatchExec(nts, 200, func(start, end int) error {
-					errAdd := infra.EsDao().NoteIndexer.BulkAdd(newCtx, nts[start:end])
-					if errAdd != nil {
-						return errAdd
+			errSubmit := pool.Submit(func() {
+				errExec := xslice.BatchExec(datas, 200, func(start, end int) error {
+					errJob := job(newCtx, datas[start:end])
+					if errJob != nil {
+						return errJob
 					}
 
 					return nil
 				})
 
 				if errExec != nil {
-					xlog.Msg("document note add failed").Err(errExec).Errorx(newCtx)
+					xlog.Msg("batch exec failed").Err(errExec).Errorx(newCtx)
 				}
 			})
 
 			if errSubmit != nil {
-				xlog.Msg("document submit note add task failed").Err(errSubmit).Errorx(newCtx)
-				// fail
+				xlog.Msg("pool submit failed").Err(errSubmit).Errorx(newCtx)
 				return errSubmit
 			}
 
 			return nil
+
 		},
 	})
-
-	return nil
 }

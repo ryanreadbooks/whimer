@@ -53,9 +53,11 @@ func (r CreateReqImageList) AsPb() []*notev1.CreateReqImage {
 type CreateReq struct {
 	Basic   CreateReqBasic     `json:"basic"`
 	Images  CreateReqImageList `json:"images"`
-	TagList []struct {         // 必须再包一层 直接用数组无法解析
-		Id model.TagId `json:"id"`
-	} `json:"tag_list,omitempty"`
+	TagList []TagId            `json:"tag_list,omitempty,optional"`
+}
+
+type TagId struct { // 必须再包一层 直接用数组无法解析
+	Id model.TagId `json:"id"`
 }
 
 func (r *CreateReq) Validate() error {

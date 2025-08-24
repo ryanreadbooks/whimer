@@ -12,6 +12,8 @@ service DocumentService {
   rpc BatchAddNoteTag(BatchAddNoteTagRequest) returns (BatchAddNoteTagResponse);
   // 批量写入笔记
   rpc BatchAddNote(BatchAddNoteRequest) returns (BatchAddNoteResponse);
+  // 批量删除笔记
+  rpc BatchDeleteNote(BatchDeleteNoteRequest) returns (BatchDeleteNoteResponse);
 }
 
 message BatchAddNoteTagRequest { repeated NoteTag note_tags = 1; }
@@ -21,3 +23,7 @@ message BatchAddNoteTagResponse {}
 message BatchAddNoteRequest { repeated Note notes = 1; }
 
 message BatchAddNoteResponse {}
+
+message BatchDeleteNoteRequest { repeated string ids = 1; }
+
+message BatchDeleteNoteResponse {}

@@ -23,7 +23,7 @@ type Note struct {
 	CreateAt int64      `json:"create_at"`
 	UpdateAt int64      `json:"update_at"`
 	Author   NoteAuthor `json:"author"`
-	TagList  []*NoteTag  `json:"tag_list"`
+	TagList  []*NoteTag `json:"tag_list"`
 }
 
 type NoteAuthor struct {
@@ -98,7 +98,11 @@ func (n *Note) GetId() string {
 }
 
 func fmtNoteDocId(n *Note) string {
-	return "note:" + n.NoteId
+	return fmtNoteDocIdString(n.NoteId)
+}
+
+func fmtNoteDocIdString(noteId string) string {
+	return "note:" + noteId
 }
 
 type NoteIndexer struct {
@@ -140,4 +144,13 @@ func (n *NoteIndexer) Init(ctx context.Context, opt *IndexerOption) error {
 // 批量添加文档
 func (n *NoteIndexer) BulkAdd(ctx context.Context, notes []*Note) error {
 	return doBulkCreate(ctx, n.es, notes)
+}
+
+// 批量删除文档
+func (n *NoteIndexer) BulkDelete(ctx context.Context, ids []string) error {
+	noteDocIds := make([]string, 0, len(ids))
+	for _, id := range ids {
+		noteDocIds = append(noteDocIds, fmtNoteDocIdString(id))
+	}
+	return doBulkDelete(ctx, n.es, _noteIns.Index(), noteDocIds)
 }

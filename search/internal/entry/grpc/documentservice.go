@@ -65,3 +65,25 @@ func (s *DocumentServiceServerImpl) BatchAddNote(ctx context.Context,
 
 	return resp, nil
 }
+
+func (s *DocumentServiceServerImpl) BatchDeleteNote(ctx context.Context,
+	in *searchv1.BatchDeleteNoteRequest) (*searchv1.BatchDeleteNoteResponse, error) {
+
+	var resp = &searchv1.BatchDeleteNoteResponse{}
+	if len(in.GetIds()) == 0 {
+		return resp, nil
+	}
+
+	for _, id := range in.GetIds() {
+		if len(id) == 0 {
+			return nil, xerror.ErrArgs.Msg("note ids contain empty note id")
+		}
+	}
+
+	err := s.svc.DocumentSrv.DeleteNoteDocs(ctx, in.GetIds())
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
