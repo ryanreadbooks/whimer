@@ -17,16 +17,15 @@ service SearchService {
 enum NoteFilterType {
   filter_sort_rule = 0; // 排序规则
   filter_note_type = 1; // 类型过滤规则: 笔记类型：图文/视频等
-  filter_note_time = 2; // 发布时间过滤规则: 笔记发布时间
+  filter_note_pubtime = 2; // 发布时间过滤规则: 笔记发布时间
 }
 
-message FilterValue { string value = 1; }
 
 // 笔记筛选过滤器
 message NoteFilter {
-  NoteFilterType type = 1;         // 过滤器类型
+  NoteFilterType type = 1; // 过滤器类型
   // 不同的filtertype支持不同的values
-  repeated FilterValue values = 2; // 过滤器的条件 多个则为与关系
+  string value = 2; // 过滤器的条件值
 }
 
 // 搜索笔记标签

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"time"
 
 	mg "github.com/ryanreadbooks/whimer/misc/generics"
 	xelasticanalyzer "github.com/ryanreadbooks/whimer/misc/xelastic/analyzer"
@@ -15,6 +16,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/dynamicmapping"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/fieldtype"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/operator"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/sortorder"
 	"github.com/vmihailenco/msgpack/v5"
 )
@@ -176,33 +178,71 @@ func (n *NoteIndexer) BulkDelete(ctx context.Context, ids []string) error {
 
 var (
 	// search querys
-	noteVisibilityMust = types.Query{
+	noteVisibilityFilter = types.Query{
 		Term: map[string]types.TermQuery{"visibility": {Value: pkg.VisibilityPublic}},
 	}
-	// note sort
-	noteSort = []types.SortCombinations{
-		types.SortOptions{
-			Score_: &types.ScoreSort{Order: &sortorder.Desc},
-		},
-		types.SortOptions{
-			SortOptions: map[string]types.FieldSort{
-				"update_at": {
-					Order:        &sortorder.Desc,
-					UnmappedType: &fieldtype.Date,
-				},
-			},
-		},
-		types.SortOptions{
-			SortOptions: map[string]types.FieldSort{
-				"note_id": {
-					Order: &sortorder.Desc,
-				},
-			},
-		},
-	}
+
 	// we only return note_id in note searching
 	noteSearchResultIncludes = types.SourceFilter{
 		Includes: []string{"note_id"},
+	}
+)
+
+// note search sort releated vars
+var (
+	noteDefaultSortByNoteId = types.SortOptions{
+		SortOptions: map[string]types.FieldSort{
+			"note_id": {
+				Order: &sortorder.Desc,
+			},
+		},
+	}
+
+	noteDefaultSortByScore = types.SortOptions{
+		Score_: &types.ScoreSort{Order: &sortorder.Desc},
+	}
+
+	noteDefaultSortByUpdateAt = types.SortOptions{
+		SortOptions: map[string]types.FieldSort{
+			"update_at": {
+				Order:        &sortorder.Desc,
+				UnmappedType: &fieldtype.Date,
+			},
+		},
+	}
+
+	noteDefaultSortByCreateAt = types.SortOptions{
+		SortOptions: map[string]types.FieldSort{
+			"create_at": {
+				Order:        &sortorder.Desc,
+				UnmappedType: &fieldtype.Date,
+			},
+		},
+	}
+
+	noteDefaultSortByLikesCount = types.SortOptions{
+		SortOptions: map[string]types.FieldSort{
+			"likes_count": {
+				Order:        &sortorder.Desc,
+				UnmappedType: &fieldtype.Long,
+			},
+		},
+	}
+
+	noteDefaultSortByCommentsCount = types.SortOptions{
+		SortOptions: map[string]types.FieldSort{
+			"comments_count": {
+				Order:        &sortorder.Desc,
+				UnmappedType: &fieldtype.Date,
+			},
+		},
+	}
+
+	// default note sort (sort by relevance)
+	noteDefaultSort = []types.SortCombinations{
+		noteDefaultSortByScore,
+		noteDefaultSortByUpdateAt,
+		noteDefaultSortByNoteId,
 	}
 )
 
@@ -221,7 +261,144 @@ type NoteIndexSearchResult struct {
 	HasNext   bool
 }
 
-func (n *NoteIndexer) Search(ctx context.Context, keyword, pageToken string, count int32) (*NoteIndexSearchResult, error) {
+type searchNoteOption struct {
+	sortBy         string
+	filterNoteType string
+	filterPubTime  string
+}
+
+// 排序规则
+func (o *searchNoteOption) sortRule() []types.SortCombinations {
+	switch o.sortBy {
+	case pkg.NoteFilterSortByRelevance:
+		return noteDefaultSort
+	case pkg.NoteFilterSortByNewest:
+		return []types.SortCombinations{
+			noteDefaultSortByCreateAt,
+			noteDefaultSortByNoteId,
+		}
+	case pkg.NoteFilterSortByLikes:
+		return []types.SortCombinations{
+			noteDefaultSortByLikesCount,
+			noteDefaultSortByUpdateAt,
+			noteDefaultSortByNoteId,
+		}
+	case pkg.NoteFilterSortByComments:
+		return []types.SortCombinations{
+			noteDefaultSortByCommentsCount,
+			noteDefaultSortByUpdateAt,
+			noteDefaultSortByNoteId,
+		}
+	}
+
+	return noteDefaultSort
+}
+
+func (searchNoteOption) assetTypeFilter(assetType string) types.Query {
+	return types.Query{
+		Terms: &types.TermsQuery{
+			TermsQuery: map[string]types.TermsQueryField{
+				"asset_type": []types.FieldValue{assetType},
+			},
+		},
+	}
+}
+
+func (o *searchNoteOption) filterRule() []types.Query {
+	filters := []types.Query{}
+	// note type filters
+	switch o.filterNoteType {
+	case pkg.NoteFilterNoteTypeImage:
+		filters = append(filters, o.assetTypeFilter(pkg.NoteFilterNoteTypeImage))
+	}
+
+	// note pub time filter
+	timeRange := int64(0)
+	now := time.Now()
+	switch o.filterPubTime {
+	case pkg.NoteFilterPubTimeInOneDay: // 1 day
+		timeRange = now.Add(-time.Hour * 24).Unix()
+	case pkg.NoteFilterPubTimeInOneWeek: // 7 days
+		timeRange = now.Add(-time.Hour * 24 * 7).Unix()
+	case pkg.NoteFilterPubTimeInHalfYear: // 180 days
+		timeRange = now.Add(-time.Hour * 24 * 30 * 6).Unix()
+	}
+	if timeRange > 0 {
+		filters = append(filters, types.Query{
+			Range: map[string]types.RangeQuery{
+				"create_at": types.NumberRangeQuery{
+					Gte: mg.Ptr(types.Float64(timeRange)),
+					Lte: mg.Ptr(types.Float64(now.Unix())),
+				},
+			},
+		})
+	}
+
+	return filters
+}
+
+type SearchNoteOption func(o *searchNoteOption)
+
+func newDefaultSearchNoteOption() *searchNoteOption {
+	return &searchNoteOption{
+		sortBy:         pkg.NoteFilterSortByRelevance,
+		filterNoteType: pkg.NoteFilterNoteTypeAll,
+		filterPubTime:  pkg.NoteFilterPubTimeAll,
+	}
+}
+
+func WithSearchNoteSortBy(sortBy string) SearchNoteOption {
+	return func(o *searchNoteOption) {
+		o.sortBy = sortBy
+	}
+}
+
+func WithSearchNoteSortByNewest() SearchNoteOption {
+	return WithSearchNoteSortBy(pkg.NoteFilterSortByNewest)
+}
+
+func WithSearchNoteSortByLikes() SearchNoteOption {
+	return WithSearchNoteSortBy(pkg.NoteFilterSortByLikes)
+}
+
+func WithSearchNoteSortByComments() SearchNoteOption {
+	return WithSearchNoteSortBy(pkg.NoteFilterSortByComments)
+}
+
+func WithSearchNoteFilterNoteType(s string) SearchNoteOption {
+	return func(o *searchNoteOption) {
+		o.filterNoteType = s
+	}
+}
+
+func WithSearchNoteImageOnly() SearchNoteOption {
+	return WithSearchNoteFilterNoteType(pkg.NoteFilterNoteTypeImage)
+}
+
+func WithSearchNotePubTime(s string) SearchNoteOption {
+	return func(o *searchNoteOption) {
+		o.filterPubTime = s
+	}
+}
+
+func WithSearchNotePubInOneDay() SearchNoteOption {
+	return WithSearchNotePubTime(pkg.NoteFilterPubTimeInOneDay)
+}
+
+func WithSearchNotePubInOneWeek() SearchNoteOption {
+	return WithSearchNotePubTime(pkg.NoteFilterPubTimeInOneWeek)
+}
+
+func WithSearchNotePubInHalfYear() SearchNoteOption {
+	return WithSearchNotePubTime(pkg.NoteFilterPubTimeInHalfYear)
+}
+
+func (n *NoteIndexer) Search(ctx context.Context, keyword, pageToken string, count int32, opts ...SearchNoteOption) (*NoteIndexSearchResult, error) {
+	opt := newDefaultSearchNoteOption()
+	for _, o := range opts {
+		o(opt)
+	}
+
 	// title related query
 	titleQuery := []types.Query{
 		{
@@ -235,8 +412,9 @@ func (n *NoteIndexer) Search(ctx context.Context, keyword, pageToken string, cou
 		{
 			Match: map[string]types.MatchQuery{
 				"title.ngram": {
-					Query: keyword,
-					Boost: mg.Ptr(noteTitleNgramBoost),
+					Query:    keyword,
+					Boost:    mg.Ptr(noteTitleNgramBoost),
+					Operator: &operator.And,
 				},
 			},
 		},
@@ -254,9 +432,8 @@ func (n *NoteIndexer) Search(ctx context.Context, keyword, pageToken string, cou
 		{
 			Match: map[string]types.MatchQuery{
 				"tag_list.name": {
-					Query:     keyword,
-					Boost:     mg.Ptr(noteTagListBoost),
-					Fuzziness: "AUTO",
+					Query: keyword,
+					Boost: mg.Ptr(noteTagListBoost),
 				},
 			},
 		},
@@ -266,6 +443,7 @@ func (n *NoteIndexer) Search(ctx context.Context, keyword, pageToken string, cou
 					Query:    keyword,
 					Boost:    mg.Ptr(noteTagListBoost),
 					Analyzer: mg.Ptr(CustomNgramAnalyzer),
+					Operator: &operator.And,
 				},
 			},
 		},
@@ -286,8 +464,11 @@ func (n *NoteIndexer) Search(ctx context.Context, keyword, pageToken string, cou
 	shouldQuery = append(shouldQuery, tagListQuery...)
 	shouldQuery = append(shouldQuery, authorQuery...)
 
+	filters := []types.Query{noteVisibilityFilter}
+	filters = append(filters, opt.filterRule()...)
+
 	boolQuery := types.BoolQuery{
-		Must:               []types.Query{noteVisibilityMust},
+		Filter:             filters,
 		Should:             shouldQuery,
 		MinimumShouldMatch: 1, // should中的条件至少要满足一个
 	}
@@ -297,7 +478,7 @@ func (n *NoteIndexer) Search(ctx context.Context, keyword, pageToken string, cou
 		Query(&types.Query{
 			Bool: &boolQuery,
 		}).
-		Sort(noteSort...).
+		Sort(opt.sortRule()...).
 		Source_(noteSearchResultIncludes).
 		TrackTotalHits(true).
 		Size(int(count))

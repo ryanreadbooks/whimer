@@ -67,7 +67,7 @@ func (s *SearchServiceServerImpl) SearchNotes(ctx context.Context, in *searchv1.
 		in.Count = maxCountPerPage
 	}
 
-	searchRes, err := s.svc.SearchSrv.SearchNotes(ctx, in.Keyword, in.PageToken, in.Count)
+	searchRes, err := s.svc.SearchSrv.SearchNotes(ctx, in)
 	if err != nil {
 		return nil, err
 	}
