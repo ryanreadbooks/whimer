@@ -6,6 +6,7 @@ require (
 	github.com/elastic/go-elasticsearch/v8 v8.19.0
 	github.com/panjf2000/ants/v2 v2.11.3
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
+	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/zeromicro/go-zero v1.8.5
 	go.opentelemetry.io/otel v1.28.0
 	google.golang.org/grpc v1.65.0
@@ -62,6 +63,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.47 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/zeromicro/go-queue v1.2.2 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.15 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.15 // indirect

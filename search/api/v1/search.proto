@@ -29,6 +29,7 @@ message NoteFilter {
   repeated FilterValue values = 2; // 过滤器的条件 多个则为与关系
 }
 
+// 搜索笔记标签
 message SearchNoteTagsRequest {
   string text = 1;
   int32 page = 2;
@@ -43,7 +44,7 @@ message SearchNoteTagsResponse {
 message SearchNotesRequest {
   string keyword = 1;
   repeated NoteFilter filters = 2;
-  string next_token = 3;
+  string page_token = 3;
   int32 count = 4;
 }
 

@@ -15,3 +15,7 @@ func (s *SearchService) SearchNoteTags(ctx context.Context, text string, page, c
 	// 限制只能拿第一页的30条数据
 	return infra.EsDao().NoteTagIndexer.Search(ctx, text, 1, 30)
 }
+
+func (s *SearchService) SearchNotes(ctx context.Context, keyword, pageToken string, count int32) (*index.NoteIndexSearchResult, error) {
+	return infra.EsDao().NoteIndexer.Search(ctx, keyword, pageToken, count)
+}

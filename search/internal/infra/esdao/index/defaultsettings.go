@@ -17,21 +17,29 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/tokenchar"
 )
 
+const (
+	CustomCleanNormalizer    = "cust_clean_normalizer"
+	CustomEdgeNgramTokenizer = "cust_edge_ngram_tokenizer"
+	CustomNgramTokenizer     = "cust_ngram_tokenizer"
+	CustomPrefixAnalyzer     = "cust_prefix_analyzer"
+	CustomNgramAnalyzer      = "cust_ngram_analyzer"
+)
+
 func defaultSettings(opt *IndexerOption) *types.IndexSettings {
 	return &types.IndexSettings{
 		MaxNgramDiff: mg.Ptr(5),
 		Analysis: &types.IndexSettingsAnalysis{
 			// 自定义normalizer和tokenizer和analyzer
 			Normalizer: map[string]types.Normalizer{
-				"cust_clean_normalizer": xnormalizer.NewCleanNormalizer(),
+				CustomCleanNormalizer: xnormalizer.NewCleanNormalizer(),
 			},
 			Tokenizer: map[string]types.Tokenizer{
-				"cust_edge_ngram_tokenizer": &types.EdgeNGramTokenizer{
+				CustomEdgeNgramTokenizer: &types.EdgeNGramTokenizer{
 					MinGram:    mg.Ptr(2),
 					MaxGram:    mg.Ptr(7),
 					TokenChars: []tokenchar.TokenChar{tokenchar.Letter, tokenchar.Digit},
 				},
-				"cust_ngram_tokenizer": &types.NGramTokenizer{
+				CustomNgramTokenizer: &types.NGramTokenizer{
 					MinGram:    mg.Ptr(2),
 					MaxGram:    mg.Ptr(7),
 					TokenChars: []tokenchar.TokenChar{tokenchar.Letter, tokenchar.Digit},
@@ -39,15 +47,15 @@ func defaultSettings(opt *IndexerOption) *types.IndexSettings {
 			},
 			Analyzer: map[string]types.Analyzer{
 				"default": xelasticanalyzer.NewIkMaxWordAnalyzer(), // 指定默认analyzer
-				"cust_prefix_analyzer": &types.CustomAnalyzer{
+				CustomPrefixAnalyzer: &types.CustomAnalyzer{
 					CharFilter: []string{"html_strip"},
 					Filter:     []string{"lowercase", "asciifolding", "trim"},
-					Tokenizer:  "cust_edge_ngram_tokenizer",
+					Tokenizer:  CustomEdgeNgramTokenizer,
 				},
-				"cust_ngram_analyzer": &types.CustomAnalyzer{
+				CustomNgramAnalyzer: &types.CustomAnalyzer{
 					CharFilter: []string{"html_strip"},
 					Filter:     []string{"lowercase", "asciifolding", "trim"},
-					Tokenizer:  "cust_ngram_tokenizer",
+					Tokenizer:  CustomNgramTokenizer,
 				},
 			},
 		},

@@ -89,7 +89,6 @@ func (h *Handler) creatorUnSyncNoteToSearcher(ctx context.Context, noteId int64)
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
 		Name: fmt.Sprintf("creator_unsync_note_%d", noteId),
 		Job: func(ctx context.Context) error {
-			// 1. fetch first
 			_, err := infra.DocumentServer().BatchDeleteNote(ctx, &searchv1.BatchDeleteNoteRequest{
 				Ids: []string{model.NoteId(noteId).String()},
 			})
