@@ -117,3 +117,14 @@ func Repeat[T any](v T, n int) []T {
 
 	return r
 }
+
+// filter func returns true means discarding current value
+func Filter[V any, T ~[]V](t T, filter func(idx int, v V) bool) T {
+	dest := make(T, 0, len(t))
+	for idx, v := range t {
+		if !filter(idx, v) { // got included
+			dest = append(dest, v)
+		}
+	}
+	return dest
+}

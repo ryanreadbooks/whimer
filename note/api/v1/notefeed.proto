@@ -73,13 +73,15 @@ message ListFeedByUidResponse {
   bool has_next = 3;
 }
 
-message GetTagInfoRequest {
-  int64 id = 1;
+message GetTagInfoRequest { int64 id = 1; }
+
+message GetTagInfoResponse { NoteTag tag = 1; }
+
+message BatchGetFeedNotesRequest {
+  repeated int64 note_ids = 1 [ (buf.validate.field).repeated.max_items = 30 ];
 }
 
-message GetTagInfoResponse {
-  NoteTag tag = 1;
-}
+message BatchGetFeedNotesResponse { map<int64, GetFeedNoteResponse> result = 1; }
 
 // note相关非管理功能服务
 service NoteFeedService {
@@ -87,6 +89,9 @@ service NoteFeedService {
   rpc RandomGet(RandomGetRequest) returns (RandomGetResponse);
   // 获取笔记
   rpc GetFeedNote(GetFeedNoteRequest) returns (GetFeedNoteResponse);
+  // 批量获取笔记
+  rpc BatchGetFeedNotes(BatchGetFeedNotesRequest)
+      returns (BatchGetFeedNotesResponse);
   // 按照推荐获取
   rpc RecommendGet(RecommendGetRequest) returns (RecommendGetResponse);
   // 获取指定用户的最近的笔记内容

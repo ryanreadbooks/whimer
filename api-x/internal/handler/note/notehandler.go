@@ -241,9 +241,9 @@ func (h *Handler) AddNewTag() http.HandlerFunc {
 }
 
 // 搜索笔记标签
-func (h *Handler) SearchTag() http.HandlerFunc {
+func (h *Handler) SearchTags() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[SearchTagReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[SearchTagsReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

@@ -313,22 +313,22 @@ func (o *searchNoteOption) filterRule() []types.Query {
 	}
 
 	// note pub time filter
-	timeRange := int64(0)
-	now := time.Now()
+	startAt := int64(0)
+	endAt := time.Now()
 	switch o.filterPubTime {
 	case pkg.NoteFilterPubTimeInOneDay: // 1 day
-		timeRange = now.Add(-time.Hour * 24).Unix()
+		startAt = endAt.Add(-time.Hour * 24).Unix()
 	case pkg.NoteFilterPubTimeInOneWeek: // 7 days
-		timeRange = now.Add(-time.Hour * 24 * 7).Unix()
+		startAt = endAt.Add(-time.Hour * 24 * 7).Unix()
 	case pkg.NoteFilterPubTimeInHalfYear: // 180 days
-		timeRange = now.Add(-time.Hour * 24 * 30 * 6).Unix()
+		startAt = endAt.Add(-time.Hour * 24 * 30 * 6).Unix()
 	}
-	if timeRange > 0 {
+	if startAt > 0 {
 		filters = append(filters, types.Query{
 			Range: map[string]types.RangeQuery{
 				"create_at": types.NumberRangeQuery{
-					Gte: mg.Ptr(types.Float64(timeRange)),
-					Lte: mg.Ptr(types.Float64(now.Unix())),
+					Gte: mg.Ptr(types.Float64(startAt)),
+					Lte: mg.Ptr(types.Float64(endAt.Unix())),
 				},
 			},
 		})

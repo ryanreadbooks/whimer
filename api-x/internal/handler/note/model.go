@@ -333,11 +333,11 @@ type AddTagRes struct {
 	TagId model.TagId `json:"tag_id"`
 }
 
-type SearchTagReq struct {
+type SearchTagsReq struct {
 	Name string `json:"name"`
 }
 
-func (r *SearchTagReq) Validate() error {
+func (r *SearchTagsReq) Validate() error {
 	if r == nil {
 		return xerror.ErrNilArg
 	}
@@ -359,6 +359,6 @@ type SearchedNoteTag struct {
 	Name string `json:"name"`
 }
 
-type SearchTagRes struct {
+type SearchTagsRes struct {
 	Items []SearchedNoteTag `json:"items"`
 }

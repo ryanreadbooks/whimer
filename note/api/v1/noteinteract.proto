@@ -46,8 +46,8 @@ message NoteInteraction {
 
 message NoteIdList {
   repeated int64 note_ids = 1 [
-    (buf.validate.field).repeated .min_items = 1,
-    (buf.validate.field).repeated .max_items = 50
+    (buf.validate.field).repeated.min_items = 1,
+    (buf.validate.field).repeated.max_items = 50
   ];
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/misc/xmap"
 	maps "github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
@@ -108,7 +109,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 	return result, nil
 }
 
-// 获取笔记详情
+// 获取笔记详情 不包含private范围的笔记
 func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId int64) (*model.Note, error) {
 	var (
 		uid = metadata.Uid(ctx)
@@ -135,6 +136,39 @@ func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId int64) (*model.N
 	res, _ = s.noteInteractBiz.AssignNoteReplies(ctx, res)
 
 	return res.Items[0], nil
+}
+
+// 批量获取笔记详情 不包含private范围的笔记
+func (s *NoteFeedSrv) BatchGetNoteDetail(ctx context.Context, noteIds []int64) (map[int64]*model.Note, error) {
+	notes, err := s.noteBiz.BatchGetNote(ctx, noteIds)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "batch get note failed").WithCtx(ctx)
+	}
+
+	if len(notes) == 0 {
+		return map[int64]*model.Note{}, nil
+	}
+
+	// 过滤掉private的笔记
+	pNotes := xmap.Filter(notes, func(k int64, v *model.Note) bool {
+		return v.Privacy == global.PrivacyPrivate
+	})
+
+	nns := &model.Notes{Items: xmap.Values(pNotes)}
+	err = s.noteBiz.AssembleNotesExt(ctx, nns.Items)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "assemble notes ext failed").WithCtx(ctx)
+	}
+
+	nns, _ = s.noteInteractBiz.AssignNoteLikes(ctx, nns)
+	nns, _ = s.noteInteractBiz.AssignNoteReplies(ctx, nns)
+
+	resp := make(map[int64]*model.Note, len(nns.Items))
+	for _, n := range nns.Items {
+		resp[n.NoteId] = n
+	}
+
+	return resp, nil
 }
 
 // 获取用户最近发布的笔记

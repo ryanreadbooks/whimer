@@ -8,25 +8,27 @@ import (
 	"github.com/zeromicro/go-zero/rest"
 )
 
-func RegX(engine *rest.Server, svc *handler.Handler) {
+func RegX(engine *rest.Server, h *handler.Handler) {
 	root := xhttp.NewRouterGroup(engine)
 	xGroup := root.Group("/x")
 
 	// register all routes
 	// note routes
-	regNoteRoutes(xGroup, svc)
+	regNoteRoutes(xGroup, h)
 	// comment routes
-	regCommentRoutes(xGroup, svc)
-	regProfileRoutes(xGroup, svc)
+	regCommentRoutes(xGroup, h)
+	regProfileRoutes(xGroup, h)
 	// relation routes
-	regRelationRoutes(xGroup, svc)
-	regChatRoutes(xGroup, svc)
-	regUserRoutes(xGroup, svc)
+	regRelationRoutes(xGroup, h)
+	regChatRoutes(xGroup, h)
+	regUserRoutes(xGroup, h)
 
 	// feed routes
-	regFeedRoutes(xGroup, svc)
+	regFeedRoutes(xGroup, h)
+	// search routes
+	regSearchRoutes(xGroup, h)
 
-	mod := svc.Config.Http.Mode
+	mod := h.Config.Http.Mode
 	if mod == zeroservice.DevMode || mod == zeroservice.TestMode {
 		engine.PrintRoutes()
 	}

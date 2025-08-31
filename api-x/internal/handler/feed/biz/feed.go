@@ -11,8 +11,8 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	maps "github.com/ryanreadbooks/whimer/misc/xmap"
-	slices "github.com/ryanreadbooks/whimer/misc/xslice"
+	"github.com/ryanreadbooks/whimer/misc/xmap"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
@@ -162,7 +162,7 @@ func (b *FeedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.Fe
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
-	authorUids := slices.Uniq(maps.Keys(authors))
+	authorUids := xslice.Uniq(xmap.Keys(authors))
 	// 2. 获取各篇笔记的作者信息
 	eg.Go(func() error {
 		return recovery.Do(func() error {
@@ -284,6 +284,46 @@ func (b *FeedBiz) GetNote(ctx context.Context, noteId int64) (*model.FullFeedNot
 		FeedNoteItem: feeds[0],
 		TagList:      imodel.NoteTagsFromPbs(resp.GetExt().GetTags()),
 	}, nil
+}
+
+func (b *FeedBiz) BatchGetNote(ctx context.Context, noteIds []int64) ([]*model.FeedNoteItem, error) {
+	noteResp, err := infra.NoteFeedServer().BatchGetFeedNotes(ctx, &notev1.BatchGetFeedNotesRequest{
+		NoteIds: noteIds,
+	})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "feed biz batch get note failed").WithCtx(ctx)
+	}
+
+	responses := noteResp.GetResult()
+	notes := make([]*notev1.FeedNoteItem, 0, len(responses))
+	for _, r := range responses {
+		notes = append(notes, r.Item)
+	}
+
+	if len(notes) == 0 {
+		return []*model.FeedNoteItem{}, nil
+	}
+
+	feeds, err := b.assembleNoteFeedReturn(ctx, notes)
+	if err != nil {
+		return nil, err
+	}
+
+	feedsMap := xslice.MakeMap(feeds, func(v *model.FeedNoteItem) int64 { return int64(v.NoteId) })
+
+	// 需要确保顺序
+	ret := make([]*model.FeedNoteItem, len(noteIds))
+	for idx, noteId := range noteIds {
+		if n, ok := feedsMap[noteId]; ok {
+			ret[idx] = n
+		} else {
+			ret[idx] = nil
+		}
+	}
+
+	filtered := xslice.Filter(ret, func(_ int, v *model.FeedNoteItem) bool { return v == nil })
+
+	return filtered, nil
 }
 
 func (b *FeedBiz) ListNotesByUser(ctx context.Context, uid int64, cursor int64, count int) ([]*model.FeedNoteItem,

@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	NoteFeedService_RandomGet_FullMethodName         = "/note.api.v1.NoteFeedService/RandomGet"
 	NoteFeedService_GetFeedNote_FullMethodName       = "/note.api.v1.NoteFeedService/GetFeedNote"
+	NoteFeedService_BatchGetFeedNotes_FullMethodName = "/note.api.v1.NoteFeedService/BatchGetFeedNotes"
 	NoteFeedService_RecommendGet_FullMethodName      = "/note.api.v1.NoteFeedService/RecommendGet"
 	NoteFeedService_GetUserRecentPost_FullMethodName = "/note.api.v1.NoteFeedService/GetUserRecentPost"
 	NoteFeedService_ListFeedByUid_FullMethodName     = "/note.api.v1.NoteFeedService/ListFeedByUid"
@@ -37,6 +38,8 @@ type NoteFeedServiceClient interface {
 	RandomGet(ctx context.Context, in *RandomGetRequest, opts ...grpc.CallOption) (*RandomGetResponse, error)
 	// 获取笔记
 	GetFeedNote(ctx context.Context, in *GetFeedNoteRequest, opts ...grpc.CallOption) (*GetFeedNoteResponse, error)
+	// 批量获取笔记
+	BatchGetFeedNotes(ctx context.Context, in *BatchGetFeedNotesRequest, opts ...grpc.CallOption) (*BatchGetFeedNotesResponse, error)
 	// 按照推荐获取
 	RecommendGet(ctx context.Context, in *RecommendGetRequest, opts ...grpc.CallOption) (*RecommendGetResponse, error)
 	// 获取指定用户的最近的笔记内容
@@ -69,6 +72,16 @@ func (c *noteFeedServiceClient) GetFeedNote(ctx context.Context, in *GetFeedNote
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetFeedNoteResponse)
 	err := c.cc.Invoke(ctx, NoteFeedService_GetFeedNote_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *noteFeedServiceClient) BatchGetFeedNotes(ctx context.Context, in *BatchGetFeedNotesRequest, opts ...grpc.CallOption) (*BatchGetFeedNotesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetFeedNotesResponse)
+	err := c.cc.Invoke(ctx, NoteFeedService_BatchGetFeedNotes_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +138,8 @@ type NoteFeedServiceServer interface {
 	RandomGet(context.Context, *RandomGetRequest) (*RandomGetResponse, error)
 	// 获取笔记
 	GetFeedNote(context.Context, *GetFeedNoteRequest) (*GetFeedNoteResponse, error)
+	// 批量获取笔记
+	BatchGetFeedNotes(context.Context, *BatchGetFeedNotesRequest) (*BatchGetFeedNotesResponse, error)
 	// 按照推荐获取
 	RecommendGet(context.Context, *RecommendGetRequest) (*RecommendGetResponse, error)
 	// 获取指定用户的最近的笔记内容
@@ -148,6 +163,9 @@ func (UnimplementedNoteFeedServiceServer) RandomGet(context.Context, *RandomGetR
 }
 func (UnimplementedNoteFeedServiceServer) GetFeedNote(context.Context, *GetFeedNoteRequest) (*GetFeedNoteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFeedNote not implemented")
+}
+func (UnimplementedNoteFeedServiceServer) BatchGetFeedNotes(context.Context, *BatchGetFeedNotesRequest) (*BatchGetFeedNotesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchGetFeedNotes not implemented")
 }
 func (UnimplementedNoteFeedServiceServer) RecommendGet(context.Context, *RecommendGetRequest) (*RecommendGetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RecommendGet not implemented")
@@ -214,6 +232,24 @@ func _NoteFeedService_GetFeedNote_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(NoteFeedServiceServer).GetFeedNote(ctx, req.(*GetFeedNoteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NoteFeedService_BatchGetFeedNotes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetFeedNotesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteFeedServiceServer).BatchGetFeedNotes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteFeedService_BatchGetFeedNotes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteFeedServiceServer).BatchGetFeedNotes(ctx, req.(*BatchGetFeedNotesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -304,6 +340,10 @@ var NoteFeedService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetFeedNote",
 			Handler:    _NoteFeedService_GetFeedNote_Handler,
+		},
+		{
+			MethodName: "BatchGetFeedNotes",
+			Handler:    _NoteFeedService_BatchGetFeedNotes_Handler,
 		},
 		{
 			MethodName: "RecommendGet",
