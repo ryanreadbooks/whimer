@@ -2,14 +2,19 @@ package srv
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 	"github.com/ryanreadbooks/whimer/search/internal/infra"
 	"github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index"
+	"github.com/ryanreadbooks/whimer/search/internal/infra/kafkadao"
 	"github.com/ryanreadbooks/whimer/search/pkg"
+	"github.com/segmentio/kafka-go"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/panjf2000/ants/v2"
 )
@@ -56,6 +61,11 @@ func (s *DocumentService) AddNoteTagDocs(ctx context.Context, tags []*searchv1.N
 }
 
 func (s *DocumentService) AddNoteDocs(ctx context.Context, notes []*searchv1.Note) error {
+	// 异步写入kafka等待消费
+	return infra.KafkaDao().NoteEventProducer.PutNoteAddEvent(ctx, notes)
+}
+
+func (s *DocumentService) handleNoteAddEvent(ctx context.Context, notes []*searchv1.Note) error {
 	indexNotes := make([]*index.Note, 0, len(notes))
 	for _, n := range notes {
 		indexTags := make([]*index.NoteTag, 0, len(n.GetTagList()))
@@ -83,29 +93,25 @@ func (s *DocumentService) AddNoteDocs(ctx context.Context, notes []*searchv1.Not
 		})
 	}
 
-	controllableExec(ctx, s.pool, indexNotes, func(ctx context.Context, datas []*index.Note) error {
-		err := infra.EsDao().NoteIndexer.BulkAdd(ctx, datas)
-		if err != nil {
-			xlog.Msg("document note add failed").Err(err).Errorx(ctx)
-			return err
-		}
-
-		return nil
-	})
+	err := infra.EsDao().NoteIndexer.BulkAdd(ctx, indexNotes)
+	if err != nil {
+		xlog.Msg("document note add failed").Err(err).Errorx(ctx)
+		return err
+	}
 
 	return nil
 }
 
 func (s *DocumentService) DeleteNoteDocs(ctx context.Context, ids []string) error {
-	controllableExec(ctx, s.pool, ids, func(ctx context.Context, datas []string) error {
-		err := infra.EsDao().NoteIndexer.BulkDelete(ctx, datas)
-		if err != nil {
-			xlog.Msg("document note delete failed").Err(err).Errorx(ctx)
-			return err
-		}
+	return infra.KafkaDao().NoteEventProducer.PutNoteDeleteEvent(ctx, ids)
+}
 
-		return nil
-	})
+func (s *DocumentService) handleNoteDeleteEvent(ctx context.Context, ids []string) error {
+	err := infra.EsDao().NoteIndexer.BulkDelete(ctx, ids)
+	if err != nil {
+		xlog.Msg("document note delete failed").Err(err).Errorx(ctx)
+		return err
+	}
 
 	return nil
 }
@@ -143,4 +149,41 @@ func controllableExec[T any](ctx context.Context,
 
 		},
 	})
+}
+
+// 分发消息处理
+// TODO 区分error的类型 有些error是不可恢复的
+func (s *DocumentService) DispatchNoteEvent(ctx context.Context, m *kafka.Message) error {
+	var ev kafkadao.NoteEvent
+	err := json.Unmarshal(m.Value, &ev)
+	if err != nil {
+		return xerror.Wrapf(err, "dispatch json unmarshal msg failed").WithCtx(ctx)
+	}
+	switch ev.Type {
+	case kafkadao.NoteAddEvent:
+		var req searchv1.Note
+		err = protojson.Unmarshal(ev.Payload, &req)
+		if err != nil {
+			return xerror.Wrapf(err, "dispatch protojson unmarshal add event payload failed").WithCtx(ctx)
+		}
+
+		err = s.handleNoteAddEvent(ctx, []*searchv1.Note{&req})
+		if err != nil {
+			return xerror.Wrapf(err, "dispatch handle note add event failed").WithCtx(ctx)
+		}
+	case kafkadao.NoteDeleteEvent:
+		var noteId string
+		err = json.Unmarshal(ev.Payload, &noteId)
+		if err != nil {
+			return xerror.Wrapf(err, "dispatch json unmarshal delete event payload failed").WithCtx(ctx)
+		}
+		err = s.handleNoteDeleteEvent(ctx, []string{noteId})
+		if err != nil {
+			return xerror.Wrapf(err, "dispatch handle note delete event failed").WithCtx(ctx)
+		}
+	default:
+		return xerror.Wrap(xerror.ErrArgs.Msg("unsupported note event types")).WithCtx(ctx)
+	}
+
+	return nil
 }

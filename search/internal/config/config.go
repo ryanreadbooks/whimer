@@ -15,6 +15,12 @@ type Config struct {
 		NoteTag Index `json:"note_tag"`
 		Note    Index `json:"note"`
 	} `json:"indices"`
+
+	Kafka struct {
+		Brokers  string `json:"brokers"` // comma seperated addresses
+		Username string `json:"username"`
+		Password string `json:"password"`
+	} `json:"kafka"`
 }
 
 type ElasticSearch struct {

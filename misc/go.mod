@@ -12,6 +12,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0
 	github.com/minio/minio-go/v7 v7.0.72
 	github.com/ryanreadbooks/folium v0.1.3
+	github.com/segmentio/kafka-go v0.4.47
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/speps/go-hashids/v2 v2.0.1
 	github.com/zeromicro/go-queue v1.2.2
@@ -85,7 +86,6 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/redis/go-redis/v9 v9.7.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
-	github.com/segmentio/kafka-go v0.4.47 // indirect
 	github.com/smarty/assertions v1.15.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
