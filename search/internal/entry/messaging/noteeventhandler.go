@@ -3,10 +3,10 @@ package messaging
 import (
 	"context"
 
-	"github.com/ryanreadbooks/whimer/misc/concurrent"
-	xkafka "github.com/ryanreadbooks/whimer/misc/xkq/kafka"
-	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/search/internal/srv"
+
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 )
 
 func startHandlingNoteEvents(svc *srv.Service) {
@@ -14,21 +14,17 @@ func startHandlingNoteEvents(svc *srv.Service) {
 	concurrent.SafeGo(func() {
 		xlog.Msg("start handling note events").Info()
 		for {
-			// TODO 优化为批量读入FetchMessage再写入es 达到一定数量或者到了一定时间触发写入es
-			m, err := noteEventReader.FetchMessage(ctx)
+			msgs, err := noteEventBatchReader.BatchFetchMessages(ctx)
 			if err != nil {
 				xlog.Msg("when handling note events, fetch message failed").Err(err).Error()
 				break
 			}
 
-			// we got message
-			ctx := xkafka.ContextFromKafkaHeaders(m.Headers)
-			// start handling
-			err = svc.DocumentSrv.DispatchNoteEvent(ctx, &m)
+			err = svc.DocumentSrv.DispatchNoteEvents(ctx, msgs)
 			if err != nil {
-				xlog.Msg("handle note event failed").Err(err).Errorx(ctx)
+				xlog.Msg("handle note events failed").Err(err).Errorx(ctx)
 			}
-			err = noteEventReader.CommitMessages(ctx, m)
+			err = noteEventBatchReader.CommitMessages(ctx, msgs...)
 			if err != nil {
 				xlog.Msg("handle note commit messages failed").Err(err).Errorx(ctx)
 			}

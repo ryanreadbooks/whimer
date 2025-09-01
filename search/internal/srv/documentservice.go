@@ -3,6 +3,8 @@ package srv
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -65,55 +67,34 @@ func (s *DocumentService) AddNoteDocs(ctx context.Context, notes []*searchv1.Not
 	return infra.KafkaDao().NoteEventProducer.PutNoteAddEvent(ctx, notes)
 }
 
-func (s *DocumentService) handleNoteAddEvent(ctx context.Context, notes []*searchv1.Note) error {
-	indexNotes := make([]*index.Note, 0, len(notes))
-	for _, n := range notes {
-		indexTags := make([]*index.NoteTag, 0, len(n.GetTagList()))
-		for _, t := range n.GetTagList() {
-			indexTags = append(indexTags, &index.NoteTag{
-				Id:    t.Id,
-				Name:  t.Name,
-				Ctime: t.Ctime,
-			})
-		}
-
-		indexNotes = append(indexNotes, &index.Note{
-			NoteId:   n.NoteId,
-			Title:    n.Title,
-			Desc:     n.Desc,
-			CreateAt: n.CreateAt,
-			UpdateAt: n.UpdateAt,
-			Author: index.NoteAuthor{
-				Uid:      n.Author.Uid,
-				Nickname: n.Author.Nickname,
-			},
-			TagList:    indexTags,
-			AssetType:  pkg.NoteAssetConverter[n.GetAssetType()],
-			Visibility: pkg.NoteVisibilityConverter[n.GetVisibility()],
+func makeIndexNote(n *searchv1.Note) *index.Note {
+	indexTags := make([]*index.NoteTag, 0, len(n.GetTagList()))
+	for _, t := range n.GetTagList() {
+		indexTags = append(indexTags, &index.NoteTag{
+			Id:    t.Id,
+			Name:  t.Name,
+			Ctime: t.Ctime,
 		})
 	}
 
-	err := infra.EsDao().NoteIndexer.BulkAdd(ctx, indexNotes)
-	if err != nil {
-		xlog.Msg("document note add failed").Err(err).Errorx(ctx)
-		return err
+	return &index.Note{
+		NoteId:   n.NoteId,
+		Title:    n.Title,
+		Desc:     n.Desc,
+		CreateAt: n.CreateAt,
+		UpdateAt: n.UpdateAt,
+		Author: index.NoteAuthor{
+			Uid:      n.Author.Uid,
+			Nickname: n.Author.Nickname,
+		},
+		TagList:    indexTags,
+		AssetType:  pkg.NoteAssetConverter[n.GetAssetType()],
+		Visibility: pkg.NoteVisibilityConverter[n.GetVisibility()],
 	}
-
-	return nil
 }
 
 func (s *DocumentService) DeleteNoteDocs(ctx context.Context, ids []string) error {
 	return infra.KafkaDao().NoteEventProducer.PutNoteDeleteEvent(ctx, ids)
-}
-
-func (s *DocumentService) handleNoteDeleteEvent(ctx context.Context, ids []string) error {
-	err := infra.EsDao().NoteIndexer.BulkDelete(ctx, ids)
-	if err != nil {
-		xlog.Msg("document note delete failed").Err(err).Errorx(ctx)
-		return err
-	}
-
-	return nil
 }
 
 func controllableExec[T any](ctx context.Context,
@@ -151,38 +132,58 @@ func controllableExec[T any](ctx context.Context,
 	})
 }
 
-// 分发消息处理
-// TODO 区分error的类型 有些error是不可恢复的
-func (s *DocumentService) DispatchNoteEvent(ctx context.Context, m *kafka.Message) error {
-	var ev kafkadao.NoteEvent
-	err := json.Unmarshal(m.Value, &ev)
-	if err != nil {
-		return xerror.Wrapf(err, "dispatch json unmarshal msg failed").WithCtx(ctx)
-	}
-	switch ev.Type {
-	case kafkadao.NoteAddEvent:
-		var req searchv1.Note
-		err = protojson.Unmarshal(ev.Payload, &req)
+// 批量处理kafka消息
+//
+// 此处主要就是将批量的kafka通过es的bulk批量写入
+func (s *DocumentService) DispatchNoteEvents(ctx context.Context, msgs []kafka.Message) error {
+	var (
+		errs     []error
+		bulkReqs []index.NoteAction
+	)
+
+	xlog.Msgf("doc service dispatch note events handling %d msgs", len(msgs)).Infox(ctx)
+	for _, msg := range msgs {
+		var ev kafkadao.NoteEvent
+		err := json.Unmarshal(msg.Value, &ev)
 		if err != nil {
-			return xerror.Wrapf(err, "dispatch protojson unmarshal add event payload failed").WithCtx(ctx)
+			errs = append(errs, err)
+			continue
 		}
 
-		err = s.handleNoteAddEvent(ctx, []*searchv1.Note{&req})
-		if err != nil {
-			return xerror.Wrapf(err, "dispatch handle note add event failed").WithCtx(ctx)
+		switch ev.Type {
+		case kafkadao.NoteAddEvent:
+			var req searchv1.Note
+			err = protojson.Unmarshal(ev.Payload, &req)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("protojson unmarshal: %w", err))
+				continue
+			}
+
+			bulkReqs = append(bulkReqs, index.NewNoteCreateAction(makeIndexNote(&req)))
+		case kafkadao.NoteDeleteEvent:
+			var noteId string
+			err = json.Unmarshal(ev.Payload, &noteId)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("json unmarshal: %w", err))
+				continue
+			}
+
+			bulkReqs = append(bulkReqs, index.NewNoteDeleteAction(noteId))
+		default:
+			return xerror.Wrap(xerror.ErrArgs.Msg("unsupported note event types")).WithCtx(ctx)
+
 		}
-	case kafkadao.NoteDeleteEvent:
-		var noteId string
-		err = json.Unmarshal(ev.Payload, &noteId)
+	}
+
+	if len(errs) != 0 {
+		xlog.Msg("doc service dispatch note events err").Err(errors.Join(errs...)).Errorx(ctx)
+	}
+
+	if len(bulkReqs) > 0 {
+		err := infra.EsDao().NoteIndexer.BulkRequest(ctx, bulkReqs)
 		if err != nil {
-			return xerror.Wrapf(err, "dispatch json unmarshal delete event payload failed").WithCtx(ctx)
+			return xerror.Wrapf(err, "doc service note indexer bulk failed").WithCtx(ctx)
 		}
-		err = s.handleNoteDeleteEvent(ctx, []string{noteId})
-		if err != nil {
-			return xerror.Wrapf(err, "dispatch handle note delete event failed").WithCtx(ctx)
-		}
-	default:
-		return xerror.Wrap(xerror.ErrArgs.Msg("unsupported note event types")).WithCtx(ctx)
 	}
 
 	return nil

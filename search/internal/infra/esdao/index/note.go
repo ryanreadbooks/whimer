@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	mg "github.com/ryanreadbooks/whimer/misc/generics"
@@ -157,6 +158,101 @@ func (n *NoteIndexer) Init(ctx context.Context, opt *IndexerOption) error {
 		}
 
 		return xelaserror.Convert(err)
+	}
+
+	return nil
+}
+
+type BulkActionType int8
+
+const (
+	ActionCreate BulkActionType = 1
+	ActionDelete BulkActionType = 2
+	ActionUpdate BulkActionType = 3
+)
+
+type NoteAction interface {
+	Type() BulkActionType
+	GetDocId() string
+	GetDoc() (any, error)
+}
+
+type noteCreateActionImpl struct {
+	data *Note
+}
+
+func (n *noteCreateActionImpl) Type() BulkActionType { return ActionCreate }
+
+func (n *noteCreateActionImpl) GetDoc() (any, error) {
+	return json.Marshal(n.data)
+}
+
+func (n *noteCreateActionImpl) GetDocId() string { return n.data.GetId() }
+
+func NewNoteCreateAction(n *Note) *noteCreateActionImpl {
+	ac := noteCreateActionImpl{
+		data: n,
+	}
+
+	return &ac
+}
+
+type noteDeleteActionImpl struct {
+	noteId string
+}
+
+func (n *noteDeleteActionImpl) Type() BulkActionType { return ActionDelete }
+
+func (n *noteDeleteActionImpl) GetDoc() (any, error) { return nil, fmt.Errorf("nil doc") }
+
+func (n *noteDeleteActionImpl) GetDocId() string {
+	return fmtNoteDocIdString(n.noteId)
+}
+
+func NewNoteDeleteAction(noteId string) *noteDeleteActionImpl {
+	return &noteDeleteActionImpl{noteId: noteId}
+}
+
+func (n *NoteIndexer) BulkRequest(ctx context.Context, reqs []NoteAction) error {
+	if len(reqs) == 0 {
+		return nil
+	}
+
+	bulk := n.es.Bulk().Index(_noteIns.AliasIndex())
+
+	// add bulk operations item
+	for _, req := range reqs {
+		switch req.Type() {
+		case ActionCreate:
+			cop := types.NewCreateOperation()
+			cop.Id_ = mg.Ptr(req.GetDocId())
+			body, err := req.GetDoc()
+			if err != nil {
+				continue
+			}
+			err = bulk.CreateOp(*cop, body)
+			if err != nil {
+				continue
+			}
+		case ActionDelete:
+			dop := types.NewDeleteOperation()
+			dop.Id_ = mg.Ptr(req.GetDocId())
+			err := bulk.DeleteOp(*dop)
+			if err != nil {
+				continue
+			}
+		case ActionUpdate:
+			// TODO
+		}
+	}
+
+	resp, err := bulk.Do(ctx)
+	if err != nil {
+		return xelaserror.Convert(err)
+	}
+
+	if err := handleBulkResponse(ctx, resp); err != nil {
+		return err
 	}
 
 	return nil
