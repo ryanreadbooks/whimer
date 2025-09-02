@@ -28,8 +28,8 @@ type NoteEvent struct {
 }
 
 const (
-	EsNoteTopic      = "es_note_events" // 笔记相关事件主题
-	EsNoteTopicGroup = "es_note_events_group"
+	EsNoteTopic      = "es_note_events"       // 笔记相关事件主题
+	EsNoteTopicGroup = "es_note_events_group" // 笔记相关事件消费者组名称
 )
 
 type NoteEventProducer struct {
@@ -37,7 +37,6 @@ type NoteEventProducer struct {
 }
 
 func (p *NoteEventProducer) PutNoteAddEvent(ctx context.Context, evs []*searchv1.Note) error {
-	ctx = context.WithoutCancel(ctx)
 	msgs := make([]kafka.Message, 0, len(evs))
 
 	for _, ev := range evs {
@@ -69,7 +68,6 @@ func (p *NoteEventProducer) PutNoteAddEvent(ctx context.Context, evs []*searchv1
 }
 
 func (p *NoteEventProducer) PutNoteDeleteEvent(ctx context.Context, evs []string) error {
-	ctx = context.WithoutCancel(ctx)
 	msgs := make([]kafka.Message, 0, len(evs))
 
 	for _, noteId := range evs {
@@ -95,6 +93,22 @@ func (p *NoteEventProducer) PutNoteDeleteEvent(ctx context.Context, evs []string
 			Value: value,
 		})
 	}
+
+	return p.w.WriteMessages(ctx, msgs...)
+}
+
+// reqs: note_id -> like_count increment
+func (p *NoteEventProducer) PutNoteLikeEvent(ctx context.Context, reqs map[string]int64) error {
+	// TODO
+	msgs := make([]kafka.Message, 0)
+	
+
+	return p.w.WriteMessages(ctx, msgs...)
+}
+
+// reqs: note_id -> comment_count increment
+func (p *NoteEventProducer) PutNoteCommentEvent(ctx context.Context, reqs map[string]int64) error {
+	msgs := make([]kafka.Message, 0)
 
 	return p.w.WriteMessages(ctx, msgs...)
 }

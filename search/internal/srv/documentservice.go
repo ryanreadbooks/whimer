@@ -6,19 +6,19 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/panjf2000/ants/v2"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	"github.com/ryanreadbooks/whimer/misc/xslice"
+	xkafka "github.com/ryanreadbooks/whimer/misc/xkq/kafka"
 	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 	"github.com/ryanreadbooks/whimer/search/internal/infra"
-	"github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index"
+	noteindex "github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index/note"
 	"github.com/ryanreadbooks/whimer/search/internal/infra/kafkadao"
 	"github.com/ryanreadbooks/whimer/search/pkg"
+
 	"github.com/segmentio/kafka-go"
 	"google.golang.org/protobuf/encoding/protojson"
-
-	"github.com/panjf2000/ants/v2"
 )
 
 type DocumentService struct {
@@ -38,18 +38,44 @@ func (s *DocumentService) Close() {
 	s.pool.Release()
 }
 
-// 异步提交写入
-func (s *DocumentService) AddNoteTagDocs(ctx context.Context, tags []*searchv1.NoteTag) error {
-	indexTags := make([]*index.NoteTag, 0, len(tags))
-	for _, t := range tags {
-		indexTags = append(indexTags, &index.NoteTag{
+func makeIndexNote(n *searchv1.Note) *noteindex.Note {
+	indexTags := make([]*noteindex.NoteTag, 0, len(n.GetTagList()))
+	for _, t := range n.GetTagList() {
+		indexTags = append(indexTags, &noteindex.NoteTag{
 			Id:    t.Id,
 			Name:  t.Name,
 			Ctime: t.Ctime,
 		})
 	}
 
-	controllableExec(ctx, s.pool, indexTags, func(ctx context.Context, datas []*index.NoteTag) error {
+	return &noteindex.Note{
+		NoteId:   n.NoteId,
+		Title:    n.Title,
+		Desc:     n.Desc,
+		CreateAt: n.CreateAt,
+		UpdateAt: n.UpdateAt,
+		Author: noteindex.NoteAuthor{
+			Uid:      n.Author.Uid,
+			Nickname: n.Author.Nickname,
+		},
+		TagList:    indexTags,
+		AssetType:  pkg.NoteAssetConverter[n.GetAssetType()],
+		Visibility: pkg.NoteVisibilityConverter[n.GetVisibility()],
+	}
+}
+
+// 异步提交写入
+func (s *DocumentService) AddNoteTagDocs(ctx context.Context, tags []*searchv1.NoteTag) error {
+	indexTags := make([]*noteindex.NoteTag, 0, len(tags))
+	for _, t := range tags {
+		indexTags = append(indexTags, &noteindex.NoteTag{
+			Id:    t.Id,
+			Name:  t.Name,
+			Ctime: t.Ctime,
+		})
+	}
+
+	concurrent.ControllableExec(ctx, s.pool, indexTags, func(ctx context.Context, datas []*noteindex.NoteTag) error {
 		err := infra.EsDao().NoteTagIndexer.BulkAdd(ctx, datas)
 		if err != nil {
 			xlog.Msg("document note tag add failed").Err(err).Errorx(ctx)
@@ -67,69 +93,16 @@ func (s *DocumentService) AddNoteDocs(ctx context.Context, notes []*searchv1.Not
 	return infra.KafkaDao().NoteEventProducer.PutNoteAddEvent(ctx, notes)
 }
 
-func makeIndexNote(n *searchv1.Note) *index.Note {
-	indexTags := make([]*index.NoteTag, 0, len(n.GetTagList()))
-	for _, t := range n.GetTagList() {
-		indexTags = append(indexTags, &index.NoteTag{
-			Id:    t.Id,
-			Name:  t.Name,
-			Ctime: t.Ctime,
-		})
-	}
-
-	return &index.Note{
-		NoteId:   n.NoteId,
-		Title:    n.Title,
-		Desc:     n.Desc,
-		CreateAt: n.CreateAt,
-		UpdateAt: n.UpdateAt,
-		Author: index.NoteAuthor{
-			Uid:      n.Author.Uid,
-			Nickname: n.Author.Nickname,
-		},
-		TagList:    indexTags,
-		AssetType:  pkg.NoteAssetConverter[n.GetAssetType()],
-		Visibility: pkg.NoteVisibilityConverter[n.GetVisibility()],
-	}
-}
-
 func (s *DocumentService) DeleteNoteDocs(ctx context.Context, ids []string) error {
 	return infra.KafkaDao().NoteEventProducer.PutNoteDeleteEvent(ctx, ids)
 }
 
-func controllableExec[T any](ctx context.Context,
-	pool *ants.Pool,
-	datas []T,
-	job func(ctx context.Context, datas []T) error) {
+func (s *DocumentService) UpdateNoteDocLikeCount(ctx context.Context, reqs map[string]int64) error {
+	return infra.KafkaDao().NoteEventProducer.PutNoteLikeEvent(ctx, reqs)
+}
 
-	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "controllable_exec",
-		Job: func(newCtx context.Context) error {
-			// 借助pool来控制写入速度
-			errSubmit := pool.Submit(func() {
-				errExec := xslice.BatchExec(datas, 200, func(start, end int) error {
-					errJob := job(newCtx, datas[start:end])
-					if errJob != nil {
-						return errJob
-					}
-
-					return nil
-				})
-
-				if errExec != nil {
-					xlog.Msg("batch exec failed").Err(errExec).Errorx(newCtx)
-				}
-			})
-
-			if errSubmit != nil {
-				xlog.Msg("pool submit failed").Err(errSubmit).Errorx(newCtx)
-				return errSubmit
-			}
-
-			return nil
-
-		},
-	})
+func (s *DocumentService) UpdateNoteDocCommentCount(ctx context.Context, reqs map[string]int64) error {
+	return infra.KafkaDao().NoteEventProducer.PutNoteCommentEvent(ctx, reqs)
 }
 
 // 批量处理kafka消息
@@ -138,7 +111,7 @@ func controllableExec[T any](ctx context.Context,
 func (s *DocumentService) DispatchNoteEvents(ctx context.Context, msgs []kafka.Message) error {
 	var (
 		errs     []error
-		bulkReqs []index.NoteAction
+		bulkReqs []noteindex.NoteAction
 	)
 
 	xlog.Msgf("doc service dispatch note events handling %d msgs", len(msgs)).Infox(ctx)
@@ -149,6 +122,8 @@ func (s *DocumentService) DispatchNoteEvents(ctx context.Context, msgs []kafka.M
 			errs = append(errs, err)
 			continue
 		}
+		ctx := xkafka.ContextFromKafkaHeaders(msg.Headers)
+		xlog.Msgf("handle message %v", ev.Type).Debugx(ctx)
 
 		switch ev.Type {
 		case kafkadao.NoteAddEvent:
@@ -159,7 +134,7 @@ func (s *DocumentService) DispatchNoteEvents(ctx context.Context, msgs []kafka.M
 				continue
 			}
 
-			bulkReqs = append(bulkReqs, index.NewNoteCreateAction(makeIndexNote(&req)))
+			bulkReqs = append(bulkReqs, noteindex.NewNoteCreateAction(makeIndexNote(&req)))
 		case kafkadao.NoteDeleteEvent:
 			var noteId string
 			err = json.Unmarshal(ev.Payload, &noteId)
@@ -168,10 +143,9 @@ func (s *DocumentService) DispatchNoteEvents(ctx context.Context, msgs []kafka.M
 				continue
 			}
 
-			bulkReqs = append(bulkReqs, index.NewNoteDeleteAction(noteId))
+			bulkReqs = append(bulkReqs, noteindex.NewNoteDeleteAction(noteId))
 		default:
 			return xerror.Wrap(xerror.ErrArgs.Msg("unsupported note event types")).WithCtx(ctx)
-
 		}
 	}
 
@@ -180,6 +154,7 @@ func (s *DocumentService) DispatchNoteEvents(ctx context.Context, msgs []kafka.M
 	}
 
 	if len(bulkReqs) > 0 {
+		// TODO 这个ctx里面没了trace信息 多个msg的traceid怎样聚合成一个？
 		err := infra.EsDao().NoteIndexer.BulkRequest(ctx, bulkReqs)
 		if err != nil {
 			return xerror.Wrapf(err, "doc service note indexer bulk failed").WithCtx(ctx)

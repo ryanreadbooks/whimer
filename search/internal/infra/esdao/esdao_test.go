@@ -9,7 +9,8 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xelastic/format"
 	"github.com/ryanreadbooks/whimer/search/internal/config"
-	"github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index"
+	"github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index/common"
+	noteindex "github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index/note"
 
 	mg "github.com/ryanreadbooks/whimer/misc/generics"
 
@@ -45,21 +46,21 @@ func TestMappings(t *testing.T) {
 
 func TestNoteTagIndex(t *testing.T) {
 	ctx := context.TODO()
-	indx := index.NewNoteTagIndexer(testEsDao.es)
-	err := indx.Init(ctx, &index.IndexerOption{
+	indx := noteindex.NewNoteTagIndexer(testEsDao.es)
+	err := indx.Init(ctx, &common.IndexerOption{
 		NumberOfReplicas: 0,
 		NumbefOfShards:   1,
 	})
 	t.Log(err)
 
-	err = indx.Add(ctx, &index.NoteTag{
+	err = indx.Add(ctx, &noteindex.NoteTag{
 		Id:    "test_abc",
 		Name:  "test_name",
 		Ctime: time.Now().Unix(),
 	})
 	t.Log(err)
 
-	err = indx.BulkAdd(ctx, []*index.NoteTag{
+	err = indx.BulkAdd(ctx, []*noteindex.NoteTag{
 		{
 			Id:    "test_abc",
 			Name:  "test_name2",

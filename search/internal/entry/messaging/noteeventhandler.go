@@ -10,9 +10,10 @@ import (
 )
 
 func startHandlingNoteEvents(svc *srv.Service) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 	concurrent.SafeGo(func() {
 		xlog.Msg("start handling note events").Info()
+		defer cancel()
 		for {
 			msgs, err := noteEventBatchReader.BatchFetchMessages(ctx)
 			if err != nil {

@@ -1,4 +1,4 @@
-package index
+package note
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	xelasticanalyzer "github.com/ryanreadbooks/whimer/misc/xelastic/analyzer"
 	xelaserror "github.com/ryanreadbooks/whimer/misc/xelastic/errors"
 	xelasformat "github.com/ryanreadbooks/whimer/misc/xelastic/format"
+	"github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index/common"
 
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
@@ -40,8 +41,8 @@ func (n NoteTag) Alias() map[string]types.Alias {
 	}
 }
 
-func (NoteTag) Settings(opt *IndexerOption) *types.IndexSettings {
-	return defaultSettings(opt)
+func (NoteTag) Settings(opt *common.IndexerOption) *types.IndexSettings {
+	return common.DefaultSettings(opt)
 }
 
 func (NoteTag) Mappings() *types.TypeMapping {
@@ -52,7 +53,7 @@ func (NoteTag) Mappings() *types.TypeMapping {
 			"name": &types.TextProperty{
 				Analyzer:       mg.Ptr(xelasticanalyzer.IkMaxWord),
 				SearchAnalyzer: mg.Ptr(xelasticanalyzer.IkSmart),
-				Fields:         defaultTextFields,
+				Fields:         common.DefaultTextFields,
 			},
 			"ctime": &types.DateProperty{
 				Format: mg.Ptr(xelasformat.DateEpochSecond),
@@ -80,7 +81,7 @@ func fmtNoteTagDocId(n *NoteTag) string {
 }
 
 // 初始化
-func (n *NoteTagIndexer) Init(ctx context.Context, opt *IndexerOption) error {
+func (n *NoteTagIndexer) Init(ctx context.Context, opt *common.IndexerOption) error {
 	exist, err := n.es.Indices.Exists(_noteTagIns.Index()).Do(ctx)
 	if err != nil {
 		return xelaserror.Convert(err)
@@ -122,7 +123,7 @@ func (n *NoteTagIndexer) Add(ctx context.Context, tag *NoteTag) error {
 }
 
 func (n *NoteTagIndexer) BulkAdd(ctx context.Context, tags []*NoteTag) error {
-	return doBulkCreate(ctx, n.es, tags)
+	return common.DoBulkCreate(ctx, n.es, tags)
 }
 
 // 分页检索

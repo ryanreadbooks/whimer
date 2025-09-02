@@ -19,9 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DocumentService_BatchAddNoteTag_FullMethodName = "/search.api.v1.DocumentService/BatchAddNoteTag"
-	DocumentService_BatchAddNote_FullMethodName    = "/search.api.v1.DocumentService/BatchAddNote"
-	DocumentService_BatchDeleteNote_FullMethodName = "/search.api.v1.DocumentService/BatchDeleteNote"
+	DocumentService_BatchAddNoteTag_FullMethodName             = "/search.api.v1.DocumentService/BatchAddNoteTag"
+	DocumentService_BatchAddNote_FullMethodName                = "/search.api.v1.DocumentService/BatchAddNote"
+	DocumentService_BatchDeleteNote_FullMethodName             = "/search.api.v1.DocumentService/BatchDeleteNote"
+	DocumentService_BatchUpdateNoteLikeCount_FullMethodName    = "/search.api.v1.DocumentService/BatchUpdateNoteLikeCount"
+	DocumentService_BatchUpdateNoteCommentCount_FullMethodName = "/search.api.v1.DocumentService/BatchUpdateNoteCommentCount"
 )
 
 // DocumentServiceClient is the client API for DocumentService service.
@@ -36,6 +38,10 @@ type DocumentServiceClient interface {
 	BatchAddNote(ctx context.Context, in *BatchAddNoteRequest, opts ...grpc.CallOption) (*BatchAddNoteResponse, error)
 	// 批量删除笔记
 	BatchDeleteNote(ctx context.Context, in *BatchDeleteNoteRequest, opts ...grpc.CallOption) (*BatchDeleteNoteResponse, error)
+	// 更新笔记点赞数量
+	BatchUpdateNoteLikeCount(ctx context.Context, in *BatchUpdateNoteLikeCountRequest, opts ...grpc.CallOption) (*BatchUpdateNoteLikeCountResponse, error)
+	// 更新笔记评论数量
+	BatchUpdateNoteCommentCount(ctx context.Context, in *BatchUpdateNoteCommentCountRequest, opts ...grpc.CallOption) (*BatchUpdateNoteCommentCountResponse, error)
 }
 
 type documentServiceClient struct {
@@ -76,6 +82,26 @@ func (c *documentServiceClient) BatchDeleteNote(ctx context.Context, in *BatchDe
 	return out, nil
 }
 
+func (c *documentServiceClient) BatchUpdateNoteLikeCount(ctx context.Context, in *BatchUpdateNoteLikeCountRequest, opts ...grpc.CallOption) (*BatchUpdateNoteLikeCountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchUpdateNoteLikeCountResponse)
+	err := c.cc.Invoke(ctx, DocumentService_BatchUpdateNoteLikeCount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *documentServiceClient) BatchUpdateNoteCommentCount(ctx context.Context, in *BatchUpdateNoteCommentCountRequest, opts ...grpc.CallOption) (*BatchUpdateNoteCommentCountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchUpdateNoteCommentCountResponse)
+	err := c.cc.Invoke(ctx, DocumentService_BatchUpdateNoteCommentCount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DocumentServiceServer is the server API for DocumentService service.
 // All implementations must embed UnimplementedDocumentServiceServer
 // for forward compatibility.
@@ -88,6 +114,10 @@ type DocumentServiceServer interface {
 	BatchAddNote(context.Context, *BatchAddNoteRequest) (*BatchAddNoteResponse, error)
 	// 批量删除笔记
 	BatchDeleteNote(context.Context, *BatchDeleteNoteRequest) (*BatchDeleteNoteResponse, error)
+	// 更新笔记点赞数量
+	BatchUpdateNoteLikeCount(context.Context, *BatchUpdateNoteLikeCountRequest) (*BatchUpdateNoteLikeCountResponse, error)
+	// 更新笔记评论数量
+	BatchUpdateNoteCommentCount(context.Context, *BatchUpdateNoteCommentCountRequest) (*BatchUpdateNoteCommentCountResponse, error)
 	mustEmbedUnimplementedDocumentServiceServer()
 }
 
@@ -106,6 +136,12 @@ func (UnimplementedDocumentServiceServer) BatchAddNote(context.Context, *BatchAd
 }
 func (UnimplementedDocumentServiceServer) BatchDeleteNote(context.Context, *BatchDeleteNoteRequest) (*BatchDeleteNoteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchDeleteNote not implemented")
+}
+func (UnimplementedDocumentServiceServer) BatchUpdateNoteLikeCount(context.Context, *BatchUpdateNoteLikeCountRequest) (*BatchUpdateNoteLikeCountResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchUpdateNoteLikeCount not implemented")
+}
+func (UnimplementedDocumentServiceServer) BatchUpdateNoteCommentCount(context.Context, *BatchUpdateNoteCommentCountRequest) (*BatchUpdateNoteCommentCountResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchUpdateNoteCommentCount not implemented")
 }
 func (UnimplementedDocumentServiceServer) mustEmbedUnimplementedDocumentServiceServer() {}
 func (UnimplementedDocumentServiceServer) testEmbeddedByValue()                         {}
@@ -182,6 +218,42 @@ func _DocumentService_BatchDeleteNote_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DocumentService_BatchUpdateNoteLikeCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchUpdateNoteLikeCountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DocumentServiceServer).BatchUpdateNoteLikeCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DocumentService_BatchUpdateNoteLikeCount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DocumentServiceServer).BatchUpdateNoteLikeCount(ctx, req.(*BatchUpdateNoteLikeCountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DocumentService_BatchUpdateNoteCommentCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchUpdateNoteCommentCountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DocumentServiceServer).BatchUpdateNoteCommentCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DocumentService_BatchUpdateNoteCommentCount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DocumentServiceServer).BatchUpdateNoteCommentCount(ctx, req.(*BatchUpdateNoteCommentCountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DocumentService_ServiceDesc is the grpc.ServiceDesc for DocumentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -200,6 +272,14 @@ var DocumentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BatchDeleteNote",
 			Handler:    _DocumentService_BatchDeleteNote_Handler,
+		},
+		{
+			MethodName: "BatchUpdateNoteLikeCount",
+			Handler:    _DocumentService_BatchUpdateNoteLikeCount_Handler,
+		},
+		{
+			MethodName: "BatchUpdateNoteCommentCount",
+			Handler:    _DocumentService_BatchUpdateNoteCommentCount_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

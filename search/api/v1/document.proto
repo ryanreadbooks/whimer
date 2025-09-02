@@ -14,6 +14,12 @@ service DocumentService {
   rpc BatchAddNote(BatchAddNoteRequest) returns (BatchAddNoteResponse);
   // 批量删除笔记
   rpc BatchDeleteNote(BatchDeleteNoteRequest) returns (BatchDeleteNoteResponse);
+  // 更新笔记点赞数量
+  rpc BatchUpdateNoteLikeCount(BatchUpdateNoteLikeCountRequest)
+      returns (BatchUpdateNoteLikeCountResponse);
+  // 更新笔记评论数量
+  rpc BatchUpdateNoteCommentCount(BatchUpdateNoteCommentCountRequest)
+      returns (BatchUpdateNoteCommentCountResponse);
 }
 
 message BatchAddNoteTagRequest { repeated NoteTag note_tags = 1; }
@@ -27,3 +33,17 @@ message BatchAddNoteResponse {}
 message BatchDeleteNoteRequest { repeated string ids = 1; }
 
 message BatchDeleteNoteResponse {}
+
+message BatchUpdateNoteLikeCountRequest {
+  // note_id => increment
+  map<string, int64> counts = 1;
+}
+
+message BatchUpdateNoteLikeCountResponse {}
+
+message BatchUpdateNoteCommentCountRequest {
+  // note_id => increment
+  map<string, int64> counts = 1;
+}
+
+message BatchUpdateNoteCommentCountResponse {}

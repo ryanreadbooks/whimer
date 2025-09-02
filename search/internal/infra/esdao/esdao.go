@@ -6,7 +6,8 @@ import (
 
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/ryanreadbooks/whimer/search/internal/config"
-	"github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index"
+	"github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index/common"
+	indexnote "github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index/note"
 
 	"go.opentelemetry.io/otel"
 )
@@ -14,8 +15,8 @@ import (
 type EsDao struct {
 	es *elasticsearch.TypedClient
 
-	NoteTagIndexer *index.NoteTagIndexer
-	NoteIndexer    *index.NoteIndexer
+	NoteTagIndexer *indexnote.NoteTagIndexer
+	NoteIndexer    *indexnote.NoteIndexer
 }
 
 func MustNew(c *config.Config) *EsDao {
@@ -35,22 +36,22 @@ func MustNew(c *config.Config) *EsDao {
 
 	return &EsDao{
 		es:             client,
-		NoteTagIndexer: index.NewNoteTagIndexer(client),
-		NoteIndexer:    index.NewNoteIndexer(client),
+		NoteTagIndexer: indexnote.NewNoteTagIndexer(client),
+		NoteIndexer:    indexnote.NewNoteIndexer(client),
 	}
 }
 
 func (d *EsDao) Init(c *config.Config) error {
 	// 初始化索引
 	ctx := context.Background()
-	err := d.NoteTagIndexer.Init(ctx, &index.IndexerOption{
+	err := d.NoteTagIndexer.Init(ctx, &common.IndexerOption{
 		NumberOfReplicas: c.Indices.NoteTag.NumReplicas,
 		NumbefOfShards:   c.Indices.NoteTag.NumShards,
 	})
 	if err != nil {
 		return err
 	}
-	err = d.NoteIndexer.Init(ctx, &index.IndexerOption{
+	err = d.NoteIndexer.Init(ctx, &common.IndexerOption{
 		NumberOfReplicas: c.Indices.Note.NumReplicas,
 		NumbefOfShards:   c.Indices.Note.NumShards,
 	})

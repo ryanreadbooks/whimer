@@ -87,3 +87,35 @@ func (s *DocumentServiceServerImpl) BatchDeleteNote(ctx context.Context,
 
 	return resp, nil
 }
+
+// 更新笔记点赞数量
+func (s *DocumentServiceServerImpl) BatchUpdateNoteLikeCount(ctx context.Context,
+	in *searchv1.BatchUpdateNoteLikeCountRequest) (*searchv1.BatchUpdateNoteLikeCountResponse, error) {
+	var resp = &searchv1.BatchUpdateNoteLikeCountResponse{}
+	if len(in.GetCounts()) == 0 {
+		return resp, nil
+	}
+
+	err := s.svc.DocumentSrv.UpdateNoteDocLikeCount(ctx, in.GetCounts())
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+// 更新笔记评论数量
+func (s *DocumentServiceServerImpl) BatchUpdateNoteCommentCount(ctx context.Context,
+	in *searchv1.BatchUpdateNoteCommentCountRequest) (*searchv1.BatchUpdateNoteCommentCountResponse, error) {
+	var resp = &searchv1.BatchUpdateNoteCommentCountResponse{}
+	if len(in.GetCounts()) == 0 {
+		return resp, nil
+	}
+
+	err := s.svc.DocumentSrv.UpdateNoteDocCommentCount(ctx, in.GetCounts())
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}

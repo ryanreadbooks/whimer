@@ -1,4 +1,4 @@
-package index
+package common
 
 import (
 	"context"
@@ -20,7 +20,7 @@ type BulkCreatedInstance interface {
 	GetId() string
 }
 
-func doBulkCreate[T BulkCreatedInstance](ctx context.Context, es *elasticsearch.TypedClient, ins []T) error {
+func DoBulkCreate[T BulkCreatedInstance](ctx context.Context, es *elasticsearch.TypedClient, ins []T) error {
 	if len(ins) == 0 {
 		return nil
 	}
@@ -46,14 +46,14 @@ func doBulkCreate[T BulkCreatedInstance](ctx context.Context, es *elasticsearch.
 		return xelaserror.Convert(err)
 	}
 
-	if err := handleBulkResponse(ctx, resp); err != nil {
+	if err := HandleBulkResponse(ctx, resp); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func doBulkDelete(ctx context.Context, es *elasticsearch.TypedClient, index string, docIds []string) error {
+func DoBulkDelete(ctx context.Context, es *elasticsearch.TypedClient, index string, docIds []string) error {
 	if len(docIds) == 0 {
 		return nil
 	}
@@ -73,7 +73,7 @@ func doBulkDelete(ctx context.Context, es *elasticsearch.TypedClient, index stri
 		return xelaserror.Convert(err)
 	}
 
-	if err := handleBulkResponse(ctx, resp); err != nil {
+	if err := HandleBulkResponse(ctx, resp); err != nil {
 		return err
 	}
 

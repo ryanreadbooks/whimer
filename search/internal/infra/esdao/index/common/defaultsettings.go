@@ -1,4 +1,4 @@
-package index
+package common
 
 import (
 	"context"
@@ -25,7 +25,7 @@ const (
 	CustomNgramAnalyzer      = "cust_ngram_analyzer"
 )
 
-func defaultSettings(opt *IndexerOption) *types.IndexSettings {
+func DefaultSettings(opt *IndexerOption) *types.IndexSettings {
 	return &types.IndexSettings{
 		MaxNgramDiff: mg.Ptr(5),
 		Analysis: &types.IndexSettingsAnalysis{
@@ -65,7 +65,7 @@ func defaultSettings(opt *IndexerOption) *types.IndexSettings {
 }
 
 var (
-	defaultTextFields = map[string]types.Property{
+	DefaultTextFields = map[string]types.Property{
 		"keyword": &types.KeywordProperty{
 			Normalizer: mg.Ptr("cust_clean_normalizer"),
 		},
@@ -81,7 +81,7 @@ var (
 	ErrBulkFailure = xerror.ErrInternal.Msg("es bulk operation err")
 )
 
-func handleBulkResponse(ctx context.Context, resp *bulk.Response) error {
+func HandleBulkResponse(ctx context.Context, resp *bulk.Response) error {
 	// 一个或者多个错误
 	if resp.Errors {
 		var errLogs strings.Builder

@@ -1,16 +1,16 @@
-package index
+package note
 
 import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	mg "github.com/ryanreadbooks/whimer/misc/generics"
 	xelasticanalyzer "github.com/ryanreadbooks/whimer/misc/xelastic/analyzer"
 	xelaserror "github.com/ryanreadbooks/whimer/misc/xelastic/errors"
 	xelasformat "github.com/ryanreadbooks/whimer/misc/xelastic/format"
+	"github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index/common"
 	"github.com/ryanreadbooks/whimer/search/pkg"
 
 	"github.com/elastic/go-elasticsearch/v8"
@@ -63,8 +63,8 @@ func (n Note) Alias() map[string]types.Alias {
 	}
 }
 
-func (Note) Settings(opt *IndexerOption) *types.IndexSettings {
-	return defaultSettings(opt)
+func (Note) Settings(opt *common.IndexerOption) *types.IndexSettings {
+	return common.DefaultSettings(opt)
 }
 
 func (Note) Mappings() *types.TypeMapping {
@@ -75,7 +75,7 @@ func (Note) Mappings() *types.TypeMapping {
 			"title": &types.TextProperty{
 				Analyzer:       mg.Ptr(xelasticanalyzer.IkMaxWord),
 				SearchAnalyzer: mg.Ptr(xelasticanalyzer.IkSmart),
-				Fields:         defaultTextFields,
+				Fields:         common.DefaultTextFields,
 			},
 			"desc": &types.TextProperty{
 				Analyzer:       mg.Ptr(xelasticanalyzer.IkMaxWord),
@@ -93,7 +93,7 @@ func (Note) Mappings() *types.TypeMapping {
 					"nickname": &types.TextProperty{
 						Analyzer:       mg.Ptr(xelasticanalyzer.IkMaxWord),
 						SearchAnalyzer: mg.Ptr(xelasticanalyzer.IkSmart),
-						Fields:         defaultTextFields,
+						Fields:         common.DefaultTextFields,
 					},
 				},
 			},
@@ -103,7 +103,7 @@ func (Note) Mappings() *types.TypeMapping {
 					"name": &types.TextProperty{
 						Analyzer:       mg.Ptr(xelasticanalyzer.IkMaxWord),
 						SearchAnalyzer: mg.Ptr(xelasticanalyzer.IkSmart),
-						Fields:         defaultTextFields,
+						Fields:         common.DefaultTextFields,
 					},
 				},
 			},
@@ -137,7 +137,7 @@ func NewNoteIndexer(es *elasticsearch.TypedClient) *NoteIndexer {
 	}
 }
 
-func (n *NoteIndexer) Init(ctx context.Context, opt *IndexerOption) error {
+func (n *NoteIndexer) Init(ctx context.Context, opt *common.IndexerOption) error {
 	exist, err := n.es.Indices.Exists(_noteIns.Index()).Do(ctx)
 	if err != nil {
 		return xelaserror.Convert(err)
@@ -163,56 +163,6 @@ func (n *NoteIndexer) Init(ctx context.Context, opt *IndexerOption) error {
 	return nil
 }
 
-type BulkActionType int8
-
-const (
-	ActionCreate BulkActionType = 1
-	ActionDelete BulkActionType = 2
-	ActionUpdate BulkActionType = 3
-)
-
-type NoteAction interface {
-	Type() BulkActionType
-	GetDocId() string
-	GetDoc() (any, error)
-}
-
-type noteCreateActionImpl struct {
-	data *Note
-}
-
-func (n *noteCreateActionImpl) Type() BulkActionType { return ActionCreate }
-
-func (n *noteCreateActionImpl) GetDoc() (any, error) {
-	return json.Marshal(n.data)
-}
-
-func (n *noteCreateActionImpl) GetDocId() string { return n.data.GetId() }
-
-func NewNoteCreateAction(n *Note) *noteCreateActionImpl {
-	ac := noteCreateActionImpl{
-		data: n,
-	}
-
-	return &ac
-}
-
-type noteDeleteActionImpl struct {
-	noteId string
-}
-
-func (n *noteDeleteActionImpl) Type() BulkActionType { return ActionDelete }
-
-func (n *noteDeleteActionImpl) GetDoc() (any, error) { return nil, fmt.Errorf("nil doc") }
-
-func (n *noteDeleteActionImpl) GetDocId() string {
-	return fmtNoteDocIdString(n.noteId)
-}
-
-func NewNoteDeleteAction(noteId string) *noteDeleteActionImpl {
-	return &noteDeleteActionImpl{noteId: noteId}
-}
-
 func (n *NoteIndexer) BulkRequest(ctx context.Context, reqs []NoteAction) error {
 	if len(reqs) == 0 {
 		return nil
@@ -223,26 +173,27 @@ func (n *NoteIndexer) BulkRequest(ctx context.Context, reqs []NoteAction) error 
 	// add bulk operations item
 	for _, req := range reqs {
 		switch req.Type() {
-		case ActionCreate:
-			cop := types.NewCreateOperation()
-			cop.Id_ = mg.Ptr(req.GetDocId())
+		case ActionCreateNote:
 			body, err := req.GetDoc()
 			if err != nil {
 				continue
 			}
-			err = bulk.CreateOp(*cop, body)
+
+			// 存在则更新 不存在则创建
+			iop := types.NewIndexOperation()
+			iop.Id_ = mg.Ptr(req.GetDocId())
+			err = bulk.IndexOp(*iop, body)
 			if err != nil {
 				continue
 			}
-		case ActionDelete:
+
+		case ActionDeleteNote:
 			dop := types.NewDeleteOperation()
 			dop.Id_ = mg.Ptr(req.GetDocId())
 			err := bulk.DeleteOp(*dop)
 			if err != nil {
 				continue
 			}
-		case ActionUpdate:
-			// TODO
 		}
 	}
 
@@ -251,7 +202,7 @@ func (n *NoteIndexer) BulkRequest(ctx context.Context, reqs []NoteAction) error 
 		return xelaserror.Convert(err)
 	}
 
-	if err := handleBulkResponse(ctx, resp); err != nil {
+	if err := common.HandleBulkResponse(ctx, resp); err != nil {
 		return err
 	}
 
@@ -260,7 +211,7 @@ func (n *NoteIndexer) BulkRequest(ctx context.Context, reqs []NoteAction) error 
 
 // 批量添加文档
 func (n *NoteIndexer) BulkAdd(ctx context.Context, notes []*Note) error {
-	return doBulkCreate(ctx, n.es, notes)
+	return common.DoBulkCreate(ctx, n.es, notes)
 }
 
 // 批量删除文档
@@ -269,7 +220,7 @@ func (n *NoteIndexer) BulkDelete(ctx context.Context, ids []string) error {
 	for _, id := range ids {
 		noteDocIds = append(noteDocIds, fmtNoteDocIdString(id))
 	}
-	return doBulkDelete(ctx, n.es, _noteIns.AliasIndex(), noteDocIds)
+	return common.DoBulkDelete(ctx, n.es, _noteIns.AliasIndex(), noteDocIds)
 }
 
 var (
@@ -538,7 +489,7 @@ func (n *NoteIndexer) Search(ctx context.Context, keyword, pageToken string, cou
 				"tag_list.name.ngram": {
 					Query:    keyword,
 					Boost:    mg.Ptr(noteTagListBoost),
-					Analyzer: mg.Ptr(CustomNgramAnalyzer),
+					Analyzer: mg.Ptr(common.CustomNgramAnalyzer),
 					Operator: &operator.And,
 				},
 			},
