@@ -8,10 +8,10 @@ import (
 type NoteActionType int8
 
 const (
-	ActionCreateNote NoteActionType = 1
-	ActionDeleteNote NoteActionType = 2
-	ActionUpdateNoteLikeCount NoteActionType = 3
-	ActionUpdateNote
+	ActionCreateNote             NoteActionType = 1
+	ActionDeleteNote             NoteActionType = 2
+	ActionUpdateNoteLikeCount    NoteActionType = 3
+	ActionUpdateNoteCommentCount NoteActionType = 4
 )
 
 type NoteAction interface {
@@ -52,4 +52,34 @@ func (n *noteDeleteAction) GetDocId() string {
 
 func NewNoteDeleteAction(noteId string) *noteDeleteAction {
 	return &noteDeleteAction{noteId: noteId}
+}
+
+type noteUpdateLikeCountAction struct {
+	noteId string
+	incr   int64
+}
+
+func (n *noteUpdateLikeCountAction) Type() NoteActionType { return ActionUpdateNoteLikeCount }
+
+func (n *noteUpdateLikeCountAction) GetDoc() (any, error) {
+	return n.incr, nil
+}
+
+func (n *noteUpdateLikeCountAction) GetDocId() string {
+	return fmtNoteDocIdString(n.noteId)
+}
+
+type noteUpdateCommentCountAction struct {
+	noteId string
+	incr   int64
+}
+
+func (n *noteUpdateCommentCountAction) Type() NoteActionType { return ActionUpdateNoteLikeCount }
+
+func (n *noteUpdateCommentCountAction) GetDoc() (any, error) {
+	return n.incr, nil
+}
+
+func (n *noteUpdateCommentCountAction) GetDocId() string {
+	return fmtNoteDocIdString(n.noteId)
 }

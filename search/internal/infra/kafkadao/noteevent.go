@@ -32,6 +32,16 @@ const (
 	EsNoteTopicGroup = "es_note_events_group" // 笔记相关事件消费者组名称
 )
 
+type NoteLikeEventPayload struct {
+	NoteId    string `json:"note_id"`
+	Increment int64  `json:"increment"`
+}
+
+type NoteCommentEventPayload struct {
+	NoteId    string `json:"note_id"`
+	Increment int64  `json:"increment"`
+}
+
 type NoteEventProducer struct {
 	w *xkafka.Writer
 }
@@ -99,9 +109,33 @@ func (p *NoteEventProducer) PutNoteDeleteEvent(ctx context.Context, evs []string
 
 // reqs: note_id -> like_count increment
 func (p *NoteEventProducer) PutNoteLikeEvent(ctx context.Context, reqs map[string]int64) error {
-	// TODO
 	msgs := make([]kafka.Message, 0)
-	
+	for noteId, increment := range reqs {
+		payload, err := json.Marshal(&NoteLikeEventPayload{
+			NoteId:    noteId,
+			Increment: increment,
+		})
+		if err != nil {
+			xlog.Msg("failed to json marshal like count payload").Err(err).Errorx(ctx)
+			continue
+		}
+
+		event := &NoteEvent{
+			Type:    NoteLikeEvent,
+			Payload: payload,
+		}
+		value, err := json.Marshal(event)
+		if err != nil {
+			xlog.Msg("failed to json marshal like event").Err(err).Errorx(ctx)
+			continue
+		}
+
+		msgs = append(msgs, kafka.Message{
+			Topic: EsNoteTopic,
+			Key:   []byte(noteId),
+			Value: value,
+		})
+	}
 
 	return p.w.WriteMessages(ctx, msgs...)
 }
@@ -109,6 +143,32 @@ func (p *NoteEventProducer) PutNoteLikeEvent(ctx context.Context, reqs map[strin
 // reqs: note_id -> comment_count increment
 func (p *NoteEventProducer) PutNoteCommentEvent(ctx context.Context, reqs map[string]int64) error {
 	msgs := make([]kafka.Message, 0)
+	for noteId, increment := range reqs {
+		payload, err := json.Marshal(&NoteCommentEventPayload{
+			NoteId:    noteId,
+			Increment: increment,
+		})
+		if err != nil {
+			xlog.Msg("failed to json marshal comment count payload").Err(err).Errorx(ctx)
+			continue
+		}
+
+		event := &NoteEvent{
+			Type:    NoteCommentEvent,
+			Payload: payload,
+		}
+		value, err := json.Marshal(event)
+		if err != nil {
+			xlog.Msg("failed to json marshal comment event").Err(err).Errorx(ctx)
+			continue
+		}
+
+		msgs = append(msgs, kafka.Message{
+			Topic: EsNoteTopic,
+			Key:   []byte(noteId),
+			Value: value,
+		})
+	}
 
 	return p.w.WriteMessages(ctx, msgs...)
 }

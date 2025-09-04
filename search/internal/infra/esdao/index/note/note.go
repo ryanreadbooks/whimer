@@ -18,6 +18,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/dynamicmapping"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/fieldtype"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/operator"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/scriptlanguage"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/sortorder"
 	"github.com/vmihailenco/msgpack/v5"
 )
@@ -172,6 +173,7 @@ func (n *NoteIndexer) BulkRequest(ctx context.Context, reqs []NoteAction) error 
 
 	// add bulk operations item
 	for _, req := range reqs {
+		docId := mg.Ptr(req.GetDocId())
 		switch req.Type() {
 		case ActionCreateNote:
 			body, err := req.GetDoc()
@@ -181,7 +183,7 @@ func (n *NoteIndexer) BulkRequest(ctx context.Context, reqs []NoteAction) error 
 
 			// 存在则更新 不存在则创建
 			iop := types.NewIndexOperation()
-			iop.Id_ = mg.Ptr(req.GetDocId())
+			iop.Id_ = docId
 			err = bulk.IndexOp(*iop, body)
 			if err != nil {
 				continue
@@ -189,8 +191,38 @@ func (n *NoteIndexer) BulkRequest(ctx context.Context, reqs []NoteAction) error 
 
 		case ActionDeleteNote:
 			dop := types.NewDeleteOperation()
-			dop.Id_ = mg.Ptr(req.GetDocId())
+			dop.Id_ = docId
 			err := bulk.DeleteOp(*dop)
+			if err != nil {
+				continue
+			}
+
+		case ActionUpdateNoteLikeCount, ActionUpdateNoteCommentCount:
+			// 仅更新部分字段
+			uop := types.NewUpdateOperation()
+			uop.Id_ = docId
+			incr, err := req.GetDoc()
+			if err != nil {
+				continue
+			}
+
+			// 需要基于script避免cnt<0
+			script := "ctx._source.likes_count = Math.max(0, ctx._source.likes_count + params.increment)"
+			if req.Type() == ActionUpdateNoteCommentCount {
+				script = "ctx._source.comments_count = Math.max(0, ctx._source.comments_count + params.increment)"
+			}
+
+			incrParam, _ := json.Marshal(incr)
+			err = bulk.UpdateOp(*uop, nil, &types.UpdateAction{
+				ScriptedUpsert: mg.Ptr(true),
+				Script: &types.Script{
+					Lang:   &scriptlanguage.Painless,
+					Source: mg.Ptr(script),
+					Params: map[string]json.RawMessage{
+						"increment": incrParam,
+					},
+				},
+			})
 			if err != nil {
 				continue
 			}
