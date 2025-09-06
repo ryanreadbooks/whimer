@@ -1,14 +1,15 @@
 package router
 
 import (
-	"github.com/ryanreadbooks/whimer/api-x/internal/handler"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 
+	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler"
 	zeroservice "github.com/zeromicro/go-zero/core/service"
+
 	"github.com/zeromicro/go-zero/rest"
 )
 
-func RegX(engine *rest.Server, h *handler.Handler) {
+func RegisterX(engine *rest.Server, h *handler.Handler) {
 	root := xhttp.NewRouterGroup(engine)
 	xGroup := root.Group("/x")
 

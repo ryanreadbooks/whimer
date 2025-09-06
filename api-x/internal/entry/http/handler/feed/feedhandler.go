@@ -5,19 +5,19 @@ import (
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
-	"github.com/ryanreadbooks/whimer/api-x/internal/handler/feed/biz"
-	"github.com/ryanreadbooks/whimer/api-x/internal/handler/feed/model"
+	bizfeed "github.com/ryanreadbooks/whimer/api-x/internal/biz/feed"
+	"github.com/ryanreadbooks/whimer/api-x/internal/biz/feed/model"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 type Handler struct {
-	bizz biz.FeedBiz
+	bizz bizfeed.FeedBiz
 }
 
 func NewHandler(c *config.Config) *Handler {
 	return &Handler{
-		bizz: biz.NewFeedBiz(),
+		bizz: bizfeed.NewFeedBiz(),
 	}
 }
 

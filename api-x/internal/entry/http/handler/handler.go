@@ -2,13 +2,13 @@ package handler
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
-	"github.com/ryanreadbooks/whimer/api-x/internal/handler/comment"
-	"github.com/ryanreadbooks/whimer/api-x/internal/handler/feed"
-	"github.com/ryanreadbooks/whimer/api-x/internal/handler/msg"
-	"github.com/ryanreadbooks/whimer/api-x/internal/handler/note"
-	"github.com/ryanreadbooks/whimer/api-x/internal/handler/passport"
-	"github.com/ryanreadbooks/whimer/api-x/internal/handler/profile"
-	"github.com/ryanreadbooks/whimer/api-x/internal/handler/relation"
+	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler/comment"
+	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler/feed"
+	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler/msg"
+	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler/note"
+	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler/passport"
+	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler/profile"
+	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler/relation"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 )
 

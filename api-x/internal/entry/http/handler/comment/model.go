@@ -190,8 +190,8 @@ const (
 // 置顶评论
 type PinReq struct {
 	Oid     model.NoteId `json:"oid"`
-	ReplyId int64        `json:"reply_id"`
-	Action  PinAction    `json:"action"`
+	ReplyId int64     `json:"reply_id"`
+	Action  PinAction `json:"action"`
 }
 
 func (r *PinReq) Validate() error {

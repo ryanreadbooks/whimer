@@ -146,6 +146,9 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 			xhttp.Error(r, w, err)
 			return
 		}
+
+		// TODO sync like to search
+
 		xhttp.OkJson(w, nil)
 	}
 }

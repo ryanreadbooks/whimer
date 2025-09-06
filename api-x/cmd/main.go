@@ -4,8 +4,8 @@ import (
 	"flag"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
-	backend "github.com/ryanreadbooks/whimer/api-x/internal/handler"
-	"github.com/ryanreadbooks/whimer/api-x/internal/router"
+	httpbackend "github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler"
+	httprouter "github.com/ryanreadbooks/whimer/api-x/internal/entry/http/router"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 	zeroservice "github.com/zeromicro/go-zero/core/service"
@@ -19,11 +19,11 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
-	backend.Init(&c)
-	var handler = backend.NewHandler(&c)
+	httpbackend.Init(&c)
+	var handler = httpbackend.NewHandler(&c)
 
 	apiserver := rest.MustNewServer(c.Http)
-	router.RegX(apiserver, handler)
+	httprouter.RegisterX(apiserver, handler)
 
 	servgroup := zeroservice.NewServiceGroup()
 	defer servgroup.Stop()

@@ -255,8 +255,8 @@ type UploadAuthRes struct {
 	FildId      string               `json:"fild_id"`
 	CurrentTime int64                `json:"current_time"`
 	ExpireTime  int64                `json:"expire_time"`
-	UploadAddr  string               `json:"upload_addr"`
-	Headers     UploadAuthResHeaders `json:"headers"`
+	UploadAddr string               `json:"upload_addr"`
+	Headers    UploadAuthResHeaders `json:"headers"`
 }
 
 // 点赞/取消点赞

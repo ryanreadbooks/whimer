@@ -1,8 +1,8 @@
 package router
 
 import (
-	"github.com/ryanreadbooks/whimer/api-x/internal/handler"
-	"github.com/ryanreadbooks/whimer/api-x/internal/middleware"
+	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/middleware"
+	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 )
 

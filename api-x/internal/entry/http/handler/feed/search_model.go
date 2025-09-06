@@ -1,6 +1,6 @@
 package feed
 
-import "github.com/ryanreadbooks/whimer/api-x/internal/handler/feed/model"
+import "github.com/ryanreadbooks/whimer/api-x/internal/biz/feed/model"
 
 type SearchNotesFilter struct {
 	Type  string `json:"type,optional"`

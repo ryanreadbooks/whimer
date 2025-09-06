@@ -1,9 +1,9 @@
-package biz
+package feed
 
 import (
 	"context"
 
-	"github.com/ryanreadbooks/whimer/api-x/internal/handler/feed/model"
+	"github.com/ryanreadbooks/whimer/api-x/internal/biz/feed/model"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	imodel "github.com/ryanreadbooks/whimer/api-x/internal/model"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
