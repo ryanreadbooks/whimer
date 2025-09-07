@@ -10,6 +10,7 @@ import (
 	xelasticanalyzer "github.com/ryanreadbooks/whimer/misc/xelastic/analyzer"
 	xelaserror "github.com/ryanreadbooks/whimer/misc/xelastic/errors"
 	xelasformat "github.com/ryanreadbooks/whimer/misc/xelastic/format"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index/common"
 	"github.com/ryanreadbooks/whimer/search/pkg"
 
@@ -186,6 +187,7 @@ func (n *NoteIndexer) BulkRequest(ctx context.Context, reqs []NoteAction) error 
 			iop.Id_ = docId
 			err = bulk.IndexOp(*iop, body)
 			if err != nil {
+				xlog.Msg("bulk update op err").Err(err).Errorx(ctx)
 				continue
 			}
 
@@ -194,6 +196,7 @@ func (n *NoteIndexer) BulkRequest(ctx context.Context, reqs []NoteAction) error 
 			dop.Id_ = docId
 			err := bulk.DeleteOp(*dop)
 			if err != nil {
+				xlog.Msg("bulk delete op err").Err(err).Errorx(ctx)
 				continue
 			}
 
@@ -224,6 +227,7 @@ func (n *NoteIndexer) BulkRequest(ctx context.Context, reqs []NoteAction) error 
 				},
 			})
 			if err != nil {
+				xlog.Msg("bulk update op err").Err(err).Errorx(ctx)
 				continue
 			}
 		}

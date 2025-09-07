@@ -4,20 +4,20 @@ import (
 	"math/rand"
 	"net/http"
 
-	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	bizfeed "github.com/ryanreadbooks/whimer/api-x/internal/biz/feed"
 	"github.com/ryanreadbooks/whimer/api-x/internal/biz/feed/model"
+	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 type Handler struct {
-	bizz bizfeed.FeedBiz
+	feedBiz bizfeed.FeedBiz
 }
 
-func NewHandler(c *config.Config) *Handler {
+func NewHandler(c *config.Config, feedBiz bizfeed.FeedBiz) *Handler {
 	return &Handler{
-		bizz: bizfeed.NewFeedBiz(),
+		feedBiz: feedBiz,
 	}
 }
 
@@ -29,7 +29,7 @@ func (h *Handler) GetRecommend() http.HandlerFunc {
 			return
 		}
 
-		resp, err := h.bizz.RandomFeed(r.Context(), req)
+		resp, err := h.feedBiz.RandomFeed(r.Context(), req)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -50,7 +50,7 @@ func (h *Handler) GetNoteDetail() http.HandlerFunc {
 			return
 		}
 
-		resp, err := h.bizz.GetNote(r.Context(), int64(req.NoteId))
+		resp, err := h.feedBiz.GetNote(r.Context(), int64(req.NoteId))
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -68,7 +68,7 @@ func (h *Handler) GetNotesByUser() http.HandlerFunc {
 			return
 		}
 
-		resp, page, err := h.bizz.ListNotesByUser(r.Context(), req.UserId, req.Cursor, req.Count)
+		resp, page, err := h.feedBiz.ListNotesByUser(r.Context(), req.UserId, req.Cursor, req.Count)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

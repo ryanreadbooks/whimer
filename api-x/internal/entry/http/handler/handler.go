@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/ryanreadbooks/whimer/api-x/internal/biz"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler/comment"
 	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler/feed"
@@ -28,7 +29,7 @@ func Init(c *config.Config) {
 	infra.Init(c)
 }
 
-func NewHandler(c *config.Config) *Handler {
+func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 	h := &Handler{
 		Config:   c,
 		Profile:  profile.NewHandler(c),
@@ -37,7 +38,7 @@ func NewHandler(c *config.Config) *Handler {
 		Relation: relation.NewHandler(c),
 		Chat:     msg.NewHandler(c),
 		User:     passport.NewUserHandler(c),
-		Feed:     feed.NewHandler(c),
+		Feed:     feed.NewHandler(c, bizz.FeedBiz),
 	}
 
 	return h

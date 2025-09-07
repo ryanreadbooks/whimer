@@ -164,6 +164,8 @@ func (s *DocumentService) DispatchNoteEvents(ctx context.Context, msgs []kafka.M
 				errs = append(errs, fmt.Errorf("like event json unamrshal: %w", err))
 				continue
 			}
+
+			bulkReqs = append(bulkReqs, noteindex.NewNoteUpdateLikeCountAction(lv.NoteId, lv.Increment))
 		case kafkadao.NoteCommentEvent:
 			var cv kafkadao.NoteCommentEventPayload
 			err = json.Unmarshal(ev.Payload, &cv)
@@ -172,6 +174,7 @@ func (s *DocumentService) DispatchNoteEvents(ctx context.Context, msgs []kafka.M
 				continue
 			}
 
+			bulkReqs = append(bulkReqs, noteindex.NewNoteUpdateCommentCountAction(cv.NoteId, cv.Increment))
 		default:
 			xlog.Msg("unsupported note event types").Extras("msg.topic", msg.Topic, "msg.key", msg.Key).Errorx(msgCtx)
 			continue

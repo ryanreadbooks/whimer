@@ -56,7 +56,7 @@ func (h *Handler) SearchNotes() http.HandlerFunc {
 		resp := &SearchNotesRes{}
 		if len(noteIds) != 0 {
 			xlog.Msgf("search notes got %v", noteIds).Debugx(ctx)
-			notes, err := h.bizz.BatchGetNote(ctx, nids)
+			notes, err := h.feedBiz.BatchGetNote(ctx, nids)
 			if err != nil {
 				xhttp.Error(r, w, err)
 				return
