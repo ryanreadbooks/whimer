@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/entry/grpc"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
@@ -24,7 +25,10 @@ func main() {
 		panic(fmt.Errorf("panic: config init: %w", err))
 	}
 	infra.Init(&config.Conf)
-	svc := srv.NewService(&config.Conf)
+	defer infra.Close()
+
+	bizz := biz.New()
+	svc := srv.NewService(&config.Conf, bizz)
 
 	grpcServer := grpc.Init(config.Conf.Grpc, svc)
 

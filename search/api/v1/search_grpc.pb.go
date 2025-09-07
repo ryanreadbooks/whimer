@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	SearchService_SearchNoteTags_FullMethodName = "/search.api.v1.SearchService/SearchNoteTags"
+	SearchService_SearchNotes_FullMethodName    = "/search.api.v1.SearchService/SearchNotes"
 )
 
 // SearchServiceClient is the client API for SearchService service.
@@ -28,7 +29,10 @@ const (
 //
 // 查询服务
 type SearchServiceClient interface {
+	// 搜索笔记标签
 	SearchNoteTags(ctx context.Context, in *SearchNoteTagsRequest, opts ...grpc.CallOption) (*SearchNoteTagsResponse, error)
+	// 按照条件搜索笔记
+	SearchNotes(ctx context.Context, in *SearchNotesRequest, opts ...grpc.CallOption) (*SearchNotesResponse, error)
 }
 
 type searchServiceClient struct {
@@ -49,13 +53,26 @@ func (c *searchServiceClient) SearchNoteTags(ctx context.Context, in *SearchNote
 	return out, nil
 }
 
+func (c *searchServiceClient) SearchNotes(ctx context.Context, in *SearchNotesRequest, opts ...grpc.CallOption) (*SearchNotesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchNotesResponse)
+	err := c.cc.Invoke(ctx, SearchService_SearchNotes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SearchServiceServer is the server API for SearchService service.
 // All implementations must embed UnimplementedSearchServiceServer
 // for forward compatibility.
 //
 // 查询服务
 type SearchServiceServer interface {
+	// 搜索笔记标签
 	SearchNoteTags(context.Context, *SearchNoteTagsRequest) (*SearchNoteTagsResponse, error)
+	// 按照条件搜索笔记
+	SearchNotes(context.Context, *SearchNotesRequest) (*SearchNotesResponse, error)
 	mustEmbedUnimplementedSearchServiceServer()
 }
 
@@ -68,6 +85,9 @@ type UnimplementedSearchServiceServer struct{}
 
 func (UnimplementedSearchServiceServer) SearchNoteTags(context.Context, *SearchNoteTagsRequest) (*SearchNoteTagsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SearchNoteTags not implemented")
+}
+func (UnimplementedSearchServiceServer) SearchNotes(context.Context, *SearchNotesRequest) (*SearchNotesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchNotes not implemented")
 }
 func (UnimplementedSearchServiceServer) mustEmbedUnimplementedSearchServiceServer() {}
 func (UnimplementedSearchServiceServer) testEmbeddedByValue()                       {}
@@ -108,6 +128,24 @@ func _SearchService_SearchNoteTags_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SearchService_SearchNotes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchNotesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SearchServiceServer).SearchNotes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SearchService_SearchNotes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SearchServiceServer).SearchNotes(ctx, req.(*SearchNotesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SearchService_ServiceDesc is the grpc.ServiceDesc for SearchService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -118,6 +156,10 @@ var SearchService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SearchNoteTags",
 			Handler:    _SearchService_SearchNoteTags_Handler,
+		},
+		{
+			MethodName: "SearchNotes",
+			Handler:    _SearchService_SearchNotes_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -10,6 +10,11 @@ import (
 
 type NoteId int64
 
+func (n NoteId) String() string {
+	result, _ := infra.GetNoteIdObfuscate().Mix(int64(n))
+	return result
+}
+
 // MarshalJSON implements the encoding json interface.
 func (id NoteId) MarshalJSON() ([]byte, error) {
 	if id == 0 {

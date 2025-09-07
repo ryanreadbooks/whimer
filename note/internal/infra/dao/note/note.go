@@ -2,12 +2,17 @@ package note
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
+	"github.com/ryanreadbooks/whimer/misc/xcache"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/misc/xmap"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
+	"github.com/ryanreadbooks/whimer/misc/xtime"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -27,17 +32,20 @@ const (
 	sqlGetAll              = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE privacy=?"
 	sqlGetCount            = "SELECT COUNT(*) FROM note WHERE privacy=?"
 	sqlCountByUid          = "SELECT COUNT(*) FROM note WHERE owner=?"
+	sqlBatchGet            = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE id IN (%s)"
 )
 
 type NoteDao struct {
-	db    *xsql.DB
-	cache *redis.Redis
+	db        *xsql.DB
+	cache     *redis.Redis
+	noteCache *xcache.Cache[*Note]
 }
 
 func NewNoteDao(db *xsql.DB, cache *redis.Redis) *NoteDao {
 	return &NoteDao{
-		db:    db,
-		cache: cache,
+		db:        db,
+		cache:     cache,
+		noteCache: xcache.New[*Note](cache),
 	}
 }
 
@@ -66,6 +74,55 @@ func (r *NoteDao) FindOne(ctx context.Context, id int64) (*Note, error) {
 		})
 	}
 	return resp, xerror.Wrap(xsql.ConvertError(err))
+}
+
+// 批量获取
+func (r *NoteDao) BatchGet(ctx context.Context, ids []int64) (map[int64]*Note, error) {
+	keys := make([]string, 0, len(ids))
+	keysMap := make(map[string]int64, len(ids))
+	for _, id := range ids {
+		key := getNoteCacheKey(id)
+		keys = append(keys, key)
+		keysMap[key] = id
+	}
+
+	intermediate, err := r.noteCache.MGet(ctx, keys,
+		xcache.WithMGetFallbackSec[*Note](xtime.WeekJitterSec(time.Hour)),
+		xcache.WithMGetBgSet[*Note](true),
+		xcache.WithMGetFallback(func(ctx context.Context, missingKeys []string) (t map[string]*Note, err error) {
+			if len(missingKeys) == 0 {
+				return
+			}
+
+			var (
+				notes    []*Note
+				missings []int64
+			)
+
+			for _, k := range missingKeys {
+				missings = append(missings, keysMap[k])
+			}
+
+			err = r.db.QueryRowsCtx(ctx, &notes, fmt.Sprintf(sqlBatchGet, xslice.JoinInts(ids)))
+			if err != nil {
+				return nil, xerror.Wrap(xsql.ConvertError(err))
+			}
+
+			return xslice.MakeMap(notes, func(v *Note) string { return getNoteCacheKey(v.Id) }), nil
+		}),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	notes := xmap.Values(intermediate)
+	resp := make(map[int64]*Note, len(notes))
+	for _, n := range notes {
+		resp[n.Id] = n
+	}
+
+	return resp, nil
 }
 
 func (r *NoteDao) ListByOwner(ctx context.Context, uid int64) ([]*Note, error) {

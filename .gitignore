@@ -8,3 +8,5 @@ logs
 
 deploy
 .env
+
+.emmyrc.json

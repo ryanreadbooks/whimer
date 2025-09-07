@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package search.api.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/search/api/v1";
+
+message NoteTag {
+  string id = 1;
+  string name = 2;
+  int64 ctime = 3;
+}
+
+message Note {
+  message Author {
+    int64 uid = 1;
+    string nickname = 2;
+  }
+
+  enum AssetType {
+    ASSET_TYPE_UNSPECIFIED = 0;
+    ASSET_TYPE_IMAGE = 1;
+  }
+
+  enum Visibility {
+    VISIBILITY_UNSPECIFIED = 0;
+    VISIBILITY_PUBLIC = 1;
+    VISIBILITY_PRIVATE = 2;
+  }
+
+  string note_id = 1;
+  string title = 2;
+  string desc = 3;
+  int64 create_at = 4;
+  int64 update_at = 5;
+  Author author = 6;
+  repeated NoteTag tag_list = 7;
+  AssetType asset_type = 8;
+  Visibility visibility = 9;
+  int64 likes_count = 10;
+  int64 comments_count = 11;
+}

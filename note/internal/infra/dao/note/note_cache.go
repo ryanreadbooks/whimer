@@ -19,7 +19,7 @@ func getNoteCacheKey(nid int64) string {
 
 func (d *NoteDao) CacheGetNote(ctx context.Context, nid int64) (*Note, error) {
 	if d.cache == nil {
-		return nil, nil
+		return nil, fmt.Errorf("cache is nil")
 	}
 
 	res, err := d.cache.GetCtx(ctx, getNoteCacheKey(nid))

@@ -1,0 +1,48 @@
+package srv
+
+import (
+	"context"
+
+	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
+	"github.com/ryanreadbooks/whimer/counter/internal/biz"
+)
+
+type CounterSrv struct {
+	CounterBiz *biz.CounterBiz
+}
+
+func NewCounterSrv(s *Service, biz *biz.Biz) *CounterSrv {
+	return &CounterSrv{
+		CounterBiz: biz.CounterBiz,
+	}
+}
+
+func (s *CounterSrv) AddRecord(ctx context.Context, req *counterv1.AddRecordRequest) (*counterv1.AddRecordResponse, error) {
+	return s.CounterBiz.AddRecord(ctx, req)
+}
+
+func (s *CounterSrv) CancelRecord(ctx context.Context,
+	req *counterv1.CancelRecordRequest) (*counterv1.CancelRecordResponse, error) {
+	return s.CounterBiz.CancelRecord(ctx, req)
+}
+
+func (s *CounterSrv) GetRecord(ctx context.Context,
+	req *counterv1.GetRecordRequest) (*counterv1.GetRecordResponse, error) {
+	return s.CounterBiz.GetRecord(ctx, req)
+}
+
+func (s *CounterSrv) BatchGetRecord(ctx context.Context, uidOids map[int64][]int64, biz int) (
+	map[int64][]*counterv1.Record, error) {
+	return s.CounterBiz.BatchGetRecord(ctx, uidOids, biz)
+}
+
+func (s *CounterSrv) GetSummary(ctx context.Context, req *counterv1.GetSummaryRequest) (
+	*counterv1.GetSummaryResponse, error) {
+	return s.CounterBiz.GetSummary(ctx, req)
+}
+
+func (s *CounterSrv) BatchGetSummary(ctx context.Context, req *counterv1.BatchGetSummaryRequest) (
+	*counterv1.BatchGetSummaryResponse, error) {
+
+	return s.CounterBiz.BatchGetSummary(ctx, req)
+}

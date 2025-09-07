@@ -2,15 +2,48 @@ syntax = "proto3";
 
 package search.api.v1;
 
-import "v1/note_tag.proto";
+import "v1/index.proto";
 
 option go_package = "github.com/ryanreadbooks/whimer/search/api/v1";
+
+// 搜索数据写入服务
+service DocumentService {
+  // 批量写入笔记标签
+  rpc BatchAddNoteTag(BatchAddNoteTagRequest) returns (BatchAddNoteTagResponse);
+  // 批量写入笔记
+  rpc BatchAddNote(BatchAddNoteRequest) returns (BatchAddNoteResponse);
+  // 批量删除笔记
+  rpc BatchDeleteNote(BatchDeleteNoteRequest) returns (BatchDeleteNoteResponse);
+  // 更新笔记点赞数量
+  rpc BatchUpdateNoteLikeCount(BatchUpdateNoteLikeCountRequest)
+      returns (BatchUpdateNoteLikeCountResponse);
+  // 更新笔记评论数量
+  rpc BatchUpdateNoteCommentCount(BatchUpdateNoteCommentCountRequest)
+      returns (BatchUpdateNoteCommentCountResponse);
+}
 
 message BatchAddNoteTagRequest { repeated NoteTag note_tags = 1; }
 
 message BatchAddNoteTagResponse {}
 
-// 搜索数据写入服务
-service DocumentService {
-  rpc BatchAddNoteTag(BatchAddNoteTagRequest) returns (BatchAddNoteTagResponse);
+message BatchAddNoteRequest { repeated Note notes = 1; }
+
+message BatchAddNoteResponse {}
+
+message BatchDeleteNoteRequest { repeated string ids = 1; }
+
+message BatchDeleteNoteResponse {}
+
+message BatchUpdateNoteLikeCountRequest {
+  // note_id => increment
+  map<string, int64> counts = 1;
 }
+
+message BatchUpdateNoteLikeCountResponse {}
+
+message BatchUpdateNoteCommentCountRequest {
+  // note_id => increment
+  map<string, int64> counts = 1;
+}
+
+message BatchUpdateNoteCommentCountResponse {}

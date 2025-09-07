@@ -12,14 +12,15 @@ import (
 func User(a *Auth) rest.Middleware {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			uid, sessId, err := a.User(r.Context(), r)
+			user, sessId, err := a.User(r.Context(), r)
 			if err != nil {
 				httpx.Error(w, err)
 				return
 			}
 
-			ctx := metadata.WithUid(r.Context(), uid)
+			ctx := metadata.WithUid(r.Context(), user.Uid)
 			ctx = metadata.WithSessId(ctx, sessId)
+			ctx = metadata.WithUserNickname(ctx, user.Nickname)
 
 			next(w, r.WithContext(ctx))
 		}
@@ -30,14 +31,16 @@ func User(a *Auth) rest.Middleware {
 func UserWeb(a *Auth) rest.Middleware {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			uid, sessId, err := a.UserWeb(r.Context(), r)
+			ctx := r.Context()
+			user, sessId, err := a.UserWeb(ctx, r)
 			if err != nil {
 				httpx.Error(w, err)
 				return
 			}
 
-			ctx := metadata.WithUid(r.Context(), uid)
+			ctx = metadata.WithUid(ctx, user.Uid)
 			ctx = metadata.WithSessId(ctx, sessId)
+			ctx = metadata.WithUserNickname(ctx, user.Nickname)
 
 			next(w, r.WithContext(ctx))
 		}
@@ -48,11 +51,13 @@ func UserWeb(a *Auth) rest.Middleware {
 func UserWebOptional(a *Auth) rest.Middleware {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			uid, sessId, err := a.UserWeb(r.Context(), r)
+			ctx := r.Context()
+			user, sessId, err := a.UserWeb(ctx, r)
 			// err is allowed
-			ctx := metadata.WithUid(r.Context(), uid)
-			if err == nil {
+			if err == nil && user != nil {
+				ctx = metadata.WithUid(ctx, user.Uid)
 				ctx = metadata.WithSessId(ctx, sessId)
+				ctx = metadata.WithUserNickname(ctx, user.Nickname)
 			}
 
 			next(w, r.WithContext(ctx))

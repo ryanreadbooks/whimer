@@ -8,14 +8,19 @@ import (
 )
 
 const (
-	CtxUidKey        = "CtxUidKey"
-	CtxSessIdKey     = "CtxSessIdKey"
-	CtxClientAddrKey = "CtxClientAddrKey"
-	CtxClientIpKey   = "CtxClientIpKey"
+	CtxUidKey          = "CtxUidKey"
+	CtxUserNicknameKey = "CtxUserNicknameKey"
+	CtxSessIdKey       = "CtxSessIdKey"
+	CtxClientAddrKey   = "CtxClientAddrKey"
+	CtxClientIpKey     = "CtxClientIpKey"
 )
 
 func WithUid(ctx context.Context, uid int64) context.Context {
 	return context.WithValue(ctx, CtxUidKey, uid)
+}
+
+func WithUserNickname(ctx context.Context, name string) context.Context {
+	return context.WithValue(ctx, CtxUserNicknameKey, name)
 }
 
 func RpcWithUid(ctx context.Context, uid int64) context.Context {
@@ -32,6 +37,10 @@ func RpcWithSessId(ctx context.Context, sessId string) context.Context {
 
 func Uid(ctx context.Context) int64 {
 	return getInt64(ctx, CtxUidKey)
+}
+
+func UserNickname(ctx context.Context) string {
+	return getString(ctx, CtxUserNicknameKey)
 }
 
 func SessId(ctx context.Context) string {

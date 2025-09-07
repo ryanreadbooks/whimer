@@ -11,6 +11,9 @@ http:
     Sampler: 1.0
     Batcher: jaeger
 
+redis:
+  host: 127.0.0.1:7542
+
 backend:
   note:
     hosts: [127.0.0.1:2379]
@@ -38,3 +41,8 @@ obfuscate:
     salt: ${ENV_OBFUSCATE_TAG_SALT}
     min_length: 24
     alphabet: 0123456789abcdef
+
+job_config:
+  note_event_job:
+    interval: 2s
+    num_of_list: 6

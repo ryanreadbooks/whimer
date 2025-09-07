@@ -58,6 +58,37 @@ func (s *NoteFeedServiceServer) GetFeedNote(ctx context.Context, in *notev1.GetF
 		}}, nil
 }
 
+// 批量获取笔记
+func (s *NoteFeedServiceServer) BatchGetFeedNotes(ctx context.Context, in *notev1.BatchGetFeedNotesRequest) (
+	*notev1.BatchGetFeedNotesResponse, error) {
+	resp := &notev1.BatchGetFeedNotesResponse{
+		Result: make(map[int64]*notev1.GetFeedNoteResponse),
+	}
+	if len(in.NoteIds) == 0 {
+		return resp, nil
+	}
+
+	if len(in.NoteIds) > 30 {
+		return nil, xerror.ErrArgs.Msg("can not fetch more than 30 notes at one time")
+	}
+
+	items, err := s.Srv.NoteFeedSrv.BatchGetNoteDetail(ctx, in.NoteIds)
+	if err != nil {
+		return nil, err
+	}
+
+	for noteId, item := range items {
+		resp.Result[noteId] = &notev1.GetFeedNoteResponse{
+			Item: item.AsFeedPb(),
+			Ext: &notev1.FeedNoteItemExt{
+				Tags: model.NoteTagListAsPb(item.Tags),
+			},
+		}
+	}
+
+	return resp, nil
+}
+
 // 获取指定用户的最近的笔记内容
 func (s *NoteFeedServiceServer) GetUserRecentPost(ctx context.Context, in *notev1.GetUserRecentPostRequest) (
 	*notev1.GetUserRecentPostResponse, error) {

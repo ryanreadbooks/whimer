@@ -8,6 +8,10 @@ import (
 	"github.com/ryanreadbooks/whimer/search/internal/srv"
 )
 
+const (
+	maxCountPerPage = 30
+)
+
 type SearchServiceServerImpl struct {
 	searchv1.UnimplementedSearchServiceServer
 
@@ -20,6 +24,7 @@ func NewSearchService(svc *srv.Service) searchv1.SearchServiceServer {
 	}
 }
 
+// 搜索标签
 func (s *SearchServiceServerImpl) SearchNoteTags(ctx context.Context, in *searchv1.SearchNoteTagsRequest) (
 	*searchv1.SearchNoteTagsResponse, error) {
 
@@ -33,8 +38,8 @@ func (s *SearchServiceServerImpl) SearchNoteTags(ctx context.Context, in *search
 		in.Page = 1
 	}
 
-	if in.Count >= 30 || in.Count <= 0 {
-		in.Count = 30
+	if in.Count >= maxCountPerPage || in.Count <= 0 {
+		in.Count = maxCountPerPage
 	}
 
 	items, total, err := s.svc.SearchSrv.SearchNoteTags(ctx, in.Text, in.Page, in.Count)
@@ -49,6 +54,28 @@ func (s *SearchServiceServerImpl) SearchNoteTags(ctx context.Context, in *search
 			Ctime: item.Ctime,
 		})
 	}
+
+	return resp, nil
+}
+
+// 搜索笔记
+func (s *SearchServiceServerImpl) SearchNotes(ctx context.Context, in *searchv1.SearchNotesRequest) (
+	*searchv1.SearchNotesResponse, error) {
+	var resp = &searchv1.SearchNotesResponse{}
+
+	if in.Count > maxCountPerPage || in.Count <= 0 {
+		in.Count = maxCountPerPage
+	}
+
+	searchRes, err := s.svc.SearchSrv.SearchNotes(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+
+	resp.NoteIds = searchRes.NoteIds
+	resp.NextToken = searchRes.NextToken
+	resp.Total = searchRes.Total
+	resp.HasNext = searchRes.HasNext
 
 	return resp, nil
 }

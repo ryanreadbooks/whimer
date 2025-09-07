@@ -2,10 +2,33 @@ syntax = "proto3";
 
 package search.api.v1;
 
-import "v1/note_tag.proto";
+import "v1/index.proto";
 
 option go_package = "github.com/ryanreadbooks/whimer/search/api/v1";
 
+// 查询服务
+service SearchService {
+  // 搜索笔记标签
+  rpc SearchNoteTags(SearchNoteTagsRequest) returns (SearchNoteTagsResponse);
+  // 按照条件搜索笔记
+  rpc SearchNotes(SearchNotesRequest) returns (SearchNotesResponse);
+}
+
+enum NoteFilterType {
+  filter_sort_rule = 0; // 排序规则
+  filter_note_type = 1; // 类型过滤规则: 笔记类型：图文/视频等
+  filter_note_pubtime = 2; // 发布时间过滤规则: 笔记发布时间
+}
+
+
+// 笔记筛选过滤器
+message NoteFilter {
+  NoteFilterType type = 1; // 过滤器类型
+  // 不同的filtertype支持不同的values
+  string value = 2; // 过滤器的条件值
+}
+
+// 搜索笔记标签
 message SearchNoteTagsRequest {
   string text = 1;
   int32 page = 2;
@@ -17,7 +40,16 @@ message SearchNoteTagsResponse {
   int64 total = 2;
 }
 
-// 查询服务
-service SearchService {
-  rpc SearchNoteTags(SearchNoteTagsRequest) returns (SearchNoteTagsResponse);
+message SearchNotesRequest {
+  string keyword = 1;
+  repeated NoteFilter filters = 2;
+  string page_token = 3;
+  int32 count = 4;
+}
+
+message SearchNotesResponse {
+  bool has_next = 1;
+  string next_token = 2;
+  int64 total = 3;
+  repeated string note_ids = 4;
 }

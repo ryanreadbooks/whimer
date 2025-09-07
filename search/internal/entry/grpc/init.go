@@ -22,6 +22,9 @@ func Init(c zrpc.RpcServerConf, svc *srv.Service) *zrpc.RpcServer {
 		interceptor.WithUnaryChecker(
 			checker.UidExistenceWithOpt(
 				checker.WithServicesIgnore(searchv1.SearchService_ServiceDesc.ServiceName),
+				checker.WithMethodsIgnore(
+					searchv1.DocumentService_BatchUpdateNoteCommentCount_FullMethodName,
+					searchv1.DocumentService_BatchUpdateNoteLikeCount_FullMethodName),
 			),
 		),
 	)

@@ -52,8 +52,11 @@ func (s *ReplyServiceServer) DelReply(ctx context.Context, in *commentv1.DelRepl
 	if in.ReplyId <= 0 {
 		return nil, global.ErrInvalidReplyId
 	}
+	if in.Oid <= 0 {
+		return nil, global.ErrObjectIdEmpty
+	}
 
-	err := s.Svc.CommentSrv.DelReply(ctx, in.ReplyId)
+	err := s.Svc.CommentSrv.DelReply(ctx, in.Oid, in.ReplyId)
 	if err != nil {
 		return nil, err
 	}

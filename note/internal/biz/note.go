@@ -14,6 +14,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
@@ -43,6 +44,31 @@ func (b *NoteBiz) GetNote(ctx context.Context, noteId int64) (*model.Note, error
 	}
 
 	return resp.Items[0], nil
+}
+
+// 批量获取笔记基础信息 不包含点赞等互动信息和标签
+func (b *NoteBiz) BatchGetNote(ctx context.Context, noteIds []int64) (map[int64]*model.Note, error) {
+	notesMap, err := infra.Dao().NoteDao.BatchGet(ctx, noteIds)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "biz batch get note failed").WithCtx(ctx)
+	}
+
+	if len(notesMap) == 0 {
+		return map[int64]*model.Note{}, nil
+	}
+
+	notes := xmap.Values(notesMap)
+	assembledNotes, err := b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
+	if err != nil {
+		return nil, xerror.Wrapf(err, "biz assemble notes failed").WithCtx(ctx)
+	}
+
+	resp := make(map[int64]*model.Note, len(notes))
+	for _, n := range assembledNotes.Items {
+		resp[n.NoteId] = n
+	}
+
+	return resp, nil
 }
 
 // 获取用户最近发布的笔记
@@ -255,7 +281,7 @@ func (b *NoteBiz) AssembleNotesExt(ctx context.Context, notes []*model.Note) err
 				}
 			}
 
-			// other ext attributes
+			// TODO other ext attributes if necessary
 		}
 	}
 

@@ -18,3 +18,13 @@ elasticsearch:
   addr: ${ENV_ES_ADDR}
   user: ${ENV_ES_USER}
   password: ${ENV_ES_PASSWORD}
+
+kafka:
+  brokers: ${ENV_KFK_BROKERS}
+  username: ${ENV_KFK_USERNAME}
+  password: ${ENV_KFK_PASSWORD}
+
+consumer_topic_config:
+  es_note_event:
+    batch_size: 50
+    batch_timeout: 2s

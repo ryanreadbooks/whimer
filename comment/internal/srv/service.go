@@ -3,7 +3,6 @@ package srv
 import (
 	"github.com/ryanreadbooks/whimer/comment/internal/biz"
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
-	"github.com/ryanreadbooks/whimer/comment/internal/infra"
 )
 
 type Service struct {
@@ -15,7 +14,6 @@ func NewService(c *config.Config) *Service {
 	s := &Service{}
 
 	// 基础设施初始化
-	infra.Init(c)
 	biz := biz.New()
 	s.CommentSrv = NewCommentSrv(s, biz)
 
