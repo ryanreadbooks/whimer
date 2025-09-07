@@ -69,6 +69,13 @@ func (n *noteUpdateLikeCountAction) GetDocId() string {
 	return fmtNoteDocIdString(n.noteId)
 }
 
+func NewNoteUpdateLikeCountAction(noteId string, incr int64) *noteUpdateLikeCountAction {
+	return &noteUpdateLikeCountAction{
+		noteId: noteId,
+		incr:   incr,
+	}
+}
+
 type noteUpdateCommentCountAction struct {
 	noteId string
 	incr   int64
@@ -82,4 +89,11 @@ func (n *noteUpdateCommentCountAction) GetDoc() (any, error) {
 
 func (n *noteUpdateCommentCountAction) GetDocId() string {
 	return fmtNoteDocIdString(n.noteId)
+}
+
+func NewNoteUpdateCommentCountAction(noteId string, incr int64) *noteUpdateCommentCountAction {
+	return &noteUpdateCommentCountAction{
+		noteId: noteId,
+		incr:   incr,
+	}
 }

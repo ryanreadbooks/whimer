@@ -1,12 +1,24 @@
 package infra
 
-import "github.com/ryanreadbooks/whimer/api-x/internal/config"
+import (
+	"sync"
+
+	"github.com/ryanreadbooks/whimer/api-x/internal/config"
+)
+
+var (
+	initOnce sync.Once
+)
 
 func Init(c *config.Config) {
-	InitPassport(c)
-	InitNote(c)
-	InitCommenter(c)
-	InitRelation(c)
-	InitMsger(c)
-	InitSearch(c)
+	initOnce.Do(func() {
+		initCache(c)
+		
+		InitPassport(c)
+		InitNote(c)
+		InitCommenter(c)
+		InitRelation(c)
+		InitMsger(c)
+		InitSearch(c)
+	})
 }

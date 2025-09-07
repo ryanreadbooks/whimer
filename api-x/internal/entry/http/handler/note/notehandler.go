@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	bizsearch "github.com/ryanreadbooks/whimer/api-x/internal/biz/search"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/model"
@@ -21,10 +22,14 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type Handler struct{}
+type Handler struct {
+	searchBiz *bizsearch.SearchBiz
+}
 
 func NewHandler(c *config.Config) *Handler {
-	return &Handler{}
+	return &Handler{
+		searchBiz: bizsearch.NewSearchBiz(c),
+	}
 }
 
 // 检查笔记是否存在
@@ -136,9 +141,11 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 			return
 		}
 
-		nid := req.NoteId
-		_, err = infra.NoteInteractServer().LikeNote(r.Context(), &notev1.LikeNoteRequest{
-			NoteId:    int64(nid),
+		noteId := req.NoteId
+		noteIdStr := noteId.String()
+		ctx := r.Context()
+		_, err = infra.NoteInteractServer().LikeNote(ctx, &notev1.LikeNoteRequest{
+			NoteId:    int64(noteId),
 			Uid:       uid,
 			Operation: notev1.LikeNoteRequest_Operation(req.Action),
 		})
@@ -147,7 +154,24 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 			return
 		}
 
-		// TODO sync like to search
+		concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+			Name: "note.handler.likenote.synces",
+			Job: func(ctx context.Context) error {
+				var incr int64 = 1
+				if req.Action == model.LikeReqActionUndo {
+					incr = -1
+				}
+
+				err := h.searchBiz.NoteStatSyncer.AddLikeCount(ctx, noteIdStr, incr)
+				if err != nil {
+					xlog.Msg("note stat add like count failed").
+						Extras("note_id", noteId, "note_id_str", noteIdStr).
+						Err(err).Errorx(ctx)
+				}
+
+				return err
+			},
+		})
 
 		xhttp.OkJson(w, nil)
 	}

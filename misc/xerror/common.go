@@ -2,6 +2,7 @@ package xerror
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/misc/utils"
@@ -49,6 +50,18 @@ func (e *Error) Msg(msg string) *Error {
 		Code:       e.Code,
 		StatusCode: e.StatusCode,
 		Message:    msg,
+	}
+}
+
+func (e *Error) Msgf(format string, args ...any) *Error {
+	if e == nil {
+		return nil
+	}
+
+	return &Error{
+		Code:       e.Code,
+		StatusCode: e.StatusCode,
+		Message:    fmt.Sprintf(format, args...),
 	}
 }
 
