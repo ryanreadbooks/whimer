@@ -42,8 +42,8 @@ func (s *CommentSrv) AddReply(ctx context.Context, req *model.AddReplyReq) (*mod
 }
 
 // 用户删除评论
-func (s *CommentSrv) DelReply(ctx context.Context, rid int64) error {
-	err := s.CommentBiz.DelReply(ctx, rid)
+func (s *CommentSrv) DelReply(ctx context.Context, oid, rid int64) error {
+	err := s.CommentBiz.DelReply(ctx, oid, rid)
 	if err != nil {
 		return xerror.Wrapf(err, "comment srv failed to del reply").
 			WithCtx(ctx).

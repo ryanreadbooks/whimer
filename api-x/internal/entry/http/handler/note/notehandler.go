@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/ryanreadbooks/whimer/api-x/internal/biz"
 	bizsearch "github.com/ryanreadbooks/whimer/api-x/internal/biz/search"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
@@ -26,9 +27,9 @@ type Handler struct {
 	searchBiz *bizsearch.SearchBiz
 }
 
-func NewHandler(c *config.Config) *Handler {
+func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 	return &Handler{
-		searchBiz: bizsearch.NewSearchBiz(c),
+		searchBiz: bizz.SearchBiz,
 	}
 }
 

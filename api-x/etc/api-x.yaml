@@ -44,5 +44,5 @@ obfuscate:
 
 job_config:
   note_event_job:
-    interval: 10s
+    interval: 2s
     num_of_list: 6

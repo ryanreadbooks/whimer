@@ -151,7 +151,7 @@ func (b *CommentBiz) isReplyAddable(ctx context.Context, rootId, parentId int64)
 }
 
 // 用户删除评论
-func (b *CommentBiz) DelReply(ctx context.Context, rid int64) error {
+func (b *CommentBiz) DelReply(ctx context.Context, oid, rid int64) error {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -160,6 +160,9 @@ func (b *CommentBiz) DelReply(ctx context.Context, rid int64) error {
 	reply, err := b.GetReply(ctx, rid)
 	if err != nil {
 		return xerror.Wrapf(err, "comment biz failed to get reply")
+	}
+	if reply.Oid != oid {
+		return xerror.Wrap(global.ErrOidNotMatch)
 	}
 
 	if err := b.isReplyDeletable(ctx, uid, reply); err != nil {

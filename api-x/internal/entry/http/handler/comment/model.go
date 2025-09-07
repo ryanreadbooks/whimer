@@ -177,7 +177,8 @@ type DetailedCommentRes struct {
 
 // 删除评论
 type DelReq struct {
-	ReplyId int64 `json:"reply_id"`
+	ReplyId int64        `json:"reply_id"`
+	Oid     model.NoteId `json:"oid"` // 被评论对象id
 }
 
 type PinAction int8
@@ -190,8 +191,8 @@ const (
 // 置顶评论
 type PinReq struct {
 	Oid     model.NoteId `json:"oid"`
-	ReplyId int64     `json:"reply_id"`
-	Action  PinAction `json:"action"`
+	ReplyId int64        `json:"reply_id"`
+	Action  PinAction    `json:"action"`
 }
 
 func (r *PinReq) Validate() error {

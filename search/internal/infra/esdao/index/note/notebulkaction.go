@@ -81,7 +81,7 @@ type noteUpdateCommentCountAction struct {
 	incr   int64
 }
 
-func (n *noteUpdateCommentCountAction) Type() NoteActionType { return ActionUpdateNoteLikeCount }
+func (n *noteUpdateCommentCountAction) Type() NoteActionType { return ActionUpdateNoteCommentCount }
 
 func (n *noteUpdateCommentCountAction) GetDoc() (any, error) {
 	return n.incr, nil

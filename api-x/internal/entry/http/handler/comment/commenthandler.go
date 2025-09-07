@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/ryanreadbooks/whimer/api-x/internal/biz"
+	bizsearch "github.com/ryanreadbooks/whimer/api-x/internal/biz/search"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	imodel "github.com/ryanreadbooks/whimer/api-x/internal/model"
@@ -25,10 +27,29 @@ import (
 )
 
 type Handler struct {
+	searchBiz *bizsearch.SearchBiz
 }
 
-func NewHandler(c *config.Config) *Handler {
-	return &Handler{}
+func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
+	return &Handler{
+		searchBiz: bizz.SearchBiz,
+	}
+}
+
+func (h *Handler) syncCommentCountToSearcher(ctx context.Context, noteId string, incr int64) {
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "note.handler.commentnote.synces",
+		Job: func(ctx context.Context) error {
+			err := h.searchBiz.NoteStatSyncer.AddCommentCount(ctx, noteId, incr)
+			if err != nil {
+				xlog.Msg("note stat add comment count failed").
+					Extras("note_id", noteId, "incr", incr).
+					Err(err).Errorx(ctx)
+			}
+
+			return err
+		},
+	})
 }
 
 // 发表评论
@@ -40,11 +61,15 @@ func (h *Handler) PublishComment() http.HandlerFunc {
 			return
 		}
 
-		resp, err := infra.Commenter().AddReply(r.Context(), req.AsPb())
+		ctx := r.Context()
+		resp, err := infra.Commenter().AddReply(ctx, req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
+
+		noteId := req.Oid.String()
+		h.syncCommentCountToSearcher(ctx, noteId, 1)
 
 		httpx.OkJson(w, &PubRes{ReplyId: resp.ReplyId})
 	}
@@ -287,17 +312,24 @@ func formatUid(uid int64) string {
 
 func (h *Handler) DelComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[DelReq](httpx.Parse, r)
+		req, err := xhttp.ParseValidate[DelReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		_, err = infra.Commenter().DelReply(r.Context(), &commentv1.DelReplyRequest{ReplyId: req.ReplyId})
+		ctx := r.Context()
+		_, err = infra.Commenter().DelReply(ctx, &commentv1.DelReplyRequest{
+			ReplyId: req.ReplyId,
+			Oid:     int64(req.Oid),
+		})
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
+
+		noteId := req.Oid.String()
+		h.syncCommentCountToSearcher(ctx, noteId, -1)
 
 		httpx.OkJson(w, nil)
 	}
@@ -305,7 +337,7 @@ func (h *Handler) DelComment() http.HandlerFunc {
 
 func (h *Handler) PinComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[PinReq](httpx.Parse, r)
+		req, err := xhttp.ParseValidate[PinReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

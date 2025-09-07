@@ -33,8 +33,8 @@ func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 	h := &Handler{
 		Config:   c,
 		Profile:  profile.NewHandler(c),
-		Comment:  comment.NewHandler(c),
-		Note:     note.NewHandler(c),
+		Comment:  comment.NewHandler(c, bizz),
+		Note:     note.NewHandler(c, bizz),
 		Relation: relation.NewHandler(c),
 		Chat:     msg.NewHandler(c),
 		User:     passport.NewUserHandler(c),
