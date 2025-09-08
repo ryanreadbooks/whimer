@@ -1,13 +1,11 @@
 package infra
 
 import (
-	"fmt"
-
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 
-	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	noteid "github.com/ryanreadbooks/whimer/note/pkg/id"
 )
 
 var (
@@ -15,9 +13,6 @@ var (
 	noteCreator  notev1.NoteCreatorServiceClient
 	noteFeed     notev1.NoteFeedServiceClient
 	noteInteract notev1.NoteInteractServiceClient
-
-	noteIdObfuscate obfuscate.Obfuscate
-	tagIdObfuscate  obfuscate.Obfuscate
 )
 
 func InitNote(c *config.Config) {
@@ -50,25 +45,11 @@ func NoteFeedServer() notev1.NoteFeedServiceClient {
 	return noteFeed
 }
 
-func GetNoteIdObfuscate() obfuscate.Obfuscate {
-	return noteIdObfuscate
-}
-
-func GetTagIdObfuscate() obfuscate.Obfuscate {
-	return tagIdObfuscate
-}
-
 // init note id obfuscator
 func initNoteObfuscate(c *config.Config) {
-	noteIdObfuscate, err = obfuscate.NewConfuser(c.Obfuscate.Note.Options()...)
-	if err != nil {
-		panic(fmt.Errorf("init note obfuscate: %w", err))
-	}
+	noteid.InitNoteIdObfuscate(c.Obfuscate.Note.Options()...)
 }
 
 func initTagObfuscate(c *config.Config) {
-	tagIdObfuscate, err = obfuscate.NewConfuser(c.Obfuscate.Tag.Options()...)
-	if err != nil {
-		panic(fmt.Errorf("init tag obfuscate: %w", err))
-	}
+	noteid.InitTagIdObfuscate(c.Obfuscate.Tag.Options()...)
 }

@@ -55,5 +55,16 @@ external:
     comment:
       hosts: [127.0.0.1:2379]
       key: whimer.comment.rpc
+    search:
+      hosts: [127.0.0.1:2379]
+      key: whimer.search.rpc
 
 salt: ${ENV_NOTE_SALT}
+
+obfuscate:
+  note:
+    salt: ${ENV_OBFUSCATE_NOTE_SALT}
+  tag:
+    salt: ${ENV_OBFUSCATE_TAG_SALT}
+    min_length: 24
+    alphabet: 0123456789abcdef

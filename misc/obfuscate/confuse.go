@@ -83,6 +83,25 @@ func WithAlphabet(s string) Option {
 	}
 }
 
+type Config struct {
+	Salt      string `json:"salt"`
+	MinLength int    `json:"min_length,default=12"`
+	Alphabet  string `json:"alphabet,optional"`
+}
+
+func (c *Config) Options() []Option {
+	opts := []Option{
+		WithSalt(c.Salt),
+		WithMinLen(c.MinLength),
+	}
+
+	if c.Alphabet != "" {
+		opts = append(opts, WithAlphabet(c.Alphabet))
+	}
+
+	return opts
+}
+
 func NewConfuser(opts ...Option) (*Confuser, error) {
 	hd := &hashids.HashIDData{
 		Alphabet:  hashids.DefaultAlphabet,

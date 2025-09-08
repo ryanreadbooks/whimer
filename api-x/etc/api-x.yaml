@@ -42,7 +42,7 @@ obfuscate:
     min_length: 24
     alphabet: 0123456789abcdef
 
-job_config:
-  note_event_job:
+daemon_config:
+  note_event_daemon:
     interval: 2s
     num_of_list: 6

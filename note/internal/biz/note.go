@@ -275,8 +275,9 @@ func (b *NoteBiz) AssembleNotesExt(ctx context.Context, notes []*model.Note) err
 			for _, tagId := range ext.TagIds {
 				if tag, tagOk := tagMap[tagId]; tagOk {
 					n.Tags = append(n.Tags, &model.NoteTag{
-						Id:   tag.Id,
-						Name: tag.Name,
+						Id:    tag.Id,
+						Name:  tag.Name,
+						Ctime: tag.Ctime,
 					})
 				}
 			}

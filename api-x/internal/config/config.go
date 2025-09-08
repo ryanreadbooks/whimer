@@ -28,35 +28,16 @@ type Config struct {
 	} `json:"backend"`
 
 	Obfuscate struct {
-		Note ObfuscateConfig `json:"note"`
-		Tag  ObfuscateConfig `json:"tag"`
+		Note obfuscate.Config `json:"note"`
+		Tag  obfuscate.Config `json:"tag"`
 	} `json:"obfuscate"`
 
-	JobConfig struct {
-		NoteEventJob NoteEventJob `json:"note_event_job"`
-	} `json:"job_config"`
+	DaemonConfig struct {
+		NoteEventDaemon NoteEventDaemon `json:"note_event_daemon"`
+	} `json:"daemon_config"`
 }
 
-type ObfuscateConfig struct {
-	Salt      string `json:"salt"`
-	MinLength int    `json:"min_length,default=12"`
-	Alphabet  string `json:"alphabet,optional"`
-}
-
-func (c *ObfuscateConfig) Options() []obfuscate.Option {
-	opts := []obfuscate.Option{
-		obfuscate.WithSalt(c.Salt),
-		obfuscate.WithMinLen(c.MinLength),
-	}
-
-	if c.Alphabet != "" {
-		opts = append(opts, obfuscate.WithAlphabet(c.Alphabet))
-	}
-
-	return opts
-}
-
-type NoteEventJob struct {
+type NoteEventDaemon struct {
 	Interval  time.Duration `json:"interval,default=10s"`
 	NumOfList uint32        `json:"num_of_list,default=6"`
 }

@@ -1,4 +1,4 @@
-package job
+package daemon
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 )
 
 // 定时从redis中捞笔记的互动事件并同步到es中
-type NoteEventJobManager struct {
+type NoteEventManager struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
@@ -21,16 +21,16 @@ type NoteEventJobManager struct {
 	searchBiz *bizsearch.SearchBiz
 }
 
-type NoteEventJobManagerConfig struct {
+type NoteEventManagerConfig struct {
 	Tick      time.Duration
 	NumOfList int
 }
 
 // create and start ticker underneath
-func NewNoteEventJobManager(opt NoteEventJobManagerConfig, bizz *biz.Biz) *NoteEventJobManager {
+func NewNoteEventManager(opt NoteEventManagerConfig, bizz *biz.Biz) *NoteEventManager {
 	tick := opt.Tick
 	ctx, cancel := context.WithCancel(context.Background())
-	m := NoteEventJobManager{
+	m := NoteEventManager{
 		ctx:       ctx,
 		cancel:    cancel,
 		tick:      tick,
@@ -41,7 +41,7 @@ func NewNoteEventJobManager(opt NoteEventJobManagerConfig, bizz *biz.Biz) *NoteE
 	return &m
 }
 
-func (s *NoteEventJobManager) invoke() error {
+func (s *NoteEventManager) invoke() error {
 	var eg errgroup.Group
 	eg.Go(func() error {
 		return s.searchBiz.NoteStatSyncer.PollLikeCount(s.ctx)
@@ -53,20 +53,20 @@ func (s *NoteEventJobManager) invoke() error {
 
 	err := eg.Wait()
 	if err != nil {
-		xlog.Msgf("nove evnt job mgr invoke err").Err(err).Errorx(s.ctx)
+		xlog.Msgf("nove evnt daemon mgr invoke err").Err(err).Errorx(s.ctx)
 	} else {
-		xlog.Msgf("note evnt job mgr invoke done").Infox(s.ctx)
+		xlog.Msgf("note evnt daemon mgr invoke done").Infox(s.ctx)
 	}
 
 	return err
 }
 
-func (s *NoteEventJobManager) Start() {
+func (s *NoteEventManager) Start() {
 	for {
 		select {
 		case <-s.ctx.Done():
 			// exit
-			xlog.Msg("note event job manager ctx.Done").Info()
+			xlog.Msg("note event daemon manager ctx.Done").Info()
 			return
 		case <-s.ticker.C:
 			_ = s.invoke() // ignore error here
@@ -74,7 +74,7 @@ func (s *NoteEventJobManager) Start() {
 	}
 }
 
-func (s *NoteEventJobManager) Stop() {
+func (s *NoteEventManager) Stop() {
 	s.ticker.Stop()
 	s.cancel()
 }
