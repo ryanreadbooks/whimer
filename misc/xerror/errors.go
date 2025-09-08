@@ -12,6 +12,8 @@ const (
 	CodeInternal           = 10005
 	CodeCsrfFailed         = 10006
 	CodeServiceUnavailable = 10007
+	CodeDuplicate          = 10008
+	CodeTooLong            = 10009
 	CodeInternalPanic      = 19000
 	CodeOther              = 19999
 )
@@ -28,6 +30,8 @@ var (
 	ErrInternal           = NewError(InternalServerError, CodeInternal, "服务器被怪兽踢烂了(ノ｀Д´)ノ")
 	ErrDepNotReady        = NewError(InternalServerError, CodeInternal, "服务未就绪")
 	ErrInternalPanic      = NewError(InternalServerError, CodeInternalPanic, "服务器炸掉了")
+	ErrDuplicate          = NewError(InternalServerError, CodeDuplicate, "资源重复")
+	ErrDataTooLong        = NewError(InternalServerError, CodeTooLong, "数据超长")
 	ErrCsrf               = NewError(Forbidden, CodeCsrfFailed, "CSRF校验失败")
 	ErrServiceUnavailable = NewError(ServiceUnavailable, CodeServiceUnavailable, "服务暂不可用")
 	ErrOther              = NewError(InternalServerError, CodeOther, "服务错误")

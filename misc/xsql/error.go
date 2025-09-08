@@ -11,8 +11,8 @@ import (
 
 var (
 	ErrNoRecord   = xerror.ErrNotFound.Msg("no record found")
-	ErrDuplicate  = xerror.ErrInternal.Msg("duplicate entry")
-	ErrOutOfRange = xerror.ErrInternal.Msg("out of range")
+	ErrDuplicate  = xerror.ErrDuplicate.Msg("duplicate entry")
+	ErrOutOfRange = xerror.ErrDataTooLong.Msg("out of range")
 )
 
 // 转换not found和duplicate entry两种错误

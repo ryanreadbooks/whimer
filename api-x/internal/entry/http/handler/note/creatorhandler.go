@@ -85,7 +85,7 @@ func (h *Handler) creatorSyncNoteToSearcher(ctx context.Context, noteId int64) {
 	})
 }
 
-func (h *Handler) creatorUnSyncNoteToSearcher(ctx context.Context, noteId int64) {
+func (h *Handler) creatorDeleteNoteFromSearcher(ctx context.Context, noteId int64) {
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
 		Name: fmt.Sprintf("creator_unsync_note_%d", noteId),
 		Job: func(ctx context.Context) error {
@@ -173,7 +173,7 @@ func (h *Handler) CreatorDeleteNote() http.HandlerFunc {
 			return
 		}
 
-		h.creatorUnSyncNoteToSearcher(ctx, int64(req.NoteId))
+		h.creatorDeleteNoteFromSearcher(ctx, int64(req.NoteId))
 
 		httpx.OkJson(w, nil)
 	}

@@ -144,6 +144,7 @@ func (r *NoteDao) ListByOwnerByCursor(ctx context.Context, uid int64, cursor int
 	return res, nil
 }
 
+// ATTENTION: listing is in reverse order
 func (r *NoteDao) ListPublicByOwnerByCursor(ctx context.Context, uid int64, cursor int64, limit int32) ([]*Note, error) {
 	const sql = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note " +
 		"WHERE owner=? AND id<? AND privacy=? " +
@@ -151,6 +152,23 @@ func (r *NoteDao) ListPublicByOwnerByCursor(ctx context.Context, uid int64, curs
 
 	res := make([]*Note, 0, limit)
 	err := r.db.QueryRowsCtx(ctx, &res, sql, uid, cursor, global.PrivacyPublic, limit)
+	if err != nil {
+		return nil, xerror.Wrap(xsql.ConvertError(err))
+	}
+
+	return res, nil
+}
+
+// this is for job internal use. do not use this for biz purpose
+//
+// ATTENTION: listing is in reverse order
+func (r *NoteDao) ListPublicByCursor(ctx context.Context, cursor int64, limit int32) ([]*Note, error) {
+	const sql = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note " +
+		"WHERE id<? AND privacy=? " +
+		"ORDER BY create_at DESC, id DESC LIMIT ?"
+
+	res := make([]*Note, 0, limit)
+	err := r.db.QueryRowsCtx(ctx, &res, sql, cursor, global.PrivacyPublic, limit)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
