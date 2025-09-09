@@ -76,12 +76,12 @@ func (Note) Mappings() *types.TypeMapping {
 			"note_id": types.NewKeywordProperty(),
 			"title": &types.TextProperty{
 				Analyzer:       mg.Ptr(xelasticanalyzer.IkMaxWord),
-				SearchAnalyzer: mg.Ptr(xelasticanalyzer.IkSmart),
+				SearchAnalyzer: mg.Ptr(xelasticanalyzer.IkMaxWord),
 				Fields:         common.DefaultTextFields,
 			},
 			"desc": &types.TextProperty{
 				Analyzer:       mg.Ptr(xelasticanalyzer.IkMaxWord),
-				SearchAnalyzer: mg.Ptr(xelasticanalyzer.IkSmart),
+				SearchAnalyzer: mg.Ptr(xelasticanalyzer.IkMaxWord),
 			},
 			"create_at": &types.DateProperty{
 				Format: mg.Ptr(xelasformat.DateEpochSecond),
@@ -94,7 +94,7 @@ func (Note) Mappings() *types.TypeMapping {
 					"uid": types.NewLongNumberProperty(),
 					"nickname": &types.TextProperty{
 						Analyzer:       mg.Ptr(xelasticanalyzer.IkMaxWord),
-						SearchAnalyzer: mg.Ptr(xelasticanalyzer.IkSmart),
+						SearchAnalyzer: mg.Ptr(xelasticanalyzer.IkMaxWord),
 						Fields:         common.DefaultTextFields,
 					},
 				},
@@ -104,7 +104,7 @@ func (Note) Mappings() *types.TypeMapping {
 					"id": types.NewKeywordProperty(),
 					"name": &types.TextProperty{
 						Analyzer:       mg.Ptr(xelasticanalyzer.IkMaxWord),
-						SearchAnalyzer: mg.Ptr(xelasticanalyzer.IkSmart),
+						SearchAnalyzer: mg.Ptr(xelasticanalyzer.IkMaxWord),
 						Fields:         common.DefaultTextFields,
 					},
 				},
@@ -476,7 +476,9 @@ func WithSearchNotePubInHalfYear() SearchNoteOption {
 	return WithSearchNotePubTime(pkg.NoteFilterPubTimeInHalfYear)
 }
 
-func (n *NoteIndexer) Search(ctx context.Context, keyword, pageToken string, count int32, opts ...SearchNoteOption) (*NoteIndexSearchResult, error) {
+func (n *NoteIndexer) Search(ctx context.Context, keyword,
+	pageToken string, count int32, opts ...SearchNoteOption) (*NoteIndexSearchResult, error) {
+
 	opt := newDefaultSearchNoteOption()
 	for _, o := range opts {
 		o(opt)
@@ -487,8 +489,9 @@ func (n *NoteIndexer) Search(ctx context.Context, keyword, pageToken string, cou
 		{
 			Match: map[string]types.MatchQuery{
 				"title": {
-					Query: keyword,
-					Boost: mg.Ptr(noteTitleBoost),
+					Query:    keyword,
+					Boost:    mg.Ptr(noteTitleBoost),
+					Analyzer: mg.Ptr(xelasticanalyzer.IkMaxWord),
 				},
 			},
 		},
@@ -498,14 +501,16 @@ func (n *NoteIndexer) Search(ctx context.Context, keyword, pageToken string, cou
 					Query:    keyword,
 					Boost:    mg.Ptr(noteTitleNgramBoost),
 					Operator: &operator.And,
+					Analyzer: mg.Ptr(common.CustomNgramAnalyzer),
 				},
 			},
 		},
 		{
 			Match: map[string]types.MatchQuery{
 				"title.prefix": {
-					Query: keyword,
-					Boost: mg.Ptr(noteTitlePrefixBoost),
+					Query:    keyword,
+					Boost:    mg.Ptr(noteTitlePrefixBoost),
+					Analyzer: mg.Ptr(xelasticanalyzer.IkMaxWord),
 				},
 			},
 		}}
@@ -515,8 +520,9 @@ func (n *NoteIndexer) Search(ctx context.Context, keyword, pageToken string, cou
 		{
 			Match: map[string]types.MatchQuery{
 				"tag_list.name": {
-					Query: keyword,
-					Boost: mg.Ptr(noteTagListBoost),
+					Query:    keyword,
+					Boost:    mg.Ptr(noteTagListBoost),
+					Analyzer: mg.Ptr(xelasticanalyzer.IkMaxWord),
 				},
 			},
 		},
@@ -536,8 +542,9 @@ func (n *NoteIndexer) Search(ctx context.Context, keyword, pageToken string, cou
 	authorQuery := []types.Query{{
 		Match: map[string]types.MatchQuery{
 			"author.nickname": {
-				Query: keyword,
-				Boost: mg.Ptr(noteAuthorBoost),
+				Query:    keyword,
+				Boost:    mg.Ptr(noteAuthorBoost),
+				Analyzer: mg.Ptr(xelasticanalyzer.IkMaxWord),
 			},
 		},
 	}}
