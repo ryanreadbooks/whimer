@@ -32,12 +32,12 @@ type Config struct {
 		Tag  obfuscate.Config `json:"tag"`
 	} `json:"obfuscate"`
 
-	DaemonConfig struct {
-		NoteEventDaemon NoteEventDaemon `json:"note_event_daemon"`
-	} `json:"daemon_config"`
+	JobConfig struct {
+		NoteEventJob NoteEventJob `json:"note_event_job"`
+	} `json:"job_config"`
 }
 
-type NoteEventDaemon struct {
+type NoteEventJob struct {
 	Interval  time.Duration `json:"interval,default=10s"`
 	NumOfList uint32        `json:"num_of_list,default=6"`
 }

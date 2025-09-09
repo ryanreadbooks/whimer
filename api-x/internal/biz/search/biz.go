@@ -12,7 +12,7 @@ type SearchBiz struct {
 func NewSearchBiz(c *config.Config) *SearchBiz {
 	b := &SearchBiz{
 		NoteStatSyncer: &NoteStatSyncer{
-			NoteCache: cache.NewNoteCache(c.DaemonConfig.NoteEventDaemon.NumOfList),
+			NoteCache: cache.NewNoteCache(c.JobConfig.NoteEventJob.NumOfList),
 		},
 	}
 

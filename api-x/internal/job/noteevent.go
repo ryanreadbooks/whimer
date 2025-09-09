@@ -1,4 +1,4 @@
-package daemon
+package job
 
 import (
 	"context"
@@ -53,9 +53,9 @@ func (s *NoteEventManager) invoke() error {
 
 	err := eg.Wait()
 	if err != nil {
-		xlog.Msgf("nove evnt daemon mgr invoke err").Err(err).Errorx(s.ctx)
+		xlog.Msgf("nove evnt job mgr invoke err").Err(err).Errorx(s.ctx)
 	} else {
-		xlog.Msgf("note evnt daemon mgr invoke done").Infox(s.ctx)
+		xlog.Msgf("note evnt job mgr invoke done").Infox(s.ctx)
 	}
 
 	return err
@@ -66,7 +66,7 @@ func (s *NoteEventManager) Start() {
 		select {
 		case <-s.ctx.Done():
 			// exit
-			xlog.Msg("note event daemon manager ctx.Done").Info()
+			xlog.Msg("note event job manager ctx.Done").Info()
 			return
 		case <-s.ticker.C:
 			_ = s.invoke() // ignore error here

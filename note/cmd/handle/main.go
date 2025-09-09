@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	"github.com/ryanreadbooks/whimer/note/cmd/job/notesynces"
+	"github.com/ryanreadbooks/whimer/note/cmd/handle/notesynces"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
@@ -15,12 +15,12 @@ import (
 )
 
 const (
-	NoteSyncToEsJob = "notesynces"
+	NoteSyncToEs = "notesynces"
 )
 
 var (
 	configFile = flag.String("f", "etc/note.yaml", "the config file")
-	jobType    = flag.String("job-type", NoteSyncToEsJob, "job type")
+	handleType = flag.String("handle-type", NoteSyncToEs, "job type")
 )
 
 func main() {
@@ -37,11 +37,11 @@ func main() {
 	svc := srv.NewService(&config.Conf, bizz)
 
 	var err error
-	switch *jobType {
-	case NoteSyncToEsJob:
+	switch *handleType {
+	case NoteSyncToEs:
 		err = notesynces.Handle(&config.Conf, bizz, svc)
 	default:
-		xlog.Msgf("unsupported job type: %s", *jobType).Error()
+		xlog.Msgf("unsupported handle type: %s", *handleType).Error()
 		os.Exit(1)
 	}
 
