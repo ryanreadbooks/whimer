@@ -5,9 +5,9 @@ import (
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/biz"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
-	"github.com/ryanreadbooks/whimer/api-x/internal/daemon"
 	httpbackend "github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler"
 	httprouter "github.com/ryanreadbooks/whimer/api-x/internal/entry/http/router"
+	"github.com/ryanreadbooks/whimer/api-x/internal/job"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 	zeroservice "github.com/zeromicro/go-zero/core/service"
@@ -31,13 +31,13 @@ func main() {
 	servgroup := zeroservice.NewServiceGroup()
 	defer servgroup.Stop()
 
-	noteEvtDaemon := daemon.NewNoteEventManager(
-		daemon.NoteEventManagerConfig{
-			Tick: config.Conf.DaemonConfig.NoteEventDaemon.Interval,
+	noteEvtJob := job.NewNoteEventManager(
+		job.NoteEventManagerConfig{
+			Tick: config.Conf.JobConfig.NoteEventJob.Interval,
 		}, bizz)
 
 	servgroup.Add(apiserver)
-	servgroup.Add(noteEvtDaemon)
+	servgroup.Add(noteEvtJob)
 
 	logx.Info("api-x server is running...")
 	servgroup.Start()
