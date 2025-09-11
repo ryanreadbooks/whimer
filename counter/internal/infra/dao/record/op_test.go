@@ -134,3 +134,21 @@ func TestRepo_PageGet(t *testing.T) {
 		}
 	})
 }
+
+func TestRepo_PageGetByUidOrderByMtimeWithCursor(t *testing.T) {
+	Convey("PageGetByUidOrderByMtimeWithCursor", t, func() {
+		models, err := repo.PageGetByUidOrderByMtimeWithCursor(ctx, 20001, PageGetByUidOrderByMtimeParam{
+			Uid:   200,
+			Count: 10,
+		}, PageGetByUidOrderByMtimeCursor{
+			Mtime: 1757248821,
+			Id:    212,
+		})
+		So(err, ShouldBeNil)
+		So(models, ShouldNotBeNil)
+		So(len(models), ShouldEqual, 10)
+		for _, model := range models {
+			t.Logf("%+v\n", model)
+		}
+	})
+}

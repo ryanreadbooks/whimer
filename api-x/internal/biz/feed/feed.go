@@ -326,7 +326,7 @@ func (b *FeedBiz) BatchGetNote(ctx context.Context, noteIds []int64) ([]*model.F
 	return filtered, nil
 }
 
-func (b *FeedBiz) ListNotesByUser(ctx context.Context, uid int64, cursor int64, count int) ([]*model.FeedNoteItem,
+func (b *FeedBiz) ListNotesByUser(ctx context.Context, uid int64, cursor int64, count int32) ([]*model.FeedNoteItem,
 	*model.PageResult, error) {
 
 	// 1. 笔记基础信息
@@ -353,4 +353,10 @@ func (b *FeedBiz) ListNotesByUser(ctx context.Context, uid int64, cursor int64, 
 	return result,
 		&model.PageResult{NextCursor: resp.NextCursor, HasNext: resp.HasNext},
 		nil
+}
+
+func (b *FeedBiz) ListLikedNotes(ctx context.Context, cursor int64, count int32) ([]*model.FeedNoteItem,
+	*model.PageResult, error) {
+
+	return nil, nil, nil
 }

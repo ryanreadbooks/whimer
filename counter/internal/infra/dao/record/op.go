@@ -10,7 +10,14 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
 
-// all sqls here
+type SortOrder string
+
+const (
+	Asc  SortOrder = "ASC"
+	Desc SortOrder = "DESC"
+)
+
+// sqls here
 const (
 	fields    = "biz_code,uid,oid,act,ctime,mtime"
 	allFields = "id,biz_code,uid,oid,act,ctime,mtime"
@@ -165,4 +172,85 @@ func (r *Repo) GetSummary(ctx context.Context, act int) ([]*Summary, error) {
 	}
 
 	return summaries, nil
+}
+
+type PageGetByUidOrderByMtimeParam struct {
+	Uid   int64
+	Count int32
+	Order SortOrder
+}
+
+func handlePageGetByUidOrderByMtimeParam(p *PageGetByUidOrderByMtimeParam) {
+	if p.Count == 0 {
+		p.Count = 20
+	}
+	if p.Order == "" {
+		p.Order = Desc
+	}
+}
+
+var sqlPageGetByUidOrderByMtime = fmt.Sprintf(
+	"SELECT %s FROM counter_record WHERE uid=? AND biz_code=? AND act=? ORDER BY %%s LIMIT ?",
+	allFields,
+)
+
+// 默认降序
+func (r *Repo) PageGetByUidOrderByMtime(ctx context.Context, bizCode int32, param PageGetByUidOrderByMtimeParam) ([]*Model, error) {
+	var models []*Model
+	handlePageGetByUidOrderByMtimeParam(&param)
+
+	var cond = "mtime DESC, id DESC"
+	if param.Order == Asc {
+		cond = "mtime ASC, id ASC"
+	}
+	sql := fmt.Sprintf(sqlPageGetByUidOrderByMtime, cond)
+
+	err := r.db.QueryRowsCtx(ctx, &models, sql, param.Uid, bizCode, ActDo, param.Count)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return models, nil
+}
+
+type PageGetByUidOrderByMtimeCursor struct {
+	Mtime int64
+	Id    int64
+}
+
+var sqlPageGetByUidOrderByMtimeWithCursor = fmt.Sprintf(
+	"SELECT %s FROM counter_record WHERE uid=? AND biz_code=? AND %%s AND act=? ORDER BY %%s LIMIT ?",
+	allFields,
+)
+
+// 默认降序
+func (r *Repo) PageGetByUidOrderByMtimeWithCursor(ctx context.Context,
+	bizCode int32, param PageGetByUidOrderByMtimeParam,
+	cursor PageGetByUidOrderByMtimeCursor) ([]*Model, error) {
+
+	handlePageGetByUidOrderByMtimeParam(&param)
+
+	if cursor.Mtime == 0 || cursor.Id == 0 {
+		return r.PageGetByUidOrderByMtime(ctx, bizCode, param)
+	}
+
+	var (
+		cond1 = "(mtime < ? OR (mtime = ? AND id < ?))"
+		cond2 = "mtime DESC, id DESC"
+	)
+	if param.Order == Asc {
+		cond1 = "(mtime > ? OR (mtime = ? AND id > ?))"
+		cond2 = "mtime ASC, id ASC"
+	}
+	sql := fmt.Sprintf(sqlPageGetByUidOrderByMtimeWithCursor, cond1, cond2)
+
+	var models []*Model
+	err := r.db.QueryRowsCtx(ctx, &models, sql,
+		param.Uid, bizCode, cursor.Mtime, cursor.Mtime, cursor.Id, ActDo, param.Count,
+	)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return models, nil
 }

@@ -19,8 +19,16 @@ func WithUid(ctx context.Context, uid int64) context.Context {
 	return context.WithValue(ctx, CtxUidKey, uid)
 }
 
+func HasUid(ctx context.Context) bool {
+	return Uid(ctx) != 0
+}
+
 func WithUserNickname(ctx context.Context, name string) context.Context {
 	return context.WithValue(ctx, CtxUserNicknameKey, name)
+}
+
+func HasUserNickname(ctx context.Context) bool {
+	return UserNickname(ctx) != ""
 }
 
 func RpcWithUid(ctx context.Context, uid int64) context.Context {
@@ -29,6 +37,10 @@ func RpcWithUid(ctx context.Context, uid int64) context.Context {
 
 func WithSessId(ctx context.Context, sessId string) context.Context {
 	return context.WithValue(ctx, CtxSessIdKey, sessId)
+}
+
+func HasSessId(ctx context.Context) bool {
+	return SessId(ctx) != ""
 }
 
 func RpcWithSessId(ctx context.Context, sessId string) context.Context {

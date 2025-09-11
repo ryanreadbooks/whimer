@@ -167,7 +167,7 @@ func (r *PageListReq) Validate() error {
 
 type AdminListRes struct {
 	Items      []*model.AdminNoteItem `json:"items"`
-	NextCursor int64                  `json:"next_cursor"`
+	NextCursor int64                  `json:"next_cursor"` // TODO confusion
 	HasNext    bool                   `json:"has_next"`
 }
 
@@ -278,7 +278,7 @@ func (r *LikeReq) Validate() error {
 }
 
 type GetLikesRes struct {
-	NoteId int64 `json:"note_id"`
+	NoteId int64 `json:"note_id"` // TODO confusion
 	Count  int64 `json:"count"`
 }
 

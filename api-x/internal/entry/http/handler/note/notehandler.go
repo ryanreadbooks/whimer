@@ -202,13 +202,6 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 	}
 }
 
-// TODO 获取点赞过的笔记
-func (h *Handler) GetLikeNotes() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-	}
-}
-
 // 创建新标签
 func (h *Handler) AddNewTag() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

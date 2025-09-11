@@ -6,6 +6,12 @@ import "buf/validate/validate.proto";
 
 option go_package = "github.com/ryanreadbooks/whimer/counter/api/v1";
 
+enum SortRule {
+  SORT_RULE_UNSPECIFIED = 0;
+  SORT_RULE_ASC = 1;
+  SORT_RULE_DESC = 2;
+}
+
 enum RecordAct {
   RECORD_ACT_UNSPECIFIED = 0;
   RECORD_ACT_ADD = 1;
@@ -84,6 +90,20 @@ message BatchGetRecordRequest {
 
 message BatchGetRecordResponse { map<int64, RecordList> results = 1; }
 
+message PageGetUserRecordRequest {
+  int32 biz_code = 1;
+  int64 uid = 2;
+  string cursor = 3;
+  int32 count = 4;
+  SortRule sort_rule = 5;
+}
+
+message PageGetUserRecordResponse {
+  string next_cursor = 1;
+  bool has_next = 2;
+  repeated Record items = 3;
+}
+
 service CounterService {
   // 添加一条计数记录
   rpc AddRecord(AddRecordRequest) returns (AddRecordResponse);
@@ -97,4 +117,7 @@ service CounterService {
   rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
   // 批量获取oid计数总数
   rpc BatchGetSummary(BatchGetSummaryRequest) returns (BatchGetSummaryResponse);
+  // 分页获取用户的计数记录
+  rpc PageGetUserRecord(PageGetUserRecordRequest)
+      returns (PageGetUserRecordResponse);
 }

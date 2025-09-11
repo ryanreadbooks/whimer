@@ -81,3 +81,30 @@ func (h *Handler) GetNotesByUser() http.HandlerFunc {
 		})
 	}
 }
+
+// 获取点赞过的笔记
+func (h *Handler) GetLikedNotes() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var (
+			ctx = r.Context()
+		)
+
+		req, err := xhttp.ParseValidate[model.GetLikedNoteRequest](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		resp, page, err := h.feedBiz.ListLikedNotes(ctx, req.Cursor, req.Count)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, &model.GetLikedNoteResponse{
+			Items:      resp,
+			NextCursor: page.NextCursor,
+			HasNext:    page.HasNext,
+		})
+	}
+}
