@@ -64,6 +64,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.47 // indirect
 	github.com/smarty/assertions v1.15.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
+	github.com/speps/go-hashids/v2 v2.0.1 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/zeromicro/go-queue v1.2.2 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.15 // indirect

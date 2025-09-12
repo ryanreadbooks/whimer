@@ -22,7 +22,11 @@ mysql:
 
 redis:
   host: 127.0.0.1:7542
-  
+
 cron:
   syncer_spec: "*/1 * * * *"
   summary_spec: "0 3 * * *"
+
+obfuscate:
+  salt: ${ENV_OBFUSCATE_COUNTER_SALT}
+  alphabet: 0123456789abcdef

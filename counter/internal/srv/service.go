@@ -13,7 +13,7 @@ type Service struct {
 // 初始化一个service
 func NewService(c *config.Config) *Service {
 	s := &Service{}
-	bizz := biz.New()
+	bizz := biz.New(c)
 	s.CounterSrv = NewCounterSrv(s, &bizz)
 	// s.CounterBiz = bizz.CounterBiz
 

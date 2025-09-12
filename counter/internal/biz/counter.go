@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"math"
@@ -12,23 +13,35 @@ import (
 
 	gcache "github.com/patrickmn/go-cache"
 	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
+	"github.com/ryanreadbooks/whimer/counter/internal/config"
 	"github.com/ryanreadbooks/whimer/counter/internal/global"
 	"github.com/ryanreadbooks/whimer/counter/internal/infra"
 	recorddao "github.com/ryanreadbooks/whimer/counter/internal/infra/dao/record"
 	summarydao "github.com/ryanreadbooks/whimer/counter/internal/infra/dao/summary"
+
+	"github.com/ryanreadbooks/whimer/misc/obfuscate"
+	"github.com/ryanreadbooks/whimer/misc/xconv"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	slices "github.com/ryanreadbooks/whimer/misc/xslice"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
+	"github.com/ryanreadbooks/whimer/misc/xstring"
 )
 
 type CounterBiz struct {
-	sumcounter *gcache.Cache
+	sumcounter       *gcache.Cache
+	cursorObfuscator obfuscate.Obfuscate
 }
 
-func NewCounterBiz() *CounterBiz {
+func MustNewCounterBiz(c *config.Config) *CounterBiz {
+	obs, err := obfuscate.NewConfuser(c.Obfuscate.Options()...)
+	if err != nil {
+		panic(err)
+	}
+
 	s := &CounterBiz{
-		sumcounter: gcache.New(0, 0),
+		sumcounter:       gcache.New(0, 0),
+		cursorObfuscator: obs,
 	}
 
 	return s
@@ -64,7 +77,7 @@ func (s *CounterBiz) AddRecord(ctx context.Context,
 
 	// 没有处理过，可以处理
 	err = infra.Dao().RecordRepo.InsertUpdate(ctx, &recorddao.Model{
-		BizCode: int(biz),
+		BizCode: biz,
 		Uid:     uid,
 		Oid:     oid,
 		Act:     recorddao.ActDo,
@@ -108,7 +121,7 @@ func (s *CounterBiz) CancelRecord(ctx context.Context,
 	}
 
 	err = infra.Dao().RecordRepo.InsertUpdate(ctx, &recorddao.Model{
-		BizCode: int(biz),
+		BizCode: biz,
 		Uid:     uid,
 		Oid:     oid,
 		Act:     recorddao.ActUndo,
@@ -273,7 +286,7 @@ func (s *CounterBiz) BatchGetSummary(ctx context.Context, req *counterv1.BatchGe
 		mu         sync.Mutex
 	)
 
-	err := slices.BatchAsyncExec(&wg, req.Requests, batchsize, func(start, end int) error {
+	err := xslice.BatchAsyncExec(&wg, req.Requests, batchsize, func(start, end int) error {
 		reqs := req.Requests[start:end]
 		conds := make(summarydao.PrimaryKeyList, 0, len(reqs))
 		for _, req := range reqs {
@@ -356,7 +369,7 @@ func (s *CounterBiz) SyncCacheSummary(ctx context.Context) error {
 		})
 	}
 
-	err := slices.BatchExec(deltas, batchsize, func(start, end int) error {
+	err := xslice.BatchExec(deltas, batchsize, func(start, end int) error {
 		tmps := deltas[start:end]
 		keys := make(summarydao.PrimaryKeyList, 0, len(tmps))
 		deltaMaps := make(map[summarydao.PrimaryKey]int64)
@@ -493,7 +506,7 @@ func (s *CounterBiz) SyncSummaryFromRecords(ctx context.Context) error {
 
 	batchsize := 500
 
-	err = slices.BatchExec(datas, batchsize, func(start, end int) error {
+	err = xslice.BatchExec(datas, batchsize, func(start, end int) error {
 		data := datas[start:end]
 		if len(data) == 0 {
 			return nil
@@ -524,4 +537,151 @@ func (s *CounterBiz) SyncSummaryFromRecords(ctx context.Context) error {
 	}
 
 	return err
+}
+
+type PageListOrder int8
+
+const (
+	PageListDescOrder PageListOrder = 0
+	PageListAscOrder  PageListOrder = 1
+)
+
+type PageListRecordsParam struct {
+	Cursor string
+	Count  int32
+	Order  PageListOrder
+}
+
+func (r *PageListRecordsParam) ParseCursor(obs obfuscate.Obfuscate) (mtime, id int64, err error) {
+	raw, err := base64.RawStdEncoding.DecodeString(r.Cursor)
+	if err != nil {
+		return
+	}
+
+	s := xstring.FromBytes(raw)
+	unpacked := strings.SplitN(s, ":", 2)
+	if len(unpacked) != 2 {
+		err = fmt.Errorf("%s is invalid cursor", s)
+		return
+	}
+
+	mtimeStr := unpacked[0]
+	mixIdStr := unpacked[1]
+	mtime, err = strconv.ParseInt(mtimeStr, 10, 64)
+	if err != nil {
+		err = fmt.Errorf("invalid mtime: %w", err)
+		return
+	}
+
+	id, err = obs.DeMix(mixIdStr)
+	if err != nil {
+		err = fmt.Errorf("invalid id: %w", err)
+	}
+
+	return
+}
+
+func (PageListRecordsParam) FormatCursor(mtime, id int64, obs obfuscate.Obfuscate) string {
+	idMix, _ := obs.Mix(id)
+	cursor := xconv.FormatInt(mtime) + ":" + idMix
+	return base64.RawStdEncoding.EncodeToString(xstring.AsBytes(cursor))
+}
+
+type PageListRecordsNextRequest struct {
+	NextCursor string
+	HasNext    bool
+}
+
+func (b *CounterBiz) PageListRecords(ctx context.Context, bizCode int32, uid int64, param PageListRecordsParam) (
+	[]*counterv1.Record, PageListRecordsNextRequest, error) {
+
+	var (
+		sortOrder   = recorddao.Desc
+		cursorMtime int64
+		cursorId    int64
+		err         error
+
+		records []*recorddao.Model
+	)
+
+	if param.Order == PageListAscOrder {
+		sortOrder = recorddao.Asc
+	}
+
+	hasCursor := false
+	if param.Cursor != "" {
+		var errParse error
+		cursorMtime, cursorId, errParse = param.ParseCursor(b.cursorObfuscator)
+		if errParse == nil {
+			hasCursor = true
+		}
+	}
+
+	var count = param.Count + 1 // fetch one more record
+
+	if !hasCursor {
+		records, err = infra.Dao().RecordRepo.PageGetByUidOrderByMtime(ctx,
+			bizCode,
+			recorddao.PageGetByUidOrderByMtimeParam{
+				Uid:   uid,
+				Count: count,
+				Order: sortOrder,
+			})
+	} else {
+		records, err = infra.Dao().RecordRepo.PageGetByUidOrderByMtimeWithCursor(ctx,
+			bizCode,
+			recorddao.PageGetByUidOrderByMtimeParam{
+				Uid:   uid,
+				Count: count,
+				Order: sortOrder,
+			},
+			recorddao.PageGetByUidOrderByMtimeCursor{
+				Mtime: cursorMtime,
+				Id:    cursorId,
+			})
+	}
+
+	var nextRequest PageListRecordsNextRequest
+
+	if err != nil {
+		return nil, nextRequest, xerror.Wrapf(err, "counter biz failed to page get by uid").
+			WithExtras("uid", uid, "biz_code", bizCode).WithCtx(ctx)
+	}
+
+	gotLen := len(records)
+	if gotLen == int(count) {
+		// has more
+		nextRequest.HasNext = true
+		records = records[0 : gotLen-1]
+		// we calculate the next cursor
+		nextCursor := records[len(records)-1]
+		nextRequest.NextCursor = PageListRecordsParam{}.FormatCursor(nextCursor.Mtime, nextCursor.Id, b.cursorObfuscator)
+	} else {
+		nextRequest.HasNext = false
+	}
+
+	var resp = make([]*counterv1.Record, 0, len(records))
+	for _, r := range records {
+		resp = append(resp, NewPbRecord(r))
+	}
+
+	return resp, nextRequest, nil
+}
+
+func NewPbRecord(r *recorddao.Model) *counterv1.Record {
+	act := counterv1.RecordAct_RECORD_ACT_UNSPECIFIED
+	switch r.Act {
+	case recorddao.ActDo:
+		act = counterv1.RecordAct_RECORD_ACT_ADD
+	case recorddao.ActUndo:
+		act = counterv1.RecordAct_RECORD_ACT_UNADD
+	}
+	return &counterv1.Record{
+		BizCode: r.BizCode,
+		Uid:     r.Uid,
+		Oid:     r.Oid,
+		Act:     act,
+		Ctime:   r.Ctime,
+		Mtime:   r.Mtime,
+	}
 }

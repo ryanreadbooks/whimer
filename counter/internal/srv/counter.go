@@ -5,6 +5,7 @@ import (
 
 	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/counter/internal/biz"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 )
 
 type CounterSrv struct {
@@ -45,4 +46,28 @@ func (s *CounterSrv) BatchGetSummary(ctx context.Context, req *counterv1.BatchGe
 	*counterv1.BatchGetSummaryResponse, error) {
 
 	return s.CounterBiz.BatchGetSummary(ctx, req)
+}
+
+func (s *CounterSrv) PageListUserRecords(ctx context.Context, req *counterv1.PageGetUserRecordRequest) (
+	*counterv1.PageGetUserRecordResponse, error) {
+
+	order := biz.PageListDescOrder
+	if req.SortRule == counterv1.SortRule_SORT_RULE_ASC {
+		order = biz.PageListAscOrder
+	}
+	records, nextReq, err := s.CounterBiz.PageListRecords(ctx, req.BizCode, req.Uid,
+		biz.PageListRecordsParam{
+			Cursor: req.Cursor,
+			Count:  req.Count,
+			Order:  order,
+		})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "counter srv failed to page list records").WithCtx(ctx)
+	}
+
+	return &counterv1.PageGetUserRecordResponse{
+		Items:      records,
+		NextCursor: nextReq.NextCursor,
+		HasNext:    nextReq.HasNext,
+	}, nil
 }

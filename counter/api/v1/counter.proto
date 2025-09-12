@@ -91,7 +91,7 @@ message BatchGetRecordRequest {
 message BatchGetRecordResponse { map<int64, RecordList> results = 1; }
 
 message PageGetUserRecordRequest {
-  int32 biz_code = 1;
+  int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
   int64 uid = 2;
   string cursor = 3;
   int32 count = 4;

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -23,4 +24,6 @@ type Config struct {
 		SyncerSpec  string `json:"syncer_spec"`
 		SummarySpec string `json:"summary_spec"`
 	} `json:"cron"`
+
+	Obfuscate obfuscate.Config `json:"obfuscate"`
 }

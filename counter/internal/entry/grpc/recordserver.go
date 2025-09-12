@@ -63,3 +63,9 @@ func (s *CounterServer) BatchGetSummary(ctx context.Context, req *counterv1.Batc
 	*counterv1.BatchGetSummaryResponse, error) {
 	return s.Svc.CounterSrv.BatchGetSummary(ctx, req)
 }
+
+func (s *CounterServer) PageGetUserRecord(ctx context.Context, req *counterv1.PageGetUserRecordRequest) (
+	*counterv1.PageGetUserRecordResponse, error) {
+
+	return s.Svc.CounterSrv.PageListUserRecords(ctx, req)
+}

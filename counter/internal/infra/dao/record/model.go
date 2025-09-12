@@ -20,7 +20,7 @@ const (
 
 type Model struct {
 	Id      int64 `db:"id"`
-	BizCode int   `db:"biz_code"`
+	BizCode int32 `db:"biz_code"`
 	Uid     int64 `db:"uid"`
 	Oid     int64 `db:"oid"`
 	Act     int8  `db:"act"`
