@@ -3,12 +3,16 @@ package srv
 import (
 	"context"
 
-	"github.com/ryanreadbooks/whimer/misc/metadata"
-	"github.com/ryanreadbooks/whimer/misc/xerror"
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
+	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
+
+	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+
+	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 )
 
 type NoteInteractSrv struct {
@@ -116,4 +120,33 @@ func (s *NoteInteractSrv) GetNoteInteraction(ctx context.Context, noteId int64) 
 	}
 
 	return &model.UserInteraction{Liked: liked}, nil
+}
+
+// 列出用户点赞过的笔记
+func (s *NoteInteractSrv) PageListUserLikedNoteIds(ctx context.Context, in *notev1.PageListUserLikedNoteRequest) (
+	[]int64, model.PageResultV2, error) {
+	var (
+		pageRes = model.PageResultV2{}
+	)
+
+	resp, err := dep.GetCounter().PageGetUserRecord(ctx, 
+		&counterv1.PageGetUserRecordRequest{
+		BizCode:  global.NoteLikeBizcode,
+		Uid:      in.Uid,
+		Cursor:   in.Cursor,
+		Count:    in.Count,
+		SortRule: counterv1.SortRule_SORT_RULE_DESC,
+	})
+	if err != nil {
+		return nil, pageRes, xerror.Wrapf(err, "counter page get user record failed").WithCtx(ctx)
+	}
+
+	noteIds := make([]int64, 0, len(resp.Items))
+	for _, item := range resp.Items {
+		noteIds = append(noteIds, item.Oid)
+	}
+	pageRes.NextCursor = resp.NextCursor
+	pageRes.HasNext = resp.HasNext
+
+	return noteIds, pageRes, nil
 }

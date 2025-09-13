@@ -63,9 +63,9 @@ func (r *FeedDetailRequest) Validate() error {
 }
 
 type FeedByUserRequest struct {
-	UserId int64 `form:"user_id"`
-	Cursor int64 `form:"cursor,optional"`  // TODO do confusion
-	Count  int32 `form:"count,optional"`
+	UserId int64         `form:"user_id"`
+	Cursor imodel.NoteId `form:"cursor,optional"`
+	Count  int32         `form:"count,optional"`
 }
 
 func (r *FeedByUserRequest) Validate() error {
@@ -94,32 +94,6 @@ type PageResult struct {
 
 type FeedByUserResponse struct {
 	Items      []*FeedNoteItem `json:"items"`
-	NextCursor int64           `json:"next_cursor"` // TODO do confusion
-	HasNext    bool            `json:"has_next"`
-}
-
-type GetLikedNoteRequest struct {
-	Cursor int64 `json:"cursor,optional"` // TODO do confusion
-	Count  int32 `json:"count,optional"`
-}
-
-func (r *GetLikedNoteRequest) Validate() error {
-	if r == nil {
-		return xerror.ErrNilArg
-	}
-
-	if r.Count > 20 {
-		r.Count = 20
-	}
-	if r.Count <= 0 {
-		r.Count = 10
-	}
-
-	return nil
-}
-
-type GetLikedNoteResponse struct {
-	Items      []*FeedNoteItem `json:"items"`
-	NextCursor int64           `json:"next_cursor"` // TODO do confusion
+	NextCursor imodel.NoteId   `json:"next_cursor"`
 	HasNext    bool            `json:"has_next"`
 }

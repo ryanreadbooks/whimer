@@ -1,6 +1,7 @@
 package biz
 
 import (
+	"maps"
 	"context"
 
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
@@ -240,9 +241,7 @@ func (b *NoteInteractBiz) AssignNoteReplies(ctx context.Context, batch *model.No
 
 	if resp != nil {
 		m := make(map[int64]int64, len(resp.Numbers))
-		for nid, rcnt := range resp.Numbers {
-			m[nid] = rcnt
-		}
+		maps.Copy(m, resp.Numbers)
 
 		for _, note := range batch.Items {
 			note.Replies = m[note.NoteId]

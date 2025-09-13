@@ -14,11 +14,6 @@ func regFeedRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 			v1Group.Get("/recommend", h.Feed.GetRecommend())
 			v1Group.Get("/note/:note_id", h.Feed.GetNoteDetail())
 			v1Group.Get("/notes/by_user", h.Feed.GetNotesByUser())
-
-			mustLogin := v1Group.Group("", middleware.MustLoginCheck())
-			{
-				mustLogin.Get("/notes/liked", h.Feed.GetLikedNotes())
-			}
 		}
 	}
 }

@@ -20,7 +20,6 @@ import (
 	summarydao "github.com/ryanreadbooks/whimer/counter/internal/infra/dao/summary"
 
 	"github.com/ryanreadbooks/whimer/misc/obfuscate"
-	"github.com/ryanreadbooks/whimer/misc/xconv"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
@@ -567,7 +566,7 @@ func (r *PageListRecordsParam) ParseCursor(obs obfuscate.Obfuscate) (mtime, id i
 
 	mtimeStr := unpacked[0]
 	mixIdStr := unpacked[1]
-	mtime, err = strconv.ParseInt(mtimeStr, 10, 64)
+	mtime, err = obs.DeMix(mtimeStr)
 	if err != nil {
 		err = fmt.Errorf("invalid mtime: %w", err)
 		return
@@ -582,8 +581,9 @@ func (r *PageListRecordsParam) ParseCursor(obs obfuscate.Obfuscate) (mtime, id i
 }
 
 func (PageListRecordsParam) FormatCursor(mtime, id int64, obs obfuscate.Obfuscate) string {
+	mtimeMix, _ := obs.Mix(mtime)
 	idMix, _ := obs.Mix(id)
-	cursor := xconv.FormatInt(mtime) + ":" + idMix
+	cursor := mtimeMix + ":" + idMix
 	return base64.RawStdEncoding.EncodeToString(xstring.AsBytes(cursor))
 }
 

@@ -92,35 +92,42 @@ func (b *NoteBiz) GetUserRecentNote(ctx context.Context, uid int64, count int32)
 }
 
 func (b *NoteBiz) ListUserPublicNote(ctx context.Context, uid int64, cursor int64, count int32) (*model.Notes, model.PageResult, error) {
-	var pageResult = model.PageResult{}
+	var nextPage = model.PageResult{}
 	if cursor == 0 {
 		cursor = math.MaxInt64
 	}
 
-	notes, err := infra.Dao().NoteDao.ListPublicByOwnerByCursor(ctx, uid, cursor, count)
+	newCount := count + 1
+
+	notes, err := infra.Dao().NoteDao.ListPublicByOwnerByCursor(ctx, uid, cursor, newCount)
 	if err != nil {
 		if xsql.IsNotFound(err) {
-			return &model.Notes{}, pageResult, nil
+			return &model.Notes{}, nextPage, nil
 		}
 
-		return nil, pageResult, xerror.Wrapf(err, "biz list notes failed").WithExtras("uid", uid, "count", count).WithCtx(ctx)
+		return nil, nextPage, xerror.Wrapf(err, "biz list notes failed").WithExtras("uid", uid, "count", count).WithCtx(ctx)
+	}
+
+	gotLen := len(notes)
+	if gotLen == int(newCount) {
+		// has more
+		notes = notes[0 : gotLen-1]
+		// 计算下一次请求的游标位置
+		nextPage.HasNext = true
+		nextPage.NextCursor = notes[len(notes)-1].Id
+	} else {
+		nextPage.HasNext = false
 	}
 
 	resp, err := b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
 	if err != nil {
-		return nil, pageResult, xerror.Wrapf(err, "biz assemble notes failed when get recent notes").
-			WithExtras("uid", uid, "count", count).WithCtx(ctx)
+		return nil,
+			nextPage,
+			xerror.Wrapf(err, "biz assemble notes failed when get recent notes").
+				WithExtras("uid", uid, "count", count).WithCtx(ctx)
 	}
 
-	// 计算下一次请求的游标位置
-	if len(notes) > 0 {
-		pageResult.NextCursor = notes[len(notes)-1].Id
-		if len(notes) == int(count) {
-			pageResult.HasNext = true
-		}
-	}
-
-	return resp, pageResult, nil
+	return resp, nextPage, nil
 }
 
 func (b *NoteBiz) GetPublicNote(ctx context.Context, noteId int64) (*model.Note, error) {

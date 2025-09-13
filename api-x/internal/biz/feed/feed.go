@@ -23,7 +23,7 @@ import (
 type FeedBiz struct {
 }
 
-func NewFeedBiz() FeedBiz { return FeedBiz{} }
+func NewFeedBiz() *FeedBiz { return &FeedBiz{} }
 
 func isGuestFromCtx(ctx context.Context) bool {
 	return imodel.IsGuestFromCtx(ctx)
@@ -136,7 +136,8 @@ func (b *FeedBiz) collectRelationStatus(ctx context.Context, reqUid int64, autho
 	return resp.Status, nil
 }
 
-func (b *FeedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.FeedNoteItem) (
+// 组装notes的各种字段
+func (b *FeedBiz) AssembleNoteFeeds(ctx context.Context, notes []*notev1.FeedNoteItem) (
 	[]*model.FeedNoteItem, error) {
 	var (
 		err     error
@@ -226,15 +227,14 @@ func (b *FeedBiz) assembleNoteFeedReturn(ctx context.Context, notes []*notev1.Fe
 	// organize final results
 	feedNotes := make([]*model.FeedNoteItem, 0, len(notes))
 	for _, note := range notes {
+		feedNote := model.NewFeedNoteItemFromPb(note)
 		author := authorInfos[note.Author]
-		if author == nil {
-			continue
+		if author != nil {
+			feedNote.Author = model.NewAuthor(author)
 		}
 
-		feedNote := model.NewFeedNoteItemFromPb(note)
 		noteId := int64(feedNote.NoteId)
 		// fill extra fields
-		feedNote.Author = model.NewAuthor(author)
 		feedNote.Comments = commentNums[noteId]
 		feedNote.Interact.Commented = oidCommented[noteId]
 		feedNote.Interact.Liked = oidLiked[noteId]
@@ -261,7 +261,7 @@ func (b *FeedBiz) RandomFeed(ctx context.Context, req *model.FeedRecommendReques
 	}
 
 	// 2. 组装所有需要的信息
-	return b.assembleNoteFeedReturn(ctx, notes)
+	return b.AssembleNoteFeeds(ctx, notes)
 }
 
 // 获取详细的笔记信息
@@ -275,7 +275,7 @@ func (b *FeedBiz) GetNote(ctx context.Context, noteId int64) (*model.FullFeedNot
 	}
 
 	note := resp.GetItem()
-	feeds, err := b.assembleNoteFeedReturn(ctx, []*notev1.FeedNoteItem{note})
+	feeds, err := b.AssembleNoteFeeds(ctx, []*notev1.FeedNoteItem{note})
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +304,7 @@ func (b *FeedBiz) BatchGetNote(ctx context.Context, noteIds []int64) ([]*model.F
 		return []*model.FeedNoteItem{}, nil
 	}
 
-	feeds, err := b.assembleNoteFeedReturn(ctx, notes)
+	feeds, err := b.AssembleNoteFeeds(ctx, notes)
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +345,7 @@ func (b *FeedBiz) ListNotesByUser(ctx context.Context, uid int64, cursor int64, 
 	}
 
 	// 2. 组装所有需要的信息
-	result, err := b.assembleNoteFeedReturn(ctx, notes)
+	result, err := b.AssembleNoteFeeds(ctx, notes)
 	if err != nil {
 		return nil, nil, xerror.Wrapf(err, "feed biz failed to assemble").WithExtra("uid", uid).WithCtx(ctx)
 	}
@@ -353,10 +353,4 @@ func (b *FeedBiz) ListNotesByUser(ctx context.Context, uid int64, cursor int64, 
 	return result,
 		&model.PageResult{NextCursor: resp.NextCursor, HasNext: resp.HasNext},
 		nil
-}
-
-func (b *FeedBiz) ListLikedNotes(ctx context.Context, cursor int64, count int32) ([]*model.FeedNoteItem,
-	*model.PageResult, error) {
-
-	return nil, nil, nil
 }

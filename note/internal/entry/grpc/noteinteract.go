@@ -93,3 +93,40 @@ func (s *NoteInteractServiceServer) GetNoteInteraction(ctx context.Context, in *
 		},
 	}, nil
 }
+
+// 列出用户点赞过的笔记
+func (s *NoteInteractServiceServer) PageListUserLikedNote(ctx context.Context, in *notev1.PageListUserLikedNoteRequest) (
+	*notev1.PageListUserLikedNoteResponse, error) {
+
+	var resp = notev1.PageListUserLikedNoteResponse{}
+	if in.Uid == 0 {
+		return &resp, nil
+	}
+
+	targetNoteIds, pgres, err := s.Srv.NoteInteractSrv.PageListUserLikedNoteIds(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(targetNoteIds) == 0 {
+		return &resp, nil
+	}
+
+	targetNotes, err := s.Srv.NoteFeedSrv.BatchGetNoteDetail(ctx, targetNoteIds)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]*notev1.FeedNoteItem, 0, len(targetNotes))
+	// return ids order should be retain
+	for _, noteId := range targetNoteIds {
+		if targetNote, ok := targetNotes[noteId]; ok && targetNote != nil {
+			items = append(items, targetNote.AsFeedPb())
+		}
+	}
+	resp.NextCursor = pgres.NextCursor
+	resp.HasNext = pgres.HasNext
+	resp.Items = items
+
+	return &resp, nil
+}

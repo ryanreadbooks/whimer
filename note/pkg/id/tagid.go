@@ -39,7 +39,7 @@ func (id TagId) String() string {
 // MarshalJSON implements the encoding json interface.
 func (id TagId) MarshalJSON() ([]byte, error) {
 	if id == 0 {
-		return json.Marshal(nil)
+		return json.Marshal("")
 	}
 
 	result, err := tagIdObfuscate.Mix(int64(id))
