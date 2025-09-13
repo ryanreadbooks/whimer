@@ -38,13 +38,12 @@ var (
 )
 
 func (r *Repo) InsertUpdate(ctx context.Context, data *Model) error {
+	now := time.Now().Unix()
 	if data.Ctime <= 0 {
 		data.Ctime = time.Now().Unix()
 	}
 
-	if data.Mtime <= 0 {
-		data.Mtime = data.Ctime
-	}
+	data.Mtime = now
 
 	_, err := r.db.ExecCtx(ctx, sqlInUpd,
 		data.BizCode,
@@ -62,13 +61,11 @@ func (r *Repo) InsertUpdate(ctx context.Context, data *Model) error {
 }
 
 func (r *Repo) Insert(ctx context.Context, data *Model) error {
+	now := time.Now().Unix()
 	if data.Ctime <= 0 {
-		data.Ctime = time.Now().Unix()
+		data.Ctime = now
 	}
-
-	if data.Mtime <= 0 {
-		data.Mtime = data.Ctime
-	}
+	data.Mtime = now
 
 	_, err := r.db.ExecCtx(ctx, sqlInsert,
 		data.BizCode,

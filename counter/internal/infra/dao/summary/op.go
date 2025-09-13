@@ -35,13 +35,12 @@ var (
 )
 
 func (r *Repo) Insert(ctx context.Context, data *Model) error {
+	now := time.Now().Unix()
 	if data.Ctime <= 0 {
-		data.Ctime = time.Now().Unix()
+		data.Ctime = now
 	}
 
-	if data.Mtime <= 0 {
-		data.Mtime = data.Ctime
-	}
+	data.Mtime = now
 
 	_, err := r.db.ExecCtx(ctx, sqlInsert,
 		data.BizCode,
@@ -77,18 +76,15 @@ func (r *Repo) BatchInsert(ctx context.Context, datas []*Model) error {
 	if datas[0].Ctime <= 0 {
 		datas[0].Ctime = now
 	}
-	if datas[0].Mtime <= 0 {
-		datas[0].Mtime = datas[0].Ctime
-	}
+
+	datas[0].Mtime = now
 	modelAsInsertSql(datas[0], &builder)
 	for i := 1; i < len(datas); i++ {
 		data := datas[i]
 		if data.Ctime <= 0 {
 			data.Ctime = now
 		}
-		if data.Mtime <= 0 {
-			data.Mtime = data.Ctime
-		}
+		data.Mtime = now
 		builder.WriteByte(',')
 		modelAsInsertSql(data, &builder)
 	}
