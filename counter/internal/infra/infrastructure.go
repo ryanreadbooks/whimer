@@ -5,6 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/counter/internal/config"
 	infradao "github.com/ryanreadbooks/whimer/counter/internal/infra/dao"
+
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -17,10 +18,11 @@ var (
 
 func Init(c *config.Config) {
 	initOnce.Do(func() {
-		dao = infradao.MustNew(c)
 		cache = redis.MustNewRedis(c.Redis)
+		dao = infradao.MustNew(c, cache)
 	})
 }
+
 
 func Dao() *infradao.Dao {
 	return dao

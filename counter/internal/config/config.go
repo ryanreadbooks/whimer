@@ -21,7 +21,6 @@ type Config struct {
 	Redis redis.RedisConf `json:"redis"`
 
 	Cron struct {
-		SyncerSpec  string `json:"syncer_spec"`
 		SummarySpec string `json:"summary_spec"`
 	} `json:"cron"`
 

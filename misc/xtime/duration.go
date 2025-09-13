@@ -46,6 +46,14 @@ func (t *Duration) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+const (
+	Sec       = 1
+	MinuteSec = 60 * Sec
+	HourSec   = 60 * MinuteSec
+	DaySec    = 24 * HourSec
+	WeekSec   = 7 * DaySec
+)
+
 var (
 	Hour = time.Hour
 	Day  = 24 * Hour

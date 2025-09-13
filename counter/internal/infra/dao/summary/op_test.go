@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 		os.Getenv("ENV_DB_NAME"),
 	))
 
-	repo = New(db)
+	repo = New(db, nil)
 	m.Run()
 	// repo.db.Exec("DELETE FROM counter_record")
 }

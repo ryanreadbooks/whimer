@@ -37,7 +37,7 @@ var (
 	sqlBatchFind = fmt.Sprintf("SELECT DISTINCT %s FROM counter_record WHERE uid IN (%%s) AND oid IN (%%s) AND biz_code=?", allFields)
 )
 
-func (r *Repo) InsertUpdate(ctx context.Context, data *Model) error {
+func (r *Repo) InsertUpdate(ctx context.Context, data *Record) error {
 	now := time.Now().Unix()
 	if data.Ctime <= 0 {
 		data.Ctime = time.Now().Unix()
@@ -60,7 +60,7 @@ func (r *Repo) InsertUpdate(ctx context.Context, data *Model) error {
 	return nil
 }
 
-func (r *Repo) Insert(ctx context.Context, data *Model) error {
+func (r *Repo) Insert(ctx context.Context, data *Record) error {
 	now := time.Now().Unix()
 	if data.Ctime <= 0 {
 		data.Ctime = now
@@ -82,7 +82,7 @@ func (r *Repo) Insert(ctx context.Context, data *Model) error {
 	return nil
 }
 
-func (r *Repo) Update(ctx context.Context, data *Model) error {
+func (r *Repo) Update(ctx context.Context, data *Record) error {
 	_, err := r.db.ExecCtx(ctx,
 		sqlUpdate,
 		data.Act,
@@ -93,8 +93,8 @@ func (r *Repo) Update(ctx context.Context, data *Model) error {
 	return xsql.ConvertError(err)
 }
 
-func (r *Repo) Find(ctx context.Context, uid int64, oid int64, biz int) (*Model, error) {
-	var ret Model
+func (r *Repo) Find(ctx context.Context, uid int64, oid int64, biz int) (*Record, error) {
+	var ret Record
 	err := r.db.QueryRowCtx(ctx, &ret, sqlFind, uid, oid, biz)
 	if err != nil {
 		return nil, xsql.ConvertError(err)
@@ -103,8 +103,8 @@ func (r *Repo) Find(ctx context.Context, uid int64, oid int64, biz int) (*Model,
 	return &ret, nil
 }
 
-func (r *Repo) BatchFind(ctx context.Context, uidOids map[int64][]int64, biz int) ([]Model, error) {
-	var batchRes []Model
+func (r *Repo) BatchFind(ctx context.Context, uidOids map[int64][]int64, biz int) ([]Record, error) {
+	var batchRes []Record
 	// 分批操作
 	err := maps.BatchExec(uidOids, 200, func(target map[int64][]int64) error {
 		uids, oids := maps.All(target)
@@ -113,7 +113,7 @@ func (r *Repo) BatchFind(ctx context.Context, uidOids map[int64][]int64, biz int
 			allOids = slices.Concat(allOids, oids[i])
 		}
 
-		var ret = make([]Model, 0, len(uids)*len(allOids)) // we should strictly limit the length of them
+		var ret = make([]Record, 0, len(uids)*len(allOids)) // we should strictly limit the length of them
 		query := fmt.Sprintf(sqlBatchFind, slices.JoinInts(uids), slices.JoinInts(allOids))
 		err := r.db.QueryRowsCtx(ctx, &ret, query, biz)
 		if err != nil {
@@ -141,8 +141,8 @@ func (r *Repo) Count(ctx context.Context, oid int64, biz int) (int64, error) {
 	return cnt, nil
 }
 
-func (r *Repo) PageGet(ctx context.Context, id int64, act int, limit int64) ([]*Model, error) {
-	var res = make([]*Model, 0)
+func (r *Repo) PageGet(ctx context.Context, id int64, act int, limit int64) ([]*Record, error) {
+	var res = make([]*Record, 0)
 	err := r.db.QueryRowsCtx(ctx, &res, fmt.Sprintf(sqlPageGet, allFields), id, act, limit)
 	if err != nil {
 		return nil, xsql.ConvertError(err)
@@ -192,8 +192,8 @@ var sqlPageGetByUidOrderByMtime = fmt.Sprintf(
 )
 
 // 默认降序
-func (r *Repo) PageGetByUidOrderByMtime(ctx context.Context, bizCode int32, param PageGetByUidOrderByMtimeParam) ([]*Model, error) {
-	var models []*Model
+func (r *Repo) PageGetByUidOrderByMtime(ctx context.Context, bizCode int32, param PageGetByUidOrderByMtimeParam) ([]*Record, error) {
+	var models []*Record
 	handlePageGetByUidOrderByMtimeParam(&param)
 
 	var cond = "mtime DESC, id DESC"
@@ -223,7 +223,7 @@ var sqlPageGetByUidOrderByMtimeWithCursor = fmt.Sprintf(
 // 默认降序
 func (r *Repo) PageGetByUidOrderByMtimeWithCursor(ctx context.Context,
 	bizCode int32, param PageGetByUidOrderByMtimeParam,
-	cursor PageGetByUidOrderByMtimeCursor) ([]*Model, error) {
+	cursor PageGetByUidOrderByMtimeCursor) ([]*Record, error) {
 
 	handlePageGetByUidOrderByMtimeParam(&param)
 
@@ -241,7 +241,7 @@ func (r *Repo) PageGetByUidOrderByMtimeWithCursor(ctx context.Context,
 	}
 	sql := fmt.Sprintf(sqlPageGetByUidOrderByMtimeWithCursor, cond1, cond2)
 
-	var models []*Model
+	var models []*Record
 	err := r.db.QueryRowsCtx(ctx, &models, sql,
 		param.Uid, bizCode, cursor.Mtime, cursor.Mtime, cursor.Id, ActDo, param.Count,
 	)

@@ -5,13 +5,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"math"
-	"math/bits"
-	"strconv"
 	"strings"
 	"sync"
 
-	gcache "github.com/patrickmn/go-cache"
 	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/counter/internal/config"
 	"github.com/ryanreadbooks/whimer/counter/internal/global"
@@ -28,7 +24,6 @@ import (
 )
 
 type CounterBiz struct {
-	sumcounter       *gcache.Cache
 	cursorObfuscator obfuscate.Obfuscate
 }
 
@@ -39,16 +34,10 @@ func MustNewCounterBiz(c *config.Config) *CounterBiz {
 	}
 
 	s := &CounterBiz{
-		sumcounter:       gcache.New(0, 0),
 		cursorObfuscator: obs,
 	}
 
 	return s
-}
-
-func (s *CounterBiz) summaryKey(oid int64, bizcode int) string {
-	// summary.biz.oid
-	return "summary." + strconv.Itoa(bizcode) + "." + strconv.FormatInt(oid, 10)
 }
 
 // 新增计数记录
@@ -75,7 +64,7 @@ func (s *CounterBiz) AddRecord(ctx context.Context,
 	}
 
 	// 没有处理过，可以处理
-	err = infra.Dao().RecordRepo.InsertUpdate(ctx, &recorddao.Model{
+	err = infra.Dao().RecordRepo.InsertUpdate(ctx, &recorddao.Record{
 		BizCode: biz,
 		Uid:     uid,
 		Oid:     oid,
@@ -119,7 +108,7 @@ func (s *CounterBiz) CancelRecord(ctx context.Context,
 		return nil, global.ErrAlreadyDo // 重复操作
 	}
 
-	err = infra.Dao().RecordRepo.InsertUpdate(ctx, &recorddao.Model{
+	err = infra.Dao().RecordRepo.InsertUpdate(ctx, &recorddao.Record{
 		BizCode: biz,
 		Uid:     uid,
 		Oid:     oid,
@@ -142,8 +131,6 @@ func (s *CounterBiz) CancelRecord(ctx context.Context,
 }
 
 func (s *CounterBiz) updateSummary(ctx context.Context, oid int64, biz int32, positive bool) {
-	// TODO determine to use updateSummaryNow or cacheSummary based on database overload
-	// s.cacheSummary(ctx, oid, biz, positive)
 	s.updateSummaryNow(ctx, oid, biz, positive)
 }
 
@@ -165,30 +152,6 @@ func (s *CounterBiz) updateSummaryNow(ctx context.Context, oid int64, biz int32,
 	}
 
 	return err
-}
-
-// 内存缓存记数结果
-func (s *CounterBiz) cacheSummary(ctx context.Context, oid int64, biz int32, positive bool) {
-	k := s.summaryKey(oid, int(biz))
-	if _, ok := s.sumcounter.Get(k); ok {
-		if positive {
-			_, err := s.sumcounter.IncrementInt64(k, 1)
-			if err != nil {
-				xlog.Msg("record sumcounter incr failed").Err(err).Extra("key", k).Errorx(ctx)
-			}
-		} else {
-			_, err := s.sumcounter.DecrementInt64(k, 1)
-			if err != nil {
-				xlog.Msg("record sumcounter decr failed").Err(err).Extra("key", k).Errorx(ctx)
-			}
-		}
-	} else {
-		initval := 1
-		if !positive {
-			initval = -1
-		}
-		s.sumcounter.Set(k, int64(initval), -1)
-	}
 }
 
 func (s *CounterBiz) GetRecord(ctx context.Context,
@@ -329,116 +292,6 @@ func (s *CounterBiz) BatchGetSummary(ctx context.Context, req *counterv1.BatchGe
 	}
 
 	return &counterv1.BatchGetSummaryResponse{Responses: responses}, nil
-}
-
-// 同步增量数据到数据库
-func (s *CounterBiz) SyncCacheSummary(ctx context.Context) error {
-	var (
-		batchsize = 500
-	)
-
-	items := s.sumcounter.Items()
-	s.sumcounter.Flush() // 重新开始计数
-	type delta struct {
-		Biz   int32
-		Oid   int64
-		Delta int64
-	}
-	deltas := make([]*delta, 0, len(items))
-
-	for k, v := range items {
-		seps := strings.Split(k, ":")
-		biz, err := strconv.Atoi(seps[1])
-		if err != nil {
-			continue
-		}
-		oid, err := strconv.ParseInt(seps[2], 10, 64)
-		if err != nil {
-			continue
-		}
-		num, ok := v.Object.(int64)
-		if !ok {
-			continue
-		}
-
-		deltas = append(deltas, &delta{
-			Biz:   int32(biz),
-			Oid:   oid,
-			Delta: num,
-		})
-	}
-
-	err := xslice.BatchExec(deltas, batchsize, func(start, end int) error {
-		tmps := deltas[start:end]
-		keys := make(summarydao.PrimaryKeyList, 0, len(tmps))
-		deltaMaps := make(map[summarydao.PrimaryKey]int64)
-
-		for _, delta := range tmps {
-			k := &summarydao.PrimaryKey{BizCode: delta.Biz, Oid: delta.Oid}
-			keys = append(keys, k)
-			deltaMaps[*k] = delta.Delta
-		}
-
-		// 先查出来
-		result, err := infra.Dao().SummaryRepo.Gets(ctx, keys)
-		if err != nil {
-			xlog.Msg("sync summary repo gets failed").Err(err).Error()
-			return err
-		}
-
-		// 再设置回去
-		newVals := make(map[summarydao.PrimaryKey]int64)
-		for key, cur := range result {
-			num := deltaMaps[key] // > or < or == 0
-			// cur为当前计数 num为需要变化的计数
-			var newCur int64
-			if num >= 0 {
-				sum, overflow := bits.Add64(uint64(cur), uint64(num), 0)
-				if overflow != 0 {
-					// overflow.
-					xlog.Msg("sync summary bits.Add64 overflow").Extra("cur", cur).Extra("num", num).Error()
-					newCur = cur // stays the same
-				} else {
-					if sum > math.MaxInt64 {
-						xlog.Msg("sync summary sum overflow").Extra("cur", cur).Extra("num", num).Error()
-					} else {
-						newCur = int64(sum)
-					}
-				}
-			} else {
-				num = -num // abs, > 0
-				diff, underflow := bits.Sub64(uint64(cur), uint64(num), 0)
-				if underflow != 0 {
-					xlog.Msg("sync summary bits.Sub64 underflow").Extra("cur", cur).Extra("num", num).Error()
-					newCur = 0
-				} else {
-					if diff > math.MaxInt64 {
-						xlog.Msg("sync summary sum overflow").Extra("cur", cur).Extra("num", num).Error()
-					} else {
-						newCur = int64(diff)
-					}
-				}
-			}
-
-			newVals[key] = newCur
-		}
-
-		datas := make([]*summarydao.Model, 0, len(newVals))
-		for k, v := range newVals {
-			datas = append(datas, &summarydao.Model{BizCode: k.BizCode, Oid: k.Oid, Cnt: v})
-		}
-
-		if err := infra.Dao().SummaryRepo.BatchInsert(ctx, datas); err != nil {
-			xlog.Msg("sync summary repo batch insert failed").
-				Err(err).
-				Errorx(ctx)
-			return err
-		}
-
-		return nil
-	})
-
-	return err
 }
 
 // 全表扫描 从record表更新summary的数据
@@ -601,7 +454,7 @@ func (b *CounterBiz) PageListRecords(ctx context.Context, bizCode int32, uid int
 		cursorId    int64
 		err         error
 
-		records []*recorddao.Model
+		records []*recorddao.Record
 	)
 
 	if param.Order == PageListAscOrder {
@@ -668,7 +521,7 @@ func (b *CounterBiz) PageListRecords(ctx context.Context, bizCode int32, uid int
 	return resp, nextRequest, nil
 }
 
-func NewPbRecord(r *recorddao.Model) *counterv1.Record {
+func NewPbRecord(r *recorddao.Record) *counterv1.Record {
 	act := counterv1.RecordAct_RECORD_ACT_UNSPECIFIED
 	switch r.Act {
 	case recorddao.ActDo:

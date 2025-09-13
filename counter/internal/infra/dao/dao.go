@@ -1,10 +1,15 @@
 package dao
 
 import (
+	"context"
+
 	"github.com/ryanreadbooks/whimer/counter/internal/config"
 	"github.com/ryanreadbooks/whimer/counter/internal/infra/dao/record"
 	"github.com/ryanreadbooks/whimer/counter/internal/infra/dao/summary"
+
 	"github.com/ryanreadbooks/whimer/misc/xsql"
+
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -12,10 +17,13 @@ type Dao struct {
 	db sqlx.SqlConn
 
 	RecordRepo  *record.Repo
-	SummaryRepo *summary.Repo
+	RecordCache *record.Cache
+
+	SummaryRepo  *summary.Repo
+	SummaryCache *summary.Cache
 }
 
-func MustNew(c *config.Config) *Dao {
+func MustNew(c *config.Config, cache *redis.Redis) *Dao {
 	db := sqlx.NewMysql(xsql.GetDsn(
 		c.MySql.User,
 		c.MySql.Pass,
@@ -32,11 +40,21 @@ func MustNew(c *config.Config) *Dao {
 		panic(err)
 	}
 
+	recordCache := record.NewCache(cache)
+	err = recordCache.InitFunction(context.Background())
+	if err != nil {
+		panic(err)
+	}
+
+	summaryCache := summary.NewCache(cache)
+
 	r := &Dao{
 		db:          db,
-		RecordRepo:  record.New(db),
-		SummaryRepo: summary.New(db),
+		RecordRepo:  record.New(db, recordCache),
+		SummaryRepo: summary.New(db, summaryCache),
 	}
+	r.RecordCache = recordCache
+	r.SummaryCache = summaryCache
 
 	return r
 }

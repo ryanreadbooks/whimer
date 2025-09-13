@@ -7,12 +7,15 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 var (
-	repo *Repo
-	ctx  = context.TODO()
+	testRepo  *Repo
+	ctx       = context.TODO()
+	testRedis *redis.Redis
+	testCache *Cache
 )
 
 func TestMain(m *testing.M) {
@@ -23,14 +26,23 @@ func TestMain(m *testing.M) {
 		os.Getenv("ENV_DB_NAME"),
 	))
 
-	repo = New(db)
+	testRepo = New(db, nil)
+	testRedis = redis.MustNewRedis(redis.RedisConf{
+		Host: "127.0.0.1:7542",
+		Type: "node",
+	})
+
+	testCache = NewCache(testRedis)
+	if err := testCache.InitFunction(ctx); err != nil {
+		panic(err)
+	}
+
 	m.Run()
-	// repo.db.Exec("DELETE FROM counter_record")
 }
 
 func TestRepo_Insert(t *testing.T) {
 	Convey("Insert", t, func() {
-		for _, m := range []*Model{
+		for _, m := range []*Record{
 			{
 				BizCode: 10000,
 				Uid:     2000,
@@ -50,7 +62,7 @@ func TestRepo_Insert(t *testing.T) {
 				Act:     1,
 			},
 		} {
-			err := repo.Insert(ctx, m)
+			err := testRepo.Insert(ctx, m)
 			So(err, ShouldBeNil)
 		}
 	})
@@ -58,7 +70,7 @@ func TestRepo_Insert(t *testing.T) {
 
 func TestRepo_InsertUpdate(t *testing.T) {
 	Convey("Insert", t, func() {
-		for _, m := range []*Model{
+		for _, m := range []*Record{
 			{
 				BizCode: 10000,
 				Uid:     2000,
@@ -78,7 +90,7 @@ func TestRepo_InsertUpdate(t *testing.T) {
 				Act:     1,
 			},
 		} {
-			err := repo.InsertUpdate(ctx, m)
+			err := testRepo.InsertUpdate(ctx, m)
 			So(err, ShouldBeNil)
 		}
 	})
@@ -86,7 +98,7 @@ func TestRepo_InsertUpdate(t *testing.T) {
 
 func TestRepo_Update(t *testing.T) {
 	Convey("Update", t, func() {
-		for _, m := range []*Model{
+		for _, m := range []*Record{
 			{
 				BizCode: 10000,
 				Uid:     2000,
@@ -106,7 +118,7 @@ func TestRepo_Update(t *testing.T) {
 				Act:     1,
 			},
 		} {
-			err := repo.Update(ctx, m)
+			err := testRepo.Update(ctx, m)
 			So(err, ShouldBeNil)
 		}
 	})
@@ -114,7 +126,7 @@ func TestRepo_Update(t *testing.T) {
 
 func TestRepo_Find(t *testing.T) {
 	Convey("Find", t, func() {
-		model, err := repo.Find(ctx, 2000, 2000, 10000)
+		model, err := testRepo.Find(ctx, 2000, 2000, 10000)
 		So(err, ShouldBeNil)
 		So(model, ShouldNotBeNil)
 		t.Log(model)
@@ -125,7 +137,7 @@ func TestRepo_Find(t *testing.T) {
 
 func TestRepo_PageGet(t *testing.T) {
 	Convey("PageGet", t, func() {
-		models, err := repo.PageGet(ctx, 1, ActDo, 10)
+		models, err := testRepo.PageGet(ctx, 1, ActDo, 10)
 		So(err, ShouldBeNil)
 		So(models, ShouldNotBeNil)
 		So(len(models), ShouldEqual, 10)
@@ -137,7 +149,7 @@ func TestRepo_PageGet(t *testing.T) {
 
 func TestRepo_PageGetByUidOrderByMtimeWithCursor(t *testing.T) {
 	Convey("PageGetByUidOrderByMtimeWithCursor", t, func() {
-		models, err := repo.PageGetByUidOrderByMtimeWithCursor(ctx, 20001, PageGetByUidOrderByMtimeParam{
+		models, err := testRepo.PageGetByUidOrderByMtimeWithCursor(ctx, 20001, PageGetByUidOrderByMtimeParam{
 			Uid:   200,
 			Count: 10,
 		}, PageGetByUidOrderByMtimeCursor{
