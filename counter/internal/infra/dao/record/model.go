@@ -22,13 +22,13 @@ const (
 )
 
 type Record struct {
-	Id      int64 `db:"id"`
-	BizCode int32 `db:"biz_code"`
-	Uid     int64 `db:"uid"`
-	Oid     int64 `db:"oid"`
-	Act     int8  `db:"act"`
-	Ctime   int64 `db:"ctime"`
-	Mtime   int64 `db:"mtime"`
+	Id      int64 `db:"id" json:"id" redis:"id" mapstructure:"id"`
+	BizCode int32 `db:"biz_code" json:"biz_code" redis:"biz_code" mapstructure:"biz_code"`
+	Uid     int64 `db:"uid" json:"uid" redis:"uid" mapstructure:"uid"`
+	Oid     int64 `db:"oid" json:"oid" redis:"oid" mapstructure:"oid"`
+	Act     int8  `db:"act" json:"act" redis:"act" mapstructure:"act"`
+	Ctime   int64 `db:"ctime" json:"ctime" redis:"ctime" mapstructure:"ctime"`
+	Mtime   int64 `db:"mtime" json:"mtime" redis:"mtime" mapstructure:"mtime"`
 }
 
 type Summary struct {

@@ -41,7 +41,7 @@ func (s *CounterServer) BatchGetRecord(ctx context.Context, req *counterv1.Batch
 		uidOids[uid] = append(uidOids[uid], oids.Oids...)
 	}
 
-	resp, err := s.Svc.CounterSrv.BatchGetRecord(ctx, uidOids, int(req.BizCode))
+	resp, err := s.Svc.CounterSrv.BatchGetRecord(ctx, uidOids, req.BizCode)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +66,43 @@ func (s *CounterServer) BatchGetSummary(ctx context.Context, req *counterv1.Batc
 
 func (s *CounterServer) PageGetUserRecord(ctx context.Context, req *counterv1.PageGetUserRecordRequest) (
 	*counterv1.PageGetUserRecordResponse, error) {
-
 	return s.Svc.CounterSrv.PageListUserRecords(ctx, req)
+}
+
+// 获取一条(ActDo)计数记录
+func (s *CounterServer) CheckHasActDo(ctx context.Context, in *counterv1.CheckHasActDoRequest) (
+	*counterv1.CheckHasActDoResponse, error) {
+	resp, err := s.Svc.CounterSrv.CheckHasActDo(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+
+	return &counterv1.CheckHasActDoResponse{
+		Do: resp,
+	}, nil
+}
+
+// 批量获取(ActDo)计数记录
+func (s *CounterServer) BatchCheckHasActDo(ctx context.Context, req *counterv1.BatchCheckHasActDoDoRequest) (
+	*counterv1.BatchCheckHasActDoResponse, error) {
+	var uidOids = make(map[int64][]int64, len(req.Params))
+	for uid, oids := range req.Params {
+		uidOids[uid] = append(uidOids[uid], oids.Oids...)
+	}
+
+	resp, err := s.Svc.CounterSrv.BatchCheckHasActDo(ctx, uidOids, req.BizCode)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make(map[int64]*counterv1.BatchCheckHasActDoResponse_ItemList, len(resp))
+	for uid, items := range resp {
+		results[uid] = &counterv1.BatchCheckHasActDoResponse_ItemList{
+			List: items,
+		}
+	}
+
+	return &counterv1.BatchCheckHasActDoResponse{
+		Results: results,
+	}, nil
 }

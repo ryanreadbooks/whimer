@@ -19,13 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CounterService_AddRecord_FullMethodName         = "/counter.api.v1.CounterService/AddRecord"
-	CounterService_CancelRecord_FullMethodName      = "/counter.api.v1.CounterService/CancelRecord"
-	CounterService_GetRecord_FullMethodName         = "/counter.api.v1.CounterService/GetRecord"
-	CounterService_BatchGetRecord_FullMethodName    = "/counter.api.v1.CounterService/BatchGetRecord"
-	CounterService_GetSummary_FullMethodName        = "/counter.api.v1.CounterService/GetSummary"
-	CounterService_BatchGetSummary_FullMethodName   = "/counter.api.v1.CounterService/BatchGetSummary"
-	CounterService_PageGetUserRecord_FullMethodName = "/counter.api.v1.CounterService/PageGetUserRecord"
+	CounterService_AddRecord_FullMethodName          = "/counter.api.v1.CounterService/AddRecord"
+	CounterService_CancelRecord_FullMethodName       = "/counter.api.v1.CounterService/CancelRecord"
+	CounterService_GetRecord_FullMethodName          = "/counter.api.v1.CounterService/GetRecord"
+	CounterService_BatchGetRecord_FullMethodName     = "/counter.api.v1.CounterService/BatchGetRecord"
+	CounterService_GetSummary_FullMethodName         = "/counter.api.v1.CounterService/GetSummary"
+	CounterService_BatchGetSummary_FullMethodName    = "/counter.api.v1.CounterService/BatchGetSummary"
+	CounterService_PageGetUserRecord_FullMethodName  = "/counter.api.v1.CounterService/PageGetUserRecord"
+	CounterService_CheckHasActDo_FullMethodName      = "/counter.api.v1.CounterService/CheckHasActDo"
+	CounterService_BatchCheckHasActDo_FullMethodName = "/counter.api.v1.CounterService/BatchCheckHasActDo"
 )
 
 // CounterServiceClient is the client API for CounterService service.
@@ -44,8 +46,12 @@ type CounterServiceClient interface {
 	GetSummary(ctx context.Context, in *GetSummaryRequest, opts ...grpc.CallOption) (*GetSummaryResponse, error)
 	// 批量获取oid计数总数
 	BatchGetSummary(ctx context.Context, in *BatchGetSummaryRequest, opts ...grpc.CallOption) (*BatchGetSummaryResponse, error)
-	// 分页获取用户的计数记录
+	// 分页获取用户的计数(ActDo)记录
 	PageGetUserRecord(ctx context.Context, in *PageGetUserRecordRequest, opts ...grpc.CallOption) (*PageGetUserRecordResponse, error)
+	// 获取一条(ActDo)计数记录
+	CheckHasActDo(ctx context.Context, in *CheckHasActDoRequest, opts ...grpc.CallOption) (*CheckHasActDoResponse, error)
+	// 批量获取(ActDo)计数记录
+	BatchCheckHasActDo(ctx context.Context, in *BatchCheckHasActDoDoRequest, opts ...grpc.CallOption) (*BatchCheckHasActDoResponse, error)
 }
 
 type counterServiceClient struct {
@@ -126,6 +132,26 @@ func (c *counterServiceClient) PageGetUserRecord(ctx context.Context, in *PageGe
 	return out, nil
 }
 
+func (c *counterServiceClient) CheckHasActDo(ctx context.Context, in *CheckHasActDoRequest, opts ...grpc.CallOption) (*CheckHasActDoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckHasActDoResponse)
+	err := c.cc.Invoke(ctx, CounterService_CheckHasActDo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *counterServiceClient) BatchCheckHasActDo(ctx context.Context, in *BatchCheckHasActDoDoRequest, opts ...grpc.CallOption) (*BatchCheckHasActDoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchCheckHasActDoResponse)
+	err := c.cc.Invoke(ctx, CounterService_BatchCheckHasActDo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CounterServiceServer is the server API for CounterService service.
 // All implementations must embed UnimplementedCounterServiceServer
 // for forward compatibility.
@@ -142,8 +168,12 @@ type CounterServiceServer interface {
 	GetSummary(context.Context, *GetSummaryRequest) (*GetSummaryResponse, error)
 	// 批量获取oid计数总数
 	BatchGetSummary(context.Context, *BatchGetSummaryRequest) (*BatchGetSummaryResponse, error)
-	// 分页获取用户的计数记录
+	// 分页获取用户的计数(ActDo)记录
 	PageGetUserRecord(context.Context, *PageGetUserRecordRequest) (*PageGetUserRecordResponse, error)
+	// 获取一条(ActDo)计数记录
+	CheckHasActDo(context.Context, *CheckHasActDoRequest) (*CheckHasActDoResponse, error)
+	// 批量获取(ActDo)计数记录
+	BatchCheckHasActDo(context.Context, *BatchCheckHasActDoDoRequest) (*BatchCheckHasActDoResponse, error)
 	mustEmbedUnimplementedCounterServiceServer()
 }
 
@@ -174,6 +204,12 @@ func (UnimplementedCounterServiceServer) BatchGetSummary(context.Context, *Batch
 }
 func (UnimplementedCounterServiceServer) PageGetUserRecord(context.Context, *PageGetUserRecordRequest) (*PageGetUserRecordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PageGetUserRecord not implemented")
+}
+func (UnimplementedCounterServiceServer) CheckHasActDo(context.Context, *CheckHasActDoRequest) (*CheckHasActDoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckHasActDo not implemented")
+}
+func (UnimplementedCounterServiceServer) BatchCheckHasActDo(context.Context, *BatchCheckHasActDoDoRequest) (*BatchCheckHasActDoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchCheckHasActDo not implemented")
 }
 func (UnimplementedCounterServiceServer) mustEmbedUnimplementedCounterServiceServer() {}
 func (UnimplementedCounterServiceServer) testEmbeddedByValue()                        {}
@@ -322,6 +358,42 @@ func _CounterService_PageGetUserRecord_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CounterService_CheckHasActDo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckHasActDoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CounterServiceServer).CheckHasActDo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CounterService_CheckHasActDo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CounterServiceServer).CheckHasActDo(ctx, req.(*CheckHasActDoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CounterService_BatchCheckHasActDo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchCheckHasActDoDoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CounterServiceServer).BatchCheckHasActDo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CounterService_BatchCheckHasActDo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CounterServiceServer).BatchCheckHasActDo(ctx, req.(*BatchCheckHasActDoDoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CounterService_ServiceDesc is the grpc.ServiceDesc for CounterService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -356,6 +428,14 @@ var CounterService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PageGetUserRecord",
 			Handler:    _CounterService_PageGetUserRecord_Handler,
+		},
+		{
+			MethodName: "CheckHasActDo",
+			Handler:    _CounterService_CheckHasActDo_Handler,
+		},
+		{
+			MethodName: "BatchCheckHasActDo",
+			Handler:    _CounterService_BatchCheckHasActDo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

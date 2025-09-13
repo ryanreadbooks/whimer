@@ -2,10 +2,7 @@ package biz
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
-	"fmt"
-	"strings"
 	"sync"
 
 	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
@@ -15,12 +12,12 @@ import (
 	recorddao "github.com/ryanreadbooks/whimer/counter/internal/infra/dao/record"
 	summarydao "github.com/ryanreadbooks/whimer/counter/internal/infra/dao/summary"
 
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	"github.com/ryanreadbooks/whimer/misc/xstring"
 )
 
 type CounterBiz struct {
@@ -49,7 +46,7 @@ func (s *CounterBiz) AddRecord(ctx context.Context,
 		oid = req.Oid
 	)
 
-	data, err := infra.Dao().RecordRepo.Find(ctx, uid, oid, int(biz))
+	data, err := infra.Dao().RecordRepo.Find(ctx, uid, oid, biz)
 	if err != nil && !xsql.IsNotFound(err) {
 		xlog.Msg("add record find failed").
 			Err(err).
@@ -94,7 +91,7 @@ func (s *CounterBiz) CancelRecord(ctx context.Context,
 		uid = req.Uid
 		oid = req.Oid
 	)
-	data, err := infra.Dao().RecordRepo.Find(ctx, uid, oid, int(biz))
+	data, err := infra.Dao().RecordRepo.Find(ctx, uid, oid, biz)
 	if err != nil && !xsql.IsNotFound(err) {
 		xlog.Msg("cancel record find failed").
 			Err(err).
@@ -157,7 +154,7 @@ func (s *CounterBiz) updateSummaryNow(ctx context.Context, oid int64, biz int32,
 func (s *CounterBiz) GetRecord(ctx context.Context,
 	req *counterv1.GetRecordRequest) (*counterv1.GetRecordResponse, error) {
 
-	data, err := infra.Dao().RecordRepo.Find(ctx, req.Uid, req.Oid, int(req.BizCode))
+	data, err := infra.Dao().RecordRepo.Find(ctx, req.Uid, req.Oid, req.BizCode)
 	if err != nil {
 		if !xsql.IsNotFound(err) {
 			xlog.Msg("cancel record repo insert update failed").
@@ -168,9 +165,10 @@ func (s *CounterBiz) GetRecord(ctx context.Context,
 				Errorx(ctx)
 			return nil, global.ErrInternal
 		} else {
-			return &counterv1.GetRecordResponse{Record: &counterv1.Record{
-				Act: counterv1.RecordAct_RECORD_ACT_UNSPECIFIED,
-			}}, nil // 找不到记录不当作错误
+			return &counterv1.GetRecordResponse{
+				Record: &counterv1.Record{
+					Act: counterv1.RecordAct_RECORD_ACT_UNSPECIFIED,
+				}}, nil // 找不到记录不当作错误
 		}
 	}
 
@@ -184,8 +182,44 @@ func (s *CounterBiz) GetRecord(ctx context.Context,
 	}}, nil
 }
 
-func (s *CounterBiz) BatchGetRecord(ctx context.Context, uidOids map[int64][]int64, biz int) (
+// 检查是否有正向计数记录
+func (s *CounterBiz) CheckHasActDo(ctx context.Context, req *counterv1.CheckHasActDoRequest) (
+	bool, error,
+) {
+	has, err := infra.Dao().RecordCache.CounterListExistsOid(ctx, req.BizCode, req.Uid, req.Oid)
+	if err == nil && has {
+		return has, nil
+	}
+
+	if err != nil {
+		xlog.Msg("recode cache exists oid err").Err(err).Errorx(ctx)
+	}
+
+	record, err := s.GetRecord(ctx, &counterv1.GetRecordRequest{
+		BizCode: req.BizCode,
+		Uid:     req.Uid,
+		Oid:     req.Oid,
+	})
+	if err != nil {
+		return false, xerror.Wrapf(err, "counter biz failed to get record").
+			WithExtras("biz_code", req.BizCode, "uid", req.Uid, "oid", req.Oid).
+			WithCtx(ctx)
+	}
+
+	// concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+	// 	Name: "counter.biz.recordcache.add",
+	// 	Job: func(ctx context.Context) error {
+
+	// 		return nil
+	// 	},
+	// })
+
+	return record.GetRecord().GetAct() == counterv1.RecordAct_RECORD_ACT_ADD, nil
+}
+
+func (s *CounterBiz) BatchGetRecord(ctx context.Context, uidOids map[int64][]int64, biz int32) (
 	map[int64][]*counterv1.Record, error) {
+
 	datas, err := infra.Dao().RecordRepo.BatchFind(ctx, uidOids, biz)
 	var uidRecords = make(map[int64][]*counterv1.Record, len(datas))
 	if err != nil {
@@ -211,8 +245,99 @@ func (s *CounterBiz) BatchGetRecord(ctx context.Context, uidOids map[int64][]int
 	return uidRecords, nil
 }
 
+// 批量检查是否有正向计数记录
+func (s *CounterBiz) BatchCheckHasActDo(ctx context.Context, uidOids map[int64][]int64, biz int32) (
+	map[int64][]*counterv1.BatchCheckHasActDoResponse_Item, error,
+) {
+	resp := make(map[int64][]int64, 0)
+	// 需要补偿查库的部分 因为缓存中不是全量数据 可能会被裁剪
+	compensating := make(map[int64][]int64, 0)
+	for uid, oids := range uidOids {
+		oidsCounted, err := infra.Dao().RecordCache.CounterListBatchExistsOid(ctx, biz, uid, oids...)
+		if err == nil {
+			for _, oid := range oids {
+				if _, ok := oidsCounted[oid]; !ok {
+					compensating[uid] = append(compensating[uid], oid)
+				} else {
+					resp[uid] = append(resp[uid], oid) // 断定为true的
+				}
+			}
+		}
+	}
+
+	final := make(map[int64][]*counterv1.BatchCheckHasActDoResponse_Item)
+	for uid, oids := range resp {
+		for _, oid := range oids {
+			final[uid] = append(final[uid], &counterv1.BatchCheckHasActDoResponse_Item{
+				Do:  true,
+				Oid: oid,
+			})
+		}
+	}
+
+	// 检查是否需要查库
+	if len(compensating) == 0 {
+		return final, nil
+	}
+
+	// 需要查库补偿
+	compensatedResult, err := s.BatchGetRecord(ctx, compensating, biz)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "counter biz batch get record failed")
+	}
+
+	fillingResulsts := make([]*counterv1.Record, 0, len(compensatedResult))
+	for uid, compensated := range compensatedResult {
+		for _, record := range compensated {
+			item := &counterv1.BatchCheckHasActDoResponse_Item{
+				Oid: record.Oid,
+				Do:  false,
+			}
+			if record.GetAct() == counterv1.RecordAct_RECORD_ACT_ADD {
+				item.Do = true
+				fillingResulsts = append(fillingResulsts, record)
+			}
+			final[uid] = append(final[uid], item)
+		}
+	}
+
+	// set back to cache
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "counter.biz.recordcache.batchadd",
+		Job: func(ctx context.Context) error {
+			batches := make(map[int64][]*counterv1.Record)
+			for _, r := range fillingResulsts {
+				batches[r.Uid] = append(batches[r.Uid], r)
+			}
+
+			for uid, oids := range batches {
+				records := make([]*recorddao.CacheRecord, 0, len(oids))
+				for _, record := range oids {
+					records = append(records, &recorddao.CacheRecord{
+						Act:   recorddao.ActDo,
+						Oid:   record.Oid,
+						Mtime: record.Mtime,
+					})
+				}
+
+				if err := infra.Dao().RecordCache.CounterListBatchAdd(ctx, biz, uid, records); err != nil {
+					xlog.Msg("background record cache batch add failed").
+						Err(err).
+						Extras("biz", biz, "uid", uid).
+						Errorx(ctx)
+				}
+			}
+			return nil
+		},
+	})
+
+	return nil, nil
+}
+
 // 获取某个oid的计数
-func (s *CounterBiz) GetSummary(ctx context.Context, req *counterv1.GetSummaryRequest) (*counterv1.GetSummaryResponse, error) {
+func (s *CounterBiz) GetSummary(ctx context.Context, req *counterv1.GetSummaryRequest) (
+	*counterv1.GetSummaryResponse, error) {
+
 	// 直接从数据库拿
 	var (
 		biz = req.BizCode
@@ -225,7 +350,6 @@ func (s *CounterBiz) GetSummary(ctx context.Context, req *counterv1.GetSummaryRe
 			Extra("oid", oid).
 			Extra("biz", biz).
 			Errorx(ctx)
-		// TODO 可以尝试直接查record表
 
 		return nil, global.ErrInternal
 	}
@@ -294,159 +418,8 @@ func (s *CounterBiz) BatchGetSummary(ctx context.Context, req *counterv1.BatchGe
 	return &counterv1.BatchGetSummaryResponse{Responses: responses}, nil
 }
 
-// 全表扫描 从record表更新summary的数据
-func (s *CounterBiz) SyncSummaryFromRecords(ctx context.Context) error {
-	total, err := infra.Dao().RecordRepo.CountAll(ctx)
-	if err != nil {
-		xlog.Msg("record repo count all failed").Err(err).Errorx(ctx)
-		return err
-	}
-
-	xlog.Msg(fmt.Sprintf("record repo count all result: total = %d", total)).Info()
-	// 点赞的数量
-	actDoSum, err := infra.Dao().RecordRepo.GetSummary(ctx, recorddao.ActDo)
-	if err != nil {
-		xlog.Msg("record repo get actdo summary failed").Err(err).Errorx(ctx)
-		return err
-	}
-
-	// 取消点赞的数量
-	actUndoSum, err := infra.Dao().RecordRepo.GetSummary(ctx, recorddao.ActUndo)
-	if err != nil {
-		xlog.Msg("record repo get act undo summary failed").Err(err).Errorx(ctx)
-		return err
-	}
-
-	if len(actDoSum) == 0 {
-		return nil
-	}
-
-	keyFn := func(r *recorddao.Summary) string {
-		return fmt.Sprintf("%d-%d", r.BizCode, r.Oid)
-	}
-
-	// 结合点赞和取消点赞修正最终的点赞数
-	actUndoSumMap := make(map[string]*recorddao.Summary, len(actUndoSum))
-	for _, undoSum := range actUndoSum {
-		actUndoSumMap[keyFn(undoSum)] = undoSum
-	}
-	actDoSumMap := make(map[string]*recorddao.Summary, len(actDoSum))
-	for _, doSum := range actDoSum {
-		actDoSumMap[keyFn(doSum)] = doSum
-	}
-
-	datas := make([]*recorddao.Summary, 0, len(actDoSum))
-
-	// 存在一种情况为: 被全部取消点赞，cnt需要为0
-	for k, undoSum := range actUndoSumMap {
-		if _, ok := actDoSumMap[k]; !ok {
-			// 全部都是取消点赞数据，那么数据取值为0
-			actDoSumMap[k] = &recorddao.Summary{
-				BizCode: undoSum.BizCode,
-				Oid:     undoSum.Oid,
-				Cnt:     0,
-			}
-		}
-	}
-	for _, v := range actDoSumMap {
-		datas = append(datas, &recorddao.Summary{
-			BizCode: v.BizCode,
-			Oid:     v.Oid,
-			Cnt:     v.Cnt,
-		})
-	}
-
-	batchsize := 500
-
-	err = xslice.BatchExec(datas, batchsize, func(start, end int) error {
-		data := datas[start:end]
-		if len(data) == 0 {
-			return nil
-		}
-
-		summaryModels := make([]*summarydao.Model, 0, len(data))
-		for _, sub := range data {
-			summaryModels = append(summaryModels, &summarydao.Model{
-				BizCode: sub.BizCode,
-				Oid:     sub.Oid,
-				Cnt:     sub.Cnt,
-			})
-		}
-		if err := infra.Dao().SummaryRepo.BatchInsert(ctx, summaryModels); err != nil {
-			xlog.Msg("sync summary from records repo batch insert failed").
-				Err(err).
-				Errorx(ctx)
-			return err
-		}
-		return nil
-	})
-
-	if err != nil {
-		xlog.Msg("batch exec update summary failed").
-			Err(err).
-			Extra("len", len(actDoSum)).
-			Errorx(ctx)
-	}
-
-	return err
-}
-
-type PageListOrder int8
-
-const (
-	PageListDescOrder PageListOrder = 0
-	PageListAscOrder  PageListOrder = 1
-)
-
-type PageListRecordsParam struct {
-	Cursor string
-	Count  int32
-	Order  PageListOrder
-}
-
-func (r *PageListRecordsParam) ParseCursor(obs obfuscate.Obfuscate) (mtime, id int64, err error) {
-	raw, err := base64.RawStdEncoding.DecodeString(r.Cursor)
-	if err != nil {
-		return
-	}
-
-	s := xstring.FromBytes(raw)
-	unpacked := strings.SplitN(s, ":", 2)
-	if len(unpacked) != 2 {
-		err = fmt.Errorf("%s is invalid cursor", s)
-		return
-	}
-
-	mtimeStr := unpacked[0]
-	mixIdStr := unpacked[1]
-	mtime, err = obs.DeMix(mtimeStr)
-	if err != nil {
-		err = fmt.Errorf("invalid mtime: %w", err)
-		return
-	}
-
-	id, err = obs.DeMix(mixIdStr)
-	if err != nil {
-		err = fmt.Errorf("invalid id: %w", err)
-	}
-
-	return
-}
-
-func (PageListRecordsParam) FormatCursor(mtime, id int64, obs obfuscate.Obfuscate) string {
-	mtimeMix, _ := obs.Mix(mtime)
-	idMix, _ := obs.Mix(id)
-	cursor := mtimeMix + ":" + idMix
-	return base64.RawStdEncoding.EncodeToString(xstring.AsBytes(cursor))
-}
-
-type PageListRecordsNextRequest struct {
-	NextCursor string
-	HasNext    bool
-}
-
 func (b *CounterBiz) PageListRecords(ctx context.Context, bizCode int32, uid int64, param PageListRecordsParam) (
-	[]*counterv1.Record, PageListRecordsNextRequest, error) {
+	[]*counterv1.Record, PageResult, error) {
 
 	var (
 		sortOrder   = recorddao.Desc
@@ -494,23 +467,23 @@ func (b *CounterBiz) PageListRecords(ctx context.Context, bizCode int32, uid int
 			})
 	}
 
-	var nextRequest PageListRecordsNextRequest
+	var nextPage PageResult
 
 	if err != nil {
-		return nil, nextRequest, xerror.Wrapf(err, "counter biz failed to page get by uid").
+		return nil, nextPage, xerror.Wrapf(err, "counter biz failed to page get by uid").
 			WithExtras("uid", uid, "biz_code", bizCode).WithCtx(ctx)
 	}
 
 	gotLen := len(records)
 	if gotLen == int(count) {
 		// has more
-		nextRequest.HasNext = true
+		nextPage.HasNext = true
 		records = records[0 : gotLen-1]
 		// we calculate the next cursor
 		nextCursor := records[len(records)-1]
-		nextRequest.NextCursor = PageListRecordsParam{}.FormatCursor(nextCursor.Mtime, nextCursor.Id, b.cursorObfuscator)
+		nextPage.NextCursor = PageListRecordsParam{}.FormatCursor(nextCursor.Mtime, nextCursor.Id, b.cursorObfuscator)
 	} else {
-		nextRequest.HasNext = false
+		nextPage.HasNext = false
 	}
 
 	var resp = make([]*counterv1.Record, 0, len(records))
@@ -518,23 +491,5 @@ func (b *CounterBiz) PageListRecords(ctx context.Context, bizCode int32, uid int
 		resp = append(resp, NewPbRecord(r))
 	}
 
-	return resp, nextRequest, nil
-}
-
-func NewPbRecord(r *recorddao.Record) *counterv1.Record {
-	act := counterv1.RecordAct_RECORD_ACT_UNSPECIFIED
-	switch r.Act {
-	case recorddao.ActDo:
-		act = counterv1.RecordAct_RECORD_ACT_ADD
-	case recorddao.ActUndo:
-		act = counterv1.RecordAct_RECORD_ACT_UNADD
-	}
-	return &counterv1.Record{
-		BizCode: r.BizCode,
-		Uid:     r.Uid,
-		Oid:     r.Oid,
-		Act:     act,
-		Ctime:   r.Ctime,
-		Mtime:   r.Mtime,
-	}
+	return resp, nextPage, nil
 }

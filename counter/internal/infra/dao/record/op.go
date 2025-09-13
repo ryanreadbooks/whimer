@@ -93,7 +93,7 @@ func (r *Repo) Update(ctx context.Context, data *Record) error {
 	return xsql.ConvertError(err)
 }
 
-func (r *Repo) Find(ctx context.Context, uid int64, oid int64, biz int) (*Record, error) {
+func (r *Repo) Find(ctx context.Context, uid int64, oid int64, biz int32) (*Record, error) {
 	var ret Record
 	err := r.db.QueryRowCtx(ctx, &ret, sqlFind, uid, oid, biz)
 	if err != nil {
@@ -103,7 +103,7 @@ func (r *Repo) Find(ctx context.Context, uid int64, oid int64, biz int) (*Record
 	return &ret, nil
 }
 
-func (r *Repo) BatchFind(ctx context.Context, uidOids map[int64][]int64, biz int) ([]Record, error) {
+func (r *Repo) BatchFind(ctx context.Context, uidOids map[int64][]int64, biz int32) ([]Record, error) {
 	var batchRes []Record
 	// 分批操作
 	err := maps.BatchExec(uidOids, 200, func(target map[int64][]int64) error {
@@ -131,7 +131,7 @@ func (r *Repo) BatchFind(ctx context.Context, uidOids map[int64][]int64, biz int
 	return batchRes, nil
 }
 
-func (r *Repo) Count(ctx context.Context, oid int64, biz int) (int64, error) {
+func (r *Repo) Count(ctx context.Context, oid int64, biz int32) (int64, error) {
 	var cnt int64
 	err := r.db.QueryRowCtx(ctx, &cnt, sqlCount, oid, biz, ActDo)
 	if err != nil {
@@ -192,7 +192,9 @@ var sqlPageGetByUidOrderByMtime = fmt.Sprintf(
 )
 
 // 默认降序
-func (r *Repo) PageGetByUidOrderByMtime(ctx context.Context, bizCode int32, param PageGetByUidOrderByMtimeParam) ([]*Record, error) {
+func (r *Repo) PageGetByUidOrderByMtime(ctx context.Context, bizCode int32, 
+	param PageGetByUidOrderByMtimeParam) ([]*Record, error) {
+		
 	var models []*Record
 	handlePageGetByUidOrderByMtimeParam(&param)
 

@@ -32,7 +32,7 @@ func (s *CounterSrv) GetRecord(ctx context.Context,
 	return s.CounterBiz.GetRecord(ctx, req)
 }
 
-func (s *CounterSrv) BatchGetRecord(ctx context.Context, uidOids map[int64][]int64, biz int) (
+func (s *CounterSrv) BatchGetRecord(ctx context.Context, uidOids map[int64][]int64, biz int32) (
 	map[int64][]*counterv1.Record, error) {
 	return s.CounterBiz.BatchGetRecord(ctx, uidOids, biz)
 }
@@ -70,4 +70,14 @@ func (s *CounterSrv) PageListUserRecords(ctx context.Context, req *counterv1.Pag
 		NextCursor: nextReq.NextCursor,
 		HasNext:    nextReq.HasNext,
 	}, nil
+}
+
+func (s *CounterSrv) CheckHasActDo(ctx context.Context, req *counterv1.CheckHasActDoRequest) (bool, error) {
+	return s.CounterBiz.CheckHasActDo(ctx, req)
+}
+
+func (s *CounterSrv) BatchCheckHasActDo(ctx context.Context, uidOids map[int64][]int64, biz int32) (
+	map[int64][]*counterv1.BatchCheckHasActDoResponse_Item, error,
+) {
+	return s.CounterBiz.BatchCheckHasActDo(ctx, uidOids, biz)
 }

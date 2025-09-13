@@ -59,7 +59,7 @@ message GetRecordRequest {
   int64 oid = 3 [ (buf.validate.field).int64.gt = 0 ];
 }
 
-message GetRecordResponse { Record record = 2; }
+message GetRecordResponse { Record record = 1; }
 
 message GetSummaryRequest {
   int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
@@ -104,6 +104,35 @@ message PageGetUserRecordResponse {
   repeated Record items = 3;
 }
 
+message CheckHasActDoRequest {
+  int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
+  int64 uid = 2;
+  int64 oid = 3 [ (buf.validate.field).int64.gt = 0 ];
+}
+
+message CheckHasActDoResponse { bool do = 1; }
+
+message BatchCheckHasActDoDoRequest {
+  int32 biz_code = 1;
+  map<int64, ObjectList> params = 2 [
+    (buf.validate.field).map.min_pairs = 1,
+    (buf.validate.field).map.max_pairs = 50
+  ];
+}
+
+message BatchCheckHasActDoResponse {
+  message Item {
+    bool do = 1;
+    int64 oid = 2;
+  }
+
+  message ItemList {
+    repeated Item list = 1;
+  }
+
+  map<int64, ItemList> results = 1;
+}
+
 service CounterService {
   // 添加一条计数记录
   rpc AddRecord(AddRecordRequest) returns (AddRecordResponse);
@@ -117,7 +146,13 @@ service CounterService {
   rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
   // 批量获取oid计数总数
   rpc BatchGetSummary(BatchGetSummaryRequest) returns (BatchGetSummaryResponse);
-  // 分页获取用户的计数记录
+  // 分页获取用户的计数(ActDo)记录
   rpc PageGetUserRecord(PageGetUserRecordRequest)
       returns (PageGetUserRecordResponse);
+
+  // 获取一条(ActDo)计数记录
+  rpc CheckHasActDo(CheckHasActDoRequest) returns (CheckHasActDoResponse);
+  // 批量获取(ActDo)计数记录
+  rpc BatchCheckHasActDo(BatchCheckHasActDoDoRequest)
+      returns (BatchCheckHasActDoResponse);
 }

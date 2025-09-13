@@ -7,6 +7,7 @@ local function is_pcall_err(res)
   return false, nil
 end
 
+-- add members to zset with size limit
 local function counter_sizelimit_batchadd(keys, args)
   local key = keys[1]
   local arg_max_limit = args[1]
@@ -37,7 +38,7 @@ local function counter_sizelimit_batchadd(keys, args)
     yes, err = is_pcall_err(pop_result)
     if yes then
       -- do not abort even if error occurs
-      redis.log(redis.LOG_WARNING, 'zpopmin failed in sizelimit_batch_add: ' .. err)
+      redis.log(redis.LOG_WARNING, 'zpopmin failed in counter_sizelimit_batchadd: ' .. err)
     end
   end
 
@@ -45,5 +46,30 @@ local function counter_sizelimit_batchadd(keys, args)
   return redis.pcall('ZADD', key, unpack(arg_members))
 end
 
+-- check if someone has acted ActDo record on specific bizcode and oid
+local function counter_check_actdo_record(keys, args)
+  local counter_list_key = keys[1]
+  local counter_record_key = keys[2]
+  local counter_list_member = args[1]
+  
+  -- step1. check counter_list_key first
+  local result = redis.pcall('ZSCORE', counter_list_key, counter_list_member)
+  local is_err, err = is_pcall_err(result)
+  if is_err then
+    redis.log(redis.LOG_WARNING, 'zscore failed in counter_check_actdo_record: ' .. err)
+  else
+    result = tonumber(result)
+    if result ~= nil and result > 0 then
+      return 1
+    end
+  end
+
+  -- step2. if no record is found in counter_list_key, we try to find it in counter_record_key
+  
+
+  return 0
+end
+
 -- register redis functions
 redis.register_function('counter_sizelimit_batchadd', counter_sizelimit_batchadd)
+redis.register_function('counter_check_actdo_record', counter_check_actdo_record)

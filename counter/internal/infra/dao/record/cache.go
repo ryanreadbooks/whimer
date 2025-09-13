@@ -5,10 +5,18 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/mitchellh/mapstructure"
+	"github.com/ryanreadbooks/whimer/misc/xcache"
 	"github.com/ryanreadbooks/whimer/misc/xcache/functions"
 	"github.com/ryanreadbooks/whimer/misc/xconv"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/misc/xmap"
+	"github.com/ryanreadbooks/whimer/misc/xtime"
+
+	goredis "github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -18,26 +26,29 @@ var (
 )
 
 const (
-	defaultMaxMemberPerKey     = 5000
-	defultEvitNumberOnOverflow = 100
-	keyTmpl                    = "counter:record:user:%d:%d" // counter:record:user:bizcode:uid
+	defaultCounterListMaxMember  = 5000
+	defultCounterListEvictNumber = 100
+
+	counterListKeyTmpl   = "counter:record:zset:b%d:u%d"    // counter:record:zset:b{bizcode}:u{uid}
+	counterRecordKeyTmpl = "counter:record:all:b%d:u%d:o%d" // counter:record:all:b{bizcode}:u{uid}:o{oid}
 )
 
 type Cache struct {
 	c *redis.Redis
 
-	maxMemberPerKey      int
-	evitNumberOnOverflow int
+	maxtCounterListMembers int
+	counterListEvictNumber int
 }
 
-// cache structure: sorted set
+// cache structure: sorted set + string
 //
-// key -> sorted set of {member:oid, score:unix_time}, only ActDo action is cached
+// 1. counter list -> sorted set of {member:oid, score:unix_time}, only ActDo action is cached
+// 2. counter record -> hash
 func NewCache(c *redis.Redis) *Cache {
 	cache := &Cache{
-		c:                    c,
-		maxMemberPerKey:      defaultMaxMemberPerKey,
-		evitNumberOnOverflow: defultEvitNumberOnOverflow,
+		c:                      c,
+		maxtCounterListMembers: defaultCounterListMaxMember,
+		counterListEvictNumber: defultCounterListEvictNumber,
 	}
 
 	return cache
@@ -53,25 +64,19 @@ func (c *Cache) InitFunction(ctx context.Context) error {
 	return nil
 }
 
-func (c *Cache) SetMaxMemberPerKey(limit int) {
-	c.maxMemberPerKey = limit
+func (c *Cache) SetCounterListMaxMember(limit int) {
+	c.maxtCounterListMembers = limit
 }
 
-func (c *Cache) SetEvitNumberOnOverflow(number int) {
-	c.evitNumberOnOverflow = number
+// the number of members to be evicted when counter list is overflow
+func (c *Cache) SetCounterListEvitNumber(number int) {
+	c.counterListEvictNumber = number
 }
 
 type CacheKey struct {
 	BizCode int32
 	Uid     int64
-}
-
-func getCacheKey(bizCode int32, uid int64) string {
-	return fmt.Sprintf(keyTmpl, bizCode, uid)
-}
-
-func getCacheObjValue(oid int64) string {
-	return xconv.FormatInt(oid)
+	Oid     int64
 }
 
 type CacheRecord struct {
@@ -80,25 +85,16 @@ type CacheRecord struct {
 	Mtime int64
 }
 
-func (c *Cache) Size(ctx context.Context, bizCode int32, uid int64) (int, error) {
-	key := getCacheKey(bizCode, uid)
-	size, err := c.c.ZcardCtx(ctx, key)
-	return size, xerror.Wrapf(err, "zcard failed")
+func getCounterListCacheKey(bizCode int32, uid int64) string {
+	return fmt.Sprintf(counterListKeyTmpl, bizCode, uid)
 }
 
-// add a record to sorted set
-func (c *Cache) Add(ctx context.Context, bizCode int32, uid int64, record *CacheRecord) error {
-	if record.Act != ActDo {
-		return nil
-	}
+func getCounterListCacheObjValue(oid int64) string {
+	return xconv.FormatInt(oid)
+}
 
-	key := getCacheKey(bizCode, uid)
-	_, err := c.c.ZaddCtx(ctx, key, record.Mtime, getCacheObjValue(record.Oid))
-	if err != nil {
-		return xerror.Wrapf(err, "zadd failed")
-	}
-
-	return nil
+func getCounterRecordCacheKey(bizCode int32, uid, oid int64) string {
+	return fmt.Sprintf(counterRecordKeyTmpl, bizCode, uid, oid)
 }
 
 func getBatchCacheRecordTargets(records []*CacheRecord) []*CacheRecord {
@@ -112,18 +108,47 @@ func getBatchCacheRecordTargets(records []*CacheRecord) []*CacheRecord {
 	return targets
 }
 
+func batchGetCounterRecordCacheKeys(keys []CacheKey) []string {
+	cacheKeys := make([]string, 0, len(keys))
+	for _, k := range keys {
+		cacheKeys = append(cacheKeys, getCounterRecordCacheKey(k.BizCode, k.Uid, k.Oid))
+	}
+	return cacheKeys
+}
+
+func (c *Cache) CounterListSize(ctx context.Context, bizCode int32, uid int64) (int, error) {
+	key := getCounterListCacheKey(bizCode, uid)
+	size, err := c.c.ZcardCtx(ctx, key)
+	return size, xerror.Wrapf(err, "zcard failed")
+}
+
+// add a record to sorted set
+func (c *Cache) CounterListAdd(ctx context.Context, bizCode int32, uid int64, record *CacheRecord) error {
+	if record.Act != ActDo {
+		return nil
+	}
+
+	key := getCounterListCacheKey(bizCode, uid)
+	_, err := c.c.ZaddCtx(ctx, key, record.Mtime, getCounterListCacheObjValue(record.Oid))
+	if err != nil {
+		return xerror.Wrapf(err, "zadd failed")
+	}
+
+	return nil
+}
+
 // batch add, bizCode and uid will be taken as cache key
-func (c *Cache) BatchAdd(ctx context.Context, bizCode int32, uid int64, records []*CacheRecord) error {
+func (c *Cache) CounterListBatchAdd(ctx context.Context, bizCode int32, uid int64, records []*CacheRecord) error {
 	targets := getBatchCacheRecordTargets(records)
 	if len(targets) == 0 {
 		return nil
 	}
 
-	key := getCacheKey(bizCode, uid)
+	key := getCounterListCacheKey(bizCode, uid)
 	pairs := make([]redis.Pair, 0, len(targets))
 	for _, t := range targets {
 		pairs = append(pairs, redis.Pair{
-			Key:   getCacheObjValue(t.Oid),
+			Key:   getCounterListCacheObjValue(t.Oid),
 			Score: t.Mtime,
 		})
 	}
@@ -138,9 +163,9 @@ func (c *Cache) BatchAdd(ctx context.Context, bizCode int32, uid int64, records 
 
 // Strictly restraining the number of member in a sorted set key.
 //
-// SizeLimitBatchAdd operation will be performed by a lua script.
-func (c *Cache) SizeLimitBatchAdd(ctx context.Context, bizCode int32, uid int64, records []*CacheRecord) error {
-	key := getCacheKey(bizCode, uid)
+// CounterListSizeLimitBatchAdd operation will be performed by a lua script.
+func (c *Cache) CounterListSizeLimitBatchAdd(ctx context.Context, bizCode int32, uid int64, records []*CacheRecord) error {
+	key := getCounterListCacheKey(bizCode, uid)
 	args := make([]any, 0, len(records)*2)
 
 	targets := getBatchCacheRecordTargets(records)
@@ -148,11 +173,11 @@ func (c *Cache) SizeLimitBatchAdd(ctx context.Context, bizCode int32, uid int64,
 		return nil
 	}
 
-	args = append(args, c.maxMemberPerKey, c.evitNumberOnOverflow)
+	args = append(args, c.maxtCounterListMembers, c.counterListEvictNumber)
 	for _, t := range targets {
 		// score comes first, then is member key
 		score := t.Mtime
-		member := getCacheObjValue(t.Oid)
+		member := getCounterListCacheObjValue(t.Oid)
 		args = append(args, score, member)
 	}
 
@@ -165,9 +190,9 @@ func (c *Cache) SizeLimitBatchAdd(ctx context.Context, bizCode int32, uid int64,
 }
 
 // check if a record is in sorted set
-func (c *Cache) ExistsOid(ctx context.Context, bizCode int32, uid int64, oid int64) (bool, error) {
-	key := getCacheKey(bizCode, uid)
-	score, err := c.c.ZscoreCtx(ctx, key, getCacheObjValue(oid))
+func (c *Cache) CounterListExistsOid(ctx context.Context, bizCode int32, uid int64, oid int64) (bool, error) {
+	key := getCounterListCacheKey(bizCode, uid)
+	score, err := c.c.ZscoreCtx(ctx, key, getCounterListCacheObjValue(oid))
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return false, nil
@@ -178,8 +203,8 @@ func (c *Cache) ExistsOid(ctx context.Context, bizCode int32, uid int64, oid int
 	return score > 0, nil
 }
 
-func (c *Cache) BatchExistsOid(ctx context.Context, bizCode int32, uid int64, oids ...int64) (map[int64]bool, error) {
-	key := getCacheKey(bizCode, uid)
+func (c *Cache) CounterListBatchExistsOid(ctx context.Context, bizCode int32, uid int64, oids ...int64) (map[int64]bool, error) {
+	key := getCounterListCacheKey(bizCode, uid)
 	pipe, err := c.c.TxPipeline()
 	if err != nil {
 		return nil, xerror.Wrapf(err, "get pipe failed")
@@ -187,7 +212,7 @@ func (c *Cache) BatchExistsOid(ctx context.Context, bizCode int32, uid int64, oi
 
 	vals := make([]string, 0, len(oids))
 	for _, o := range oids {
-		vals = append(vals, getCacheObjValue(o))
+		vals = append(vals, getCounterListCacheObjValue(o))
 	}
 
 	resCmd := pipe.ZMScore(ctx, key, vals...)
@@ -212,9 +237,9 @@ func (c *Cache) BatchExistsOid(ctx context.Context, bizCode int32, uid int64, oi
 	return existence, nil
 }
 
-func (c *Cache) RemoveOid(ctx context.Context, bizCode int32, uid int64, oid int64) error {
-	key := getCacheKey(bizCode, uid)
-	_, err := c.c.ZremCtx(ctx, key, getCacheObjValue(oid))
+func (c *Cache) CounterListRemoveOid(ctx context.Context, bizCode int32, uid int64, oid int64) error {
+	key := getCounterListCacheKey(bizCode, uid)
+	_, err := c.c.ZremCtx(ctx, key, getCounterListCacheObjValue(oid))
 	if err != nil {
 		return xerror.Wrapf(err, "zrem failed")
 	}
@@ -222,11 +247,11 @@ func (c *Cache) RemoveOid(ctx context.Context, bizCode int32, uid int64, oid int
 	return nil
 }
 
-func (c *Cache) BatchRemoveOids(ctx context.Context, bizCode int32, uid int64, oids ...int64) error {
-	key := getCacheKey(bizCode, uid)
+func (c *Cache) CounterListBatchRemoveOids(ctx context.Context, bizCode int32, uid int64, oids ...int64) error {
+	key := getCounterListCacheKey(bizCode, uid)
 	vals := make([]any, 0, len(oids))
 	for _, oid := range oids {
-		vals = append(vals, getCacheObjValue(oid))
+		vals = append(vals, getCounterListCacheObjValue(oid))
 	}
 
 	_, err := c.c.ZremCtx(ctx, key, vals...)
@@ -235,4 +260,103 @@ func (c *Cache) BatchRemoveOids(ctx context.Context, bizCode int32, uid int64, o
 	}
 
 	return nil
+}
+
+func (c *Cache) AddRecord(ctx context.Context, record *Record) error {
+	key := getCounterRecordCacheKey(record.BizCode, record.Uid, record.Oid)
+	var data = map[string]any{}
+	err := mapstructure.Decode(record, &data)
+	if err != nil {
+		return xerror.Wrapf(err, "mapstructure record failed")
+	}
+
+	err = c.c.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
+		p.HMSet(ctx, key, xmap.KVs(data)...)
+		p.Expire(ctx, key, xtime.NDayJitter(2, time.Minute*15))
+		return nil
+	})
+
+	return xerror.Wrapf(err, "hmset pipeline failed")
+}
+
+func (c *Cache) BatchAddRecord(ctx context.Context, records []*Record) error {
+	err := c.c.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
+		for _, r := range records {
+			key := getCounterRecordCacheKey(r.BizCode, r.Uid, r.Oid)
+			var data map[string]any
+			err := mapstructure.Decode(r, &data)
+			if err == nil {
+				p.HMSet(ctx, key, xmap.KVs(data)...)
+				p.Expire(ctx, key, xtime.NDayJitter(2, time.Minute*15))
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		xlog.Msg("batch set expire failed").Err(err).Errorx(ctx)
+	}
+
+	return nil
+}
+
+func (c *Cache) GetRecord(ctx context.Context, bizCode int32, uid, oid int64) (*Record, error) {
+	var r Record
+	err := xcache.HGetAllWithScan(ctx, c.c, getCounterRecordCacheKey(bizCode, uid, oid), &r)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "get failed")
+	}
+
+	return &r, nil
+}
+
+func (c *Cache) BatchGetRecord(ctx context.Context, keys []CacheKey) (map[CacheKey]*Record, error) {
+	pipe, err := c.c.TxPipeline()
+	if err != nil {
+		return nil, xerror.Wrapf(err, "tx pipeline failed")
+	}
+
+	cmds := make([]*goredis.MapStringStringCmd, 0)
+	for _, key := range keys {
+		cacheKey := getCounterRecordCacheKey(key.BizCode, key.Uid, key.Oid)
+		cmd := pipe.HGetAll(ctx, cacheKey)
+		cmds = append(cmds, cmd)
+	}
+
+	_, err = pipe.Exec(ctx)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "pipe exec failed")
+	}
+
+	result := make(map[CacheKey]*Record, len(keys))
+	for idx, cmd := range cmds {
+		if _, err := cmd.Result(); err == nil {
+			var r Record
+			if err = cmd.Scan(&r); err == nil {
+				result[keys[idx]] = &r
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func (c *Cache) DelRecord(ctx context.Context, bizCode int32, uid, oid int64) error {
+	_, err := c.c.DelCtx(ctx, getCounterRecordCacheKey(bizCode, uid, oid))
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil
+		}
+
+		return xerror.Wrapf(err, "del failed")
+	}
+
+	return nil
+}
+
+func (c *Cache) BatchDelCount(ctx context.Context, keys []CacheKey) error {
+	cacheKeys := batchGetCounterRecordCacheKeys(keys)
+	_, err := c.c.DelCtx(ctx, cacheKeys...)
+	return xerror.Wrapf(err, "batch del failed")
 }
