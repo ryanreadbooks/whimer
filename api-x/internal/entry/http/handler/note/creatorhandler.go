@@ -179,31 +179,6 @@ func (h *Handler) CreatorDeleteNote() http.HandlerFunc {
 	}
 }
 
-// 列出个人笔记
-func (h *Handler) CreatorListNotes() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[ListReq](httpx.ParseForm, r)
-		if err != nil {
-			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
-			return
-		}
-
-		ctx := r.Context()
-		resp, err := infra.NoteCreatorServer().ListNote(ctx, &notev1.ListNoteRequest{
-			Cursor: req.Cursor,
-			Count:  req.Count,
-		})
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-		result := NewListResFromPb(resp)
-		h.assignNoteExtra(ctx, result.Items)
-
-		xhttp.OkJson(w, result)
-	}
-}
-
 // 分页列出个人笔记
 func (h *Handler) CreatorPageListNotes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

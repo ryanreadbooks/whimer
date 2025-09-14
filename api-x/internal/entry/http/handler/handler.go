@@ -38,7 +38,7 @@ func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 		Relation: relation.NewHandler(c),
 		Chat:     msg.NewHandler(c),
 		User:     passport.NewUserHandler(c),
-		Feed:     feed.NewHandler(c, bizz.FeedBiz),
+		Feed:     feed.NewHandler(c, bizz),
 	}
 
 	return h

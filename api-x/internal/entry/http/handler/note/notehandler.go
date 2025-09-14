@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/biz"
+	bizfeed "github.com/ryanreadbooks/whimer/api-x/internal/biz/feed"
 	bizsearch "github.com/ryanreadbooks/whimer/api-x/internal/biz/search"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
@@ -24,11 +25,13 @@ import (
 )
 
 type Handler struct {
+	feedBiz   *bizfeed.FeedBiz
 	searchBiz *bizsearch.SearchBiz
 }
 
 func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 	return &Handler{
+		feedBiz:   bizz.FeedBiz,
 		searchBiz: bizz.SearchBiz,
 	}
 }
@@ -196,16 +199,9 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 		}
 
 		xhttp.OkJson(w, &GetLikesRes{
+			NoteId: model.NoteId(resp.NoteId),
 			Count:  resp.Likes,
-			NoteId: resp.NoteId,
 		})
-	}
-}
-
-// TODO 获取点赞过的笔记
-func (h *Handler) GetLikeNotes() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
 	}
 }
 
@@ -296,5 +292,44 @@ func (h *Handler) SearchTags() http.HandlerFunc {
 		}
 
 		xhttp.OkJson(w, result)
+	}
+}
+
+// 获取用户点赞过的笔记
+func (b *Handler) ListLikedNotes() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[GetLikedNoteRequest](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		var (
+			ctx = r.Context()
+			uid = metadata.Uid(ctx)
+		)
+
+		noteResp, err := infra.NoteInteractServer().PageListUserLikedNote(ctx,
+			&notev1.PageListUserLikedNoteRequest{
+				Uid:    uid,
+				Cursor: req.Cursor,
+				Count:  req.Count,
+			})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		targets, err := b.feedBiz.AssembleNoteFeeds(ctx, noteResp.GetItems())
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, &GetLikedNoteResponse{
+			Items:      targets,
+			NextCursor: noteResp.NextCursor,
+			HasNext:    noteResp.HasNext,
+		})
 	}
 }

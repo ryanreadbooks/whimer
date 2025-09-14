@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 		os.Getenv("ENV_DB_NAME"),
 	))
 
-	repo = New(db)
+	repo = New(db, nil)
 	m.Run()
 	// repo.db.Exec("DELETE FROM counter_record")
 }
@@ -72,7 +72,7 @@ func TestSummaryRepo_Get(t *testing.T) {
 
 func TestSummaryRepo_Gets(t *testing.T) {
 	Convey("Gets", t, func() {
-		result, err := repo.Gets(ctx, []*PrimaryKey{
+		result, err := repo.Gets(ctx, []PrimaryKey{
 			{BizCode: 1000, Oid: 112},
 			{BizCode: 1000, Oid: 1000},
 			{BizCode: 1000, Oid: 12003},

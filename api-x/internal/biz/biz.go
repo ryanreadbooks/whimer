@@ -7,7 +7,7 @@ import (
 )
 
 type Biz struct {
-	FeedBiz   bizfeed.FeedBiz
+	FeedBiz   *bizfeed.FeedBiz
 	SearchBiz *bizsearch.SearchBiz
 }
 

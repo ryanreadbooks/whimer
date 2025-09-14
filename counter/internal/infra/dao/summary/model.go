@@ -4,11 +4,14 @@ import "github.com/zeromicro/go-zero/core/stores/sqlx"
 
 type Repo struct {
 	db sqlx.SqlConn
+
+	cache *Cache
 }
 
-func New(db sqlx.SqlConn) *Repo {
+func New(db sqlx.SqlConn, cache *Cache) *Repo {
 	return &Repo{
-		db: db,
+		db:    db,
+		cache: cache,
 	}
 }
 
@@ -25,7 +28,7 @@ type PrimaryKey struct {
 	Oid     int64 `db:"oid"`
 }
 
-type PrimaryKeyList []*PrimaryKey
+type PrimaryKeyList []PrimaryKey
 
 func (l PrimaryKeyList) Oids() []int64 {
 	r := make([]int64, 0, len(l))

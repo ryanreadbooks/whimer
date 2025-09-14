@@ -5,6 +5,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	feedmodel "github.com/ryanreadbooks/whimer/api-x/internal/biz/feed/model"
 	"github.com/ryanreadbooks/whimer/api-x/internal/model"
 	"github.com/ryanreadbooks/whimer/api-x/internal/model/errors"
 
@@ -165,29 +166,6 @@ func (r *PageListReq) Validate() error {
 	return nil
 }
 
-type AdminListRes struct {
-	Items      []*model.AdminNoteItem `json:"items"`
-	NextCursor int64                  `json:"next_cursor"`
-	HasNext    bool                   `json:"has_next"`
-}
-
-func NewListResFromPb(pb *notev1.ListNoteResponse) *AdminListRes {
-	if pb == nil {
-		return nil
-	}
-
-	items := make([]*model.AdminNoteItem, 0, len(pb.Items))
-	for _, item := range pb.Items {
-		items = append(items, model.NewAdminNoteItemFromPb(item))
-	}
-
-	return &AdminListRes{
-		Items:      items,
-		NextCursor: pb.NextCursor,
-		HasNext:    pb.HasNext,
-	}
-}
-
 type AdminPageListRes struct {
 	Items []*model.AdminNoteItem `json:"items"`
 	Total int64                  `json:"total"`
@@ -255,8 +233,8 @@ type UploadAuthRes struct {
 	FildId      string               `json:"fild_id"`
 	CurrentTime int64                `json:"current_time"`
 	ExpireTime  int64                `json:"expire_time"`
-	UploadAddr string               `json:"upload_addr"`
-	Headers    UploadAuthResHeaders `json:"headers"`
+	UploadAddr  string               `json:"upload_addr"`
+	Headers     UploadAuthResHeaders `json:"headers"`
 }
 
 // 点赞/取消点赞
@@ -278,8 +256,8 @@ func (r *LikeReq) Validate() error {
 }
 
 type GetLikesRes struct {
-	NoteId int64 `json:"note_id"`
-	Count  int64 `json:"count"`
+	NoteId model.NoteId `json:"note_id"`
+	Count  int64        `json:"count"`
 }
 
 const maxTagNameLen = 255
@@ -361,4 +339,28 @@ type SearchedNoteTag struct {
 
 type SearchTagsRes struct {
 	Items []SearchedNoteTag `json:"items"`
+}
+
+type GetLikedNoteRequest struct {
+	Cursor string `form:"cursor,optional"`
+	Count  int32  `form:"count,optional"`
+}
+
+func (r *GetLikedNoteRequest) Validate() error {
+	if r == nil {
+		return xerror.ErrNilArg
+	}
+
+	r.Count = min(r.Count, 20)
+	if r.Count <= 0 {
+		r.Count = 10
+	}
+
+	return nil
+}
+
+type GetLikedNoteResponse struct {
+	Items      []*feedmodel.FeedNoteItem `json:"items"`
+	NextCursor string                    `json:"next_cursor"`
+	HasNext    bool                      `json:"has_next"`
 }

@@ -20,24 +20,9 @@ message RandomGetResponse {
   int32 count = 2;
 }
 
-// 首页笔记信息的概览
-message FeedNoteItem {
-  int64 note_id = 1;
-  string title = 2;
-  string desc = 3;
-  int64 created_at = 4;
-  repeated NoteImage images = 5;
-  int64 likes = 6;   // 点赞数量
-  int64 author = 7;  // 笔记作者
-  int64 replies = 8; // 点赞数
-  int64 updated_at = 9;
-}
-
 message GetFeedNoteRequest {
   int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ]; //笔记id
 }
-
-message FeedNoteItemExt { repeated NoteTag tags = 1; }
 
 message GetFeedNoteResponse {
   FeedNoteItem item = 1;
@@ -78,10 +63,12 @@ message GetTagInfoRequest { int64 id = 1; }
 message GetTagInfoResponse { NoteTag tag = 1; }
 
 message BatchGetFeedNotesRequest {
-  repeated int64 note_ids = 1 [ (buf.validate.field).repeated.max_items = 30 ];
+  repeated int64 note_ids = 1 [ (buf.validate.field).repeated .max_items = 30 ];
 }
 
-message BatchGetFeedNotesResponse { map<int64, GetFeedNoteResponse> result = 1; }
+message BatchGetFeedNotesResponse {
+  map<int64, GetFeedNoteResponse> result = 1;
+}
 
 // note相关非管理功能服务
 service NoteFeedService {

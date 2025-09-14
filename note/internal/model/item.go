@@ -165,6 +165,15 @@ func (n *Notes) GetIds() []int64 {
 	return r
 }
 
+func PbFeedNoteItemsFromNotes(ns *Notes) []*notev1.FeedNoteItem {
+	items := make([]*notev1.FeedNoteItem, 0, len(ns.Items))
+	for _, item := range ns.Items {
+		items = append(items, item.AsFeedPb())
+	}
+
+	return items
+}
+
 type NoteExt struct {
 	TagIds []int64
 }

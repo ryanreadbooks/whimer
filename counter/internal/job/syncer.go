@@ -2,7 +2,6 @@ package job
 
 import (
 	"context"
-	"time"
 
 	"github.com/robfig/cron/v3"
 	"github.com/ryanreadbooks/whimer/counter/internal/config"
@@ -25,11 +24,7 @@ func NewSyncer(cfg *config.Config, srv *srv.Service) (*Syncer, error) {
 		srv: srv,
 	}
 
-	_, err := c.AddFunc(cfg.Cron.SyncerSpec, s.SyncSummaryCache)
-	if err != nil {
-		return nil, err
-	}
-	_, err = c.AddFunc(cfg.Cron.SummarySpec, s.SyncRecordSummary)
+	_, err := c.AddFunc(cfg.Cron.SummarySpec, s.SyncRecordSummary)
 	if err != nil {
 		return nil, err
 	}
@@ -43,17 +38,6 @@ func MustNewSyncer(cfg *config.Config, srv *srv.Service) *Syncer {
 	} else {
 		return s
 	}
-}
-
-func (s *Syncer) SyncSummaryCache() {
-	xlog.Msg("counter syncer starts running...").Info()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
-	defer cancel()
-	err := s.srv.CounterSrv.CounterBiz.SyncCacheSummary(ctx)
-	if err != nil {
-		xlog.Msg("syncer sync cache summary failed").Err(err).Error()
-	}
-	xlog.Msg("syncer sync cache summary done.").Info()
 }
 
 func (s *Syncer) SyncRecordSummary() {

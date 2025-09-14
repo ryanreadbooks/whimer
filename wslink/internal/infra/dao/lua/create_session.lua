@@ -9,7 +9,7 @@ end
 local r1 = redis.pcall('HSET', sid, unpack(ARGV))
 if is_pcall_err(r1) then
   -- return immediately
-  return redis.error_reply('ERR set session: ' .. sid)
+  return redis.error_reply('failed to set session: ' .. sid)
 end
 
 -- step2. assign sess id to uid session
@@ -17,5 +17,5 @@ local r2 = redis.pcall('SADD', uid_key, sid)
 if is_pcall_err(r2) then
   -- try best effort to rollback the first redis call
   redis.pcall('DEL', sid)
-  return redis.error_reply('ERR set uid session: ' .. uid_key)
+  return redis.error_reply('failed to set uid session: ' .. uid_key)
 end
