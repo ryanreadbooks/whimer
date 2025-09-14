@@ -39,13 +39,40 @@ func (s *CounterSrv) BatchGetRecord(ctx context.Context, uidOids map[int64][]int
 
 func (s *CounterSrv) GetSummary(ctx context.Context, req *counterv1.GetSummaryRequest) (
 	*counterv1.GetSummaryResponse, error) {
-	return s.CounterBiz.GetSummary(ctx, req)
+	count, err := s.CounterBiz.GetSummary(ctx, req.BizCode, req.Oid)
+	if err != nil {
+		return nil, err
+	}
+
+	return &counterv1.GetSummaryResponse{
+		BizCode: req.BizCode,
+		Oid:     req.Oid,
+		Count:   count,
+	}, nil
 }
 
 func (s *CounterSrv) BatchGetSummary(ctx context.Context, req *counterv1.BatchGetSummaryRequest) (
 	*counterv1.BatchGetSummaryResponse, error) {
 
-	return s.CounterBiz.BatchGetSummary(ctx, req)
+	keys := make([]biz.SummaryKey, 0, len(req.Requests))
+	for _, r := range req.Requests {
+		keys = append(keys, biz.SummaryKey{BizCode: r.BizCode, Oid: r.Oid})
+	}
+	resp, err := s.CounterBiz.BatchGetSummary(ctx, keys)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*counterv1.GetSummaryResponse, 0, len(resp))
+	for k, v := range resp {
+		responses = append(responses, &counterv1.GetSummaryResponse{
+			BizCode: k.BizCode,
+			Oid:     k.Oid,
+			Count:   v,
+		})
+	}
+
+	return &counterv1.BatchGetSummaryResponse{Responses: responses}, nil
 }
 
 func (s *CounterSrv) PageListUserRecords(ctx context.Context, req *counterv1.PageGetUserRecordRequest) (

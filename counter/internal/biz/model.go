@@ -7,6 +7,7 @@ import (
 
 	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	recorddao "github.com/ryanreadbooks/whimer/counter/internal/infra/dao/record"
+	summarydao "github.com/ryanreadbooks/whimer/counter/internal/infra/dao/summary"
 
 	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/ryanreadbooks/whimer/misc/xstring"
@@ -92,5 +93,24 @@ func pbRecordFromDaoRecord(data *recorddao.Record) *counterv1.Record {
 		Act:     counterv1.RecordAct(data.Act),
 		Ctime:   data.Ctime,
 		Mtime:   data.Mtime,
+	}
+}
+
+type SummaryKey struct {
+	BizCode int32
+	Oid     int64
+}
+
+func bizSummaryKeyFromDao(key summarydao.PrimaryKey) SummaryKey {
+	return SummaryKey{
+		BizCode: key.BizCode,
+		Oid:     key.Oid,
+	}
+}
+
+func daoSummaryKeyFromBiz(key SummaryKey) summarydao.CacheKey {
+	return summarydao.CacheKey{
+		BizCode: key.BizCode,
+		Oid:     key.Oid,
 	}
 }

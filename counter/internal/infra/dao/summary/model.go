@@ -28,7 +28,7 @@ type PrimaryKey struct {
 	Oid     int64 `db:"oid"`
 }
 
-type PrimaryKeyList []*PrimaryKey
+type PrimaryKeyList []PrimaryKey
 
 func (l PrimaryKeyList) Oids() []int64 {
 	r := make([]int64, 0, len(l))

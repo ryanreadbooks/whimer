@@ -15,11 +15,11 @@ import (
 
 const (
 	keyTmpl    = "counter:summary:%d:%d" // counter:summary:bizcode:oid
-	defaultTTL = xtime.WeekSec
+	defaultTTL = xtime.DaySec
 )
 
 var (
-	defaultTTLDuration = xtime.Week
+	defaultTTLDuration = xtime.Day
 )
 
 var (
@@ -58,10 +58,7 @@ func (c *Cache) SetCount(ctx context.Context, bizCode int32, oid int64, count in
 	return nil
 }
 
-type CacheKey struct {
-	BizCode int32
-	Oid     int64
-}
+type CacheKey = PrimaryKey
 
 type CacheData struct {
 	CacheKey

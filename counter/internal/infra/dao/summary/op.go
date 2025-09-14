@@ -135,7 +135,7 @@ func (r *Repo) Decr(ctx context.Context, biz int, oid int64) error {
 }
 
 // "biz_code,oid,cnt,ctime,mtime"
-func (r *Repo) InsertOrIncr(ctx context.Context, biz int, oid int64) error {
+func (r *Repo) InsertOrIncr(ctx context.Context, biz int32, oid int64) error {
 	now := time.Now().Unix()
 	_, err := r.db.ExecCtx(ctx, fmt.Sprintf(sqlInsertIncr, fields),
 		biz,
@@ -147,7 +147,7 @@ func (r *Repo) InsertOrIncr(ctx context.Context, biz int, oid int64) error {
 	return xsql.ConvertError(err)
 }
 
-func (r *Repo) InsertOrDecr(ctx context.Context, biz int, oid int64) error {
+func (r *Repo) InsertOrDecr(ctx context.Context, biz int32, oid int64) error {
 	now := time.Now().Unix()
 	_, err := r.db.ExecCtx(ctx, fmt.Sprintf(sqlInsertDecr, fields),
 		biz,

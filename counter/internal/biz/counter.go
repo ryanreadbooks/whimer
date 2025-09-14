@@ -3,6 +3,7 @@ package biz
 import (
 	"context"
 	"errors"
+	"maps"
 	"sync"
 	"time"
 
@@ -160,15 +161,15 @@ func (s *CounterBiz) CancelRecord(ctx context.Context,
 }
 
 func (s *CounterBiz) updateSummary(ctx context.Context, oid int64, biz int32, positive bool) {
-	s.updateSummaryNow(ctx, oid, biz, positive)
+	s.directUpdateSummary(ctx, oid, biz, positive)
 }
 
-func (s *CounterBiz) updateSummaryNow(ctx context.Context, oid int64, biz int32, positive bool) error {
+func (s *CounterBiz) directUpdateSummary(ctx context.Context, oid int64, biz int32, positive bool) error {
 	var err error
 	if positive {
-		err = infra.Dao().SummaryRepo.InsertOrIncr(ctx, int(biz), oid)
+		err = infra.Dao().SummaryRepo.InsertOrIncr(ctx, biz, oid)
 	} else {
-		err = infra.Dao().SummaryRepo.InsertOrDecr(ctx, int(biz), oid)
+		err = infra.Dao().SummaryRepo.InsertOrDecr(ctx, biz, oid)
 	}
 	if !errors.Is(err, xsql.ErrOutOfRange) && !xsql.IsMildErr(err) {
 		xlog.Msg("update summary repo failed").
@@ -180,7 +181,13 @@ func (s *CounterBiz) updateSummaryNow(ctx context.Context, oid int64, biz int32,
 		return err
 	}
 
-	return err
+	// remove cache
+	err = infra.Dao().SummaryCache.DelCount(ctx, biz, oid)
+	if err != nil {
+		xlog.Msg("counter biz failed to delete summary cache after direct update summary").Err(err).Errorx(ctx)
+	}
+
+	return nil
 }
 
 func (s *CounterBiz) GetRecord(ctx context.Context,
@@ -473,60 +480,87 @@ func (s *CounterBiz) BatchCheckHasActDo(ctx context.Context, uidOids map[int64][
 }
 
 // 获取某个oid的计数
-func (s *CounterBiz) GetSummary(ctx context.Context, req *counterv1.GetSummaryRequest) (
-	*counterv1.GetSummaryResponse, error) {
+func (s *CounterBiz) GetSummary(ctx context.Context, bizCode int32, oid int64) (int64, error) {
 
-	// 直接从数据库拿
-	var (
-		biz = req.BizCode
-		oid = req.Oid
-	)
+	cacheCount, err := infra.Dao().SummaryCache.GetCount(ctx, bizCode, oid)
+	if err == nil {
+		return cacheCount, nil
+	}
 
-	number, err := infra.Dao().SummaryRepo.Get(ctx, int(biz), oid)
+	number, err := infra.Dao().SummaryRepo.Get(ctx, int(bizCode), oid)
 	if err != nil && !xsql.IsNoRecord(err) {
 		xlog.Msg("get summary repo failed").Err(err).
 			Extra("oid", oid).
-			Extra("biz", biz).
+			Extra("biz", bizCode).
 			Errorx(ctx)
 
-		return nil, global.ErrInternal
+		return 0, global.ErrInternal
 	}
 
-	return &counterv1.GetSummaryResponse{
-		BizCode: req.BizCode,
-		Oid:     req.Oid,
-		Count:   number,
-	}, nil
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "counter.biz.getsummary.cache.set",
+		Job: func(ctx context.Context) error {
+			if err := infra.Dao().SummaryCache.SetCount(ctx, bizCode, oid, number); err != nil {
+				xlog.Msg("counter biz failed to set summary cache after get summary").Err(err).Errorx(ctx)
+			}
+
+			return nil
+		},
+	})
+
+	return number, nil
 }
 
 // 批量获取某个oid的计数
-func (s *CounterBiz) BatchGetSummary(ctx context.Context, req *counterv1.BatchGetSummaryRequest) (
-	*counterv1.BatchGetSummaryResponse, error) {
+func (s *CounterBiz) BatchGetSummary(ctx context.Context, keys []SummaryKey) (
+	map[SummaryKey]int64, error) {
 	const batchsize = 200
 
 	var (
-		summaryRes = make([]map[summarydao.PrimaryKey]int64, 0)
-		wg         sync.WaitGroup
-		mu         sync.Mutex
+		finalResult   = make(map[SummaryKey]int64, len(keys))
+		summaryDaoRes = make([]map[summarydao.PrimaryKey]int64, len(keys))
+		wg            sync.WaitGroup
+		mu            sync.Mutex
 	)
 
-	err := xslice.BatchAsyncExec(&wg, req.Requests, batchsize, func(start, end int) error {
-		reqs := req.Requests[start:end]
-		conds := make(summarydao.PrimaryKeyList, 0, len(reqs))
-		for _, req := range reqs {
-			conds = append(conds, &summarydao.PrimaryKey{
-				BizCode: req.BizCode,
-				Oid:     req.Oid,
-			})
+	cacheKeys := make([]summarydao.CacheKey, 0, len(keys))
+	for _, r := range keys {
+		cacheKeys = append(cacheKeys, daoSummaryKeyFromBiz(r))
+	}
+
+	missingKeys := make([]SummaryKey, 0, len(keys))
+	cacheDatas, err := infra.Dao().SummaryCache.BatchGetCount(ctx, cacheKeys)
+	if err == nil {
+		// find out missing
+		for _, rk := range keys {
+			if _, ok := cacheDatas[daoSummaryKeyFromBiz(rk)]; !ok {
+				missingKeys = append(missingKeys, rk)
+			}
 		}
-		res, err := infra.Dao().SummaryRepo.Gets(ctx, conds)
+
+		for k, count := range cacheDatas {
+			finalResult[bizSummaryKeyFromDao(k)] = count
+		}
+	}
+
+	if len(missingKeys) == 0 {
+		return finalResult, nil
+	}
+
+	err = xslice.BatchAsyncExec(&wg, missingKeys, batchsize, func(start, end int) error {
+		targetKeys := missingKeys[start:end]
+		daoQueryConds := make(summarydao.PrimaryKeyList, 0, len(targetKeys))
+		for _, targetKey := range targetKeys {
+			daoQueryConds = append(daoQueryConds, daoSummaryKeyFromBiz(targetKey))
+		}
+		daoRes, err := infra.Dao().SummaryRepo.Gets(ctx, daoQueryConds)
 		if err != nil {
 			return global.ErrCountSummary
 		}
 
 		mu.Lock()
 		defer mu.Unlock()
-		summaryRes = append(summaryRes, res)
+		summaryDaoRes = append(summaryDaoRes, daoRes)
 
 		return nil
 	})
@@ -536,24 +570,38 @@ func (s *CounterBiz) BatchGetSummary(ctx context.Context, req *counterv1.BatchGe
 		return nil, global.ErrCountSummary
 	}
 
-	// 整理结果
-	merged := make(map[summarydao.PrimaryKey]int64, len(summaryRes))
-	for _, sumRes := range summaryRes {
-		for k, v := range sumRes {
-			merged[k] = v
-		}
+	// 整理db结果
+	merged := make(map[summarydao.PrimaryKey]int64, len(summaryDaoRes))
+	for _, sumRes := range summaryDaoRes {
+		maps.Copy(merged, sumRes)
 	}
 
-	responses := make([]*counterv1.GetSummaryResponse, 0, len(summaryRes))
 	for k, v := range merged {
-		responses = append(responses, &counterv1.GetSummaryResponse{
-			BizCode: k.BizCode,
-			Oid:     k.Oid,
-			Count:   v,
-		})
+		finalResult[bizSummaryKeyFromDao(k)] = v
 	}
 
-	return &counterv1.BatchGetSummaryResponse{Responses: responses}, nil
+	// set back to cache
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "counter.biz.batchgetsummary.cache.batchset",
+		Job: func(ctx context.Context) error {
+			cacheDatas := make([]summarydao.CacheData, 0, len(merged))
+			for key, count := range finalResult {
+				cacheDatas = append(cacheDatas,
+					summarydao.CacheData{
+						CacheKey: daoSummaryKeyFromBiz(key),
+						Count:    count,
+					})
+			}
+
+			if err := infra.Dao().SummaryCache.BatchSetCount(ctx, cacheDatas); err != nil {
+				xlog.Msg("counter biz failed to batch set summary cache after batch get summary").Err(err).Errorx(ctx)
+			}
+
+			return nil
+		},
+	})
+
+	return finalResult, nil
 }
 
 func (b *CounterBiz) PageListRecords(ctx context.Context, bizCode int32, uid int64, param PageListRecordsParam) (

@@ -1,4 +1,4 @@
-#!lua name=libcounter
+#!lua name=libcounter_record
 
 local function is_pcall_err(res)
   if type(res) == 'table' and res.err ~= nil then
