@@ -63,11 +63,14 @@ func (s *CounterBiz) AddRecord(ctx context.Context,
 		return nil, global.ErrAlreadyDo // 重复操作
 	}
 
+	now := time.Now().Unix()
 	newData := &recorddao.Record{
 		BizCode: biz,
 		Uid:     uid,
 		Oid:     oid,
 		Act:     recorddao.ActDo,
+		Ctime:   now,
+		Mtime:   now,
 	}
 
 	// 没有处理过，可以处理
@@ -91,7 +94,18 @@ func (s *CounterBiz) AddRecord(ctx context.Context,
 		Job: func(ctx context.Context) error {
 			err := infra.Dao().RecordCache.AddRecord(ctx, newData)
 			if err != nil {
-				xlog.Msg("counter biz add record cache failed").Err(err).Errorx(ctx)
+				xlog.Msg("counter biz add record cache failed").Err(err).
+					Extras("biz", biz, "oid", oid, "uid", uid).Errorx(ctx)
+			}
+
+			err = infra.Dao().RecordCache.CounterListAdd(ctx, biz, uid, &recorddao.CacheRecord{
+				Act:   newData.Act,
+				Oid:   newData.Oid,
+				Mtime: newData.Mtime,
+			})
+			if err != nil {
+				xlog.Msg("counter biz add record list cache failed").Err(err).
+					Extras("biz", biz, "oid", oid, "uid", uid).Errorx(ctx)
 			}
 
 			return nil
@@ -150,7 +164,14 @@ func (s *CounterBiz) CancelRecord(ctx context.Context,
 		Job: func(ctx context.Context) error {
 			infra.Dao().RecordCache.AddRecord(ctx, newData)
 			if err != nil {
-				xlog.Msg("counter biz cancel record cache failed").Err(err).Errorx(ctx)
+				xlog.Msg("counter biz cancel record cache failed").Err(err).
+					Extras("biz", biz, "oid", oid, "uid", uid).Errorx(ctx)
+			}
+
+			err = infra.Dao().RecordCache.CounterListRemoveOid(ctx, biz, uid, oid)
+			if err != nil {
+				xlog.Msg("counter biz remove record list oid failed").Err(err).
+					Extras("biz", biz, "oid", oid, "uid", uid).Errorx(ctx)
 			}
 
 			return nil

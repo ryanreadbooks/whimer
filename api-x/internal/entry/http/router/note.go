@@ -53,7 +53,7 @@ func regNoteRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 				// 点赞/取消点赞笔记
 				v1g.Post("/like", h.Note.LikeNote())
 				// 获取笔记点赞数量
-				v1g.Get("/likes/:note_id", h.Note.GetNoteLikeCount())
+				v1g.Get("/like/:note_id/count", h.Note.GetNoteLikeCount())
 				// 获取点赞过的笔记
 				v1g.Get("/like/history", h.Note.ListLikedNotes())
 			}

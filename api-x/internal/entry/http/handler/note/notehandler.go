@@ -199,8 +199,8 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 		}
 
 		xhttp.OkJson(w, &GetLikesRes{
+			NoteId: model.NoteId(resp.NoteId),
 			Count:  resp.Likes,
-			NoteId: resp.NoteId,
 		})
 	}
 }

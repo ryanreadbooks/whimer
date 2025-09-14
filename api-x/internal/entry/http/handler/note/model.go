@@ -256,8 +256,8 @@ func (r *LikeReq) Validate() error {
 }
 
 type GetLikesRes struct {
-	NoteId int64 `json:"note_id"` // TODO confusion
-	Count  int64 `json:"count"`
+	NoteId model.NoteId `json:"note_id"`
+	Count  int64        `json:"count"`
 }
 
 const maxTagNameLen = 255
