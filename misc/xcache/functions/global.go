@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 
+	goredis "github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -21,9 +22,17 @@ func FunctionLoadReplace(ctx context.Context, r *redis.Redis, code string) error
 	})
 }
 
-func FunctionCall(ctx context.Context, r *redis.Redis, fn string, keys []string, args ...any) error {
-	return r.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
-		p.FCall(ctx, fn, keys, args...)
-		return nil
-	})
+func FunctionCall(ctx context.Context, r *redis.Redis, fn string, keys []string, args ...any) (*goredis.Cmd, error) {
+	pipe, err := r.TxPipeline()
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := pipe.FCall(ctx, fn, keys, args...)
+	_, err = pipe.Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return cmd, nil
 }

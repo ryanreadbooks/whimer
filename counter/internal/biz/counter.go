@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/counter/internal/config"
@@ -18,6 +19,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
+	"github.com/ryanreadbooks/whimer/misc/xtime"
 )
 
 type CounterBiz struct {
@@ -47,7 +49,7 @@ func (s *CounterBiz) AddRecord(ctx context.Context,
 	)
 
 	data, err := infra.Dao().RecordRepo.Find(ctx, uid, oid, biz)
-	if err != nil && !xsql.IsNotFound(err) {
+	if err != nil && !xsql.IsNoRecord(err) {
 		xlog.Msg("add record find failed").
 			Err(err).
 			Extra("oid", oid).
@@ -60,13 +62,15 @@ func (s *CounterBiz) AddRecord(ctx context.Context,
 		return nil, global.ErrAlreadyDo // 重复操作
 	}
 
-	// 没有处理过，可以处理
-	err = infra.Dao().RecordRepo.InsertUpdate(ctx, &recorddao.Record{
+	newData := &recorddao.Record{
 		BizCode: biz,
 		Uid:     uid,
 		Oid:     oid,
 		Act:     recorddao.ActDo,
-	})
+	}
+
+	// 没有处理过，可以处理
+	err = infra.Dao().RecordRepo.InsertUpdate(ctx, newData)
 	if xsql.IsCriticalErr(err) {
 		xlog.Msg("add record repo insert update failed").
 			Err(err).
@@ -80,6 +84,19 @@ func (s *CounterBiz) AddRecord(ctx context.Context,
 	// handle summary data
 	s.updateSummary(ctx, oid, biz, true)
 
+	// update cache
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "counter.biz.addrecord.cache.set",
+		Job: func(ctx context.Context) error {
+			err := infra.Dao().RecordCache.AddRecord(ctx, newData)
+			if err != nil {
+				xlog.Msg("counter biz add record cache failed").Err(err).Errorx(ctx)
+			}
+
+			return nil
+		},
+	})
+
 	return &counterv1.AddRecordResponse{}, nil
 }
 
@@ -92,7 +109,7 @@ func (s *CounterBiz) CancelRecord(ctx context.Context,
 		oid = req.Oid
 	)
 	data, err := infra.Dao().RecordRepo.Find(ctx, uid, oid, biz)
-	if err != nil && !xsql.IsNotFound(err) {
+	if err != nil && !xsql.IsNoRecord(err) {
 		xlog.Msg("cancel record find failed").
 			Err(err).
 			Extra("oid", oid).
@@ -105,12 +122,14 @@ func (s *CounterBiz) CancelRecord(ctx context.Context,
 		return nil, global.ErrAlreadyDo // 重复操作
 	}
 
-	err = infra.Dao().RecordRepo.InsertUpdate(ctx, &recorddao.Record{
+	newData := &recorddao.Record{
 		BizCode: biz,
 		Uid:     uid,
 		Oid:     oid,
 		Act:     recorddao.ActUndo,
-	})
+	}
+
+	err = infra.Dao().RecordRepo.InsertUpdate(ctx, newData)
 	if xsql.IsCriticalErr(err) {
 		xlog.Msg("cancel record repo insert update failed").
 			Err(err).
@@ -123,6 +142,19 @@ func (s *CounterBiz) CancelRecord(ctx context.Context,
 
 	// handle summary data
 	s.updateSummary(ctx, oid, biz, false)
+
+	// update cache
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "counter.biz.cancelrecord.cache.set",
+		Job: func(ctx context.Context) error {
+			infra.Dao().RecordCache.AddRecord(ctx, newData)
+			if err != nil {
+				xlog.Msg("counter biz cancel record cache failed").Err(err).Errorx(ctx)
+			}
+
+			return nil
+		},
+	})
 
 	return &counterv1.CancelRecordResponse{}, nil
 }
@@ -154,9 +186,15 @@ func (s *CounterBiz) updateSummaryNow(ctx context.Context, oid int64, biz int32,
 func (s *CounterBiz) GetRecord(ctx context.Context,
 	req *counterv1.GetRecordRequest) (*counterv1.GetRecordResponse, error) {
 
+	cacheRecord, err := infra.Dao().RecordCache.GetRecord(ctx, req.BizCode, req.Uid, req.Oid)
+	if err == nil && cacheRecord != nil {
+		return &counterv1.GetRecordResponse{Record: pbRecordFromDaoRecord(cacheRecord)}, nil
+	}
+
+	isDataFake := false
 	data, err := infra.Dao().RecordRepo.Find(ctx, req.Uid, req.Oid, req.BizCode)
 	if err != nil {
-		if !xsql.IsNotFound(err) {
+		if !xsql.IsNoRecord(err) {
 			xlog.Msg("cancel record repo insert update failed").
 				Err(err).
 				Extra("oid", req.Oid).
@@ -165,30 +203,45 @@ func (s *CounterBiz) GetRecord(ctx context.Context,
 				Errorx(ctx)
 			return nil, global.ErrInternal
 		} else {
-			return &counterv1.GetRecordResponse{
-				Record: &counterv1.Record{
-					Act: counterv1.RecordAct_RECORD_ACT_UNSPECIFIED,
-				}}, nil // 找不到记录不当作错误
+			// 没有找到记录 也就是没有产生过计数动作和取消计数的动作 可以填一条假数据到缓存中
+			now := time.Now().Unix()
+			data = &recorddao.Record{
+				Act:     recorddao.ActUnspecified,
+				BizCode: req.BizCode,
+				Uid:     req.Uid,
+				Oid:     req.Oid,
+				Ctime:   now,
+				Mtime:   now,
+			}
+			isDataFake = true
 		}
 	}
 
-	return &counterv1.GetRecordResponse{Record: &counterv1.Record{
-		BizCode: int32(data.BizCode),
-		Uid:     data.Uid,
-		Oid:     data.Oid,
-		Act:     counterv1.RecordAct(data.Act),
-		Ctime:   data.Ctime,
-		Mtime:   data.Mtime,
-	}}, nil
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "counter.biz.getrecord.cache.set",
+		Job: func(ctx context.Context) error {
+			opts := []recorddao.CacheOption{}
+			if isDataFake {
+				// 假数据的缓存时间设置比真数据短
+				opts = append(opts, recorddao.WithExpire(xtime.NHourJitter(2, time.Minute*15)))
+			}
+			if err := infra.Dao().RecordCache.AddRecord(ctx, data, opts...); err != nil {
+				xlog.Msg("counter biz add record after get record failed").Err(err).Errorx(ctx)
+			}
+			return nil
+		},
+	})
+
+	return &counterv1.GetRecordResponse{Record: pbRecordFromDaoRecord(data)}, nil
 }
 
 // 检查是否有正向计数记录
 func (s *CounterBiz) CheckHasActDo(ctx context.Context, req *counterv1.CheckHasActDoRequest) (
 	bool, error,
 ) {
-	has, err := infra.Dao().RecordCache.CounterListExistsOid(ctx, req.BizCode, req.Uid, req.Oid)
-	if err == nil && has {
-		return has, nil
+	cacheHas, err := infra.Dao().RecordCache.CounterListExistsOid(ctx, req.BizCode, req.Uid, req.Oid)
+	if err == nil && cacheHas {
+		return cacheHas, nil
 	}
 
 	if err != nil {
@@ -206,43 +259,128 @@ func (s *CounterBiz) CheckHasActDo(ctx context.Context, req *counterv1.CheckHasA
 			WithCtx(ctx)
 	}
 
-	// concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-	// 	Name: "counter.biz.recordcache.add",
-	// 	Job: func(ctx context.Context) error {
+	has := record.GetRecord().GetAct() == counterv1.RecordAct_RECORD_ACT_ADD
+	if has {
+		concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+			Name: "counter.biz.checkhasact.recordcache.add",
+			Job: func(ctx context.Context) error {
+				if err := infra.Dao().RecordCache.CounterListAdd(ctx, req.BizCode, req.Uid,
+					&recorddao.CacheRecord{
+						Act:   recorddao.ActDo,
+						Oid:   req.Oid,
+						Mtime: record.Record.Mtime,
+					}); err != nil {
+					xlog.Msg("background record cache batch add failed").
+						Err(err).
+						Extras("biz", req.BizCode, "uid", req.Uid, "oid", req.Oid).
+						Errorx(ctx)
+				}
 
-	// 		return nil
-	// 	},
-	// })
+				return nil
+			},
+		})
+	}
 
-	return record.GetRecord().GetAct() == counterv1.RecordAct_RECORD_ACT_ADD, nil
+	return has, nil
 }
 
 func (s *CounterBiz) BatchGetRecord(ctx context.Context, uidOids map[int64][]int64, biz int32) (
 	map[int64][]*counterv1.Record, error) {
 
-	datas, err := infra.Dao().RecordRepo.BatchFind(ctx, uidOids, biz)
-	var uidRecords = make(map[int64][]*counterv1.Record, len(datas))
+	var (
+		finalResult  = make(map[int64][]*counterv1.Record, len(uidOids))
+		fallbackKeys = make(map[int64][]int64, len(uidOids))
+	)
+
+	for uid, oids := range uidOids {
+		cacheKeys := make([]recorddao.CacheKey, 0, len(oids))
+		for _, oid := range oids {
+			cacheKeys = append(cacheKeys, recorddao.CacheKey{
+				BizCode: biz,
+				Uid:     uid,
+				Oid:     oid,
+			})
+		}
+
+		// query cache first
+		existingCache, err := infra.Dao().RecordCache.BatchGetRecord(ctx, cacheKeys)
+		if err != nil {
+			continue
+		}
+
+		// biz+uid+oid
+		for _, record := range existingCache {
+			// pre-fill final results
+			finalResult[uid] = append(finalResult[uid], pbRecordFromDaoRecord(record))
+		}
+
+		for uid, oids := range uidOids {
+			for _, oid := range oids {
+				if _, ok := existingCache[recorddao.CacheKey{BizCode: biz, Uid: uid, Oid: oid}]; !ok {
+					// we can not find uid+oid in cache, need to find them in db
+					fallbackKeys[uid] = append(fallbackKeys[uid], oid)
+				}
+			}
+		}
+	}
+
+	if len(fallbackKeys) == 0 {
+		return finalResult, nil
+	}
+
+	datas, err := infra.Dao().RecordRepo.BatchFind(ctx, fallbackKeys, biz)
 	if err != nil {
-		if !xsql.IsNotFound(err) {
+		if !xsql.IsNoRecord(err) {
 			return nil, xerror.Wrapf(err, "batch find failed")
-		} else {
-			// 找不到不当作错误
-			return uidRecords, nil
+		}
+	}
+
+	// 那些既没有计数动作又没有取消计数动作的造一些假数据放进缓存
+	tmpDatasMap := xslice.MakeMap(datas, func(v *recorddao.Record) recorddao.CacheKey {
+		return recorddao.CacheKey{BizCode: biz, Uid: v.Uid, Oid: v.Oid}
+	})
+
+	fakeDatas := make([]*recorddao.Record, 0, len(datas))
+	now := time.Now().Unix()
+	for uid, oids := range fallbackKeys {
+		for _, oid := range oids {
+			_, ok := tmpDatasMap[recorddao.CacheKey{BizCode: biz, Uid: uid, Oid: oid}]
+			if !ok {
+				fakeDatas = append(fakeDatas, &recorddao.Record{
+					BizCode: biz,
+					Uid:     uid,
+					Oid:     oid,
+					Act:     recorddao.ActUnspecified,
+					Ctime:   now,
+					Mtime:   now,
+				})
+			}
 		}
 	}
 
 	for _, data := range datas {
-		uidRecords[data.Uid] = append(uidRecords[data.Uid], &counterv1.Record{
-			BizCode: int32(data.BizCode),
-			Uid:     data.Uid,
-			Oid:     data.Oid,
-			Act:     counterv1.RecordAct(data.Act),
-			Ctime:   data.Ctime,
-			Mtime:   data.Mtime,
-		})
+		finalResult[data.Uid] = append(finalResult[data.Uid], pbRecordFromDaoRecord(data))
 	}
 
-	return uidRecords, nil
+	// set back to cache
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "counter.biz.batchgetrecord.cache.set",
+		Job: func(ctx context.Context) error {
+			if err := infra.Dao().RecordCache.BatchAddRecord(ctx, datas); err != nil {
+				xlog.Msg("counter biz add record cache after batch get record failed").Err(err).Errorx(ctx)
+			}
+			// 假数据的缓存时间要短
+			if err := infra.Dao().RecordCache.BatchAddRecord(ctx,
+				fakeDatas,
+				recorddao.WithExpire(xtime.NHourJitter(2, time.Minute*15))); err != nil {
+				xlog.Msg("counter biz add fake record cache after batch get record failed").Err(err).Errorx(ctx)
+			}
+
+			return nil
+		},
+	})
+
+	return finalResult, nil
 }
 
 // 批量检查是否有正向计数记录
@@ -303,7 +441,7 @@ func (s *CounterBiz) BatchCheckHasActDo(ctx context.Context, uidOids map[int64][
 
 	// set back to cache
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "counter.biz.recordcache.batchadd",
+		Name: "counter.biz.batchcheckhasact.recordcache.batchadd",
 		Job: func(ctx context.Context) error {
 			batches := make(map[int64][]*counterv1.Record)
 			for _, r := range fillingResulsts {
@@ -345,7 +483,7 @@ func (s *CounterBiz) GetSummary(ctx context.Context, req *counterv1.GetSummaryRe
 	)
 
 	number, err := infra.Dao().SummaryRepo.Get(ctx, int(biz), oid)
-	if err != nil && !xsql.IsNotFound(err) {
+	if err != nil && !xsql.IsNoRecord(err) {
 		xlog.Msg("get summary repo failed").Err(err).
 			Extra("oid", oid).
 			Extra("biz", biz).

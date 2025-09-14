@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 		Type: "node",
 	})
 
-	testCache = NewCache(testRedis)
+	testCache = NewCache(testRedis, WithKeyPrefix("test"))
 	if err := testCache.InitFunction(ctx); err != nil {
 		panic(err)
 	}

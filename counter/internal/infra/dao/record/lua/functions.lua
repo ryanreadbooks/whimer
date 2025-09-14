@@ -47,27 +47,50 @@ local function counter_sizelimit_batchadd(keys, args)
 end
 
 -- check if someone has acted ActDo record on specific bizcode and oid
+-- returns 1 if positive otherwise 0
 local function counter_check_actdo_record(keys, args)
   local counter_list_key = keys[1]
   local counter_record_key = keys[2]
+
   local counter_list_member = args[1]
-  
+  local target_act = tonumber(args[2])
+  local target_mtime = tonumber(args[3])
+
+  local found = 1
+  local not_found = 0
+
   -- step1. check counter_list_key first
-  local result = redis.pcall('ZSCORE', counter_list_key, counter_list_member)
-  local is_err, err = is_pcall_err(result)
+  local list_result = redis.pcall('ZSCORE', counter_list_key, counter_list_member)
+  local is_err, err = is_pcall_err(list_result)
   if is_err then
     redis.log(redis.LOG_WARNING, 'zscore failed in counter_check_actdo_record: ' .. err)
   else
-    result = tonumber(result)
-    if result ~= nil and result > 0 then
-      return 1
+    list_result = tonumber(list_result)
+    if list_result ~= nil and list_result > 0 then
+      return found
     end
   end
 
   -- step2. if no record is found in counter_list_key, we try to find it in counter_record_key
-  
+  local record_result = redis.pcall('HMGET', counter_record_key, 'act', 'mtime')
+  is_err, err = is_pcall_err(record_result)
+  if is_err then
+    return redis.error_reply('hget failed in counter_check_actdo_record: ' .. err)
+  end
+  if record_result == nil then
+    return not_found
+  end
 
-  return 0
+  local act = tonumber(record_result[1])   -- act field
+  local mtime = tonumber(record_result[2]) -- mtime field
+  if act == nil or act ~= target_act then
+    return not_found
+  end
+  if mtime == nil or mtime <= target_mtime then
+    return not_found
+  end
+
+  return found
 end
 
 -- register redis functions

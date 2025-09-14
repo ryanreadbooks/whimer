@@ -103,8 +103,8 @@ func (r *Repo) Find(ctx context.Context, uid int64, oid int64, biz int32) (*Reco
 	return &ret, nil
 }
 
-func (r *Repo) BatchFind(ctx context.Context, uidOids map[int64][]int64, biz int32) ([]Record, error) {
-	var batchRes []Record
+func (r *Repo) BatchFind(ctx context.Context, uidOids map[int64][]int64, biz int32) ([]*Record, error) {
+	var batchRes []*Record
 	// 分批操作
 	err := maps.BatchExec(uidOids, 200, func(target map[int64][]int64) error {
 		uids, oids := maps.All(target)
@@ -113,7 +113,7 @@ func (r *Repo) BatchFind(ctx context.Context, uidOids map[int64][]int64, biz int
 			allOids = slices.Concat(allOids, oids[i])
 		}
 
-		var ret = make([]Record, 0, len(uids)*len(allOids)) // we should strictly limit the length of them
+		var ret = make([]*Record, 0, len(uids)*len(allOids)) // we should strictly limit the length of them
 		query := fmt.Sprintf(sqlBatchFind, slices.JoinInts(uids), slices.JoinInts(allOids))
 		err := r.db.QueryRowsCtx(ctx, &ret, query, biz)
 		if err != nil {

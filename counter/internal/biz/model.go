@@ -83,3 +83,14 @@ type PageResult struct {
 	NextCursor string
 	HasNext    bool
 }
+
+func pbRecordFromDaoRecord(data *recorddao.Record) *counterv1.Record {
+	return &counterv1.Record{
+		BizCode: int32(data.BizCode),
+		Uid:     data.Uid,
+		Oid:     data.Oid,
+		Act:     counterv1.RecordAct(data.Act),
+		Ctime:   data.Ctime,
+		Mtime:   data.Mtime,
+	}
+}

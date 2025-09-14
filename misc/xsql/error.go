@@ -58,6 +58,6 @@ func IsDuplicate(err error) bool {
 	return errors.Is(err, ErrDuplicate)
 }
 
-func IsNotFound(err error) bool {
+func IsNoRecord(err error) bool {
 	return errors.Is(err, ErrNoRecord)
 }

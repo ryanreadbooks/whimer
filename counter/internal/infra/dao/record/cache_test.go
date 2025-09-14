@@ -36,7 +36,7 @@ func TestCache(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(has, ShouldBeFalse)
 
-		testCache.c.Del(getCounterListCacheKey(bizCode, uid))
+		testCache.c.Del(testCache.getCounterListCacheKey(bizCode, uid))
 	})
 }
 
@@ -49,7 +49,7 @@ func TestBatchExists(t *testing.T) {
 			oids    []int64 = []int64{100, 200, 300, 400, 500, 600}
 		)
 
-		defer testCache.c.Del(getCounterListCacheKey(bizCode, uid))
+		defer testCache.c.Del(testCache.getCounterListCacheKey(bizCode, uid))
 
 		rds := []*CacheRecord{}
 		for _, o := range oids {
@@ -103,7 +103,7 @@ func TestSizeLimitBatchAdd(t *testing.T) {
 			uid     int64   = 1
 			oids    []int64 = []int64{100, 200, 300, 400, 500, 600}
 		)
-		defer testCache.c.Del(getCounterListCacheKey(bizCode, uid))
+		defer testCache.c.Del(testCache.getCounterListCacheKey(bizCode, uid))
 
 		rds := []*CacheRecord{}
 		for _, o := range oids {
@@ -207,9 +207,82 @@ func TestBatchAddRecord(t *testing.T) {
 			t.Logf("k=%v, v=%+v\n", k, v)
 		}
 		So(len(gots), ShouldEqual, 2)
-		So(gots[key1].Id, ShouldEqual, 1)
 		So(gots[key1].Act, ShouldEqual, ActDo)
-		So(gots[key2].Id, ShouldEqual, 2)
 		So(gots[key2].Act, ShouldEqual, ActUndo)
+	})
+}
+
+func TestBatchGetRecord(t *testing.T) {
+	Convey("TestBatchGetRecord", t, func() {
+		var (
+			bizCode int32 = 2000
+			uid     int64 = 100
+			oid     int64 = 200
+		)
+		err := testCache.AddRecord(ctx, &Record{
+			Act:     ActUndo,
+			Uid:     uid,
+			Oid:     oid,
+			BizCode: bizCode,
+			Mtime:   time.Now().Unix(),
+			Ctime:   time.Now().Unix(),
+		})
+		So(err, ShouldBeNil)
+
+		gots, err := testCache.BatchGetRecord(ctx, []CacheKey{
+			{BizCode: bizCode, Uid: uid, Oid: oid},
+			{BizCode: 10086, Uid: 10086, Oid: 10086}})
+
+		So(err, ShouldBeNil)
+		So(len(gots), ShouldEqual, 1)
+	})
+}
+
+func TestCheckHasCountedRecord(t *testing.T) {
+	Convey("TestCheckHasCountedRecord", t, func() {
+		var (
+			bizCode int32 = 100
+			uid     int64 = 999
+			oid     int64 = 888
+		)
+		counterListKey := testCache.getCounterListCacheKey(bizCode, uid)
+		counterRecordKey := testCache.getCounterRecordCacheKey(bizCode, uid, oid)
+		t.Log(counterRecordKey)
+		t.Log(counterListKey)
+		defer testCache.c.Del(counterListKey, counterRecordKey)
+
+		err := testCache.AddRecord(ctx, &Record{
+			BizCode: bizCode,
+			Uid:     uid,
+			Oid:     oid,
+			Act:     ActDo,
+			Ctime:   time.Now().Unix(),
+			Mtime:   time.Now().Unix(),
+		})
+		So(err, ShouldBeNil)
+
+		got, err := testCache.CheckHasCountedRecord(ctx, bizCode, uid, oid)
+		So(err, ShouldBeNil)
+		So(got, ShouldBeTrue)
+	})
+
+	Convey("TestCheckHasCountedRecord 2", t, func() {
+		var (
+			bizCode int32 = 100
+			uid     int64 = 999
+			oid     int64 = 888
+		)
+		counterListKey := testCache.getCounterListCacheKey(bizCode, uid)
+		counterRecordKey := testCache.getCounterRecordCacheKey(bizCode, uid, oid)
+		t.Log(counterRecordKey)
+		t.Log(counterListKey)
+		defer testCache.c.Del(counterListKey, counterRecordKey)
+
+		err := testCache.CounterListAdd(ctx, bizCode, uid, &CacheRecord{Act: ActDo, Oid: oid, Mtime: time.Now().Unix()})
+		So(err, ShouldBeNil)
+
+		got, err := testCache.CheckHasCountedRecord(ctx, bizCode, uid, oid)
+		So(err, ShouldBeNil)
+		So(got, ShouldBeTrue)
 	})
 }

@@ -32,7 +32,7 @@ func NewNoteBiz() NoteBiz {
 func (b *NoteBiz) GetNote(ctx context.Context, noteId int64) (*model.Note, error) {
 	note, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
 	if err != nil {
-		if xsql.IsNotFound(err) {
+		if xsql.IsNoRecord(err) {
 			return nil, global.ErrNoteNotFound
 		}
 		return nil, xerror.Wrapf(err, "biz find one note failed").WithExtra("noteId", noteId).WithCtx(ctx)
@@ -75,7 +75,7 @@ func (b *NoteBiz) BatchGetNote(ctx context.Context, noteIds []int64) (map[int64]
 func (b *NoteBiz) GetUserRecentNote(ctx context.Context, uid int64, count int32) (*model.Notes, error) {
 	notes, err := infra.Dao().NoteDao.GetRecentPublicPosted(ctx, uid, count)
 	if err != nil {
-		if xsql.IsNotFound(err) {
+		if xsql.IsNoRecord(err) {
 			return &model.Notes{}, nil
 		}
 
@@ -101,7 +101,7 @@ func (b *NoteBiz) ListUserPublicNote(ctx context.Context, uid int64, cursor int6
 
 	notes, err := infra.Dao().NoteDao.ListPublicByOwnerByCursor(ctx, uid, cursor, newCount)
 	if err != nil {
-		if xsql.IsNotFound(err) {
+		if xsql.IsNoRecord(err) {
 			return &model.Notes{}, nextPage, nil
 		}
 
@@ -151,7 +151,7 @@ func (b *NoteBiz) IsNoteExist(ctx context.Context, noteId int64) (bool, error) {
 
 	_, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
 	if err != nil {
-		if !xsql.IsNotFound(err) {
+		if !xsql.IsNoRecord(err) {
 			return false, xerror.Wrapf(err, "note repo find one failed").WithExtra("noteId", noteId).WithCtx(ctx)
 		}
 		return false, nil
@@ -164,7 +164,7 @@ func (b *NoteBiz) IsNoteExist(ctx context.Context, noteId int64) (bool, error) {
 func (b *NoteBiz) GetNoteOwner(ctx context.Context, noteId int64) (int64, error) {
 	n, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
 	if err != nil {
-		if !xsql.IsNotFound(err) {
+		if !xsql.IsNoRecord(err) {
 			return 0, xerror.Wrapf(err, "biz find one failed").WithExtra("noteId", noteId).WithCtx(ctx)
 		}
 		return 0, global.ErrNoteNotFound

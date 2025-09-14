@@ -115,7 +115,7 @@ func (b *CommentBiz) AddReply(ctx context.Context, req *model.AddReplyReq) (*mod
 func (b *CommentBiz) findByIdForUpdate(ctx context.Context, rid int64) (*model.ReplyItem, error) {
 	c, err := infra.Dao().CommentDao.FindByIdForUpdate(ctx, rid)
 	if err != nil {
-		if !xsql.IsNotFound(err) {
+		if !xsql.IsNoRecord(err) {
 			return nil, xerror.Wrapf(err, "comment biz find by for update failed")
 		}
 		return nil, xerror.Wrap(global.ErrReplyNotFound)
@@ -213,7 +213,7 @@ func (b *CommentBiz) DelReply(ctx context.Context, oid, rid int64) error {
 func (b *CommentBiz) GetReply(ctx context.Context, rid int64) (*model.ReplyItem, error) {
 	reply, err := infra.Dao().CommentDao.FindById(ctx, rid)
 	if err != nil {
-		if !xsql.IsNotFound(err) {
+		if !xsql.IsNoRecord(err) {
 			return nil, xerror.Wrapf(err, "comment biz failed to get reply").WithExtra("rid", rid).WithCtx(ctx)
 		}
 
@@ -425,7 +425,7 @@ func (b *CommentBiz) BatchCheckUserIsReplied(ctx context.Context, uidOids map[in
 func (b *CommentBiz) GetPinnedReply(ctx context.Context, oid int64) (*model.ReplyItem, error) {
 	pinned, err := infra.Dao().CommentDao.GetPinned(ctx, oid)
 	if err != nil {
-		if xsql.IsNotFound(err) {
+		if xsql.IsNoRecord(err) {
 			return nil, global.ErrNoPinReply
 		}
 
