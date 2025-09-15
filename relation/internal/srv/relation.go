@@ -3,19 +3,21 @@ package srv
 import (
 	"context"
 
-	"github.com/ryanreadbooks/whimer/misc/metadata"
-	"github.com/ryanreadbooks/whimer/misc/xerror"
-	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/relation/internal/biz"
 	"github.com/ryanreadbooks/whimer/relation/internal/global"
 	"github.com/ryanreadbooks/whimer/relation/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/relation/internal/model"
+
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+
+	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 )
 
 type RelationSrv struct {
 	Ctx *Service
 
-	relationBiz biz.RelationBiz
+	relationBiz *biz.RelationBiz
 }
 
 func NewRelationSrv(p *Service, biz biz.Biz) *RelationSrv {
@@ -94,7 +96,9 @@ func (s *RelationSrv) UnfollowUser(ctx context.Context, follower, unfollowed int
 	return nil
 }
 
-func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int64, cnt int) (fans []int64, result model.ListResult, err error) {
+func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int64, cnt int) (
+	fans []int64, result model.ListResult, err error) {
+
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -113,7 +117,9 @@ func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int6
 	return
 }
 
-func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offset int64, cnt int) (followings []int64, result model.ListResult, err error) {
+func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offset int64, cnt int) (
+	followings []int64, result model.ListResult, err error) {
+
 	var (
 		uid = metadata.Uid(ctx)
 	)

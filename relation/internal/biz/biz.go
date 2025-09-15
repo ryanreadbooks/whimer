@@ -1,7 +1,7 @@
 package biz
 
 type Biz struct {
-	Relation RelationBiz
+	Relation *RelationBiz
 }
 
 func New() Biz {
