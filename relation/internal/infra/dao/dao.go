@@ -11,7 +11,8 @@ import (
 type Dao struct {
 	db *xsql.DB
 
-	RelationDao *RelationDao
+	RelationDao   *RelationDao
+	RelationCache *RelationCache
 }
 
 func MustNew(c *config.Config, cache *redis.Redis) *Dao {
@@ -33,8 +34,9 @@ func MustNew(c *config.Config, cache *redis.Redis) *Dao {
 
 	db := xsql.New(conn)
 	return &Dao{
-		db:          db,
-		RelationDao: NewRelationDao(db, cache),
+		db:            db,
+		RelationDao:   NewRelationDao(db, cache),
+		RelationCache: NewRelationCache(cache),
 	}
 }
 

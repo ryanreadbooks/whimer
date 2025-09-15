@@ -16,8 +16,11 @@ type LinkStatus int8
 // Link的状态转移
 //
 // 初次关注 LinkVacant -> LinkForward/LinkBackward
+//
 // 单向关注，随后取消关注 LinkForward/LinkBackward -> LinkVacant
+//
 // 单向关注，随后另一个人互相关注 LinkFowrard/LinkBackward -> LinkMutual
+//
 // 互相关注，随后其中一个人取消关注 LinkMutual -> LinkForward/LinkBackward
 const (
 	LinkVacant   LinkStatus = 0  // 没有关系
@@ -42,6 +45,22 @@ type Relation struct {
 	Bctime    int64      `db:"bctime"` // B首次关注A的时间，Unix时间戳
 	Amtime    int64      `db:"amtime"` // A改变对B的关注状态的时间，Unix时间戳
 	Bmtime    int64      `db:"bmtime"` // B改变对A的关注状态的时间，Unix时间戳
+}
+
+func (r *Relation) IsLinkVacant() bool {
+	return r != nil && r.Link == LinkVacant
+}
+
+func (r *Relation) IsLinkForward() bool {
+	return r != nil && r.Link == LinkForward
+}
+
+func (r *Relation) IsLinkBackward() bool {
+	return r != nil && r.Link == LinkBackward
+}
+
+func (r *Relation) IsLinkMutual() bool {
+	return r != nil && r.Link == LinkMutual
 }
 
 type RelationUser struct {
@@ -168,8 +187,6 @@ var (
 	sqlCountUidFollowings = fmt.Sprintf(sqlUnionCountTemplate, LinkForward, LinkMutual, LinkBackward, LinkMutual)
 	// 获取关注uid的人的数量
 	sqlCountUidFans = fmt.Sprintf(sqlUnionCountTemplate, LinkBackward, LinkMutual, LinkForward, LinkMutual)
-	// 检查是否关注了某人
-	sqlFindUidRelation = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=?", relationAllFields)
 )
 
 // 插入/更新一条记录

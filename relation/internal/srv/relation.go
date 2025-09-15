@@ -5,13 +5,16 @@ import (
 
 	"github.com/ryanreadbooks/whimer/relation/internal/biz"
 	"github.com/ryanreadbooks/whimer/relation/internal/global"
+	"github.com/ryanreadbooks/whimer/relation/internal/infra"
 	"github.com/ryanreadbooks/whimer/relation/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/relation/internal/model"
 
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xconv"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
 type RelationSrv struct {
@@ -29,6 +32,16 @@ func NewRelationSrv(p *Service, biz biz.Biz) *RelationSrv {
 	return s
 }
 
+const (
+	followUserLockExpireSec = 10
+)
+
+func fmtFollowUserLockKey(follower, followed int64) string {
+	// relation:srv:follow:lock:uid1>uid2
+	return "relation:srv:follow:lock:" + xconv.FormatInt(follower) + ">" + xconv.FormatInt(followed)
+}
+
+// follower关注followed
 func (s *RelationSrv) FollowUser(ctx context.Context, follower, followed int64) error {
 	var (
 		uid = metadata.Uid(ctx)
@@ -42,21 +55,27 @@ func (s *RelationSrv) FollowUser(ctx context.Context, follower, followed int64) 
 		return global.ErrFollowSelf
 	}
 
+	if err := s.checkUserExistence(ctx, followed); err != nil {
+		return xerror.Wrapf(err, "check user existence failed")
+	}
+
+	lock := redis.NewRedisLock(infra.Cache(), fmtFollowUserLockKey(follower, followed))
+	lock.SetExpire(followUserLockExpireSec)
+	hasLock, err := lock.AcquireCtx(ctx)
+	if err != nil {
+		return xerror.Wrapf(err, "follow user failed to acquire lock")
+	}
+	if !hasLock {
+		return xerror.Wrap(global.ErrLockNotHeld)
+	}
+	defer lock.ReleaseCtx(ctx)
+
 	curCnt, err := s.relationBiz.GetUserFollowingCount(ctx, uid)
 	if err != nil {
 		return xerror.Wrapf(err, "relation service check follow count failed").WithCtx(ctx)
 	}
 	if curCnt >= global.MaxFollowAllowed {
 		return global.ErrFollowReachMaxCount
-	}
-
-	hasUser, err := s.hasUser(ctx, uid)
-	if err != nil {
-		return xerror.Wrapf(err, "relation service failed to follow").WithCtx(ctx)
-	}
-
-	if !hasUser {
-		return global.ErrUserNotFound
 	}
 
 	err = s.relationBiz.UserFollow(ctx, uid, followed)
@@ -67,6 +86,7 @@ func (s *RelationSrv) FollowUser(ctx context.Context, follower, followed int64) 
 	return nil
 }
 
+// follower取关unfollowed
 func (s *RelationSrv) UnfollowUser(ctx context.Context, follower, unfollowed int64) error {
 	var (
 		uid = metadata.Uid(ctx)
@@ -80,14 +100,21 @@ func (s *RelationSrv) UnfollowUser(ctx context.Context, follower, unfollowed int
 		return global.ErrUnFollowSelf
 	}
 
-	hasUser, err := s.hasUser(ctx, uid)
-	if err != nil {
-		return xerror.Wrapf(err, "relation service failed to follow").WithCtx(ctx)
+	if err := s.checkUserExistence(ctx, unfollowed); err != nil {
+		return xerror.Wrapf(err, "check user existence failed")
 	}
 
-	if !hasUser {
-		return global.ErrUserNotFound
+	lock := redis.NewRedisLock(infra.Cache(), fmtFollowUserLockKey(follower, unfollowed))
+	lock.SetExpire(followUserLockExpireSec)
+	hasLock, err := lock.AcquireCtx(ctx)
+	if err != nil {
+		return xerror.Wrapf(err, "follow user failed to acquire lock")
 	}
+	if !hasLock {
+		return xerror.Wrap(global.ErrLockNotHeld)
+	}
+	defer lock.ReleaseCtx(ctx)
+
 	err = s.relationBiz.UserUnFollow(ctx, uid, unfollowed)
 	if err != nil {
 		return xerror.Wrapf(err, "relation service unfollow user failed")
@@ -96,6 +123,7 @@ func (s *RelationSrv) UnfollowUser(ctx context.Context, follower, unfollowed int
 	return nil
 }
 
+// 获取粉丝列表
 func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int64, cnt int) (
 	fans []int64, result model.ListResult, err error) {
 
@@ -104,7 +132,7 @@ func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int6
 	)
 
 	if uid != who {
-		err = global.ErrNotAllowedGetFanList
+		err = xerror.Wrap(global.ErrNotAllowedGetFanList)
 		return
 	}
 
@@ -117,6 +145,7 @@ func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int6
 	return
 }
 
+// 获取关注列表
 func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offset int64, cnt int) (
 	followings []int64, result model.ListResult, err error) {
 
@@ -125,7 +154,7 @@ func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offse
 	)
 
 	if uid != who {
-		err = global.ErrNotAllowedGetFollowingList
+		err = xerror.Wrap(global.ErrNotAllowedGetFollowingList)
 		return
 	}
 
@@ -164,4 +193,17 @@ func (s *RelationSrv) hasUser(ctx context.Context, uid int64) (bool, error) {
 	}
 
 	return r.Has, nil
+}
+
+func (s *RelationSrv) checkUserExistence(ctx context.Context, uid int64) error {
+	hasUser, err := s.hasUser(ctx, uid)
+	if err != nil {
+		return xerror.Wrap(err).WithCtx(ctx)
+	}
+
+	if !hasUser {
+		return xerror.Wrap(global.ErrUserNotFound).WithCtx(ctx)
+	}
+
+	return nil
 }
