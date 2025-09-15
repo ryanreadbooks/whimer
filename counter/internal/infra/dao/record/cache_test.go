@@ -1,11 +1,13 @@
 package record
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -168,6 +170,19 @@ func TestAddRecord(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(record.Id, ShouldEqual, 100)
 		t.Log(record)
+	})
+}
+
+func TestGetRecord(t *testing.T) {
+	Convey("TestGetRecord", t, func() {
+		var (
+			bizCode int32 = 2000
+			uid     int64 = 100
+			oid     int64 = 200
+		)
+		record, err := testCache.GetRecord(ctx, bizCode, uid, oid)
+		So(errors.Is(err, redis.Nil), ShouldBeTrue)
+		So(record, ShouldBeNil)
 	})
 }
 

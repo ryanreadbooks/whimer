@@ -40,6 +40,50 @@ func MustNewCounterBiz(c *config.Config) *CounterBiz {
 	return s
 }
 
+func (s *CounterBiz) checkBeforeOperateRecord(ctx context.Context, biz int32, uid, oid int64, add bool) error {
+	var (
+		existData *recorddao.Record
+	)
+
+	existData, err := infra.Dao().RecordCache.GetRecord(ctx, biz, uid, oid)
+	if err != nil {
+		existData, err = infra.Dao().RecordRepo.Find(ctx, uid, oid, biz)
+		if err != nil && !xsql.IsNoRecord(err) {
+			xlog.Msg("record repo find failed").
+				Err(err).
+				Extra("oid", oid).
+				Extra("uid", uid).
+				Extra("biz", biz).
+				Errorx(ctx)
+			return global.ErrInternal
+		}
+	}
+
+	dup := false
+	if add {
+		if existData.IsActDo() {
+			dup = true
+		}
+	} else {
+		if existData.IsActUndo() {
+			dup = true
+		}
+	}
+	if dup {
+		return global.ErrAlreadyDo
+	}
+
+	return nil
+}
+
+func (s *CounterBiz) checkBeforeAddRecord(ctx context.Context, biz int32, uid, oid int64) error {
+	return s.checkBeforeOperateRecord(ctx, biz, uid, oid, true)
+}
+
+func (s *CounterBiz) checkBeforeCancelRecord(ctx context.Context, biz int32, uid, oid int64) error {
+	return s.checkBeforeOperateRecord(ctx, biz, uid, oid, false)
+}
+
 // 新增计数记录
 func (s *CounterBiz) AddRecord(ctx context.Context,
 	req *counterv1.AddRecordRequest) (*counterv1.AddRecordResponse, error) {
@@ -49,18 +93,9 @@ func (s *CounterBiz) AddRecord(ctx context.Context,
 		oid = req.Oid
 	)
 
-	data, err := infra.Dao().RecordRepo.Find(ctx, uid, oid, biz)
-	if err != nil && !xsql.IsNoRecord(err) {
-		xlog.Msg("add record find failed").
-			Err(err).
-			Extra("oid", oid).
-			Extra("uid", uid).
-			Extra("biz", biz).
-			Errorx(ctx)
-		return nil, global.ErrInternal
-	}
-	if data != nil && data.Act == recorddao.ActDo {
-		return nil, global.ErrAlreadyDo // 重复操作
+	err := s.checkBeforeAddRecord(ctx, biz, uid, oid)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "check before add record")
 	}
 
 	now := time.Now().Unix()
@@ -123,18 +158,9 @@ func (s *CounterBiz) CancelRecord(ctx context.Context,
 		uid = req.Uid
 		oid = req.Oid
 	)
-	data, err := infra.Dao().RecordRepo.Find(ctx, uid, oid, biz)
-	if err != nil && !xsql.IsNoRecord(err) {
-		xlog.Msg("cancel record find failed").
-			Err(err).
-			Extra("oid", oid).
-			Extra("uid", uid).
-			Extra("biz", biz).
-			Errorx(ctx)
-		return nil, global.ErrInternal
-	}
-	if data != nil && data.Act == recorddao.ActUndo {
-		return nil, global.ErrAlreadyDo // 重复操作
+	err := s.checkBeforeCancelRecord(ctx, biz, uid, oid)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "check before cancel record")
 	}
 
 	newData := &recorddao.Record{
