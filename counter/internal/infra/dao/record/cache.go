@@ -340,7 +340,7 @@ func (c *Cache) GetRecord(ctx context.Context, bizCode int32, uid, oid int64) (*
 	var r Record
 	err := xcache.HGetAllWithScan(ctx, c.c, c.getCounterRecordCacheKey(bizCode, uid, oid), &r)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "get failed")
+		return nil, xerror.Wrapf(err, "get failed") // redis.Nil is also an error here
 	}
 
 	return &r, nil

@@ -31,6 +31,18 @@ type Record struct {
 	Mtime   int64 `db:"mtime" redis:"mtime" mapstructure:"mtime"`
 }
 
+func (r *Record) IsActDo() bool {
+	return r != nil && r.Act == ActDo
+}
+
+func (r *Record) IsActUndo() bool {
+	return r != nil && r.Act == ActUndo
+}
+
+func (r *Record) IsActUnspecified() bool {
+	return r != nil && r.Act == ActUnspecified
+}
+
 type Summary struct {
 	BizCode int32 `db:"biz_code"`
 	Oid     int64 `db:"oid"`
