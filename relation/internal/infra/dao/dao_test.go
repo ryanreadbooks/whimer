@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	relationDao *RelationDao
-	settingDao  *RelationSettingDao
-	ctx         = context.TODO()
+	testRelationDao *RelationDao
+	testSettingDao  *RelationSettingDao
+	ctx             = context.TODO()
 )
 
 func TestMain(m *testing.M) {
@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 		Type: "node",
 	})
 	db := xsql.NewFromEnv()
-	relationDao = NewRelationDao(db, rd)
-	settingDao = NewRelationSettingDao(db, rd)
+	testRelationDao = NewRelationDao(db)
+	testSettingDao = NewRelationSettingDao(db, rd)
 	m.Run()
 }

@@ -1,6 +1,9 @@
 package dao
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/relation/internal/config"
 
@@ -11,8 +14,9 @@ import (
 type Dao struct {
 	db *xsql.DB
 
-	RelationDao   *RelationDao
-	RelationCache *RelationCache
+	RelationDao        *RelationDao
+	RelationCache      *RelationCache
+	RelationSettingDao *RelationSettingDao
 }
 
 func MustNew(c *config.Config, cache *redis.Redis) *Dao {
@@ -33,10 +37,17 @@ func MustNew(c *config.Config, cache *redis.Redis) *Dao {
 	}
 
 	db := xsql.New(conn)
+
+	relationCache := NewRelationCache(cache)
+	if err := relationCache.InitFunctions(context.Background()); err != nil {
+		panic(fmt.Errorf("relation cache init: %w", err))
+	}
+
 	return &Dao{
-		db:            db,
-		RelationDao:   NewRelationDao(db, cache),
-		RelationCache: NewRelationCache(cache),
+		db:                 db,
+		RelationDao:        NewRelationDao(db),
+		RelationCache:      relationCache,
+		RelationSettingDao: NewRelationSettingDao(db, cache),
 	}
 }
 

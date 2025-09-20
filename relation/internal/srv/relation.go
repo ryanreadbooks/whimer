@@ -20,13 +20,15 @@ import (
 type RelationSrv struct {
 	Ctx *Service
 
-	relationBiz *biz.RelationBiz
+	relationBiz        *biz.RelationBiz
+	relationSettingBiz *biz.RelationSettingBiz
 }
 
 func NewRelationSrv(p *Service, biz biz.Biz) *RelationSrv {
 	s := &RelationSrv{
-		Ctx:         p,
-		relationBiz: biz.Relation,
+		Ctx:                p,
+		relationBiz:        biz.Relation,
+		relationSettingBiz: biz.RelationSettingBiz,
 	}
 
 	return s
@@ -39,6 +41,18 @@ const (
 func fmtFollowUserLockKey(follower, followed int64) string {
 	// relation:srv:follow:lock:uid1>uid2
 	return "relation:srv:follow:lock:" + xconv.FormatInt(follower) + ">" + xconv.FormatInt(followed)
+}
+
+func (s *RelationSrv) isFollowAllowed(ctx context.Context, follower, followed int64) error {
+	curCnt, err := s.relationBiz.GetUserFollowingCount(ctx, follower)
+	if err != nil {
+		return xerror.Wrapf(err, "relation service check follow count failed").WithCtx(ctx)
+	}
+	if curCnt >= global.MaxFollowAllowed {
+		return global.ErrFollowReachMaxCount
+	}
+
+	return nil
 }
 
 // follower关注followed
@@ -70,12 +84,8 @@ func (s *RelationSrv) FollowUser(ctx context.Context, follower, followed int64) 
 	}
 	defer lock.ReleaseCtx(ctx)
 
-	curCnt, err := s.relationBiz.GetUserFollowingCount(ctx, uid)
-	if err != nil {
-		return xerror.Wrapf(err, "relation service check follow count failed").WithCtx(ctx)
-	}
-	if curCnt >= global.MaxFollowAllowed {
-		return global.ErrFollowReachMaxCount
+	if err := s.isFollowAllowed(ctx, uid, followed); err != nil {
+		return xerror.Wrap(err)
 	}
 
 	err = s.relationBiz.UserFollow(ctx, uid, followed)
@@ -131,11 +141,11 @@ func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int6
 		uid = metadata.Uid(ctx)
 	)
 
-	if uid != who {
-		err = xerror.Wrap(global.ErrNotAllowedGetFanList)
+	if err = s.relationSettingBiz.CanVisitFanList(ctx, uid, who); err != nil {
 		return
 	}
 
+	// TODO 限制只能拿前5页 最多120个粉丝的信息
 	fans, result, err = s.relationBiz.GetUserFansList(ctx, who, offset, cnt)
 	if err != nil {
 		err = xerror.Wrapf(err, "relation service get user fans list failed")
@@ -153,8 +163,7 @@ func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offse
 		uid = metadata.Uid(ctx)
 	)
 
-	if uid != who {
-		err = xerror.Wrap(global.ErrNotAllowedGetFollowingList)
+	if err = s.relationSettingBiz.CanVisitFollowingList(ctx, uid, who); err != nil {
 		return
 	}
 

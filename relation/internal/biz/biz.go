@@ -1,11 +1,13 @@
 package biz
 
 type Biz struct {
-	Relation *RelationBiz
+	Relation           *RelationBiz
+	RelationSettingBiz *RelationSettingBiz
 }
 
 func New() Biz {
 	return Biz{
-		Relation: NewRelationBiz(),
+		Relation:           NewRelationBiz(),
+		RelationSettingBiz: NewRelationSettingBiz(),
 	}
 }

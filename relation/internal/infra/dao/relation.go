@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
 type LinkStatus int8
@@ -28,6 +28,22 @@ const (
 	LinkBackward LinkStatus = -2 // B单向关注A
 	LinkMutual   LinkStatus = -4 // AB互相关注
 )
+
+func (l LinkStatus) IsMutual() bool {
+	return l == LinkMutual
+}
+
+func (l LinkStatus) IsForward() bool {
+	return l == LinkForward
+}
+
+func (l LinkStatus) IsBackward() bool {
+	return l == LinkBackward
+}
+
+func (l LinkStatus) IsVacant() bool {
+	return l == LinkVacant
+}
 
 type Relation struct {
 	// UserAlpha和UserBeta为两个存在关注关系的用户
@@ -63,6 +79,31 @@ func (r *Relation) IsLinkMutual() bool {
 	return r != nil && r.Link == LinkMutual
 }
 
+func (r *Relation) CheckUserAFollowsUserB(userA, userB int64) bool {
+	if r == nil {
+		return false
+	}
+
+	alpha, beta := enforceUidRule(userA, userB)
+	if alpha != r.UserAlpha || beta != r.UserBeta {
+		return false
+	}
+
+	if r.IsLinkMutual() {
+		return true
+	}
+
+	if alpha == userA {
+		return r.IsLinkForward()
+	}
+
+	if alpha == userB {
+		return r.IsLinkBackward()
+	}
+
+	return false
+}
+
 type RelationUser struct {
 	Id        int64      `db:"id"`
 	UserAlpha int64      `db:"alpha"` // 用户A
@@ -71,7 +112,7 @@ type RelationUser struct {
 }
 
 // 见[Relation]的uid规则
-func enforceUserRule(r *Relation) *Relation {
+func enforceRelationRule(r *Relation) *Relation {
 	if r.UserAlpha > r.UserBeta {
 		// 交换两者
 		r.UserAlpha, r.UserBeta = r.UserBeta, r.UserAlpha
@@ -86,12 +127,28 @@ func enforceUserRule(r *Relation) *Relation {
 	return r
 }
 
+func reverseLink(link LinkStatus) LinkStatus {
+	if link == LinkVacant || link == LinkMutual {
+		return link
+	}
+
+	return -link
+}
+
 func enforceUidRule(a, b int64) (int64, int64) {
 	if a > b {
 		return b, a
 	}
 
 	return a, b
+}
+
+func enforceUidRuleWithLink(a, b int64, link LinkStatus) (int64, int64, LinkStatus) {
+	if a > b {
+		return b, a, reverseLink(link)
+	}
+
+	return a, b, link
 }
 
 func newRelationFromAlphaToBeta(a, b int64) *Relation {
@@ -121,14 +178,12 @@ func newMutualRelation(a, b int64) *Relation {
 }
 
 type RelationDao struct {
-	db    *xsql.DB
-	cache *redis.Redis
+	db *xsql.DB
 }
 
-func NewRelationDao(db *xsql.DB, c *redis.Redis) *RelationDao {
+func NewRelationDao(db *xsql.DB) *RelationDao {
 	return &RelationDao{
-		db:    db,
-		cache: c,
+		db: db,
 	}
 }
 
@@ -143,16 +198,16 @@ const (
 
 var (
 	sqlInsert = fmt.Sprintf("INSERT INTO relation(%s) VALUES(?,?,?,?,?,?,?) AS val "+
-		"ON DUPLICATE KEY UPDATE link=val.link, actime=val.actime, bctime=val.bctime, amtime=val.amtime, bmtime=val.bmtime", relationFields)
-	sqlUpdateLink                   = "UPDATE relation SET link=?, amtime=?, bmtime=? WHERE alpha=? AND beta=?"
-	sqlFindByAlphaBeta              = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? %%s", relationAllFields)
-	sqlFindByAlphaBetaLink          = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=?", relationAllFields)
-	sqlFindByAlphaBetaLinkForUpdate = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? AND link=? FOR UPDATE", relationAllFields)
+		"ON DUPLICATE KEY UPDATE link=val.link, actime=val.actime, bctime=val.bctime, amtime=val.amtime, bmtime=val.bmtime",
+		relationFields)
+	sqlUpdateLink      = "UPDATE relation SET link=?, amtime=?, bmtime=? WHERE alpha=? AND beta=?"
+	sqlFindByAlphaBeta = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta=? %%s", relationAllFields)
 
 	unionBaseTemplate = fmt.Sprintf(`
 		(SELECT %s FROM relation WHERE id>? AND alpha=? AND link IN (%%d, %%d) LIMIT ?) 
 			UNION ALL 
-		(SELECT %s FROM relation WHERE id>? AND beta=? AND link IN (%%d, %%d) LIMIT ?) LIMIT ?`, relationUserFields, relationUserFields)
+		(SELECT %s FROM relation WHERE id>? AND beta=? AND link IN (%%d, %%d) LIMIT ?) LIMIT ?`,
+		relationUserFields, relationUserFields)
 
 	unionBaseTemplateAll = fmt.Sprintf(`
 		(SELECT %s FROM relation WHERE alpha=? AND link IN (%%d, %%d)) 
@@ -161,6 +216,19 @@ var (
 
 	sqlUnionTemplate    = strings.ReplaceAll(strings.ReplaceAll(unionBaseTemplate, "\n", ""), "\t", "")
 	sqlUnionTemplateAll = strings.ReplaceAll(strings.ReplaceAll(unionBaseTemplateAll, "\n", ""), "\t", "")
+
+	sqlBatchFindUidLinkTo = strings.ReplaceAll(strings.ReplaceAll(fmt.Sprintf(`
+		(SELECT %s FROM relation WHERE alpha=? AND beta IN (%%s) AND link IN (%d, %d)) 
+			UNION ALL 
+		(SELECT %s FROM relation WHERE beta=? AND alpha IN (%%s) AND link IN (%d, %d))`,
+		relationUserFields, LinkForward, LinkMutual,
+		relationUserFields, LinkBackward, LinkMutual,
+	), "\n", ""), "\t", "")
+
+	sqlBatchFindAlphaLinkTo = fmt.Sprintf("SELECT %s FROM relation WHERE alpha=? AND beta IN (%%s) AND link IN (%d, %d)",
+		relationUserFields, LinkForward, LinkMutual)
+	sqlBatchFindBetaLinkTo = fmt.Sprintf("SELECT %s FROM relation WHERE beta=? AND alpha IN (%%s) AND link IN (%d, %d)",
+		relationUserFields, LinkBackward, LinkMutual)
 
 	// 获取uid关注的人
 	sqlFindWhoUidFollows = fmt.Sprintf(sqlUnionTemplate, LinkForward, LinkMutual, LinkBackward, LinkMutual)
@@ -191,7 +259,7 @@ var (
 
 // 插入/更新一条记录
 func (d *RelationDao) Insert(ctx context.Context, r *Relation) error {
-	r = enforceUserRule(r)
+	r = enforceRelationRule(r)
 	_, err := d.db.ExecCtx(ctx, sqlInsert,
 		r.UserAlpha,
 		r.UserBeta,
@@ -206,7 +274,7 @@ func (d *RelationDao) Insert(ctx context.Context, r *Relation) error {
 }
 
 func (d *RelationDao) UpdateLink(ctx context.Context, r *Relation) error {
-	r = enforceUserRule(r)
+	r = enforceRelationRule(r)
 	_, err := d.db.ExecCtx(ctx, sqlUpdateLink, r.Link, r.Amtime, r.Bmtime, r.UserAlpha, r.UserBeta)
 	return xsql.ConvertError(err)
 }
@@ -227,28 +295,12 @@ func (d *RelationDao) FindByAlphaBeta(ctx context.Context, a, b int64, forUpdate
 	return &r, nil
 }
 
-func (d *RelationDao) FindByAlphaBetaAndLink(ctx context.Context, a, b int64, link LinkStatus, forUpdate bool) (*Relation, error) {
-	a, b = enforceUidRule(a, b)
-	var (
-		r   Relation
-		err error
-	)
-	if !forUpdate {
-		err = d.db.QueryRowCtx(ctx, &r, sqlFindByAlphaBetaLink, a, b, link)
-	} else {
-		err = d.db.QueryRowCtx(ctx, &r, sqlFindByAlphaBetaLinkForUpdate, a, b, link)
-	}
-	if err != nil {
-		return nil, xsql.ConvertError(err)
-	}
-
-	return &r, nil
-}
-
 // 找到uid关注的人 (找到发出关注连接的用户存在的用户关系)
 //
 //	alpha=uid and link=Forward/Mutual or beta=uid and link=Backward/Mutual
-func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid int64, offset int64, limit int) (uids []int64, next int64, more bool, err error) {
+func (d *RelationDao) FindUidLinkTo(ctx context.Context, uid int64, offset int64, limit int) (
+	uids []int64, next int64, more bool, err error) {
+
 	var (
 		rs = make([]*RelationUser, 0, 50)
 	)
@@ -321,6 +373,63 @@ func (d *RelationDao) FindAllUidLinkTo(ctx context.Context, uid int64) ([]int64,
 	return others, nil
 }
 
+// 批量获取uid和other的关注关系
+func (d *RelationDao) BatchFindUidLinkTo(ctx context.Context, uid int64, others []int64) ([]*RelationUser, error) {
+	const batchsize = 100
+
+	var relations = make([]*RelationUser, 0, len(others))
+	err := xslice.BatchExec(others, batchsize, func(start, end int) error {
+		patch := others[start:end]
+		patchLen := len(patch)
+		lesser := make([]int64, 0, patchLen)
+		greater := make([]int64, 0, patchLen)
+		for _, ou := range patch {
+			if ou > uid {
+				greater = append(greater, ou)
+			} else if ou < uid {
+				lesser = append(lesser, ou)
+			}
+		}
+
+		var (
+			sql  string
+			args []any = make([]any, 0, 3)
+		)
+		if len(lesser) != 0 && len(greater) != 0 {
+			sql = fmt.Sprintf(sqlBatchFindUidLinkTo,
+				xslice.JoinInts(greater),
+				xslice.JoinInts(lesser),
+			)
+			args = append(args, uid, uid)
+		} else if len(lesser) != 0 && len(greater) == 0 {
+			sql = fmt.Sprintf(sqlBatchFindBetaLinkTo, xslice.JoinInts(lesser))
+			args = append(args, uid)
+		} else if len(lesser) == 0 && len(greater) != 0 {
+			sql = fmt.Sprintf(sqlBatchFindAlphaLinkTo, xslice.JoinInts(greater))
+			args = append(args, uid)
+		} else {
+			// lesser == 0 and greater == 0
+			return nil
+		}
+
+		var rs = make([]*RelationUser, 0, patchLen)
+		err := d.db.QueryRowsCtx(ctx, &rs, sql, args...)
+		if err != nil {
+			return xsql.ConvertError(err)
+		}
+
+		relations = append(relations, rs...)
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return relations, nil
+}
+
 // 找到alpha关注的人
 func (d *RelationDao) FindAlphaLinkTo(ctx context.Context, alpha int64) ([]int64, error) {
 	var rs = make([]*Relation, 0, 16)
@@ -360,7 +469,9 @@ func (d *RelationDao) FindBetaLinkTo(ctx context.Context, beta int64) ([]int64, 
 }
 
 // 找到关注uid的人
-func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid int64, offset int64, limit int) (uids []int64, next int64, more bool, err error) {
+func (d *RelationDao) FindUidGotLinked(ctx context.Context, uid int64, offset int64, limit int) (
+	uids []int64, next int64, more bool, err error) {
+		
 	var (
 		rs = make([]*RelationUser, 0, 16)
 	)
@@ -443,7 +554,6 @@ func (d *RelationDao) FindBetaGotLinked(ctx context.Context, beta int64) ([]int6
 // 获取关注uid的人数
 func (d *RelationDao) CountUidFans(ctx context.Context, uid int64) (int64, error) {
 	var cnt int64
-	// TODO use cache
 	err := d.db.QueryRowCtx(ctx, &cnt, sqlCountUidFans, uid, uid)
 	return cnt, xsql.ConvertError(err)
 }
@@ -451,7 +561,6 @@ func (d *RelationDao) CountUidFans(ctx context.Context, uid int64) (int64, error
 // 获取uid关注的人数
 func (d *RelationDao) CountUidFollowings(ctx context.Context, uid int64) (int64, error) {
 	var cnt int64
-	// TODO use cache
 	err := d.db.QueryRowCtx(ctx, &cnt, sqlCountUidFollowings, uid, uid)
 	return cnt, xsql.ConvertError(err)
 }

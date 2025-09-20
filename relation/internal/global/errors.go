@@ -26,4 +26,6 @@ var (
 	ErrFollowReachMaxCount        = ErrBizDenied.Msg("关注已达上限")
 	ErrUserNotFound               = ErrBizArgs.Msg("用户不存在")
 	ErrLockNotHeld                = ErrBizArgs.Msg("操作过快")
+	ErrFanListHidden              = ErrBizDenied.Msg("用户隐藏了粉丝列表")
+	ErrFollowingListHidden        = ErrBizDenied.Msg("用户隐藏了关注列表")
 )
