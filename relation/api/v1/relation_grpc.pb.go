@@ -19,14 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RelationService_FollowUser_FullMethodName             = "/relation.api.v1.RelationService/FollowUser"
-	RelationService_GetUserFanList_FullMethodName         = "/relation.api.v1.RelationService/GetUserFanList"
-	RelationService_GetUserFollowingList_FullMethodName   = "/relation.api.v1.RelationService/GetUserFollowingList"
-	RelationService_RemoveUserFan_FullMethodName          = "/relation.api.v1.RelationService/RemoveUserFan"
-	RelationService_GetUserFanCount_FullMethodName        = "/relation.api.v1.RelationService/GetUserFanCount"
-	RelationService_GetUserFollowingCount_FullMethodName  = "/relation.api.v1.RelationService/GetUserFollowingCount"
-	RelationService_BatchCheckUserFollowed_FullMethodName = "/relation.api.v1.RelationService/BatchCheckUserFollowed"
-	RelationService_CheckUserFollowed_FullMethodName      = "/relation.api.v1.RelationService/CheckUserFollowed"
+	RelationService_FollowUser_FullMethodName               = "/relation.api.v1.RelationService/FollowUser"
+	RelationService_GetUserFanList_FullMethodName           = "/relation.api.v1.RelationService/GetUserFanList"
+	RelationService_GetUserFollowingList_FullMethodName     = "/relation.api.v1.RelationService/GetUserFollowingList"
+	RelationService_RemoveUserFan_FullMethodName            = "/relation.api.v1.RelationService/RemoveUserFan"
+	RelationService_GetUserFanCount_FullMethodName          = "/relation.api.v1.RelationService/GetUserFanCount"
+	RelationService_GetUserFollowingCount_FullMethodName    = "/relation.api.v1.RelationService/GetUserFollowingCount"
+	RelationService_BatchCheckUserFollowed_FullMethodName   = "/relation.api.v1.RelationService/BatchCheckUserFollowed"
+	RelationService_CheckUserFollowed_FullMethodName        = "/relation.api.v1.RelationService/CheckUserFollowed"
+	RelationService_PageGetUserFanList_FullMethodName       = "/relation.api.v1.RelationService/PageGetUserFanList"
+	RelationService_PageGetUserFollowingList_FullMethodName = "/relation.api.v1.RelationService/PageGetUserFollowingList"
 )
 
 // RelationServiceClient is the client API for RelationService service.
@@ -48,6 +50,10 @@ type RelationServiceClient interface {
 	// 判断某个用户是否关注了某些用户
 	BatchCheckUserFollowed(ctx context.Context, in *BatchCheckUserFollowedRequest, opts ...grpc.CallOption) (*BatchCheckUserFollowedResponse, error)
 	CheckUserFollowed(ctx context.Context, in *CheckUserFollowedRequest, opts ...grpc.CallOption) (*CheckUserFollowedResponse, error)
+	// 分页获取某个用户的粉丝列表
+	PageGetUserFanList(ctx context.Context, in *PageGetUserFanListRequest, opts ...grpc.CallOption) (*PageGetUserFanListResponse, error)
+	// 分页获取某个用户的关注列表
+	PageGetUserFollowingList(ctx context.Context, in *PageGetUserFollowingListRequest, opts ...grpc.CallOption) (*PageGetUserFollowingListResponse, error)
 }
 
 type relationServiceClient struct {
@@ -138,6 +144,26 @@ func (c *relationServiceClient) CheckUserFollowed(ctx context.Context, in *Check
 	return out, nil
 }
 
+func (c *relationServiceClient) PageGetUserFanList(ctx context.Context, in *PageGetUserFanListRequest, opts ...grpc.CallOption) (*PageGetUserFanListResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PageGetUserFanListResponse)
+	err := c.cc.Invoke(ctx, RelationService_PageGetUserFanList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *relationServiceClient) PageGetUserFollowingList(ctx context.Context, in *PageGetUserFollowingListRequest, opts ...grpc.CallOption) (*PageGetUserFollowingListResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PageGetUserFollowingListResponse)
+	err := c.cc.Invoke(ctx, RelationService_PageGetUserFollowingList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RelationServiceServer is the server API for RelationService service.
 // All implementations must embed UnimplementedRelationServiceServer
 // for forward compatibility.
@@ -157,6 +183,10 @@ type RelationServiceServer interface {
 	// 判断某个用户是否关注了某些用户
 	BatchCheckUserFollowed(context.Context, *BatchCheckUserFollowedRequest) (*BatchCheckUserFollowedResponse, error)
 	CheckUserFollowed(context.Context, *CheckUserFollowedRequest) (*CheckUserFollowedResponse, error)
+	// 分页获取某个用户的粉丝列表
+	PageGetUserFanList(context.Context, *PageGetUserFanListRequest) (*PageGetUserFanListResponse, error)
+	// 分页获取某个用户的关注列表
+	PageGetUserFollowingList(context.Context, *PageGetUserFollowingListRequest) (*PageGetUserFollowingListResponse, error)
 	mustEmbedUnimplementedRelationServiceServer()
 }
 
@@ -190,6 +220,12 @@ func (UnimplementedRelationServiceServer) BatchCheckUserFollowed(context.Context
 }
 func (UnimplementedRelationServiceServer) CheckUserFollowed(context.Context, *CheckUserFollowedRequest) (*CheckUserFollowedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckUserFollowed not implemented")
+}
+func (UnimplementedRelationServiceServer) PageGetUserFanList(context.Context, *PageGetUserFanListRequest) (*PageGetUserFanListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PageGetUserFanList not implemented")
+}
+func (UnimplementedRelationServiceServer) PageGetUserFollowingList(context.Context, *PageGetUserFollowingListRequest) (*PageGetUserFollowingListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PageGetUserFollowingList not implemented")
 }
 func (UnimplementedRelationServiceServer) mustEmbedUnimplementedRelationServiceServer() {}
 func (UnimplementedRelationServiceServer) testEmbeddedByValue()                         {}
@@ -356,6 +392,42 @@ func _RelationService_CheckUserFollowed_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RelationService_PageGetUserFanList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PageGetUserFanListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RelationServiceServer).PageGetUserFanList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RelationService_PageGetUserFanList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RelationServiceServer).PageGetUserFanList(ctx, req.(*PageGetUserFanListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RelationService_PageGetUserFollowingList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PageGetUserFollowingListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RelationServiceServer).PageGetUserFollowingList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RelationService_PageGetUserFollowingList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RelationServiceServer).PageGetUserFollowingList(ctx, req.(*PageGetUserFollowingListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RelationService_ServiceDesc is the grpc.ServiceDesc for RelationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -394,6 +466,14 @@ var RelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckUserFollowed",
 			Handler:    _RelationService_CheckUserFollowed_Handler,
+		},
+		{
+			MethodName: "PageGetUserFanList",
+			Handler:    _RelationService_PageGetUserFanList_Handler,
+		},
+		{
+			MethodName: "PageGetUserFollowingList",
+			Handler:    _RelationService_PageGetUserFollowingList_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

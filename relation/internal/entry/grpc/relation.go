@@ -28,11 +28,12 @@ func NewRelationServiceServer(srv *srv.Service) *RelationServiceServer {
 
 func (s *RelationServiceServer) FollowUser(ctx context.Context, req *relationv1.FollowUserRequest) (*relationv1.FollowUserResponse, error) {
 	var err error
-	if req.Action == relationv1.FollowUserRequest_ACTION_FOLLOW {
+	switch req.Action {
+	case relationv1.FollowUserRequest_ACTION_FOLLOW:
 		err = s.Srv.RelationSrv.FollowUser(ctx, req.Follower, req.Followee)
-	} else if req.Action == relationv1.FollowUserRequest_ACTION_UNFOLLOW {
+	case relationv1.FollowUserRequest_ACTION_UNFOLLOW:
 		err = s.Srv.RelationSrv.UnfollowUser(ctx, req.Follower, req.Followee)
-	} else {
+	default:
 		err = global.ErrUnSupported
 	}
 
@@ -118,4 +119,49 @@ func (s *RelationServiceServer) CheckUserFollowed(ctx context.Context, req *rela
 	}
 
 	return &relationv1.CheckUserFollowedResponse{Followed: res}, nil
+}
+
+// 分页获取某个用户的粉丝列表
+func (s *RelationServiceServer) PageGetUserFanList(ctx context.Context,
+	req *relationv1.PageGetUserFanListRequest) (*relationv1.PageGetUserFanListResponse, error) {
+	var resp = &relationv1.PageGetUserFanListResponse{}
+	if req.Page <= 0 || req.Count <= 0 {
+		return resp, nil
+	}
+
+	if req.Count >= 30 {
+		req.Count = 30
+	}
+
+	fansId, total, err := s.Srv.RelationSrv.PageGetUserFanList(ctx, req.Target, req.Page, req.Count)
+	if err != nil {
+		return nil, err
+	}
+
+	resp.FansId = fansId
+	resp.Total = total
+
+	return resp, nil
+}
+
+// 分页获取某个用户的关注列表
+func (s *RelationServiceServer) PageGetUserFollowingList(ctx context.Context,
+	req *relationv1.PageGetUserFollowingListRequest) (*relationv1.PageGetUserFollowingListResponse, error) {
+	var resp = &relationv1.PageGetUserFollowingListResponse{}
+	if req.Page <= 0 || req.Count <= 0 {
+		return resp, nil
+	}
+	if req.Count >= 30 {
+		req.Count = 30
+	}
+
+	fansId, total, err := s.Srv.RelationSrv.PageGetUserFollowingList(ctx, req.Target, req.Page, req.Count)
+	if err != nil {
+		return nil, err
+	}
+
+	resp.FollowingsId = fansId
+	resp.Total = total
+
+	return resp, nil
 }

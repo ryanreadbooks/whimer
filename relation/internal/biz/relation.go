@@ -200,8 +200,6 @@ func (b *RelationBiz) GetUserFollowingList(ctx context.Context, uid int64, offse
 }
 
 // 获取用户的粉丝列表
-//
-// TODO Delay-tolerant
 func (b *RelationBiz) GetUserFansList(ctx context.Context, uid int64, offset int64, limit int) (
 	[]int64, model.ListResult, error) {
 	var lr model.ListResult
@@ -218,7 +216,7 @@ func (b *RelationBiz) GetUserFansList(ctx context.Context, uid int64, offset int
 
 // 获取用户关注数
 func (b *RelationBiz) GetUserFollowingCount(ctx context.Context, uid int64) (int64, error) {
-	cnt, err := infra.Dao().RelationDao.CountUidFollowings(ctx, uid)
+	cnt, err := infra.Dao().RelationDao.CountUidLinkTo(ctx, uid)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "relation biz failed to count user followings").WithCtx(ctx)
 	}
@@ -226,16 +224,64 @@ func (b *RelationBiz) GetUserFollowingCount(ctx context.Context, uid int64) (int
 	return cnt, nil
 }
 
+// 分页获取用户的关注列表
+func (b *RelationBiz) PageGetUserFollowingList(ctx context.Context, uid int64, page, count int32) ([]int64, int64, error) {
+	total, err := infra.Dao().RelationDao.CountUidLinkTo(ctx, uid)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "dao count uid lind to failed").WithExtras("uid", uid).WithCtx(ctx)
+	}
+
+	res, err := infra.Dao().RelationDao.PageGetUidLinkTo(ctx, uid, page, count)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "dao page get uid link to failed")
+	}
+
+	fansId := make([]int64, 0, len(res))
+	for _, r := range res {
+		if r.Alpha == uid {
+			fansId = append(fansId, r.Beta)
+		} else {
+			fansId = append(fansId, r.Alpha)
+		}
+	}
+
+	return fansId, total, nil
+}
+
 // 获取用户粉丝数
 //
 // Delay-tolerant
 func (b *RelationBiz) GetUserFanCount(ctx context.Context, uid int64) (int64, error) {
-	cnt, err := infra.Dao().RelationDao.CountUidFans(ctx, uid)
+	cnt, err := infra.Dao().RelationDao.CountUidGotLinked(ctx, uid)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "relation biz failed to count user fans").WithCtx(ctx)
 	}
 
 	return cnt, nil
+}
+
+// 分页获取用户粉丝列表
+func (b *RelationBiz) PageGetUserFanList(ctx context.Context, uid int64, page, count int32) ([]int64, int64, error) {
+	total, err := infra.Dao().RelationDao.CountUidGotLinked(ctx, uid)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "dao count uid got linked failed").WithExtras("uid", uid).WithCtx(ctx)
+	}
+
+	res, err := infra.Dao().RelationDao.PageGetUidGotLinked(ctx, uid, page, count)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "dao page get uid got linked failed")
+	}
+
+	fansId := make([]int64, 0, len(res))
+	for _, r := range res {
+		if r.Alpha == uid {
+			fansId = append(fansId, r.Beta)
+		} else {
+			fansId = append(fansId, r.Alpha)
+		}
+	}
+
+	return fansId, total, nil
 }
 
 // 检查uid是否关注了others

@@ -82,6 +82,28 @@ message CheckUserFollowedRequest {
 
 message CheckUserFollowedResponse { bool followed = 1; }
 
+message PageGetUserFanListRequest {
+  int64 target = 1; // 目标用户id
+  int32 page = 2;   // starts from 1
+  int32 count = 3;
+}
+
+message PageGetUserFanListResponse {
+  repeated int64 fans_id = 1; // 粉丝uid
+  int64 total = 2;
+}
+
+message PageGetUserFollowingListRequest {
+  int64 target = 1; // 目标用户id
+  int32 page = 2;   // starts from 1
+  int32 count = 3;
+}
+
+message PageGetUserFollowingListResponse {
+  repeated int64 followings_id = 1; // 关注的人uid
+  int64 total = 2;
+}
+
 service RelationService {
   // 关注/取消关注某个用户
   rpc FollowUser(FollowUserRequest) returns (FollowUserResponse);
@@ -102,4 +124,11 @@ service RelationService {
       returns (BatchCheckUserFollowedResponse);
   rpc CheckUserFollowed(CheckUserFollowedRequest)
       returns (CheckUserFollowedResponse);
+
+  // 分页获取某个用户的粉丝列表
+  rpc PageGetUserFanList(PageGetUserFanListRequest)
+      returns (PageGetUserFanListResponse);
+  // 分页获取某个用户的关注列表
+  rpc PageGetUserFollowingList(PageGetUserFollowingListRequest)
+      returns (PageGetUserFollowingListResponse);
 }

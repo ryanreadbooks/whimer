@@ -2,12 +2,66 @@ package dao
 
 import (
 	"fmt"
+	"math/rand"
 	"slices"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
+
+func TestRelationDao_MakeTestData(t *testing.T) {
+	sqlx.DisableLog()
+	sqlx.DisableStmtLog()
+	// 100000个用户
+	r := rand.New(rand.NewSource(9527))
+
+	uidMap := make(map[int64]struct{})
+	for range 100000 {
+		uid := r.Int63n(10000000000)
+		uidMap[uid] = struct{}{}
+	}
+
+	// 100w条记录
+	relations := []*Relation{}
+	for range 1000000 {
+		var uidA, uidB int64
+		for k := range uidMap {
+			uidA = k
+		}
+		for k := range uidMap {
+			uidB = k
+		}
+
+		if uidA == uidB {
+			continue
+		}
+
+		var relation *Relation
+		a := r.Intn(3) + 1
+		switch a {
+		case 1:
+			relation = newRelationFromAlphaToBeta(uidA, uidB)
+		case 2:
+			relation = newRelationFromBetaToAlpha(uidA, uidB)
+		case 3:
+			relation = newMutualRelation(uidA, uidB)
+		}
+
+		relations = append(relations, relation)
+	}
+
+	var wg sync.WaitGroup
+	err := xslice.BatchAsyncExec(&wg, relations, 100, func(start, end int) error {
+		time.Sleep(time.Second * time.Duration(rand.Intn(10)))
+		return testRelationDao.batchInsert(ctx, relations[start:end])
+	})
+
+	t.Log(err)
+}
 
 func TestRelationDao_Insert(t *testing.T) {
 	testRelations := []*Relation{
@@ -25,6 +79,17 @@ func TestRelationDao_Insert(t *testing.T) {
 			So(err, ShouldBeNil)
 		}
 	})
+}
+
+func TestRelationDao_batchInsert(t *testing.T) {
+	rs := []*Relation{newRelationFromAlphaToBeta(1000, 1002),
+		newRelationFromAlphaToBeta(1000, 1003),
+		newRelationFromBetaToAlpha(1000, 1004),
+		newRelationFromAlphaToBeta(1004, 1002),
+		newRelationFromAlphaToBeta(1004, 1005),
+		newRelationFromAlphaToBeta(1005, 1002)}
+	err := testRelationDao.batchInsert(ctx, rs)
+	t.Log(err)
 }
 
 func TestRelationDao_UpdateLink(t *testing.T) {
@@ -230,13 +295,13 @@ func TestRelation_FindUidGotLinked(t *testing.T) {
 
 func TestRelation_Count(t *testing.T) {
 	Convey("CountFans", t, func() {
-		cnt, err := testRelationDao.CountUidFans(ctx, 1001)
+		cnt, err := testRelationDao.CountUidGotLinked(ctx, 1001)
 		So(err, ShouldBeNil)
 		t.Log(cnt)
 	})
 
 	Convey("CountFollowings", t, func() {
-		cnt, err := testRelationDao.CountUidFollowings(ctx, 1001)
+		cnt, err := testRelationDao.CountUidLinkTo(ctx, 1001)
 		So(err, ShouldBeNil)
 		t.Log(cnt)
 	})
@@ -282,5 +347,31 @@ func TestRelation_BatchFindUidLinkTo(t *testing.T) {
 		So(len(gots), ShouldEqual, 2)
 		So(gots[0].UserAlpha, ShouldEqual, 1002)
 		So(gots[1].UserAlpha, ShouldEqual, 1003)
+	})
+}
+
+func TestRelation_PageGetUidGotLinked(t *testing.T) {
+	Convey("PageGetUidGotLinked", t, func() {
+		var uid int64 = 4591154572
+		gots, err := testRelationDao.PageGetUidGotLinked(ctx, uid, 1, 20)
+		So(err, ShouldBeNil)
+		t.Log(len(gots))
+
+		gotNum, err := testRelationDao.CountUidGotLinked(ctx, uid)
+		So(err, ShouldBeNil)
+		t.Log(gotNum)
+	})
+}
+
+func TestRelation_PageGetUidLinkTo(t *testing.T) {
+	Convey("PagGetUidLinkTo", t, func() {
+		var uid int64 = 4591154572
+		gots, err := testRelationDao.PageGetUidLinkTo(ctx, uid, 2, 20)
+		So(err, ShouldBeNil)
+		t.Log(len(gots))
+
+		gotNum, err := testRelationDao.CountUidLinkTo(ctx, uid)
+		So(err, ShouldBeNil)
+		t.Log(gotNum)
 	})
 }

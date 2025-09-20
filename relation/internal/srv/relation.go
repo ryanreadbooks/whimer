@@ -145,7 +145,6 @@ func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int6
 		return
 	}
 
-	// TODO 限制只能拿前5页 最多120个粉丝的信息
 	fans, result, err = s.relationBiz.GetUserFansList(ctx, who, offset, cnt)
 	if err != nil {
 		err = xerror.Wrapf(err, "relation service get user fans list failed")
@@ -153,6 +152,53 @@ func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int6
 	}
 
 	return
+}
+
+func limitPageAndCount(page, count int32) (int32, int32, bool) {
+	var (
+		start         = (page - 1) * count
+		end           = start + count
+		adjustedCount = count
+	)
+
+	if start >= global.MaxFanListCountForDisplay {
+		return page, count, true
+	} else {
+		if end > global.MaxFanListCountForDisplay {
+			adjustedCount = global.MaxFanListCountForDisplay - start
+		}
+	}
+
+	return page, adjustedCount, false
+}
+
+// 分页获取粉丝列表
+func (s *RelationSrv) PageGetUserFanList(ctx context.Context, target int64, page, count int32) ([]int64, int64, error) {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	if err := s.relationSettingBiz.CanVisitFanList(ctx, uid, target); err != nil {
+		return nil, 0, xerror.Wrap(err)
+	}
+
+	// 限制最大数量
+	page, adjustedCount, overflow := limitPageAndCount(page, count)
+	if overflow {
+		total, err := s.relationBiz.GetUserFanCount(ctx, target)
+		if err != nil {
+			return nil, 0, xerror.Wrapf(err, "biz get user fan count failed")
+		}
+
+		return nil, total, nil
+	}
+
+	uids, total, err := s.relationBiz.PageGetUserFanList(ctx, target, page, adjustedCount)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "biz page get user fan list failed")
+	}
+
+	return uids, total, nil
 }
 
 // 获取关注列表
@@ -174,6 +220,36 @@ func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offse
 	}
 
 	return
+}
+
+// 分页获取关注列表
+func (r *RelationSrv) PageGetUserFollowingList(ctx context.Context, target int64, page, count int32) (
+	[]int64, int64, error) {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	if err := r.relationSettingBiz.CanVisitFollowingList(ctx, uid, target); err != nil {
+		return nil, 0, xerror.Wrap(err)
+	}
+
+	// 限制最大数量
+	page, adjustedCount, overflow := limitPageAndCount(page, count)
+	if overflow {
+		total, err := r.relationBiz.GetUserFollowingCount(ctx, target)
+		if err != nil {
+			return nil, 0, xerror.Wrapf(err, "biz get user following count failed")
+		}
+
+		return nil, total, nil
+	}
+
+	uids, total, err := r.relationBiz.PageGetUserFollowingList(ctx, target, page, adjustedCount)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "biz page get user following list failed")
+	}
+
+	return uids, total, nil
 }
 
 // 获取用户粉丝数
