@@ -309,9 +309,13 @@ func (b *Handler) ListLikedNotes() http.HandlerFunc {
 			uid = metadata.Uid(ctx)
 		)
 
+		if uid != req.Uid {
+			// TODO 检查req.Uid的点赞记录是否公开
+		}
+
 		noteResp, err := infra.NoteInteractServer().PageListUserLikedNote(ctx,
 			&notev1.PageListUserLikedNoteRequest{
-				Uid:    uid,
+				Uid:    req.Uid,
 				Cursor: req.Cursor,
 				Count:  req.Count,
 			})

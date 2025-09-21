@@ -68,3 +68,17 @@ func (h *Handler) GetIsFollowing() http.HandlerFunc {
 		xhttp.OkJson(w, resp.GetStatus()[req.UserId])
 	}
 }
+
+// 获取粉丝列表
+func (h *Handler) GetFansList() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+	}
+}
+
+// 获取关注列表
+func (h *Handler) GetFollowingsList() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+	}
+}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/relation/internal/config"
 	"github.com/ryanreadbooks/whimer/relation/internal/entry/grpc"
+	"github.com/ryanreadbooks/whimer/relation/internal/infra"
 	"github.com/ryanreadbooks/whimer/relation/internal/srv"
 
 	"github.com/zeromicro/go-zero/core/conf"
@@ -18,6 +19,10 @@ func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
+	// 基础设施初始化
+	infra.Init(&config.Conf)
+	defer infra.Close()
+
 	svc := srv.NewService(&config.Conf)
 
 	grpcServer := grpc.Init(config.Conf.Grpc, svc)
@@ -26,7 +31,6 @@ func main() {
 	defer group.Stop()
 
 	group.Add(grpcServer)
-	group.Add(srv.AsService{})
 	logx.Info("relation is serving...")
 	group.Start()
 }

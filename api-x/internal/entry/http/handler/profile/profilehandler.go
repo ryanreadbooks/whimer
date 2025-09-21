@@ -35,7 +35,7 @@ func (h *Handler) GetProfileStat() http.HandlerFunc {
 			return
 		}
 		var (
-			uid  = req.UserId
+			uid  = req.Uid
 			stat struct {
 				Posted     int64 `json:"posted"`
 				Fans       int64 `json:"fans"`
@@ -119,7 +119,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 		// 基本信息
 		eg.Go(func() error {
 			return recovery.Do(func() error {
-				res, err := infra.Userer().GetUser(ctx, &userv1.GetUserRequest{Uid: req.UserId})
+				res, err := infra.Userer().GetUser(ctx, &userv1.GetUserRequest{Uid: req.Uid})
 				if err != nil {
 					return err
 				}
@@ -140,7 +140,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 				// 粉丝数
 				fanCntRes, err := infra.RelationServer().
 					GetUserFanCount(ctx, &relationv1.GetUserFanCountRequest{
-						Uid: req.UserId,
+						Uid: req.Uid,
 					})
 				if err != nil {
 					return err
@@ -151,7 +151,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 				// 关注数
 				followCntRes, err := infra.RelationServer().
 					GetUserFollowingCount(ctx, &relationv1.GetUserFollowingCountRequest{
-						Uid: req.UserId,
+						Uid: req.Uid,
 					})
 				if err != nil {
 					return err
@@ -168,7 +168,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 		eg.Go(func() error {
 			return recovery.Do(func() error {
 				resp, err := infra.NoteFeedServer().GetUserRecentPost(ctx, &notev1.GetUserRecentPostRequest{
-					Uid:   req.UserId,
+					Uid:   req.Uid,
 					Count: 3,
 				})
 				if err != nil {
@@ -199,7 +199,7 @@ func (h *Handler) GetHoverProfile() http.HandlerFunc {
 				return recovery.Do(func() error {
 					followRes, _ := infra.RelationServer().CheckUserFollowed(ctx, &relationv1.CheckUserFollowedRequest{
 						Uid:   uid,
-						Other: req.UserId,
+						Other: req.Uid,
 					})
 
 					followed = followRes.GetFollowed()

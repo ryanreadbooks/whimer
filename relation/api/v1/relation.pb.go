@@ -947,6 +947,242 @@ func (x *CheckUserFollowedResponse) GetFollowed() bool {
 	return false
 }
 
+type PageGetUserFanListRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Target int64 `protobuf:"varint,1,opt,name=target,proto3" json:"target,omitempty"` // 目标用户id
+	Page   int32 `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`     // starts from 1
+	Count  int32 `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
+}
+
+func (x *PageGetUserFanListRequest) Reset() {
+	*x = PageGetUserFanListRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_v1_relation_proto_msgTypes[17]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PageGetUserFanListRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PageGetUserFanListRequest) ProtoMessage() {}
+
+func (x *PageGetUserFanListRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_relation_proto_msgTypes[17]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PageGetUserFanListRequest.ProtoReflect.Descriptor instead.
+func (*PageGetUserFanListRequest) Descriptor() ([]byte, []int) {
+	return file_v1_relation_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *PageGetUserFanListRequest) GetTarget() int64 {
+	if x != nil {
+		return x.Target
+	}
+	return 0
+}
+
+func (x *PageGetUserFanListRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *PageGetUserFanListRequest) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+type PageGetUserFanListResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	FansId []int64 `protobuf:"varint,1,rep,packed,name=fans_id,json=fansId,proto3" json:"fans_id,omitempty"` // 粉丝uid
+	Total  int64   `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+}
+
+func (x *PageGetUserFanListResponse) Reset() {
+	*x = PageGetUserFanListResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_v1_relation_proto_msgTypes[18]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PageGetUserFanListResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PageGetUserFanListResponse) ProtoMessage() {}
+
+func (x *PageGetUserFanListResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_relation_proto_msgTypes[18]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PageGetUserFanListResponse.ProtoReflect.Descriptor instead.
+func (*PageGetUserFanListResponse) Descriptor() ([]byte, []int) {
+	return file_v1_relation_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *PageGetUserFanListResponse) GetFansId() []int64 {
+	if x != nil {
+		return x.FansId
+	}
+	return nil
+}
+
+func (x *PageGetUserFanListResponse) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+type PageGetUserFollowingListRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Target int64 `protobuf:"varint,1,opt,name=target,proto3" json:"target,omitempty"` // 目标用户id
+	Page   int32 `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`     // starts from 1
+	Count  int32 `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
+}
+
+func (x *PageGetUserFollowingListRequest) Reset() {
+	*x = PageGetUserFollowingListRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_v1_relation_proto_msgTypes[19]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PageGetUserFollowingListRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PageGetUserFollowingListRequest) ProtoMessage() {}
+
+func (x *PageGetUserFollowingListRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_relation_proto_msgTypes[19]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PageGetUserFollowingListRequest.ProtoReflect.Descriptor instead.
+func (*PageGetUserFollowingListRequest) Descriptor() ([]byte, []int) {
+	return file_v1_relation_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *PageGetUserFollowingListRequest) GetTarget() int64 {
+	if x != nil {
+		return x.Target
+	}
+	return 0
+}
+
+func (x *PageGetUserFollowingListRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *PageGetUserFollowingListRequest) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+type PageGetUserFollowingListResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	FollowingsId []int64 `protobuf:"varint,1,rep,packed,name=followings_id,json=followingsId,proto3" json:"followings_id,omitempty"` // 关注的人uid
+	Total        int64   `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+}
+
+func (x *PageGetUserFollowingListResponse) Reset() {
+	*x = PageGetUserFollowingListResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_v1_relation_proto_msgTypes[20]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PageGetUserFollowingListResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PageGetUserFollowingListResponse) ProtoMessage() {}
+
+func (x *PageGetUserFollowingListResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_relation_proto_msgTypes[20]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PageGetUserFollowingListResponse.ProtoReflect.Descriptor instead.
+func (*PageGetUserFollowingListResponse) Descriptor() ([]byte, []int) {
+	return file_v1_relation_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *PageGetUserFollowingListResponse) GetFollowingsId() []int64 {
+	if x != nil {
+		return x.FollowingsId
+	}
+	return nil
+}
+
+func (x *PageGetUserFollowingListResponse) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
 var File_v1_relation_proto protoreflect.FileDescriptor
 
 var file_v1_relation_proto_rawDesc = []byte{
@@ -1042,7 +1278,30 @@ var file_v1_relation_proto_rawDesc = []byte{
 	0x37, 0x0a, 0x19, 0x43, 0x68, 0x65, 0x63, 0x6b, 0x55, 0x73, 0x65, 0x72, 0x46, 0x6f, 0x6c, 0x6c,
 	0x6f, 0x77, 0x65, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1a, 0x0a, 0x08,
 	0x66, 0x6f, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x08,
-	0x66, 0x6f, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x32, 0xe5, 0x06, 0x0a, 0x0f, 0x52, 0x65, 0x6c,
+	0x66, 0x6f, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x22, 0x5d, 0x0a, 0x19, 0x50, 0x61, 0x67, 0x65,
+	0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x46, 0x61, 0x6e, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x74, 0x61, 0x72, 0x67, 0x65, 0x74, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x06, 0x74, 0x61, 0x72, 0x67, 0x65, 0x74, 0x12, 0x12, 0x0a,
+	0x04, 0x70, 0x61, 0x67, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x70, 0x61, 0x67,
+	0x65, 0x12, 0x14, 0x0a, 0x05, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x05,
+	0x52, 0x05, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x22, 0x4b, 0x0a, 0x1a, 0x50, 0x61, 0x67, 0x65, 0x47,
+	0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x46, 0x61, 0x6e, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x17, 0x0a, 0x07, 0x66, 0x61, 0x6e, 0x73, 0x5f, 0x69, 0x64,
+	0x18, 0x01, 0x20, 0x03, 0x28, 0x03, 0x52, 0x06, 0x66, 0x61, 0x6e, 0x73, 0x49, 0x64, 0x12, 0x14,
+	0x0a, 0x05, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x05, 0x74,
+	0x6f, 0x74, 0x61, 0x6c, 0x22, 0x63, 0x0a, 0x1f, 0x50, 0x61, 0x67, 0x65, 0x47, 0x65, 0x74, 0x55,
+	0x73, 0x65, 0x72, 0x46, 0x6f, 0x6c, 0x6c, 0x6f, 0x77, 0x69, 0x6e, 0x67, 0x4c, 0x69, 0x73, 0x74,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x74, 0x61, 0x72, 0x67, 0x65,
+	0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x06, 0x74, 0x61, 0x72, 0x67, 0x65, 0x74, 0x12,
+	0x12, 0x0a, 0x04, 0x70, 0x61, 0x67, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x70,
+	0x61, 0x67, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x05, 0x52, 0x05, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x22, 0x5d, 0x0a, 0x20, 0x50, 0x61, 0x67,
+	0x65, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x46, 0x6f, 0x6c, 0x6c, 0x6f, 0x77, 0x69, 0x6e,
+	0x67, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x23, 0x0a,
+	0x0d, 0x66, 0x6f, 0x6c, 0x6c, 0x6f, 0x77, 0x69, 0x6e, 0x67, 0x73, 0x5f, 0x69, 0x64, 0x18, 0x01,
+	0x20, 0x03, 0x28, 0x03, 0x52, 0x0c, 0x66, 0x6f, 0x6c, 0x6c, 0x6f, 0x77, 0x69, 0x6e, 0x67, 0x73,
+	0x49, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x03, 0x52, 0x05, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x32, 0xd5, 0x08, 0x0a, 0x0f, 0x52, 0x65, 0x6c,
 	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x55, 0x0a, 0x0a,
 	0x46, 0x6f, 0x6c, 0x6c, 0x6f, 0x77, 0x55, 0x73, 0x65, 0x72, 0x12, 0x22, 0x2e, 0x72, 0x65, 0x6c,
 	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x2e, 0x46, 0x6f, 0x6c,
@@ -1097,6 +1356,21 @@ var file_v1_relation_proto_rawDesc = []byte{
 	0x75, 0x65, 0x73, 0x74, 0x1a, 0x2a, 0x2e, 0x72, 0x65, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e,
 	0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x68, 0x65, 0x63, 0x6b, 0x55, 0x73, 0x65, 0x72,
 	0x46, 0x6f, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x12, 0x6d, 0x0a, 0x12, 0x50, 0x61, 0x67, 0x65, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x46,
+	0x61, 0x6e, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x2a, 0x2e, 0x72, 0x65, 0x6c, 0x61, 0x74, 0x69, 0x6f,
+	0x6e, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x61, 0x67, 0x65, 0x47, 0x65, 0x74,
+	0x55, 0x73, 0x65, 0x72, 0x46, 0x61, 0x6e, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x2b, 0x2e, 0x72, 0x65, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x61, 0x70,
+	0x69, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x61, 0x67, 0x65, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72,
+	0x46, 0x61, 0x6e, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
+	0x7f, 0x0a, 0x18, 0x50, 0x61, 0x67, 0x65, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x46, 0x6f,
+	0x6c, 0x6c, 0x6f, 0x77, 0x69, 0x6e, 0x67, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x30, 0x2e, 0x72, 0x65,
+	0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x61,
+	0x67, 0x65, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x46, 0x6f, 0x6c, 0x6c, 0x6f, 0x77, 0x69,
+	0x6e, 0x67, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x31, 0x2e,
+	0x72, 0x65, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x2e,
+	0x50, 0x61, 0x67, 0x65, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x46, 0x6f, 0x6c, 0x6c, 0x6f,
+	0x77, 0x69, 0x6e, 0x67, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
 	0x42, 0xb3, 0x01, 0x0a, 0x13, 0x63, 0x6f, 0x6d, 0x2e, 0x72, 0x65, 0x6c, 0x61, 0x74, 0x69, 0x6f,
 	0x6e, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x31, 0x42, 0x0d, 0x52, 0x65, 0x6c, 0x61, 0x74, 0x69,
 	0x6f, 0x6e, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x2f, 0x67, 0x69, 0x74, 0x68, 0x75,
@@ -1124,33 +1398,37 @@ func file_v1_relation_proto_rawDescGZIP() []byte {
 }
 
 var file_v1_relation_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_v1_relation_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_v1_relation_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_v1_relation_proto_goTypes = []any{
-	(FollowUserRequest_Action)(0),          // 0: relation.api.v1.FollowUserRequest.Action
-	(*FollowUserRequest)(nil),              // 1: relation.api.v1.FollowUserRequest
-	(*QueryCondition)(nil),                 // 2: relation.api.v1.QueryCondition
-	(*FollowUserResponse)(nil),             // 3: relation.api.v1.FollowUserResponse
-	(*GetUserFanListRequest)(nil),          // 4: relation.api.v1.GetUserFanListRequest
-	(*GetUserFanListResponse)(nil),         // 5: relation.api.v1.GetUserFanListResponse
-	(*GetUserFollowingListRequest)(nil),    // 6: relation.api.v1.GetUserFollowingListRequest
-	(*GetUserFollowingListResponse)(nil),   // 7: relation.api.v1.GetUserFollowingListResponse
-	(*RemoveUserFanRequest)(nil),           // 8: relation.api.v1.RemoveUserFanRequest
-	(*RemoveUserFanResponse)(nil),          // 9: relation.api.v1.RemoveUserFanResponse
-	(*GetUserFanCountRequest)(nil),         // 10: relation.api.v1.GetUserFanCountRequest
-	(*GetUserFanCountResponse)(nil),        // 11: relation.api.v1.GetUserFanCountResponse
-	(*GetUserFollowingCountRequest)(nil),   // 12: relation.api.v1.GetUserFollowingCountRequest
-	(*GetUserFollowingCountResponse)(nil),  // 13: relation.api.v1.GetUserFollowingCountResponse
-	(*BatchCheckUserFollowedRequest)(nil),  // 14: relation.api.v1.BatchCheckUserFollowedRequest
-	(*BatchCheckUserFollowedResponse)(nil), // 15: relation.api.v1.BatchCheckUserFollowedResponse
-	(*CheckUserFollowedRequest)(nil),       // 16: relation.api.v1.CheckUserFollowedRequest
-	(*CheckUserFollowedResponse)(nil),      // 17: relation.api.v1.CheckUserFollowedResponse
-	nil,                                    // 18: relation.api.v1.BatchCheckUserFollowedResponse.StatusEntry
+	(FollowUserRequest_Action)(0),            // 0: relation.api.v1.FollowUserRequest.Action
+	(*FollowUserRequest)(nil),                // 1: relation.api.v1.FollowUserRequest
+	(*QueryCondition)(nil),                   // 2: relation.api.v1.QueryCondition
+	(*FollowUserResponse)(nil),               // 3: relation.api.v1.FollowUserResponse
+	(*GetUserFanListRequest)(nil),            // 4: relation.api.v1.GetUserFanListRequest
+	(*GetUserFanListResponse)(nil),           // 5: relation.api.v1.GetUserFanListResponse
+	(*GetUserFollowingListRequest)(nil),      // 6: relation.api.v1.GetUserFollowingListRequest
+	(*GetUserFollowingListResponse)(nil),     // 7: relation.api.v1.GetUserFollowingListResponse
+	(*RemoveUserFanRequest)(nil),             // 8: relation.api.v1.RemoveUserFanRequest
+	(*RemoveUserFanResponse)(nil),            // 9: relation.api.v1.RemoveUserFanResponse
+	(*GetUserFanCountRequest)(nil),           // 10: relation.api.v1.GetUserFanCountRequest
+	(*GetUserFanCountResponse)(nil),          // 11: relation.api.v1.GetUserFanCountResponse
+	(*GetUserFollowingCountRequest)(nil),     // 12: relation.api.v1.GetUserFollowingCountRequest
+	(*GetUserFollowingCountResponse)(nil),    // 13: relation.api.v1.GetUserFollowingCountResponse
+	(*BatchCheckUserFollowedRequest)(nil),    // 14: relation.api.v1.BatchCheckUserFollowedRequest
+	(*BatchCheckUserFollowedResponse)(nil),   // 15: relation.api.v1.BatchCheckUserFollowedResponse
+	(*CheckUserFollowedRequest)(nil),         // 16: relation.api.v1.CheckUserFollowedRequest
+	(*CheckUserFollowedResponse)(nil),        // 17: relation.api.v1.CheckUserFollowedResponse
+	(*PageGetUserFanListRequest)(nil),        // 18: relation.api.v1.PageGetUserFanListRequest
+	(*PageGetUserFanListResponse)(nil),       // 19: relation.api.v1.PageGetUserFanListResponse
+	(*PageGetUserFollowingListRequest)(nil),  // 20: relation.api.v1.PageGetUserFollowingListRequest
+	(*PageGetUserFollowingListResponse)(nil), // 21: relation.api.v1.PageGetUserFollowingListResponse
+	nil,                                      // 22: relation.api.v1.BatchCheckUserFollowedResponse.StatusEntry
 }
 var file_v1_relation_proto_depIdxs = []int32{
 	0,  // 0: relation.api.v1.FollowUserRequest.action:type_name -> relation.api.v1.FollowUserRequest.Action
 	2,  // 1: relation.api.v1.GetUserFanListRequest.cond:type_name -> relation.api.v1.QueryCondition
 	2,  // 2: relation.api.v1.GetUserFollowingListRequest.cond:type_name -> relation.api.v1.QueryCondition
-	18, // 3: relation.api.v1.BatchCheckUserFollowedResponse.status:type_name -> relation.api.v1.BatchCheckUserFollowedResponse.StatusEntry
+	22, // 3: relation.api.v1.BatchCheckUserFollowedResponse.status:type_name -> relation.api.v1.BatchCheckUserFollowedResponse.StatusEntry
 	1,  // 4: relation.api.v1.RelationService.FollowUser:input_type -> relation.api.v1.FollowUserRequest
 	4,  // 5: relation.api.v1.RelationService.GetUserFanList:input_type -> relation.api.v1.GetUserFanListRequest
 	6,  // 6: relation.api.v1.RelationService.GetUserFollowingList:input_type -> relation.api.v1.GetUserFollowingListRequest
@@ -1159,16 +1437,20 @@ var file_v1_relation_proto_depIdxs = []int32{
 	12, // 9: relation.api.v1.RelationService.GetUserFollowingCount:input_type -> relation.api.v1.GetUserFollowingCountRequest
 	14, // 10: relation.api.v1.RelationService.BatchCheckUserFollowed:input_type -> relation.api.v1.BatchCheckUserFollowedRequest
 	16, // 11: relation.api.v1.RelationService.CheckUserFollowed:input_type -> relation.api.v1.CheckUserFollowedRequest
-	3,  // 12: relation.api.v1.RelationService.FollowUser:output_type -> relation.api.v1.FollowUserResponse
-	5,  // 13: relation.api.v1.RelationService.GetUserFanList:output_type -> relation.api.v1.GetUserFanListResponse
-	7,  // 14: relation.api.v1.RelationService.GetUserFollowingList:output_type -> relation.api.v1.GetUserFollowingListResponse
-	9,  // 15: relation.api.v1.RelationService.RemoveUserFan:output_type -> relation.api.v1.RemoveUserFanResponse
-	11, // 16: relation.api.v1.RelationService.GetUserFanCount:output_type -> relation.api.v1.GetUserFanCountResponse
-	13, // 17: relation.api.v1.RelationService.GetUserFollowingCount:output_type -> relation.api.v1.GetUserFollowingCountResponse
-	15, // 18: relation.api.v1.RelationService.BatchCheckUserFollowed:output_type -> relation.api.v1.BatchCheckUserFollowedResponse
-	17, // 19: relation.api.v1.RelationService.CheckUserFollowed:output_type -> relation.api.v1.CheckUserFollowedResponse
-	12, // [12:20] is the sub-list for method output_type
-	4,  // [4:12] is the sub-list for method input_type
+	18, // 12: relation.api.v1.RelationService.PageGetUserFanList:input_type -> relation.api.v1.PageGetUserFanListRequest
+	20, // 13: relation.api.v1.RelationService.PageGetUserFollowingList:input_type -> relation.api.v1.PageGetUserFollowingListRequest
+	3,  // 14: relation.api.v1.RelationService.FollowUser:output_type -> relation.api.v1.FollowUserResponse
+	5,  // 15: relation.api.v1.RelationService.GetUserFanList:output_type -> relation.api.v1.GetUserFanListResponse
+	7,  // 16: relation.api.v1.RelationService.GetUserFollowingList:output_type -> relation.api.v1.GetUserFollowingListResponse
+	9,  // 17: relation.api.v1.RelationService.RemoveUserFan:output_type -> relation.api.v1.RemoveUserFanResponse
+	11, // 18: relation.api.v1.RelationService.GetUserFanCount:output_type -> relation.api.v1.GetUserFanCountResponse
+	13, // 19: relation.api.v1.RelationService.GetUserFollowingCount:output_type -> relation.api.v1.GetUserFollowingCountResponse
+	15, // 20: relation.api.v1.RelationService.BatchCheckUserFollowed:output_type -> relation.api.v1.BatchCheckUserFollowedResponse
+	17, // 21: relation.api.v1.RelationService.CheckUserFollowed:output_type -> relation.api.v1.CheckUserFollowedResponse
+	19, // 22: relation.api.v1.RelationService.PageGetUserFanList:output_type -> relation.api.v1.PageGetUserFanListResponse
+	21, // 23: relation.api.v1.RelationService.PageGetUserFollowingList:output_type -> relation.api.v1.PageGetUserFollowingListResponse
+	14, // [14:24] is the sub-list for method output_type
+	4,  // [4:14] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -1384,6 +1666,54 @@ func file_v1_relation_proto_init() {
 				return nil
 			}
 		}
+		file_v1_relation_proto_msgTypes[17].Exporter = func(v any, i int) any {
+			switch v := v.(*PageGetUserFanListRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_v1_relation_proto_msgTypes[18].Exporter = func(v any, i int) any {
+			switch v := v.(*PageGetUserFanListResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_v1_relation_proto_msgTypes[19].Exporter = func(v any, i int) any {
+			switch v := v.(*PageGetUserFollowingListRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_v1_relation_proto_msgTypes[20].Exporter = func(v any, i int) any {
+			switch v := v.(*PageGetUserFollowingListResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -1391,7 +1721,7 @@ func file_v1_relation_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_v1_relation_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   18,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -44,11 +44,18 @@ type errProxy struct {
 }
 
 func (e *errProxy) Error() string {
-	// if e.msg != "" {
-	// 	return e.cause.Error() + "(" + e.msg + ")"
-	// }
-	// return e.cause.Error()
-	return e.msg
+	if e == nil {
+		return ""
+	}
+
+	var msg = e.msg
+	if e.cause != nil {
+		if c := e.cause.Error(); c != "" {
+			msg = msg + " <- " + c
+		}
+	}
+
+	return msg
 }
 
 func (e *errProxy) Format(f fmt.State, verb rune) {

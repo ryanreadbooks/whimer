@@ -70,7 +70,7 @@ func (h *Handler) GetNotesByUser() http.HandlerFunc {
 			return
 		}
 
-		resp, page, err := h.feedBiz.ListNotesByUser(r.Context(), req.UserId, int64(req.Cursor), req.Count)
+		resp, page, err := h.feedBiz.ListNotesByUser(r.Context(), req.Uid, int64(req.Cursor), req.Count)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

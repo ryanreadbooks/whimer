@@ -24,6 +24,10 @@ type ListInfosReq struct {
 	Uids string `form:"uids"` // 多个用,分隔
 }
 
+type GetUserReq struct {
+	Uid int64 `form:"uid"`
+}
+
 func (h *UserHandler) ListInfos() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[ListInfosReq](httpx.ParseForm, r)
@@ -57,5 +61,26 @@ func (h *UserHandler) ListInfos() http.HandlerFunc {
 		}
 
 		xhttp.OkJson(w, resp.GetUsers())
+	}
+}
+
+func (h *UserHandler) GetUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[GetUserReq](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		ctx := r.Context()
+		resp, err := infra.Userer().GetUser(ctx, &userv1.GetUserRequest{
+			Uid: req.Uid,
+		})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, resp.GetUser())
 	}
 }

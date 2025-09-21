@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -16,23 +17,37 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
-// TODO 关注显式设置功能暂不实现
+type Settings struct {
+	DisplayFanList       bool `json:"display_fan_list"`       // 公开粉丝列表
+	DisplayFollowingList bool `json:"display_following_list"` // 公开关注列表
+}
 
-const (
-	ShowFollowings    = 0 // 展示关注列表
-	NotShowFollowings = 1 // 不展示关注列表
+func (s *Settings) Json() json.RawMessage {
+	r, _ := json.Marshal(s)
+	return r
+}
 
-	NotShowFans = 0 // 不展示粉丝列表
-	ShowFans    = 1 // 展示粉丝列表
+var (
+	DefaultSettings = &Settings{
+		DisplayFanList:       true,
+		DisplayFollowingList: true,
+	}
+
+	DefaultSettingsJson = DefaultSettings.Json()
 )
 
 // 用户的关系设置
 type RelationSetting struct {
-	Uid               int64 `db:"uid"`
-	NotShowFollowings int8  `db:"not_show_followings"` // 是否不展示关注的人 默认展示
-	ShowFans          int8  `db:"show_fans"`           // 是否展示粉丝 默认不展示
-	Ctime             int64 `db:"ctime"`
-	Mtime             int64 `db:"mtime"`
+	Uid      int64           `db:"uid" json:"uid"`
+	Settings json.RawMessage `db:"settings" json:"settings"`
+	Ctime    int64           `db:"ctime" json:"ctime"`
+	Mtime    int64           `db:"mtime" json:"mtime"`
+}
+
+func (r *RelationSetting) ParseSettings() *Settings {
+	var s Settings
+	_ = json.Unmarshal(r.Settings, &s)
+	return &s
 }
 
 type RelationSettingDao struct {
@@ -53,14 +68,15 @@ func getSettingCacheKey(uid int64) string {
 
 // all sqls here
 const (
-	settingFields = "uid,not_show_followings,show_fans,ctime,mtime"
+	settingFields = "uid,settings,ctime,mtime"
 )
 
 var (
 	sqlGetSettingByUid = fmt.Sprintf("SELECT %s FROM relation_setting WHERE uid=?", settingFields)
-	sqlUpdateSetting   = "UPDATE relation_setting SET not_show_followings=?, show_fans=?, mtime=? WHERE uid=?"
-	sqlInsertSetting   = fmt.Sprintf("INSERT INTO relation_setting(%s) VALUES(?,?,?,?,?) AS val "+
-		"ON DUPLICATE KEY UPDATE not_show_followings=val.not_show_followings, show_fans=val.show_fans, mtime=val.mtime", settingFields)
+	sqlUpdateSetting   = "UPDATE relation_setting SET settings=?, mtime=? WHERE uid=?"
+	sqlInsertSetting   = fmt.Sprintf("INSERT INTO relation_setting(%s) VALUES(?,?,?,?) AS val "+
+		"ON DUPLICATE KEY UPDATE settings=val.settings, mtime=val.mtime", settingFields)
+	sqlDelete = "DELETE FROM relation_setting WHERE uid=? LIMIT 1"
 )
 
 func (d *RelationSettingDao) Get(ctx context.Context, uid int64) (*RelationSetting, error) {
@@ -70,9 +86,8 @@ func (d *RelationSettingDao) Get(ctx context.Context, uid int64) (*RelationSetti
 			if err != nil {
 				if errors.Is(err, xsql.ErrNoRecord) {
 					return &RelationSetting{
-						Uid:               uid,
-						NotShowFollowings: ShowFollowings,
-						ShowFans:          NotShowFans,
+						Uid:      uid,
+						Settings: DefaultSettingsJson,
 					}, 0, nil
 				}
 				return nil, 0, err
@@ -96,7 +111,7 @@ func (d *RelationSettingDao) Update(ctx context.Context, s *RelationSetting) err
 	if s.Mtime == 0 {
 		s.Mtime = time.Now().Unix()
 	}
-	_, err := d.db.ExecCtx(ctx, sqlUpdateSetting, s.NotShowFollowings, s.ShowFans, s.Mtime, s.Uid)
+	_, err := d.db.ExecCtx(ctx, sqlUpdateSetting, s.Settings, s.Mtime, s.Uid)
 
 	concurrent.SafeGo(func() {
 		ctx2 := context.WithoutCancel(ctx)
@@ -106,13 +121,27 @@ func (d *RelationSettingDao) Update(ctx context.Context, s *RelationSetting) err
 	return xsql.ConvertError(err)
 }
 
+func (d *RelationSettingDao) Delete(ctx context.Context, uid int64) error {
+	_, err := d.db.ExecCtx(ctx, sqlDelete, uid)
+	if err != nil {
+		return xsql.ConvertError(err)
+	}
+
+	concurrent.SafeGo(func() {
+		ctx2 := context.WithoutCancel(ctx)
+		d.delCache(ctx2, uid)
+	})
+
+	return nil
+}
+
 func (d *RelationSettingDao) Insert(ctx context.Context, s *RelationSetting) error {
 	if s.Ctime == 0 {
 		s.Ctime = time.Now().Unix()
 		s.Mtime = s.Ctime
 	}
 
-	_, err := d.db.ExecCtx(ctx, sqlInsertSetting, s.Uid, s.NotShowFollowings, s.ShowFans, s.Ctime, s.Mtime)
+	_, err := d.db.ExecCtx(ctx, sqlInsertSetting, s.Uid, s.Settings, s.Ctime, s.Mtime)
 
 	concurrent.SafeGo(func() {
 		ctx2 := context.WithoutCancel(ctx)

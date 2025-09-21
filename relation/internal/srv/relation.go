@@ -3,30 +3,59 @@ package srv
 import (
 	"context"
 
-	"github.com/ryanreadbooks/whimer/misc/metadata"
-	"github.com/ryanreadbooks/whimer/misc/xerror"
-	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/relation/internal/biz"
 	"github.com/ryanreadbooks/whimer/relation/internal/global"
+	"github.com/ryanreadbooks/whimer/relation/internal/infra"
 	"github.com/ryanreadbooks/whimer/relation/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/relation/internal/model"
+
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+
+	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xconv"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
 type RelationSrv struct {
 	Ctx *Service
 
-	relationBiz biz.RelationBiz
+	relationBiz        *biz.RelationBiz
+	relationSettingBiz *biz.RelationSettingBiz
 }
 
 func NewRelationSrv(p *Service, biz biz.Biz) *RelationSrv {
 	s := &RelationSrv{
-		Ctx:         p,
-		relationBiz: biz.Relation,
+		Ctx:                p,
+		relationBiz:        biz.Relation,
+		relationSettingBiz: biz.RelationSettingBiz,
 	}
 
 	return s
 }
 
+const (
+	followUserLockExpireSec = 10
+)
+
+func fmtFollowUserLockKey(follower, followed int64) string {
+	// relation:srv:follow:lock:uid1>uid2
+	return "relation:srv:follow:lock:" + xconv.FormatInt(follower) + ">" + xconv.FormatInt(followed)
+}
+
+func (s *RelationSrv) isFollowAllowed(ctx context.Context, follower, followed int64) error {
+	curCnt, err := s.relationBiz.GetUserFollowingCount(ctx, follower)
+	if err != nil {
+		return xerror.Wrapf(err, "relation service check follow count failed").WithCtx(ctx)
+	}
+	if curCnt >= global.MaxFollowAllowed {
+		return global.ErrFollowReachMaxCount
+	}
+
+	return nil
+}
+
+// follower关注followed
 func (s *RelationSrv) FollowUser(ctx context.Context, follower, followed int64) error {
 	var (
 		uid = metadata.Uid(ctx)
@@ -40,21 +69,23 @@ func (s *RelationSrv) FollowUser(ctx context.Context, follower, followed int64) 
 		return global.ErrFollowSelf
 	}
 
-	curCnt, err := s.relationBiz.GetUserFollowingCount(ctx, uid)
-	if err != nil {
-		return xerror.Wrapf(err, "relation service check follow count failed").WithCtx(ctx)
-	}
-	if curCnt >= global.MaxFollowAllowed {
-		return global.ErrFollowReachMaxCount
+	if err := s.checkUserExistence(ctx, followed); err != nil {
+		return xerror.Wrapf(err, "check user existence failed")
 	}
 
-	hasUser, err := s.hasUser(ctx, uid)
+	lock := redis.NewRedisLock(infra.Cache(), fmtFollowUserLockKey(follower, followed))
+	lock.SetExpire(followUserLockExpireSec)
+	hasLock, err := lock.AcquireCtx(ctx)
 	if err != nil {
-		return xerror.Wrapf(err, "relation service failed to follow").WithCtx(ctx)
+		return xerror.Wrapf(err, "follow user failed to acquire lock")
 	}
+	if !hasLock {
+		return xerror.Wrap(global.ErrLockNotHeld)
+	}
+	defer lock.ReleaseCtx(ctx)
 
-	if !hasUser {
-		return global.ErrUserNotFound
+	if err := s.isFollowAllowed(ctx, uid, followed); err != nil {
+		return xerror.Wrap(err)
 	}
 
 	err = s.relationBiz.UserFollow(ctx, uid, followed)
@@ -65,6 +96,7 @@ func (s *RelationSrv) FollowUser(ctx context.Context, follower, followed int64) 
 	return nil
 }
 
+// follower取关unfollowed
 func (s *RelationSrv) UnfollowUser(ctx context.Context, follower, unfollowed int64) error {
 	var (
 		uid = metadata.Uid(ctx)
@@ -78,14 +110,21 @@ func (s *RelationSrv) UnfollowUser(ctx context.Context, follower, unfollowed int
 		return global.ErrUnFollowSelf
 	}
 
-	hasUser, err := s.hasUser(ctx, uid)
-	if err != nil {
-		return xerror.Wrapf(err, "relation service failed to follow").WithCtx(ctx)
+	if err := s.checkUserExistence(ctx, unfollowed); err != nil {
+		return xerror.Wrapf(err, "check user existence failed")
 	}
 
-	if !hasUser {
-		return global.ErrUserNotFound
+	lock := redis.NewRedisLock(infra.Cache(), fmtFollowUserLockKey(follower, unfollowed))
+	lock.SetExpire(followUserLockExpireSec)
+	hasLock, err := lock.AcquireCtx(ctx)
+	if err != nil {
+		return xerror.Wrapf(err, "follow user failed to acquire lock")
 	}
+	if !hasLock {
+		return xerror.Wrap(global.ErrLockNotHeld)
+	}
+	defer lock.ReleaseCtx(ctx)
+
 	err = s.relationBiz.UserUnFollow(ctx, uid, unfollowed)
 	if err != nil {
 		return xerror.Wrapf(err, "relation service unfollow user failed")
@@ -94,13 +133,15 @@ func (s *RelationSrv) UnfollowUser(ctx context.Context, follower, unfollowed int
 	return nil
 }
 
-func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int64, cnt int) (fans []int64, result model.ListResult, err error) {
+// 获取粉丝列表
+func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int64, cnt int) (
+	fans []int64, result model.ListResult, err error) {
+
 	var (
 		uid = metadata.Uid(ctx)
 	)
 
-	if uid != who {
-		err = global.ErrNotAllowedGetFanList
+	if err = s.relationSettingBiz.CanVisitFanList(ctx, uid, who); err != nil {
 		return
 	}
 
@@ -113,13 +154,62 @@ func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int6
 	return
 }
 
-func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offset int64, cnt int) (followings []int64, result model.ListResult, err error) {
+func limitPageAndCount(page, count int32) (int32, int32, bool) {
+	var (
+		start         = (page - 1) * count
+		end           = start + count
+		adjustedCount = count
+	)
+
+	if start >= global.MaxFanListCountForDisplay {
+		return page, count, true
+	} else {
+		if end > global.MaxFanListCountForDisplay {
+			adjustedCount = global.MaxFanListCountForDisplay - start
+		}
+	}
+
+	return page, adjustedCount, false
+}
+
+// 分页获取粉丝列表
+func (s *RelationSrv) PageGetUserFanList(ctx context.Context, target int64, page, count int32) ([]int64, int64, error) {
 	var (
 		uid = metadata.Uid(ctx)
 	)
 
-	if uid != who {
-		err = global.ErrNotAllowedGetFollowingList
+	if err := s.relationSettingBiz.CanVisitFanList(ctx, uid, target); err != nil {
+		return nil, 0, xerror.Wrap(err)
+	}
+
+	// 限制最大数量
+	page, adjustedCount, overflow := limitPageAndCount(page, count)
+	if overflow {
+		total, err := s.relationBiz.GetUserFanCount(ctx, target)
+		if err != nil {
+			return nil, 0, xerror.Wrapf(err, "biz get user fan count failed")
+		}
+
+		return nil, total, nil
+	}
+
+	uids, total, err := s.relationBiz.PageGetUserFanList(ctx, target, page, adjustedCount)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "biz page get user fan list failed")
+	}
+
+	return uids, total, nil
+}
+
+// 获取关注列表
+func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offset int64, cnt int) (
+	followings []int64, result model.ListResult, err error) {
+
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	if err = s.relationSettingBiz.CanVisitFollowingList(ctx, uid, who); err != nil {
 		return
 	}
 
@@ -130,6 +220,36 @@ func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offse
 	}
 
 	return
+}
+
+// 分页获取关注列表
+func (r *RelationSrv) PageGetUserFollowingList(ctx context.Context, target int64, page, count int32) (
+	[]int64, int64, error) {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	if err := r.relationSettingBiz.CanVisitFollowingList(ctx, uid, target); err != nil {
+		return nil, 0, xerror.Wrap(err)
+	}
+
+	// 限制最大数量
+	page, adjustedCount, overflow := limitPageAndCount(page, count)
+	if overflow {
+		total, err := r.relationBiz.GetUserFollowingCount(ctx, target)
+		if err != nil {
+			return nil, 0, xerror.Wrapf(err, "biz get user following count failed")
+		}
+
+		return nil, total, nil
+	}
+
+	uids, total, err := r.relationBiz.PageGetUserFollowingList(ctx, target, page, adjustedCount)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "biz page get user following list failed")
+	}
+
+	return uids, total, nil
 }
 
 // 获取用户粉丝数
@@ -158,4 +278,17 @@ func (s *RelationSrv) hasUser(ctx context.Context, uid int64) (bool, error) {
 	}
 
 	return r.Has, nil
+}
+
+func (s *RelationSrv) checkUserExistence(ctx context.Context, uid int64) error {
+	hasUser, err := s.hasUser(ctx, uid)
+	if err != nil {
+		return xerror.Wrap(err).WithCtx(ctx)
+	}
+
+	if !hasUser {
+		return xerror.Wrap(global.ErrUserNotFound).WithCtx(ctx)
+	}
+
+	return nil
 }

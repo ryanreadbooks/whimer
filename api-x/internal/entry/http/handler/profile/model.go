@@ -15,11 +15,11 @@ func (r *StatReq) Validate() error {
 }
 
 type HoverReq struct {
-	UserId int64 `form:"user_id"`
+	Uid int64 `form:"uid"`
 }
 
 func (r *HoverReq) Validate() error {
-	if r.UserId == 0 {
+	if r.Uid == 0 {
 		return xerror.ErrArgs.Msg("用户不存在")
 	}
 

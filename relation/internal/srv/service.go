@@ -3,7 +3,6 @@ package srv
 import (
 	"github.com/ryanreadbooks/whimer/relation/internal/biz"
 	"github.com/ryanreadbooks/whimer/relation/internal/config"
-	"github.com/ryanreadbooks/whimer/relation/internal/infra"
 )
 
 type Service struct {
@@ -19,8 +18,6 @@ func NewService(c *config.Config) *Service {
 		Config: c,
 	}
 
-	// 基础设施初始化
-	infra.Init(c)
 	// 业务初始化
 	biz := biz.New()
 	// 各个子service初始化
@@ -29,12 +26,3 @@ func NewService(c *config.Config) *Service {
 
 	return ctx
 }
-
-func Close() {
-	infra.Close()
-}
-
-type AsService struct{}
-
-func (AsService) Start() {}
-func (AsService) Stop()  { Close() }
