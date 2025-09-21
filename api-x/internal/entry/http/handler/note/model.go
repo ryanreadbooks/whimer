@@ -342,6 +342,7 @@ type SearchTagsRes struct {
 }
 
 type GetLikedNoteRequest struct {
+	Uid    int64  `form:"uid"`
 	Cursor string `form:"cursor,optional"`
 	Count  int32  `form:"count,optional"`
 }

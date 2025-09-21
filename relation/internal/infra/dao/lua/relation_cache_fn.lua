@@ -11,11 +11,32 @@ local function make_redis_err(text, key, e)
   return redis.error_reply(text .. ': ' .. key .. ', err: ' .. e)
 end
 
+local function incr_decr_or_del(key, thresh, opt)
+  local r1 = redis.pcall('GET', key)
+  local is_err, _ = is_pcall_err(r1)
+  if is_err then
+    return r1
+  end
+
+  local got = tonumber(r1)
+  if got == nil or got < thresh then
+    return redis.pcall('DEL', key)
+  end
+
+  if opt == 'incr' then
+    return redis.pcall('INCR', key)
+  else
+    return redis.pcall('DECR', key)
+  end
+end
+
 -- follow user
 local function relation_do_follow(keys, args)
   local link_key = keys[1]
   local following_zset_key = keys[2]
   local fan_zset_key = keys[3]
+  local following_count_key = keys[4]
+  local fan_count_key = keys[5]
 
   local link_value = args[1]
   local link_value_expire_sec = args[2]
@@ -23,6 +44,8 @@ local function relation_do_follow(keys, args)
   local followee = args[4]
   local follow_time = tonumber(args[5])
   local max_fan_zset_count = tonumber(args[6])
+  local del_follow_count_thresh = tonumber(args[7])
+  local del_fan_count_thresh = tonumber(args[8])
 
   -- 1. set link cache
   local r1 = redis.pcall('SET', link_key, link_value, 'EX', link_value_expire_sec)
@@ -56,7 +79,17 @@ local function relation_do_follow(keys, args)
   end
 
   -- 3.2. zadd members
-  return redis.pcall('ZADD', fan_zset_key, follow_time, uid)
+  local r5 = redis.pcall('ZADD', fan_zset_key, follow_time, uid)
+  is_err, err = is_pcall_err(r5)
+  if is_err then
+    return make_redis_err('zadd failed', fan_zset_key, err)
+  end
+
+  -- 4. increase or delete fan count and following count
+  incr_decr_or_del(following_count_key, del_follow_count_thresh, 'incr')
+  incr_decr_or_del(fan_count_key, del_fan_count_thresh, 'incr')
+
+  return redis.status_reply('OK')
 end
 
 -- unfollow user
@@ -64,9 +97,13 @@ local function relation_do_unfollow(keys, args)
   local link_key = keys[1]
   local following_zset_key = keys[2]
   local fan_zset_key = keys[3]
+  local following_count_key = keys[4]
+  local fan_count_key = keys[5]
 
   local uid = args[1]
   local followee = args[2]
+  local del_follow_count_thresh = tonumber(args[3])
+  local del_fan_count_thresh = tonumber(args[4])
 
   -- 1. del link cache?
   redis.pcall('DEL', link_key)
@@ -76,6 +113,11 @@ local function relation_do_unfollow(keys, args)
 
   -- 3. zrem fan zset
   redis.pcall('ZREM', fan_zset_key, uid)
+
+  incr_decr_or_del(following_count_key, del_follow_count_thresh, 'decr')
+  incr_decr_or_del(fan_count_key, del_fan_count_thresh, 'decr')
+
+  return redis.status_reply('OK')
 end
 
 -- register redis functions

@@ -63,7 +63,7 @@ func (r *FeedDetailRequest) Validate() error {
 }
 
 type FeedByUserRequest struct {
-	UserId int64         `form:"user_id"`
+	Uid    int64         `form:"uid"`
 	Cursor imodel.NoteId `form:"cursor,optional"`
 	Count  int32         `form:"count,optional"`
 }
@@ -73,7 +73,7 @@ func (r *FeedByUserRequest) Validate() error {
 		return xerror.ErrNilArg
 	}
 
-	if r.UserId == 0 {
+	if r.Uid == 0 {
 		return xerror.ErrArgs.Msg("用户不存在")
 	}
 

@@ -216,10 +216,25 @@ func (b *RelationBiz) GetUserFansList(ctx context.Context, uid int64, offset int
 
 // 获取用户关注数
 func (b *RelationBiz) GetUserFollowingCount(ctx context.Context, uid int64) (int64, error) {
+	cacheCnt, err := infra.Dao().RelationCache.GetFollowingCount(ctx, uid)
+	if err == nil {
+		return cacheCnt, nil
+	}
+
 	cnt, err := infra.Dao().RelationDao.CountUidLinkTo(ctx, uid)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "relation biz failed to count user followings").WithCtx(ctx)
 	}
+
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "relation.biz.get_following_cnt.cache.set",
+		Job: func(ctx context.Context) error {
+			if err := infra.Dao().RelationCache.SetFollowingCount(ctx, uid, cnt); err != nil {
+				xlog.Msg("relation biz get_following_cnt set count cache failed").Err(err).Errorx(ctx)
+			}
+			return nil
+		},
+	})
 
 	return cnt, nil
 }
@@ -252,10 +267,25 @@ func (b *RelationBiz) PageGetUserFollowingList(ctx context.Context, uid int64, p
 //
 // Delay-tolerant
 func (b *RelationBiz) GetUserFanCount(ctx context.Context, uid int64) (int64, error) {
+	cacheCnt, err := infra.Dao().RelationCache.GetFanCount(ctx, uid)
+	if err == nil {
+		return cacheCnt, nil
+	}
+
 	cnt, err := infra.Dao().RelationDao.CountUidGotLinked(ctx, uid)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "relation biz failed to count user fans").WithCtx(ctx)
 	}
+
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "relation.biz.get_fan_cnt.cache.set",
+		Job: func(ctx context.Context) error {
+			if err := infra.Dao().RelationCache.SetFanCount(ctx, uid, cnt); err != nil {
+				xlog.Msg("relation biz get_fan_cnt set count cache failed").Err(err).Errorx(ctx)
+			}
+			return nil
+		},
+	})
 
 	return cnt, nil
 }
@@ -364,7 +394,7 @@ func (b *RelationBiz) BatchCheckUserFollowStatus(ctx context.Context, uid int64,
 	// set cache
 	if len(newlyFoundDaoResult) != 0 {
 		concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-			Name: "relation.biz.batchcheckstatus.cache.batchset",
+			Name: "relation.biz.batch_check_status.cache.batchset",
 			Job: func(ctx context.Context) error {
 				cacheData := make([]dao.CacheLink, 0, len(newlyFoundDaoResult))
 				for _, r := range newlyFoundDaoResult {
@@ -408,7 +438,7 @@ func (b *RelationBiz) CheckUserFollowStatus(ctx context.Context, uid, other int6
 		}
 
 		concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-			Name: "relation.biz.checkstatus.cache.set",
+			Name: "relation.biz.check_status.cache.set",
 			Job: func(ctx context.Context) error {
 				if err := infra.Dao().RelationCache.SetLink(ctx, uid, other, rel.Link); err != nil {
 					xlog.Msg("relation biz set link cache failed").Err(err).Errorx(ctx)
