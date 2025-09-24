@@ -137,10 +137,7 @@ func (h *Handler) CreatorUpdateNote() http.HandlerFunc {
 		ctx := r.Context()
 		_, err = infra.NoteCreatorServer().UpdateNote(ctx, &notev1.UpdateNoteRequest{
 			NoteId: int64(req.NoteId),
-			Note: &notev1.CreateNoteRequest{
-				Basic:  req.Basic.AsPb(),
-				Images: req.Images.AsPb(),
-			},
+			Note:   req.CreateReq.AsPb(),
 		})
 
 		if err != nil {
