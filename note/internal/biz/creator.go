@@ -517,3 +517,14 @@ func (b *NoteCreatorBiz) GetUserPostedCount(ctx context.Context, uid int64) (int
 
 	return cnt, nil
 }
+
+func (b *NoteCreatorBiz) GetUserPublicPostedCount(ctx context.Context, uid int64) (int64, error) {
+	cnt, err := infra.Dao().NoteDao.GetPublicPostedCountByOwner(ctx, uid)
+	if err != nil {
+		return 0, xerror.Wrapf(err, "note dao get public posted count failed").
+			WithExtra("uid", uid).
+			WithCtx(ctx)
+	}
+
+	return cnt, nil
+}

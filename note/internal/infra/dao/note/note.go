@@ -33,6 +33,7 @@ const (
 	sqlGetCount            = "SELECT COUNT(*) FROM note WHERE privacy=?"
 	sqlCountByUid          = "SELECT COUNT(*) FROM note WHERE owner=?"
 	sqlBatchGet            = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE id IN (%s)"
+	sqlCountPublicByUid    = "SELECT COUNT(*) FROM note WHERE owner=? AND privacy=?"
 )
 
 type NoteDao struct {
@@ -317,8 +318,14 @@ func (r *NoteDao) GetPostedCountByOwner(ctx context.Context, uid int64) (int64, 
 	return cnt, xerror.Wrap(xsql.ConvertError(err))
 }
 
+func (r *NoteDao) GetPublicPostedCountByOwner(ctx context.Context, uid int64) (int64, error) {
+	var cnt int64
+	err := r.db.QueryRowCtx(ctx, &cnt, sqlCountPublicByUid, uid, global.PrivacyPublic)
+	return cnt, xerror.Wrap(xsql.ConvertError(err))
+}
+
 func (r *NoteDao) GetRecentPublicPosted(ctx context.Context, uid int64, count int32) ([]*Note, error) {
 	var res = make([]*Note, 0, count)
 	err := r.db.QueryRowsCtx(ctx, &res, sqlGetRecentPosted, uid, global.PrivacyPublic, count)
-	return res, xerror.Wrap(err)
+	return res, xerror.Wrap(xsql.ConvertError(err))
 }

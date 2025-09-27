@@ -26,9 +26,8 @@ func errorHandler(ctx context.Context, err error) (stcode int, retErr any) {
 	// HTTP接口全局错误日志打印
 	defer func() {
 		if errPxy != nil {
-			msg, underErr := UnwrapMsg(errPxy)
-			prepare := xlog.Msg(msg).
-				Err(underErr).
+			// msg, underErr := UnwrapMsg(errPxy)
+			prepare := xlog.Err(errPxy).
 				FieldMap(errPxy.Fields()).
 				ExtraMap(errPxy.Extra())
 				// 5XX 打印ERROR

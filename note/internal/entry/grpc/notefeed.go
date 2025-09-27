@@ -147,3 +147,13 @@ func (s *NoteFeedServiceServer) GetTagInfo(ctx context.Context,
 		Tag: tag.AsPb(),
 	}, nil
 }
+
+func (s *NoteFeedServiceServer) GetPublicPostedCount(ctx context.Context, in *notev1.GetPublicPostedCountRequest) (
+	*notev1.GetPublicPostedCountResponse, error) {
+	cnt, err := s.Srv.NoteFeedSrv.GetUserPublicPostedCount(ctx, in.Uid)
+	if err != nil {
+		return nil, err
+	}
+
+	return &notev1.GetPublicPostedCountResponse{Count: cnt}, nil
+}

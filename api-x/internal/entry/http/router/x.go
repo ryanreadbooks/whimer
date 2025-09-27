@@ -18,7 +18,6 @@ func RegisterX(engine *rest.Server, h *handler.Handler) {
 	regNoteRoutes(xGroup, h)
 	// comment routes
 	regCommentRoutes(xGroup, h)
-	regProfileRoutes(xGroup, h)
 	// relation routes
 	regRelationRoutes(xGroup, h)
 	regChatRoutes(xGroup, h)

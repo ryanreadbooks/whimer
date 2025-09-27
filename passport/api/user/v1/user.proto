@@ -16,6 +16,10 @@ message BatchGetUserRequest { repeated int64 uids = 1; }
 
 message BatchGetUserResponse { map<string, UserInfo> users = 1; }
 
+message BatchGetUserV2Request { repeated int64 uids = 1; }
+
+message BatchGetUserV2Response { map<int64, UserInfo> users = 1; }
+
 message GetUserRequest { int64 uid = 1; }
 
 message GetUserResponse { UserInfo user = 1; }
@@ -27,6 +31,7 @@ message HasUserResponse { bool has = 1; }
 service UserService {
   // 批量获取用户信息
   rpc BatchGetUser(BatchGetUserRequest) returns (BatchGetUserResponse);
+  rpc BatchGetUserV2(BatchGetUserV2Request) returns (BatchGetUserV2Response);
   // 获取用户信息
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
   // 判断用户是否存在

@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_BatchGetUser_FullMethodName = "/passport.api.user.v1.UserService/BatchGetUser"
-	UserService_GetUser_FullMethodName      = "/passport.api.user.v1.UserService/GetUser"
-	UserService_HasUser_FullMethodName      = "/passport.api.user.v1.UserService/HasUser"
+	UserService_BatchGetUser_FullMethodName   = "/passport.api.user.v1.UserService/BatchGetUser"
+	UserService_BatchGetUserV2_FullMethodName = "/passport.api.user.v1.UserService/BatchGetUserV2"
+	UserService_GetUser_FullMethodName        = "/passport.api.user.v1.UserService/GetUser"
+	UserService_HasUser_FullMethodName        = "/passport.api.user.v1.UserService/HasUser"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -30,6 +31,7 @@ const (
 type UserServiceClient interface {
 	// 批量获取用户信息
 	BatchGetUser(ctx context.Context, in *BatchGetUserRequest, opts ...grpc.CallOption) (*BatchGetUserResponse, error)
+	BatchGetUserV2(ctx context.Context, in *BatchGetUserV2Request, opts ...grpc.CallOption) (*BatchGetUserV2Response, error)
 	// 获取用户信息
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	// 判断用户是否存在
@@ -48,6 +50,16 @@ func (c *userServiceClient) BatchGetUser(ctx context.Context, in *BatchGetUserRe
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BatchGetUserResponse)
 	err := c.cc.Invoke(ctx, UserService_BatchGetUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) BatchGetUserV2(ctx context.Context, in *BatchGetUserV2Request, opts ...grpc.CallOption) (*BatchGetUserV2Response, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetUserV2Response)
+	err := c.cc.Invoke(ctx, UserService_BatchGetUserV2_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,6 +92,7 @@ func (c *userServiceClient) HasUser(ctx context.Context, in *HasUserRequest, opt
 type UserServiceServer interface {
 	// 批量获取用户信息
 	BatchGetUser(context.Context, *BatchGetUserRequest) (*BatchGetUserResponse, error)
+	BatchGetUserV2(context.Context, *BatchGetUserV2Request) (*BatchGetUserV2Response, error)
 	// 获取用户信息
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	// 判断用户是否存在
@@ -96,6 +109,9 @@ type UnimplementedUserServiceServer struct{}
 
 func (UnimplementedUserServiceServer) BatchGetUser(context.Context, *BatchGetUserRequest) (*BatchGetUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchGetUser not implemented")
+}
+func (UnimplementedUserServiceServer) BatchGetUserV2(context.Context, *BatchGetUserV2Request) (*BatchGetUserV2Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchGetUserV2 not implemented")
 }
 func (UnimplementedUserServiceServer) GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
@@ -138,6 +154,24 @@ func _UserService_BatchGetUser_Handler(srv interface{}, ctx context.Context, dec
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).BatchGetUser(ctx, req.(*BatchGetUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_BatchGetUserV2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetUserV2Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).BatchGetUserV2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_BatchGetUserV2_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).BatchGetUserV2(ctx, req.(*BatchGetUserV2Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -188,6 +222,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BatchGetUser",
 			Handler:    _UserService_BatchGetUser_Handler,
+		},
+		{
+			MethodName: "BatchGetUserV2",
+			Handler:    _UserService_BatchGetUserV2_Handler,
 		},
 		{
 			MethodName: "GetUser",

@@ -70,6 +70,12 @@ message BatchGetFeedNotesResponse {
   map<int64, GetFeedNoteResponse> result = 1;
 }
 
+message GetPublicPostedCountRequest {
+  int64 uid = 1; // 用户id
+}
+
+message GetPublicPostedCountResponse { int64 count = 1; }
+
 // note相关非管理功能服务
 service NoteFeedService {
   // 随机获取笔记内容
@@ -89,4 +95,7 @@ service NoteFeedService {
 
   // 获取笔记标签
   rpc GetTagInfo(GetTagInfoRequest) returns (GetTagInfoResponse);
+
+  // 获取用户投稿数量
+  rpc GetPublicPostedCount(GetPublicPostedCountRequest) returns (GetPublicPostedCountResponse);
 }

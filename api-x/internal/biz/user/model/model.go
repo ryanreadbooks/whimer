@@ -1,32 +1,20 @@
-package profile
+package model
 
-import "github.com/ryanreadbooks/whimer/misc/xerror"
+import (
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+)
 
-type StatReq struct {
-	UserId int64 `form:"user_id"`
+type User = userv1.UserInfo
+
+type UserStat struct {
+	Posted     int64 `json:"posted"`
+	Fans       int64 `json:"fans"`
+	Followings int64 `json:"followings"`
 }
 
-func (r *StatReq) Validate() error {
-	if r.UserId == 0 {
-		return xerror.ErrArgs.Msg("用户不存在")
-	}
+type RelationStatus string
 
-	return nil
-}
-
-type HoverReq struct {
-	Uid int64 `form:"uid"`
-}
-
-func (r *HoverReq) Validate() error {
-	if r.Uid == 0 {
-		return xerror.ErrArgs.Msg("用户不存在")
-	}
-
-	return nil
-}
-
-type HoverRes struct {
+type HoverInfo struct {
 	BasicInfo struct {
 		Nickname  string `json:"nickname"`
 		StyleSign string `json:"style_sign"`
@@ -39,7 +27,7 @@ type HoverRes struct {
 	} `json:"interaction"`
 
 	Relation struct {
-		Status string `json:"status"`
+		Status RelationStatus `json:"status"`
 	} `json:"relation"`
 
 	// 返回最近的发布信息
@@ -53,8 +41,8 @@ type PostAsset struct {
 }
 
 const (
-	RelationFollowing = "following"
-	RelationNone      = "none"
+	RelationFollowing RelationStatus = "following"
+	RelationNone      RelationStatus = "none"
 )
 
 // 模糊化处理数字

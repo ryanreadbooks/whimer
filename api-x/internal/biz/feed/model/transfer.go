@@ -2,6 +2,7 @@ package model
 
 import (
 	imodel "github.com/ryanreadbooks/whimer/api-x/internal/model"
+	"github.com/ryanreadbooks/whimer/api-x/internal/model/errors"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 )
 
@@ -74,7 +75,7 @@ func (r *FeedByUserRequest) Validate() error {
 	}
 
 	if r.Uid == 0 {
-		return xerror.ErrArgs.Msg("用户不存在")
+		return errors.ErrUserNotFound
 	}
 
 	if r.Count > 20 {

@@ -1,6 +1,9 @@
 package relation
 
-import "github.com/ryanreadbooks/whimer/misc/xerror"
+import (
+	"github.com/ryanreadbooks/whimer/api-x/internal/model/errors"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
+)
 
 const (
 	ActionFollow   = 1
@@ -30,7 +33,7 @@ type GetIsFollowingReq struct {
 
 func (r *GetIsFollowingReq) Validate() error {
 	if r.UserId == 0 {
-		return xerror.ErrArgs.Msg("用户不存在")
+		return errors.ErrUserNotFound
 	}
 
 	return nil
