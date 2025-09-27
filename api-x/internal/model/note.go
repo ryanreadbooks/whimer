@@ -38,7 +38,7 @@ func NoteTagFromPb(t *notev1.NoteTag) *NoteTag {
 
 func NoteTagsFromPbs(ts []*notev1.NoteTag) []*NoteTag {
 	if len(ts) == 0 {
-		return nil
+		return []*NoteTag{}
 	}
 
 	var r = make([]*NoteTag, 0, len(ts))

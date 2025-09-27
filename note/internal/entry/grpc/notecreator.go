@@ -106,6 +106,7 @@ func (s *NoteCreatorServiceServer) UpdateNote(ctx context.Context, in *notev1.Up
 				Privacy: int(in.Note.Basic.Privacy),
 			},
 			Images: images,
+			TagIds: in.GetNote().GetTags().GetTagList(),
 		},
 	}
 

@@ -7,6 +7,7 @@ import (
 
 	user "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	global "github.com/ryanreadbooks/whimer/passport/internal/global"
+	"github.com/ryanreadbooks/whimer/passport/internal/model"
 	"github.com/ryanreadbooks/whimer/passport/internal/srv"
 )
 
@@ -25,20 +26,29 @@ func NewUserServiceServer(s *srv.Service) *UserServiceServer {
 	}
 }
 
+func (s *UserServiceServer) batchGetUser(ctx context.Context, uids []int64) (map[int64]*model.UserInfo, error) {
+	if len(uids) > maxBatchGetUserAllowed {
+		return nil, global.ErrArgs.Msg("batch get too many users")
+	}
+
+	if len(uids) == 0 {
+		return map[int64]*model.UserInfo{}, nil
+	}
+
+	resp, err := s.Svc.UserSrv.BatchGetUser(ctx, uids)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 func (s *UserServiceServer) BatchGetUser(ctx context.Context, in *user.BatchGetUserRequest) (*user.BatchGetUserResponse, error) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
 
-	if len(in.Uids) > maxBatchGetUserAllowed {
-		return nil, global.ErrArgs.Msg("数量太大")
-	}
-
-	if len(in.Uids) == 0 {
-		return &user.BatchGetUserResponse{}, nil
-	}
-
-	resp, err := s.Svc.UserSrv.BatchGetUser(ctx, in.Uids)
+	resp, err := s.batchGetUser(ctx, in.Uids)
 	if err != nil {
 		return nil, err
 	}
@@ -49,6 +59,24 @@ func (s *UserServiceServer) BatchGetUser(ctx context.Context, in *user.BatchGetU
 	}
 
 	return &user.BatchGetUserResponse{Users: users}, nil
+}
+
+func (s *UserServiceServer) BatchGetUserV2(ctx context.Context, in *user.BatchGetUserV2Request) (*user.BatchGetUserV2Response, error) {
+	if in == nil {
+		return nil, global.ErrNilReq
+	}
+
+	resp, err := s.batchGetUser(ctx, in.Uids)
+	if err != nil {
+		return nil, err
+	}
+
+	users := make(map[int64]*user.UserInfo, len(resp))
+	for _, r := range resp {
+		users[r.Uid] = r.ToPb()
+	}
+
+	return &user.BatchGetUserV2Response{Users: users}, nil
 }
 
 func (s *UserServiceServer) GetUser(ctx context.Context, in *user.GetUserRequest) (*user.GetUserResponse, error) {

@@ -3,8 +3,10 @@ package grpc
 import (
 	"context"
 
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 	"github.com/ryanreadbooks/whimer/relation/internal/global"
+	"github.com/ryanreadbooks/whimer/relation/internal/model"
 	"github.com/ryanreadbooks/whimer/relation/internal/srv"
 )
 
@@ -164,4 +166,38 @@ func (s *RelationServiceServer) PageGetUserFollowingList(ctx context.Context,
 	resp.Total = total
 
 	return resp, nil
+}
+
+// 关注设置
+func (s *RelationServiceServer) UpdateUserSettings(ctx context.Context, in *relationv1.UpdateUserSettingsRequest) (
+	*relationv1.UpdateUserSettingsResponse, error) {
+	if in.TargetUid == 0 {
+		return &relationv1.UpdateUserSettingsResponse{}, nil
+	}
+
+	err := s.Srv.RelationSrv.UpdateUserSettings(ctx, in.TargetUid, &model.RelationSettings{
+		ShowFanList:    in.ShowFanList,
+		ShowFollowList: in.ShowFollowList,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &relationv1.UpdateUserSettingsResponse{}, nil
+}
+
+func (s *RelationServiceServer) GetUserSettings(ctx context.Context, in *relationv1.GetUserSettingsRequest) (
+	*relationv1.GetUserSettingsResponse, error) {
+	if in.Uid == 0 {
+		return nil, xerror.ErrArgs.Msg("invalid uid")
+	}
+
+	resp, err := s.Srv.RelationSrv.GetUserSettings(ctx, in.Uid)
+	if err != nil {
+		return nil, err
+	}
+
+	return &relationv1.GetUserSettingsResponse{
+		ShowFanList:    resp.ShowFanList,
+		ShowFollowList: resp.ShowFollowList,
+	}, nil
 }

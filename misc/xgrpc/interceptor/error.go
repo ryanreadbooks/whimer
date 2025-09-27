@@ -28,9 +28,8 @@ func UnaryServerErrorHandler(ctx context.Context,
 		if rawErr != nil {
 			errPxy, ok := rawErr.(xerror.ErrProxy)
 			if ok && errPxy != nil {
-				msg, underErr := xerror.UnwrapMsg(errPxy)
-				prepare := xlog.Msg(msg).
-					Err(underErr).
+				// msg, underErr := xerror.UnwrapMsg(errPxy)
+				prepare := xlog.Err(errPxy).
 					FieldMap(errPxy.Fields()).
 					ExtraMap(errPxy.Extra()).
 					Extras("stack", stacktrace.FormatFrames(xerror.UnwrapFrames(errPxy)))

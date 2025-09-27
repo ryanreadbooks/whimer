@@ -104,6 +104,23 @@ message PageGetUserFollowingListResponse {
   int64 total = 2;
 }
 
+message UpdateUserSettingsRequest {
+  int64 target_uid = 1;
+  bool show_fan_list = 2;
+  bool show_follow_list = 3;
+}
+
+message UpdateUserSettingsResponse {}
+
+message GetUserSettingsRequest {
+  int64 uid = 1;
+}
+
+message GetUserSettingsResponse {
+  bool show_fan_list = 1;
+  bool show_follow_list = 2;
+}
+
 service RelationService {
   // 关注/取消关注某个用户
   rpc FollowUser(FollowUserRequest) returns (FollowUserResponse);
@@ -131,4 +148,9 @@ service RelationService {
   // 分页获取某个用户的关注列表
   rpc PageGetUserFollowingList(PageGetUserFollowingListRequest)
       returns (PageGetUserFollowingListResponse);
+
+  // 关注设置
+  rpc UpdateUserSettings(UpdateUserSettingsRequest)
+      returns (UpdateUserSettingsResponse);
+  rpc GetUserSettings(GetUserSettingsRequest) returns (GetUserSettingsResponse);
 }

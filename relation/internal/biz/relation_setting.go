@@ -2,11 +2,13 @@ package biz
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/relation/internal/global"
 	"github.com/ryanreadbooks/whimer/relation/internal/infra"
 	"github.com/ryanreadbooks/whimer/relation/internal/infra/dao"
+	"github.com/ryanreadbooks/whimer/relation/internal/model"
 )
 
 type RelationSettingBiz struct {
@@ -57,9 +59,47 @@ func (b *RelationSettingBiz) CanVisitFollowingList(ctx context.Context, visitor,
 		return err
 	}
 
-	if !st.DisplayFollowingList {
+	if !st.DisplayFollowList {
 		return xerror.Wrap(global.ErrFollowingListHidden)
 	}
 
 	return nil
+}
+
+func newSettingsPoFrom(s *model.RelationSettings) *dao.Settings {
+	return &dao.Settings{
+		DisplayFanList:    s.ShowFanList,
+		DisplayFollowList: s.ShowFollowList,
+	}
+}
+
+func (b *RelationSettingBiz) UpdateSettings(ctx context.Context, uid int64, s *model.RelationSettings) error {
+	data, err := json.Marshal(newSettingsPoFrom(s))
+	if err != nil {
+		return xerror.Wrapf(err, "can not marshal settings").WithExtra("req", s).WithCtx(ctx)
+	}
+
+	err = infra.Dao().RelationSettingDao.Insert(ctx, &dao.RelationSetting{
+		Uid:      uid,
+		Settings: data,
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "can not insert relation settings").WithCtx(ctx)
+	}
+
+	return nil
+}
+
+func (b *RelationSettingBiz) GetSettings(ctx context.Context, uid int64) (*model.RelationSettings, error) {
+	data, err := infra.Dao().RelationSettingDao.Get(ctx, uid)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "get settings failed").WithExtras("uid", uid).WithCtx(ctx)
+	}
+
+	settings := data.ParseSettings()
+
+	return &model.RelationSettings{
+		ShowFanList:    settings.DisplayFanList,
+		ShowFollowList: settings.DisplayFollowList,
+	}, nil
 }

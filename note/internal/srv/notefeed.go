@@ -205,3 +205,11 @@ func (s *NoteFeedSrv) GetTagInfo(ctx context.Context, id int64) (*model.NoteTag,
 
 	return tag, nil
 }
+
+func (s *NoteFeedSrv) GetUserPublicPostedCount(ctx context.Context, user int64) (int64, error) {
+	cnt, err := s.noteCreatorBiz.GetUserPublicPostedCount(ctx, user)
+	if err != nil {
+		return cnt, xerror.Wrapf(err, "feed srv get public posted cnt failed").WithCtx(ctx)
+	}
+	return cnt, nil
+}

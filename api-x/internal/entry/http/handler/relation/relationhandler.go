@@ -69,16 +69,30 @@ func (h *Handler) GetIsFollowing() http.HandlerFunc {
 	}
 }
 
-// 获取粉丝列表
-func (h *Handler) GetFansList() http.HandlerFunc {
+// 用户关注设置
+func (h *Handler) UpdateSettings() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[UpdateSettingReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
 
-	}
-}
+		var (
+			ctx = r.Context()
+			uid = metadata.Uid(ctx)
+		)
 
-// 获取关注列表
-func (h *Handler) GetFollowingsList() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+		_, err = infra.RelationServer().UpdateUserSettings(ctx, &relationv1.UpdateUserSettingsRequest{
+			TargetUid:      uid,
+			ShowFanList:    req.ShowFans,
+			ShowFollowList: req.ShowFollows,
+		})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
 
+		xhttp.OkJson(w, nil)
 	}
 }

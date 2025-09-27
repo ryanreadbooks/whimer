@@ -19,13 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NoteFeedService_RandomGet_FullMethodName         = "/note.api.v1.NoteFeedService/RandomGet"
-	NoteFeedService_GetFeedNote_FullMethodName       = "/note.api.v1.NoteFeedService/GetFeedNote"
-	NoteFeedService_BatchGetFeedNotes_FullMethodName = "/note.api.v1.NoteFeedService/BatchGetFeedNotes"
-	NoteFeedService_RecommendGet_FullMethodName      = "/note.api.v1.NoteFeedService/RecommendGet"
-	NoteFeedService_GetUserRecentPost_FullMethodName = "/note.api.v1.NoteFeedService/GetUserRecentPost"
-	NoteFeedService_ListFeedByUid_FullMethodName     = "/note.api.v1.NoteFeedService/ListFeedByUid"
-	NoteFeedService_GetTagInfo_FullMethodName        = "/note.api.v1.NoteFeedService/GetTagInfo"
+	NoteFeedService_RandomGet_FullMethodName            = "/note.api.v1.NoteFeedService/RandomGet"
+	NoteFeedService_GetFeedNote_FullMethodName          = "/note.api.v1.NoteFeedService/GetFeedNote"
+	NoteFeedService_BatchGetFeedNotes_FullMethodName    = "/note.api.v1.NoteFeedService/BatchGetFeedNotes"
+	NoteFeedService_RecommendGet_FullMethodName         = "/note.api.v1.NoteFeedService/RecommendGet"
+	NoteFeedService_GetUserRecentPost_FullMethodName    = "/note.api.v1.NoteFeedService/GetUserRecentPost"
+	NoteFeedService_ListFeedByUid_FullMethodName        = "/note.api.v1.NoteFeedService/ListFeedByUid"
+	NoteFeedService_GetTagInfo_FullMethodName           = "/note.api.v1.NoteFeedService/GetTagInfo"
+	NoteFeedService_GetPublicPostedCount_FullMethodName = "/note.api.v1.NoteFeedService/GetPublicPostedCount"
 )
 
 // NoteFeedServiceClient is the client API for NoteFeedService service.
@@ -48,6 +49,8 @@ type NoteFeedServiceClient interface {
 	ListFeedByUid(ctx context.Context, in *ListFeedByUidRequest, opts ...grpc.CallOption) (*ListFeedByUidResponse, error)
 	// 获取笔记标签
 	GetTagInfo(ctx context.Context, in *GetTagInfoRequest, opts ...grpc.CallOption) (*GetTagInfoResponse, error)
+	// 获取用户投稿数量
+	GetPublicPostedCount(ctx context.Context, in *GetPublicPostedCountRequest, opts ...grpc.CallOption) (*GetPublicPostedCountResponse, error)
 }
 
 type noteFeedServiceClient struct {
@@ -128,6 +131,16 @@ func (c *noteFeedServiceClient) GetTagInfo(ctx context.Context, in *GetTagInfoRe
 	return out, nil
 }
 
+func (c *noteFeedServiceClient) GetPublicPostedCount(ctx context.Context, in *GetPublicPostedCountRequest, opts ...grpc.CallOption) (*GetPublicPostedCountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPublicPostedCountResponse)
+	err := c.cc.Invoke(ctx, NoteFeedService_GetPublicPostedCount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NoteFeedServiceServer is the server API for NoteFeedService service.
 // All implementations must embed UnimplementedNoteFeedServiceServer
 // for forward compatibility.
@@ -148,6 +161,8 @@ type NoteFeedServiceServer interface {
 	ListFeedByUid(context.Context, *ListFeedByUidRequest) (*ListFeedByUidResponse, error)
 	// 获取笔记标签
 	GetTagInfo(context.Context, *GetTagInfoRequest) (*GetTagInfoResponse, error)
+	// 获取用户投稿数量
+	GetPublicPostedCount(context.Context, *GetPublicPostedCountRequest) (*GetPublicPostedCountResponse, error)
 	mustEmbedUnimplementedNoteFeedServiceServer()
 }
 
@@ -178,6 +193,9 @@ func (UnimplementedNoteFeedServiceServer) ListFeedByUid(context.Context, *ListFe
 }
 func (UnimplementedNoteFeedServiceServer) GetTagInfo(context.Context, *GetTagInfoRequest) (*GetTagInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTagInfo not implemented")
+}
+func (UnimplementedNoteFeedServiceServer) GetPublicPostedCount(context.Context, *GetPublicPostedCountRequest) (*GetPublicPostedCountResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPublicPostedCount not implemented")
 }
 func (UnimplementedNoteFeedServiceServer) mustEmbedUnimplementedNoteFeedServiceServer() {}
 func (UnimplementedNoteFeedServiceServer) testEmbeddedByValue()                         {}
@@ -326,6 +344,24 @@ func _NoteFeedService_GetTagInfo_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NoteFeedService_GetPublicPostedCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPublicPostedCountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NoteFeedServiceServer).GetPublicPostedCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NoteFeedService_GetPublicPostedCount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NoteFeedServiceServer).GetPublicPostedCount(ctx, req.(*GetPublicPostedCountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NoteFeedService_ServiceDesc is the grpc.ServiceDesc for NoteFeedService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -360,6 +396,10 @@ var NoteFeedService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTagInfo",
 			Handler:    _NoteFeedService_GetTagInfo_Handler,
+		},
+		{
+			MethodName: "GetPublicPostedCount",
+			Handler:    _NoteFeedService_GetPublicPostedCount_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
