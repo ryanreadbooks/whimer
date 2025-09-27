@@ -16,7 +16,7 @@ func TestRelationSettingDao_GetByUid(t *testing.T) {
 		got, e := testSettingDao.Get(ctx, 100)
 		So(e, ShouldBeNil)
 		So(got.ParseSettings().DisplayFanList, ShouldEqual, DefaultSettings.DisplayFanList)
-		So(got.ParseSettings().DisplayFollowingList, ShouldEqual, DefaultSettings.DisplayFollowingList)
+		So(got.ParseSettings().DisplayFollowList, ShouldEqual, DefaultSettings.DisplayFollowList)
 
 		testSettingDao.Delete(ctx, 100)
 	})
@@ -44,8 +44,8 @@ func TestRelationSettingDao_Update(t *testing.T) {
 		err = testSettingDao.Update(ctx, &RelationSetting{
 			Uid: 100,
 			Settings: (&Settings{
-				DisplayFanList:       true,
-				DisplayFollowingList: false,
+				DisplayFanList:    true,
+				DisplayFollowList: false,
 			}).Json(),
 		})
 		So(err, ShouldBeNil)
@@ -53,7 +53,7 @@ func TestRelationSettingDao_Update(t *testing.T) {
 		got, err := testSettingDao.Get(ctx, 100)
 		So(err, ShouldBeNil)
 		setting := got.ParseSettings()
-		So(setting.DisplayFollowingList, ShouldBeFalse)
+		So(setting.DisplayFollowList, ShouldBeFalse)
 
 		testSettingDao.Delete(ctx, 100)
 	})

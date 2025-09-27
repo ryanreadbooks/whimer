@@ -77,3 +77,8 @@ func HideActualCount(cnt int64) string {
 
 	return "100万+"
 }
+
+type UserSettings struct {
+	ShowFanList    bool `json:"show_fan_list"`
+	ShowFollowList bool `json:"show_follow_list"`
+}

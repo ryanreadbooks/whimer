@@ -29,6 +29,8 @@ const (
 	RelationService_CheckUserFollowed_FullMethodName        = "/relation.api.v1.RelationService/CheckUserFollowed"
 	RelationService_PageGetUserFanList_FullMethodName       = "/relation.api.v1.RelationService/PageGetUserFanList"
 	RelationService_PageGetUserFollowingList_FullMethodName = "/relation.api.v1.RelationService/PageGetUserFollowingList"
+	RelationService_UpdateUserSettings_FullMethodName       = "/relation.api.v1.RelationService/UpdateUserSettings"
+	RelationService_GetUserSettings_FullMethodName          = "/relation.api.v1.RelationService/GetUserSettings"
 )
 
 // RelationServiceClient is the client API for RelationService service.
@@ -54,6 +56,9 @@ type RelationServiceClient interface {
 	PageGetUserFanList(ctx context.Context, in *PageGetUserFanListRequest, opts ...grpc.CallOption) (*PageGetUserFanListResponse, error)
 	// 分页获取某个用户的关注列表
 	PageGetUserFollowingList(ctx context.Context, in *PageGetUserFollowingListRequest, opts ...grpc.CallOption) (*PageGetUserFollowingListResponse, error)
+	// 关注设置
+	UpdateUserSettings(ctx context.Context, in *UpdateUserSettingsRequest, opts ...grpc.CallOption) (*UpdateUserSettingsResponse, error)
+	GetUserSettings(ctx context.Context, in *GetUserSettingsRequest, opts ...grpc.CallOption) (*GetUserSettingsResponse, error)
 }
 
 type relationServiceClient struct {
@@ -164,6 +169,26 @@ func (c *relationServiceClient) PageGetUserFollowingList(ctx context.Context, in
 	return out, nil
 }
 
+func (c *relationServiceClient) UpdateUserSettings(ctx context.Context, in *UpdateUserSettingsRequest, opts ...grpc.CallOption) (*UpdateUserSettingsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserSettingsResponse)
+	err := c.cc.Invoke(ctx, RelationService_UpdateUserSettings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *relationServiceClient) GetUserSettings(ctx context.Context, in *GetUserSettingsRequest, opts ...grpc.CallOption) (*GetUserSettingsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserSettingsResponse)
+	err := c.cc.Invoke(ctx, RelationService_GetUserSettings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RelationServiceServer is the server API for RelationService service.
 // All implementations must embed UnimplementedRelationServiceServer
 // for forward compatibility.
@@ -187,6 +212,9 @@ type RelationServiceServer interface {
 	PageGetUserFanList(context.Context, *PageGetUserFanListRequest) (*PageGetUserFanListResponse, error)
 	// 分页获取某个用户的关注列表
 	PageGetUserFollowingList(context.Context, *PageGetUserFollowingListRequest) (*PageGetUserFollowingListResponse, error)
+	// 关注设置
+	UpdateUserSettings(context.Context, *UpdateUserSettingsRequest) (*UpdateUserSettingsResponse, error)
+	GetUserSettings(context.Context, *GetUserSettingsRequest) (*GetUserSettingsResponse, error)
 	mustEmbedUnimplementedRelationServiceServer()
 }
 
@@ -226,6 +254,12 @@ func (UnimplementedRelationServiceServer) PageGetUserFanList(context.Context, *P
 }
 func (UnimplementedRelationServiceServer) PageGetUserFollowingList(context.Context, *PageGetUserFollowingListRequest) (*PageGetUserFollowingListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PageGetUserFollowingList not implemented")
+}
+func (UnimplementedRelationServiceServer) UpdateUserSettings(context.Context, *UpdateUserSettingsRequest) (*UpdateUserSettingsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserSettings not implemented")
+}
+func (UnimplementedRelationServiceServer) GetUserSettings(context.Context, *GetUserSettingsRequest) (*GetUserSettingsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserSettings not implemented")
 }
 func (UnimplementedRelationServiceServer) mustEmbedUnimplementedRelationServiceServer() {}
 func (UnimplementedRelationServiceServer) testEmbeddedByValue()                         {}
@@ -428,6 +462,42 @@ func _RelationService_PageGetUserFollowingList_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RelationService_UpdateUserSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserSettingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RelationServiceServer).UpdateUserSettings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RelationService_UpdateUserSettings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RelationServiceServer).UpdateUserSettings(ctx, req.(*UpdateUserSettingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RelationService_GetUserSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserSettingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RelationServiceServer).GetUserSettings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RelationService_GetUserSettings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RelationServiceServer).GetUserSettings(ctx, req.(*GetUserSettingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RelationService_ServiceDesc is the grpc.ServiceDesc for RelationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -474,6 +544,14 @@ var RelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PageGetUserFollowingList",
 			Handler:    _RelationService_PageGetUserFollowingList_Handler,
+		},
+		{
+			MethodName: "UpdateUserSettings",
+			Handler:    _RelationService_UpdateUserSettings_Handler,
+		},
+		{
+			MethodName: "GetUserSettings",
+			Handler:    _RelationService_GetUserSettings_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

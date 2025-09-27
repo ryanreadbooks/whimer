@@ -271,6 +271,14 @@ func (s *RelationSrv) CheckUserFollowStatus(ctx context.Context, uid, other int6
 	return s.relationBiz.CheckUserFollowStatus(ctx, uid, other)
 }
 
+func (s *RelationSrv) UpdateUserSettings(ctx context.Context, uid int64, setting *model.RelationSettings) error {
+	return s.relationSettingBiz.UpdateSettings(ctx, uid, setting)
+}
+
+func (s *RelationSrv) GetUserSettings(ctx context.Context, uid int64) (*model.RelationSettings, error) {
+	return s.relationSettingBiz.GetSettings(ctx, uid)
+}
+
 func (s *RelationSrv) hasUser(ctx context.Context, uid int64) (bool, error) {
 	r, err := dep.Userer().HasUser(ctx, &userv1.HasUserRequest{Uid: uid})
 	if err != nil {

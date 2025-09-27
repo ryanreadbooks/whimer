@@ -20,6 +20,17 @@ func regUserRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 				v1gMustLogin.Get("/fans", h.User.ListUserFans())
 				// 获取用户关注列表
 				v1gMustLogin.Get("/followings", h.User.ListUserFollowings())
+
+				// 用户设置相关
+				{
+					settingsGroup := v1gMustLogin.Group("/settings")
+					{
+						// 获取全部设置
+						settingsGroup.Get("/all", h.User.GetAllSettings())
+						// 设置粉丝列表/关注列表展示情况
+						settingsGroup.Post("/relation/update", h.Relation.UpdateSettings())
+					}
+				}
 			}
 
 			// 拉取单个用户的信息

@@ -38,3 +38,8 @@ func (r *GetIsFollowingReq) Validate() error {
 
 	return nil
 }
+
+type UpdateSettingReq struct {
+	ShowFans    bool `json:"show_fans"`
+	ShowFollows bool `json:"show_follows"`
+}

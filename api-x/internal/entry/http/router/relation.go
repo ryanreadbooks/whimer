@@ -15,10 +15,6 @@ func regRelationRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 			v1g.Post("/follow", h.Relation.UserFollowAction())
 			// 检查是否关注了某个用户
 			v1g.Get("/is_following", h.Relation.GetIsFollowing())
-			// 获取粉丝列表
-			v1g.Get("/fans", h.Relation.GetFansList())
-			// 获取关注列表
-			v1g.Get("/followings", h.Relation.GetFollowingsList())
 		}
 	}
 }

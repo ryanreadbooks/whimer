@@ -152,3 +152,15 @@ func (h *UserHandler) GetUserStat() http.HandlerFunc {
 		httpx.OkJson(w, &stat)
 	}
 }
+
+func (h *UserHandler) GetAllSettings() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		resp, err := h.userBiz.GetSettings(r.Context())
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, resp)
+	}
+}

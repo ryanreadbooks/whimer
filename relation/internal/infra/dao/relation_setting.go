@@ -18,8 +18,8 @@ import (
 )
 
 type Settings struct {
-	DisplayFanList       bool `json:"display_fan_list"`       // 公开粉丝列表
-	DisplayFollowingList bool `json:"display_following_list"` // 公开关注列表
+	DisplayFanList    bool `json:"display_fan_list"`    // 公开粉丝列表
+	DisplayFollowList bool `json:"display_follow_list"` // 公开关注列表
 }
 
 func (s *Settings) Json() json.RawMessage {
@@ -29,8 +29,8 @@ func (s *Settings) Json() json.RawMessage {
 
 var (
 	DefaultSettings = &Settings{
-		DisplayFanList:       true,
-		DisplayFollowingList: true,
+		DisplayFanList:    true,
+		DisplayFollowList: true,
 	}
 
 	DefaultSettingsJson = DefaultSettings.Json()
