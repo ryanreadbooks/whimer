@@ -263,6 +263,7 @@ func (r *NoteDao) delete(ctx context.Context, noteId int64) error {
 	_, err = r.db.ExecCtx(ctx, sqlDeleteById, noteId)
 
 	concurrent.SafeGo(func() {
+		ctx := context.WithoutCancel(ctx)
 		if err := r.CacheDelNote(ctx, noteId); err != nil {
 			xlog.Msg("note dao failed to del note cache when deleting").
 				Err(err).Extras("noteId", noteId).Errorx(ctx)
@@ -271,7 +272,7 @@ func (r *NoteDao) delete(ctx context.Context, noteId int64) error {
 		if err := r.DelKeys(ctx,
 			getNoteCountByOwnerCacheKey(ownerId),
 			getNotePublicCountByOwnerCacheKey(ownerId)); err != nil {
-			xlog.Msg("note dao failed to del note count cache when updating").
+			xlog.Msg("note dao failed to del note count cache when deleting").
 				Err(err).Extras("noteId", noteId).Errorx(ctx)
 		}
 	})
