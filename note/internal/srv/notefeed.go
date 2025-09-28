@@ -43,6 +43,7 @@ func (s *NoteFeedSrv) FeedRandomGet(ctx context.Context, count int32) (*model.No
 	return s.randomGet(ctx, int(count))
 }
 
+// TODO optimize
 func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, error) {
 	var (
 		err    error

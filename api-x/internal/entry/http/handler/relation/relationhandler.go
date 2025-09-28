@@ -56,16 +56,24 @@ func (h *Handler) GetIsFollowing() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		resp, err := infra.RelationServer().BatchCheckUserFollowed(ctx, &relationv1.BatchCheckUserFollowedRequest{
-			Uid:     metadata.Uid(ctx),
-			Targets: []int64{req.UserId},
-		})
+		uid := metadata.Uid(ctx)
+		if uid == 0 {
+			// 未登录
+			xhttp.OkJson(w, false)
+			return
+		}
+
+		resp, err := infra.RelationServer().BatchCheckUserFollowed(ctx,
+			&relationv1.BatchCheckUserFollowedRequest{
+				Uid:     metadata.Uid(ctx),
+				Targets: []int64{req.Uid},
+			})
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		xhttp.OkJson(w, resp.GetStatus()[req.UserId])
+		xhttp.OkJson(w, resp.GetStatus()[req.Uid])
 	}
 }
 

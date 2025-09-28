@@ -6,15 +6,27 @@ import (
 	"fmt"
 
 	"github.com/ryanreadbooks/whimer/misc/utils"
+	"github.com/ryanreadbooks/whimer/misc/xconv"
 	"github.com/ryanreadbooks/whimer/misc/xtime"
 )
 
 const (
 	noteCacheKey = "note:note:%d"
+
+	noteCountByOwnerCacheKey       = "note:count:uid:"        // note:count:uid:%d
+	notePublicCountByOwnerCacheKey = "note:public_count:uid:" // note:public_count:uid:%d
 )
 
 func getNoteCacheKey(nid int64) string {
 	return fmt.Sprintf(noteCacheKey, nid)
+}
+
+func getNoteCountByOwnerCacheKey(uid int64) string {
+	return noteCountByOwnerCacheKey + xconv.FormatInt(uid)
+}
+
+func getNotePublicCountByOwnerCacheKey(uid int64) string {
+	return notePublicCountByOwnerCacheKey + xconv.FormatInt(uid)
 }
 
 func (d *NoteDao) CacheGetNote(ctx context.Context, nid int64) (*Note, error) {
@@ -57,5 +69,14 @@ func (d *NoteDao) CacheSetNote(ctx context.Context, model *Note) error {
 
 	ttl := xtime.Week + xtime.JitterDuration(2*xtime.Hour)
 	err = d.cache.SetexCtx(ctx, getNoteCacheKey(model.Id), utils.Bytes2String(content), int(ttl))
+	return err
+}
+
+func (d *NoteDao) DelKeys(ctx context.Context, key ...string) error {
+	if d.cache == nil {
+		return nil
+	}
+
+	_, err := d.cache.DelCtx(ctx, key...)
 	return err
 }
