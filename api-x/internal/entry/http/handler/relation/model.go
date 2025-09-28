@@ -28,11 +28,11 @@ func (r *FollowReq) Validate() error {
 }
 
 type GetIsFollowingReq struct {
-	UserId int64 `form:"user_id"`
+	Uid int64 `form:"uid"`
 }
 
 func (r *GetIsFollowingReq) Validate() error {
-	if r.UserId == 0 {
+	if r.Uid == 0 {
 		return errors.ErrUserNotFound
 	}
 

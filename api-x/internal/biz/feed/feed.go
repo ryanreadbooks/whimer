@@ -202,22 +202,29 @@ func (b *FeedBiz) AssembleNoteFeeds(ctx context.Context, notes []*notev1.FeedNot
 	})
 
 	// 6. 获取reqUid对笔记作者的关注状态
-	eg.Go(func() error {
-		return recovery.Do(func() error {
-			var err error
-			userFollows, err = b.collectRelationStatus(ctx, reqUid, authorUids)
-			if err != nil {
-				xlog.Msg("feed biz failed to collect relation status").Extras("authors", authors).Err(err).Errorx(ctx)
-			}
+	authorUidsClean := make([]int64, len(authorUids))
+	copy(authorUidsClean, authorUids)
+	// authorUids中排除当前请求的reqUid
+	authorUidsClean = xslice.Filter(authorUidsClean, func(_ int, v int64) bool { return v == reqUid })
+	
+	if len(authorUidsClean) != 0 {
+		eg.Go(func() error {
+			return recovery.Do(func() error {
+				var err error
+				userFollows, err = b.collectRelationStatus(ctx, reqUid, authorUidsClean)
+				if err != nil {
+					xlog.Msg("feed biz failed to collect relation status").Extras("authors", authorUidsClean).Err(err).Errorx(ctx)
+				}
 
-			// 非关键数据降级处理
-			if userFollows == nil {
-				userFollows = make(map[int64]bool)
-			}
+				// 非关键数据降级处理
+				if userFollows == nil {
+					userFollows = make(map[int64]bool)
+				}
 
-			return nil
+				return nil
+			})
 		})
-	})
+	}
 
 	err = eg.Wait()
 	if err != nil {

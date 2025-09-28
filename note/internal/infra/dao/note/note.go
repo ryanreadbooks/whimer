@@ -34,19 +34,24 @@ const (
 	sqlCountByUid          = "SELECT COUNT(*) FROM note WHERE owner=?"
 	sqlBatchGet            = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE id IN (%s)"
 	sqlCountPublicByUid    = "SELECT COUNT(*) FROM note WHERE owner=? AND privacy=?"
+	sqlFindOwnerById       = "SELECT owner FROM note WHERE id=?"
 )
 
 type NoteDao struct {
-	db        *xsql.DB
-	cache     *redis.Redis
-	noteCache *xcache.Cache[*Note]
+	db    *xsql.DB
+	cache *redis.Redis
+
+	noteCache    *xcache.Cache[*Note]
+	integerCache *xcache.Cache[int64]
 }
 
 func NewNoteDao(db *xsql.DB, cache *redis.Redis) *NoteDao {
 	return &NoteDao{
-		db:        db,
-		cache:     cache,
-		noteCache: xcache.New[*Note](cache),
+		db:    db,
+		cache: cache,
+
+		noteCache:    xcache.New[*Note](cache),
+		integerCache: xcache.New[int64](cache),
 	}
 }
 
@@ -228,8 +233,17 @@ func (r *NoteDao) update(ctx context.Context, note *Note) error {
 	)
 
 	concurrent.SafeGo(func() {
-		if err2 := r.CacheDelNote(context.WithoutCancel(ctx), note.Id); err2 != nil {
-			xlog.Msg("note dao failed to del note cache when updating").Extras("noteId", note.Id).Errorx(ctx)
+		ctx := context.WithoutCancel(ctx)
+		if err := r.CacheDelNote(ctx, note.Id); err != nil {
+			xlog.Msg("note dao failed to del note cache when updating").
+				Extras("noteId", note.Id).Err(err).Errorx(ctx)
+		}
+
+		if err := r.DelKeys(ctx,
+			getNoteCountByOwnerCacheKey(note.Owner),
+			getNotePublicCountByOwnerCacheKey(note.Owner)); err != nil {
+			xlog.Msg("note dao failed to del note count cache when updating").
+				Extras("noteId", note.Id).Err(err).Errorx(ctx)
 		}
 	})
 
@@ -240,12 +254,26 @@ func (r *NoteDao) Update(ctx context.Context, note *Note) error {
 	return r.update(ctx, note)
 }
 
-func (r *NoteDao) delete(ctx context.Context, id int64) error {
-	_, err := r.db.ExecCtx(ctx, sqlDeleteById, id)
+func (r *NoteDao) delete(ctx context.Context, noteId int64) error {
+	var ownerId int64
+	err := r.db.QueryRowCtx(ctx, &ownerId, sqlFindOwnerById, noteId)
+	if err != nil {
+		return xerror.Wrap(xsql.ConvertError(err))
+	}
+	_, err = r.db.ExecCtx(ctx, sqlDeleteById, noteId)
 
 	concurrent.SafeGo(func() {
-		if err2 := r.CacheDelNote(ctx, id); err2 != nil {
-			xlog.Msg("note dao failed to del note cache when deleting").Extras("noteId", id).Errorx(ctx)
+		ctx := context.WithoutCancel(ctx)
+		if err := r.CacheDelNote(ctx, noteId); err != nil {
+			xlog.Msg("note dao failed to del note cache when deleting").
+				Err(err).Extras("noteId", noteId).Errorx(ctx)
+		}
+
+		if err := r.DelKeys(ctx,
+			getNoteCountByOwnerCacheKey(ownerId),
+			getNotePublicCountByOwnerCacheKey(ownerId)); err != nil {
+			xlog.Msg("note dao failed to del note count cache when deleting").
+				Err(err).Extras("noteId", noteId).Errorx(ctx)
 		}
 	})
 
@@ -313,15 +341,47 @@ func (r *NoteDao) getCount(ctx context.Context, privacy int) (int64, error) {
 }
 
 func (r *NoteDao) GetPostedCountByOwner(ctx context.Context, uid int64) (int64, error) {
-	var cnt int64
-	err := r.db.QueryRowCtx(ctx, &cnt, sqlCountByUid, uid)
-	return cnt, xerror.Wrap(xsql.ConvertError(err))
+	cnt, err := r.integerCache.Get(ctx,
+		getNoteCountByOwnerCacheKey(uid),
+		xcache.WithGetFallback(
+			func(ctx context.Context) (t int64, sec int, err error) {
+				var cnt int64
+				err = r.db.QueryRowCtx(ctx, &cnt, sqlCountByUid, uid)
+				if err != nil {
+					return 0, 0, xerror.Wrap(xsql.ConvertError(err))
+				}
+
+				return cnt, xtime.WeekJitterSec(time.Hour * 2), nil
+			},
+		),
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	return cnt, nil
 }
 
 func (r *NoteDao) GetPublicPostedCountByOwner(ctx context.Context, uid int64) (int64, error) {
-	var cnt int64
-	err := r.db.QueryRowCtx(ctx, &cnt, sqlCountPublicByUid, uid, global.PrivacyPublic)
-	return cnt, xerror.Wrap(xsql.ConvertError(err))
+	cnt, err := r.integerCache.Get(ctx,
+		getNotePublicCountByOwnerCacheKey(uid),
+		xcache.WithGetFallback(
+			func(ctx context.Context) (t int64, sec int, err error) {
+				var cnt int64
+				err = r.db.QueryRowCtx(ctx, &cnt, sqlCountPublicByUid, uid, global.PrivacyPublic)
+				if err != nil {
+					return 0, 0, xerror.Wrap(xsql.ConvertError(err))
+				}
+
+				return cnt, xtime.WeekJitterSec(time.Hour * 2), nil
+			},
+		),
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	return cnt, nil
 }
 
 func (r *NoteDao) GetRecentPublicPosted(ctx context.Context, uid int64, count int32) ([]*Note, error) {
