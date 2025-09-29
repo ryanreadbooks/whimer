@@ -81,11 +81,11 @@ func (b *FeedBiz) collectCommentStatus(ctx context.Context, reqUid int64, noteId
 
 // 获取评论数量
 func (b *FeedBiz) collectCommentNumber(ctx context.Context, noteIds []int64) (map[int64]int64, error) {
-	resp, err := infra.Commenter().BatchCountReply(ctx, &commentv1.BatchCountReplyRequest{
+	resp, err := infra.Commenter().BatchCountComment(ctx, &commentv1.BatchCountCommentRequest{
 		Oids: noteIds,
 	})
 	if err != nil {
-		return nil, xerror.Wrapf(err, "feed biz failed to count reply").WithCtx(ctx)
+		return nil, xerror.Wrapf(err, "feed biz failed to count comment").WithCtx(ctx)
 	}
 
 	commentNums := resp.GetNumbers()
@@ -206,7 +206,7 @@ func (b *FeedBiz) AssembleNoteFeeds(ctx context.Context, notes []*notev1.FeedNot
 	copy(authorUidsClean, authorUids)
 	// authorUids中排除当前请求的reqUid
 	authorUidsClean = xslice.Filter(authorUidsClean, func(_ int, v int64) bool { return v == reqUid })
-	
+
 	if len(authorUidsClean) != 0 {
 		eg.Go(func() error {
 			return recovery.Do(func() error {

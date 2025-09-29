@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"context"
+
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 
@@ -11,7 +13,8 @@ import (
 type Dao struct {
 	db *xsql.DB
 
-	CommentDao *CommentDao
+	CommentDao      *CommentDao
+	CommentAssetDao *CommentAssetDao
 }
 
 func MustNew(c *config.Config, cache *redis.Redis) *Dao {
@@ -33,11 +36,16 @@ func MustNew(c *config.Config, cache *redis.Redis) *Dao {
 
 	db := xsql.New(conn)
 	return &Dao{
-		db:         db,
-		CommentDao: NewCommentDao(db, cache),
+		db:              db,
+		CommentDao:      NewCommentDao(db, cache),
+		CommentAssetDao: NewCommentAssetDao(db, cache),
 	}
 }
 
 func (d *Dao) DB() *xsql.DB {
 	return d.db
+}
+
+func (d *Dao) Transact(ctx context.Context, fn func(ctx context.Context) error) error {
+	return d.db.Transact(ctx, fn)
 }

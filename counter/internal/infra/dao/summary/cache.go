@@ -66,6 +66,10 @@ type CacheData struct {
 }
 
 func (c *Cache) BatchSetCount(ctx context.Context, datas []CacheData) error {
+	if len(datas) == 0 {
+		return nil
+	}
+
 	args := []any{}
 	for _, data := range datas {
 		key := getCacheKey(data.BizCode, data.Oid)
@@ -74,7 +78,7 @@ func (c *Cache) BatchSetCount(ctx context.Context, datas []CacheData) error {
 
 	_, err := c.c.MsetCtx(ctx, args...)
 	if err != nil {
-		return xerror.Wrapf(err, "mset failed")
+		return xerror.Wrapf(err, "mset failed").WithExtras("args", args).WithCtx(ctx)
 	}
 
 	err = c.c.PipelinedCtx(ctx, func(p redis.Pipeliner) error {

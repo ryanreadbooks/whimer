@@ -6,7 +6,7 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra/cache"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	"github.com/ryanreadbooks/whimer/misc/xlog"
+	// "github.com/ryanreadbooks/whimer/misc/xlog"
 	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 )
 
@@ -44,7 +44,7 @@ func (s *NoteStatSyncer) PollLikeCount(ctx context.Context) error {
 		return xerror.Wrapf(err, "note stat syncer failed to poll like count").WithCtx(ctx)
 	}
 
-	xlog.Msgf("note stat poll like count len = %d", len(stats)).Debugx(ctx)
+	// xlog.Msgf("note stat poll like count len = %d", len(stats)).Debugx(ctx)
 
 	// remove duplicates
 	reqs := s.removeDupAndDoMap(stats)
@@ -55,7 +55,7 @@ func (s *NoteStatSyncer) PollLikeCount(ctx context.Context) error {
 			return xerror.Wrapf(err, "note stat syncer update note like count failed").WithCtx(ctx)
 		}
 	} else {
-		xlog.Msg("note stat poll like count result empty").Debugx(ctx)
+		// xlog.Msg("note stat poll like count result empty").Debugx(ctx)
 	}
 
 	return nil
@@ -68,7 +68,7 @@ func (s *NoteStatSyncer) PollCommentCount(ctx context.Context) error {
 		return xerror.Wrapf(err, "note stat syncer failed to poll comment count").WithCtx(ctx)
 	}
 
-	xlog.Msgf("note stat poll comment count len = %d", len(stats)).Debugx(ctx)
+	// xlog.Msgf("note stat poll comment count len = %d", len(stats)).Debugx(ctx)
 
 	reqs := s.removeDupAndDoMap(stats)
 	if len(reqs) != 0 {
@@ -78,7 +78,7 @@ func (s *NoteStatSyncer) PollCommentCount(ctx context.Context) error {
 			return xerror.Wrapf(err, "note stat syncer update note comment count failed").WithCtx(ctx)
 		}
 	} else {
-		xlog.Msg("note stat poll comment count result empty").Debugx(ctx)
+		// xlog.Msg("note stat poll comment count result empty").Debugx(ctx)
 	}
 
 	return nil

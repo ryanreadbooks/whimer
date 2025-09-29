@@ -50,20 +50,20 @@ if req_method == httpmethod.PUT then
 
   local jwt_obj = jwt:verify(env.get_aws_secret_access_key(), token, {
     require_exp_claim = true,
-    valid_issuers = { 'whm_note' }
+    valid_issuers = { env.get_jwt_valid_issuer() }
   })
   if not jwt_obj['verified'] then
     resplib.make_403_err('invalid x-security-token ' .. jwt_obj['reason'])
     return
   end
-  if jwt_obj['payload']['sub'] ~= 'sts' then
+  if jwt_obj['payload']['sub'] ~= env.get_jwt_valid_subject() then
     resplib.make_403_err('invalid x-security-token subject')
     return
   end
-  if jwt_obj['payload']['jti'] ~= 'whm_ulas' then
-    resplib.make_403_err('invalid x-security-token id')
-    return
-  end
+  -- if jwt_obj['payload']['jti'] ~= 'whm_ulas' then
+  --   resplib.make_403_err('invalid x-security-token id')
+  --   return
+  -- end
   local access_key = jwt_obj['payload']['access_key'] or ''
 
   local date = req_headers['X-Date'] or ''

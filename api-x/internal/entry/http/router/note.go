@@ -58,5 +58,35 @@ func regNoteRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 				v1g.Get("/like/history", h.Note.ListLikedNotes())
 			}
 		}
+
+		// 笔记评论相关接口
+		// /note/comment
+		noteCommentGroup := noteGroup.Group("/comment", middleware.CanLogin())
+		{
+			v1Group := noteCommentGroup.Group("/v1")
+			v1AuthedGroup := v1Group.Group("", middleware.MustLoginCheck())
+			{
+				// 发布评论
+				v1AuthedGroup.Post("/pub", h.Comment.PublishNoteComment())
+				// 获取主评论
+				v1AuthedGroup.Get("/roots", h.Comment.PageGetNoteRootComments())
+				// 获取子评论
+				v1AuthedGroup.Get("/subs", h.Comment.PageGetNoteSubComments())
+				// 分页获取评论
+				v1AuthedGroup.Get("/pages", h.Comment.PageGetNoteComments())
+				// 删除评论
+				v1AuthedGroup.Post("/del", h.Comment.DelNoteComment())
+				// 置顶评论
+				v1AuthedGroup.Post("/pin", h.Comment.PinNoteComment())
+				// 点赞评论
+				v1AuthedGroup.Post("/like", h.Comment.LikeNoteComment())
+				// 点踩评论
+				v1AuthedGroup.Post("/dislike", h.Comment.DislikeNoteComment())
+				// 获取评论点赞数
+				v1AuthedGroup.Get("/likes", h.Comment.GetNoteCommentLikeCount())
+				// 评论中插入图片申请上传凭证
+				v1AuthedGroup.Get("/upload/images", h.Comment.UploadCommentImages())
+			}
+		}
 	}
 }

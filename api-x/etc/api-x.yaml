@@ -7,31 +7,31 @@ http:
     level: debug
   telemetry:
     Name: api-x
-    Endpoint: http://127.0.0.1:14268/api/traces
+    Endpoint: ${ENV_JAEGER_ENDPOINT}
     Sampler: 1.0
     Batcher: jaeger
 
 redis:
-  host: 127.0.0.1:7542
+  host: ${ENV_REDIS_HOST}
 
 backend:
   note:
-    hosts: [127.0.0.1:2379]
+    hosts: ${ENV_ETCD_HOSTS}
     key: whimer.note.rpc
   passport:
-    hosts: [127.0.0.1:2379]
+    hosts: ${ENV_ETCD_HOSTS}
     key: whimer.passport.rpc
   comment:
-    hosts: [127.0.0.1:2379]
+    hosts: ${ENV_ETCD_HOSTS}
     key: whimer.comment.rpc
   relation:
-    hosts: [127.0.0.1:2379]
+    hosts: ${ENV_ETCD_HOSTS}
     key: whimer.relation.rpc
   msger:
-    hosts: [127.0.0.1:2379]
+    hosts: ${ENV_ETCD_HOSTS}
     key: whimer.msger.rpc
   search:
-    hosts: [127.0.0.1:2379]
+    hosts: ${ENV_ETCD_HOSTS}
     key: whimer.search.rpc
 
 obfuscate:

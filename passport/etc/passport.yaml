@@ -9,7 +9,7 @@ http:
     level: debug
   telemetry:
     Name: passport
-    Endpoint: http://127.0.0.1:14268/api/traces
+    Endpoint: ${ENV_JAEGER_ENDPOINT}
     Sampler: 1.0
     Batcher: jaeger
 
@@ -20,12 +20,11 @@ grpc:
   log:
     level: debug
   etcd:
-    hosts:
-      - 127.0.0.1:2379
+    hosts: ${ENV_ETCD_HOSTS}
     key: whimer.passport.rpc
   telemetry:
     Name: passport
-    Endpoint: http://127.0.0.1:14268/api/traces
+    Endpoint: ${ENV_JAEGER_ENDPOINT}
     Sampler: 1.0
     Batcher: jaeger
 
@@ -36,7 +35,7 @@ mysql:
   db_name: ${ENV_DB_NAME}
 
 redis:
-  host: 127.0.0.1:7542
+  host: ${ENV_REDIS_HOST}
 
 oss:
   ak: ${ENV_OSS_AK}

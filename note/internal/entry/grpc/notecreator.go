@@ -183,6 +183,7 @@ func (s *NoteCreatorServiceServer) ListNote(ctx context.Context, in *notev1.List
 		HasNext:    nextPage.HasNext}, nil
 }
 
+// Deprecated
 func (s *NoteCreatorServiceServer) GetUploadAuth(ctx context.Context, in *notev1.GetUploadAuthRequest) (
 	*notev1.GetUploadAuthResponse, error) {
 	return nil, xerror.ErrApiWentOffline

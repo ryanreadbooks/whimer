@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	noter      notev1.NoteCreatorServiceClient // 笔记服务
-	counter    counterv1.CounterServiceClient  // 计数服务
-	replyIdgen foliumsdk.IClient
-	err        error
+	noter              notev1.NoteCreatorServiceClient // 笔记服务
+	counter            counterv1.CounterServiceClient  // 计数服务
+	commentIdGenerator foliumsdk.IClient
+	err                error
 )
 
 func Init(c *config.Config) {
@@ -30,7 +30,7 @@ func Init(c *config.Config) {
 		},
 	)
 
-	initReplyIdgen(c)
+	initCommentIdgen(c)
 }
 
 func GetNoter() notev1.NoteCreatorServiceClient {
@@ -41,12 +41,12 @@ func GetCounter() counterv1.CounterServiceClient {
 	return counter
 }
 
-func ReplyIdgen() foliumsdk.IClient {
-	return replyIdgen
+func CommentIdgen() foliumsdk.IClient {
+	return commentIdGenerator
 }
 
-func initReplyIdgen(c *config.Config) {
-	replyIdgen = idgen.GetIdgen(c.Seqer.Addr, func(newIdgen foliumsdk.IClient) {
-		replyIdgen = newIdgen
+func initCommentIdgen(c *config.Config) {
+	commentIdGenerator = idgen.GetIdgen(c.Seqer.Addr, func(newIdgen foliumsdk.IClient) {
+		commentIdGenerator = newIdgen
 	})
 }

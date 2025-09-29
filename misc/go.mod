@@ -8,6 +8,7 @@ require (
 	github.com/bufbuild/protovalidate-go v0.6.5
 	github.com/elastic/go-elasticsearch/v8 v8.19.0
 	github.com/go-sql-driver/mysql v1.8.1
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0
 	github.com/minio/minio-go/v7 v7.0.72

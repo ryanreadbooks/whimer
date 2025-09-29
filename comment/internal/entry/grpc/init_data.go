@@ -4,14 +4,14 @@ import commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 
 // 定义不需要检查uid的方法
 var uidCheckIgnoredMethods = []string{
-	commentv1.ReplyService_PageGetReply_FullMethodName,
-	commentv1.ReplyService_PageGetSubReply_FullMethodName,
-	commentv1.ReplyService_PageGetDetailedReply_FullMethodName,
-	commentv1.ReplyService_GetPinnedReply_FullMethodName,
-	commentv1.ReplyService_CountReply_FullMethodName,
-	commentv1.ReplyService_BatchCountReply_FullMethodName,
-	commentv1.ReplyService_GetReplyLikeCount_FullMethodName,
-	commentv1.ReplyService_GetReplyDislikeCount_FullMethodName,
-	commentv1.ReplyService_CheckUserOnObject_FullMethodName,
-	commentv1.ReplyService_BatchCheckUserOnObject_FullMethodName,
+	commentv1.CommentService_PageGetComment_FullMethodName,
+	commentv1.CommentService_PageGetSubComment_FullMethodName,
+	commentv1.CommentService_PageGetDetailedComment_FullMethodName,
+	commentv1.CommentService_GetPinnedComment_FullMethodName,
+	commentv1.CommentService_CountComment_FullMethodName,
+	commentv1.CommentService_BatchCountComment_FullMethodName,
+	commentv1.CommentService_GetCommentLikeCount_FullMethodName,
+	commentv1.CommentService_GetCommentDislikeCount_FullMethodName,
+	commentv1.CommentService_CheckUserOnObject_FullMethodName,
+	commentv1.CommentService_BatchCheckUserOnObject_FullMethodName,
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xcache"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	maps "github.com/ryanreadbooks/whimer/misc/xmap"
 	slices "github.com/ryanreadbooks/whimer/misc/xslice"
@@ -32,8 +33,8 @@ func NewCommentDao(db *xsql.DB, cache *redis.Redis) *CommentDao {
 
 // all sqls here
 const (
-	fields     = "id,oid,ctype,content,uid,root,parent,ruid,state,`like`,dislike,report,pin,ip,ctime,mtime"
-	fieldsNoId = "oid,ctype,content,uid,root,parent,ruid,state,like,dislike,report,pin,ip,ctime,mtime"
+	fields          = "id,oid,type,content,uid,root,parent,ruid,state,`like`,dislike,report,pin,ip,ctime,mtime"
+	fieldsWithoutId = "oid,type,content,uid,root,parent,ruid,state,`like`,dislike,report,pin,ip,ctime,mtime"
 
 	sqlUdState    = "UPDATE comment SET state=?, mtime=? WHERE id=?"
 	sqlIncLike    = "UPDATE comment SET `like`=`like`+1, mtime=? WHERE id=?"
@@ -65,7 +66,7 @@ const (
 var (
 	sqlSelRootParentById = "SELECT id,root,parent,oid,pin FROM comment WHERE id=?"
 	sqlCountByO          = "SELECT COUNT(*) FROM comment WHERE oid=?"
-	sqlBatchCountByO     = "SELECT oid, COUNT(*) cnt FROM comment WHERE oid IN (%s) GROUP BY oid"
+	sqlBatchCountByO     = "SELECT oid, COUNT(*) AS cnt FROM comment WHERE oid IN (%s) GROUP BY oid"
 	sqlCountByOU         = "SELECT COUNT(*) FROM comment WHERE oid=? AND uid=?"
 	sqlCountGbO          = "SELECT oid, COUNT(*) AS cnt FROM comment GROUP BY oid"
 	sqlCountGbOLimit     = "SELECT oid, COUNT(*) AS cnt FROM comment GROUP BY oid LIMIT ?,?"
@@ -74,7 +75,7 @@ var (
 	sqlSel4Ud            = fmt.Sprintf("SELECT %s FROM comment WHERE id=? FOR UPDATE", fields)
 	sqlSelByO            = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? %%s", fields)
 	sqlSelByRoot         = fmt.Sprintf("SELECT %s FROM comment WHERE root=? %%s", fields)
-	sqlInsert            = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fields)
+	sqlInsert            = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fieldsWithoutId)
 
 	sqlSelRoots       = fmt.Sprintf("SELECT %s FROM comment WHERE %%s oid=? AND root=0 AND pin=0 ORDER BY ctime DESC LIMIT ?", fields)
 	sqlSelSubs        = fmt.Sprintf("SELECT %s FROM comment WHERE id>? AND oid=? AND root=? ORDER BY ctime ASC LIMIT ?", fields)
@@ -124,9 +125,8 @@ func (r *CommentDao) Insert(ctx context.Context, model *Comment) (int64, error) 
 	}
 
 	res, err := r.db.ExecCtx(ctx, sqlInsert,
-		model.Id,
 		model.Oid,
-		model.CType,
+		model.Type,
 		model.Content,
 		model.Uid,
 		model.RootId,
@@ -236,7 +236,7 @@ func (r *CommentDao) SubDisLike(ctx context.Context, id int64) error {
 func (r *CommentDao) setPin(ctx context.Context, oid, id int64, pin bool) error {
 	// 移除缓存
 	defer func() {
-		if _, err := r.pinnedCache.Del(ctx, getPinnedCmtKey(oid)); err != nil {
+		if _, err := r.pinnedCache.Del(ctx, getPinnedCommentCacheKey(oid)); err != nil {
 			xlog.Msg("pinned cache del pinned failed").Extra("oid", oid).Errorx(ctx)
 		}
 	}()
@@ -262,7 +262,7 @@ func (r *CommentDao) SetUnPin(ctx context.Context, oid, id int64) error {
 }
 
 // 获取主评论
-func (r *CommentDao) GetRootReplies(ctx context.Context, oid, cursor int64, want int) ([]*Comment, error) {
+func (r *CommentDao) GetRoots(ctx context.Context, oid, cursor int64, want int) ([]*Comment, error) {
 	var res = make([]*Comment, 0, want)
 	hasCursor := ""
 	var args []any
@@ -283,7 +283,7 @@ func (r *CommentDao) GetRootReplies(ctx context.Context, oid, cursor int64, want
 
 // 获取主评论下的子评论的数量
 // rootId -> cnt
-func (r *CommentDao) BatchCountSubReplies(ctx context.Context, rootIds []int64) (map[int64]int64, error) {
+func (r *CommentDao) BatchCountSubs(ctx context.Context, rootIds []int64) (map[int64]int64, error) {
 	var res = make(map[int64]int64, 0)
 	if len(rootIds) == 0 {
 		return res, nil
@@ -315,7 +315,7 @@ func (r *CommentDao) GetSubReplies(ctx context.Context, oid, root, cursor int64,
 }
 
 // 获取子评论数量
-func (r *CommentDao) CountSubReplies(ctx context.Context, oid, root int64) (int64, error) {
+func (r *CommentDao) CountSubs(ctx context.Context, oid, root int64) (int64, error) {
 	if root == 0 {
 		return 0, nil
 	}
@@ -328,7 +328,7 @@ func (r *CommentDao) CountSubReplies(ctx context.Context, oid, root int64) (int6
 
 // 分页获取子评论
 // page从1开始
-func (r *CommentDao) PageGetSubReplies(ctx context.Context, oid, root int64, page, cnt int) ([]*Comment, error) {
+func (r *CommentDao) PageGetSubs(ctx context.Context, oid, root int64, page, cnt int) ([]*Comment, error) {
 	if page <= 0 || cnt <= 0 {
 		return []*Comment{}, nil
 	}
@@ -343,7 +343,7 @@ func (r *CommentDao) PageGetSubReplies(ctx context.Context, oid, root int64, pag
 func (r *CommentDao) DoPin(ctx context.Context, oid, rid int64) error {
 	_, err := r.db.ExecCtx(ctx, sqlDoPin, time.Now().Unix(), oid, rid)
 	defer func() {
-		if _, err := r.pinnedCache.Del(ctx, getPinnedCmtKey(oid)); err != nil {
+		if _, err := r.pinnedCache.Del(ctx, getPinnedCommentCacheKey(oid)); err != nil {
 			xlog.Msg("pinned cache del pinned failed").Extra("oid", oid).Errorx(ctx)
 		}
 	}()
@@ -353,7 +353,7 @@ func (r *CommentDao) DoPin(ctx context.Context, oid, rid int64) error {
 
 // 拿出置顶评论
 func (r *CommentDao) GetPinned(ctx context.Context, oid int64) (*Comment, error) {
-	model, err := r.pinnedCache.Get(ctx, getPinnedCmtKey(oid), xcache.WithGetFallback(
+	model, err := r.pinnedCache.Get(ctx, getPinnedCommentCacheKey(oid), xcache.WithGetFallback(
 		func(ctx context.Context) (*Comment, int, error) {
 			var ret Comment
 			err := r.db.QueryRowCtx(ctx, &ret, sqlSelPinned, oid)
@@ -373,16 +373,17 @@ func (r *CommentDao) GetPinned(ctx context.Context, oid int64) (*Comment, error)
 
 // 查出oid评论总量
 func (r *CommentDao) CountByOid(ctx context.Context, oid int64) (int64, error) {
-	cnt, err := r.countCache.Get(ctx, getCountCmtKey(oid), xcache.WithGetFallback(
-		func(ctx context.Context) (int64, int, error) {
-			var cnt int64
-			err := r.db.QueryRowCtx(ctx, &cnt, sqlCountByO, oid)
-			if err != nil {
-				return 0, 0, nil
-			}
-			return cnt, xtime.HourJitterSec(3 * time.Hour), nil
-		},
-	))
+	cnt, err := r.countCache.Get(ctx, getCommentCountCacheKey(oid),
+		xcache.WithGetFallback(
+			func(ctx context.Context) (int64, int, error) {
+				var cnt int64
+				err := r.db.QueryRowCtx(ctx, &cnt, sqlCountByO, oid)
+				if err != nil {
+					return 0, 0, nil
+				}
+				return cnt, xtime.HourJitterSec(3 * time.Hour), nil
+			},
+		))
 
 	if err != nil {
 		return 0, xsql.ConvertError(err)
@@ -391,34 +392,66 @@ func (r *CommentDao) CountByOid(ctx context.Context, oid int64) (int64, error) {
 	return cnt, nil
 }
 
-func (r *CommentDao) IncrReplyCount(ctx context.Context, oid int64) error {
-	return r.cache.IncrReplyCountWhenExist(ctx, oid, 1)
+func (r *CommentDao) IncrCommentCount(ctx context.Context, oid int64) error {
+	return r.cache.IncrCommentCountWhenExist(ctx, oid, 1)
 }
 
-// TODO 注意小于0的情况发生
-func (r *CommentDao) DecrReplyCount(ctx context.Context, oid int64) error {
-	return r.cache.DecrReplyCountWhenExist(ctx, oid, 1)
+func (r *CommentDao) DecrCommentCount(ctx context.Context, oid int64) error {
+	return r.cache.DecrCommentCountWhenExist(ctx, oid, 1)
 }
 
 func (r *CommentDao) BatchCountByOid(ctx context.Context, oids []int64) (map[int64]int64, error) {
-	var ret []struct {
-		Oid int64 `db:"oid"`
-		Cnt int64 `db:"cnt"`
+	keys := make([]string, 0, len(oids))
+	oidKeysMap := make(map[string]int64, len(oids))
+	for _, oid := range oids {
+		key := getCommentCountCacheKey(oid)
+		keys = append(keys, key)
+		oidKeysMap[key] = oid
 	}
 
-	query := fmt.Sprintf(sqlBatchCountByO, slices.JoinInts(oids))
-	err := r.db.QueryRowsCtx(ctx, &ret, query)
+	queriedResult, err := r.countCache.MGet(ctx, keys,
+		r.countCache.WithMGetFallbackSec(xtime.DayJitterSec(time.Minute*30)),
+		r.countCache.WithMGetBgSet(true),
+		r.countCache.WithMGetFallback(
+			func(ctx context.Context, missingKeys []string) (t map[string]int64, err error) {
+				if len(missingKeys) == 0 {
+					return
+				}
+
+				var (
+					ret         []OidCnt
+					missingOids []int64 = make([]int64, 0, len(missingKeys))
+				)
+
+				for _, k := range missingKeys {
+					missingOids = append(missingOids, oidKeysMap[k])
+				}
+
+				query := fmt.Sprintf(sqlBatchCountByO, slices.JoinInts(missingOids))
+				err = r.db.QueryRowsCtx(ctx, &ret, query)
+				if err != nil {
+					return nil, xerror.Wrap(xsql.ConvertError(err))
+				}
+
+				nr := make(map[string]int64, len(ret))
+				for _, oidCnt := range ret {
+					nr[getCommentCountCacheKey(oidCnt.Oid)] = oidCnt.Cnt
+				}
+
+				xlog.Msg(fmt.Sprintf("%v", nr)).Infox(ctx)
+
+				return nr, nil
+			},
+		),
+	)
 	if err != nil {
-		return nil, xsql.ConvertError(err)
+		return nil, err
 	}
 
-	result := make(map[int64]int64, len(ret))
-	for _, r := range ret {
-		result[r.Oid] = r.Cnt
-	}
-
-	if err := r.cache.BatchSetReplyCount(ctx, result); err != nil {
-		xlog.Msg("comment dao batch set reply count failed").Err(err).Errorx(ctx)
+	result := make(map[int64]int64, len(queriedResult))
+	for _, oid := range oids {
+		key := getCommentCountCacheKey(oid)
+		result[oid] = queriedResult[key]
 	}
 
 	return result, nil
@@ -449,8 +482,8 @@ func (r *CommentDao) CountGroupByOid(ctx context.Context) (map[int64]int64, erro
 		ret[item.Oid] = item.Cnt
 	}
 
-	if err := r.cache.BatchSetReplyCount(ctx, ret); err != nil {
-		xlog.Msg("comment dao cache batch set reply count failed").Err(err).Errorx(ctx)
+	if err := r.cache.BatchSetCommentCount(ctx, ret); err != nil {
+		xlog.Msg("comment dao cache batch set comment count failed").Err(err).Errorx(ctx)
 	}
 
 	return ret, nil
@@ -471,8 +504,8 @@ func (r *CommentDao) CountGroupByOidLimit(ctx context.Context, offset, limit int
 		ret[item.Oid] = item.Cnt
 	}
 
-	if err := r.cache.BatchSetReplyCount(ctx, ret); err != nil {
-		xlog.Msg("comment dao cache batch set reply count failed").Err(err).Errorx(ctx)
+	if err := r.cache.BatchSetCommentCount(ctx, ret); err != nil {
+		xlog.Msg("comment dao cache batch set comment count failed").Err(err).Errorx(ctx)
 	}
 
 	return ret, nil

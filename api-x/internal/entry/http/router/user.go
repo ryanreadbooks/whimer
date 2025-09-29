@@ -12,18 +12,18 @@ func regUserRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 	{
 		v1g := g.Group("/v1")
 		{
-			v1gMustLogin := v1g.Group("", middleware.MustLoginCheck())
+			v1AuthedGroup := v1g.Group("", middleware.MustLoginCheck())
 			{
 				// 批量拉取用户信息
-				v1gMustLogin.Get("/info/list", h.User.ListInfos())
+				v1AuthedGroup.Get("/info/list", h.User.ListInfos())
 				// 获取用户粉丝列表
-				v1gMustLogin.Get("/fans", h.User.ListUserFans())
+				v1AuthedGroup.Get("/fans", h.User.ListUserFans())
 				// 获取用户关注列表
-				v1gMustLogin.Get("/followings", h.User.ListUserFollowings())
+				v1AuthedGroup.Get("/followings", h.User.ListUserFollowings())
 
 				// 用户设置相关
 				{
-					settingsGroup := v1gMustLogin.Group("/settings")
+					settingsGroup := v1AuthedGroup.Group("/settings")
 					{
 						// 获取全部设置
 						settingsGroup.Get("/all", h.User.GetAllSettings())

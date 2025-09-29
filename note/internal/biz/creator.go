@@ -417,6 +417,7 @@ func (b *NoteCreatorBiz) PageListNote(ctx context.Context, page, count int32) (*
 	return notesResp, total, nil
 }
 
+// Deprecated
 func (b *NoteCreatorBiz) GetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {
 	return nil, xerror.Wrap(global.ErrPermDenied.Msg("服务器签名失败"))
 }

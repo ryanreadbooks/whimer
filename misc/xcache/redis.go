@@ -3,11 +3,13 @@ package xcache
 import (
 	"context"
 	"encoding/json"
+	"maps"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/generics"
 	"github.com/ryanreadbooks/whimer/misc/utils"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -69,6 +71,18 @@ func WithGetBgSet[T any](b bool) GetOpt[T] {
 	}
 }
 
+func (c *Cache[T]) WithGetUnmarshaler(um func([]byte, any) error) GetOpt[T] {
+	return WithGetUnmarshaler[T](um)
+}
+
+func (c *Cache[T]) WithGetFallback(fn GetFallbackFn[T]) GetOpt[T] {
+	return WithGetFallback(fn)
+}
+
+func (c *Cache[T]) WithGetBgSet(b bool) GetOpt[T] {
+	return WithGetBgSet[T](b)
+}
+
 // 从缓存中获取对象
 // 如果T是一个对象，自动进行json序列化
 func (c *Cache[T]) Get(ctx context.Context, key string, opts ...GetOpt[T]) (t T, err error) {
@@ -83,12 +97,20 @@ func (c *Cache[T]) Get(ctx context.Context, key string, opts ...GetOpt[T]) (t T,
 			}
 
 			// we can put result back to cache here
-			sf := func() { _ = c.Setex(ctx, key, t, sec, WithSetMarshaler[T](opt.marshaler)) }
+			sf := func(ctx context.Context) error {
+				return c.Setex(ctx, key, t, sec, WithSetMarshaler[T](opt.marshaler))
+			}
+
 			if opt.bgSet {
-				concurrent.SafeGo(sf)
+				concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+					Name: "misc.cache.get.bgset",
+					Job: func(ctx context.Context) error {
+						return sf(ctx)
+					},
+				})
 				return
 			}
-			sf()
+			sf(ctx)
 		}
 
 		return
@@ -101,7 +123,7 @@ func (c *Cache[T]) Get(ctx context.Context, key string, opts ...GetOpt[T]) (t T,
 	return
 }
 
-type MGetFallbackFn[T any] func(ctx context.Context, keys []string) (t map[string]T, err error)
+type MGetFallbackFn[T any] func(ctx context.Context, missingKeys []string) (t map[string]T, err error)
 
 type mgetOpt[T any] struct {
 	unmarshaler unmarshaler
@@ -147,22 +169,49 @@ func WithMGetFallbackSec[T any](sec int) MGetOpt[T] {
 	}
 }
 
+func (c *Cache[T]) WithMGetFallbackSec(sec int) MGetOpt[T] {
+	return WithMGetFallbackSec[T](sec)
+}
+
+func (c *Cache[T]) WithMGetBgSet(b bool) MGetOpt[T] {
+	return WithMGetBgSet[T](b)
+}
+
+func (c *Cache[T]) WithMGetFallback(fn MGetFallbackFn[T]) MGetOpt[T] {
+	return WithMGetFallback(fn)
+}
+
+func (c *Cache[T]) WithMGetUnmarshaler(um func([]byte, any) error) MGetOpt[T] {
+	return WithMGetUnmarshaler[T](um)
+}
+
+const (
+	mgetBgSetJobName = "misc.cache.mget.bgset"
+)
+
 func (c *Cache[T]) MGet(ctx context.Context, keys []string, opts ...MGetOpt[T]) (t map[string]T, err error) {
 	opt := generics.MakeOpt(opts...)
 	resp, err := c.r.MgetCtx(ctx, keys...)
 	t = make(map[string]T, len(keys))
 
-	setFn := func(m map[string]T) {
-		c.r.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
+	setFn := func(ctx context.Context, m map[string]T) error {
+		errPipex := c.r.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
 			for k, v := range m {
 				mv, merr := opt.marshaler(v)
 				if merr == nil {
 					p.Set(ctx, k, mv, time.Second*time.Duration(opt.fSec))
+				} else {
+					xlog.Msg("mget marshal err").Err(merr).Extras("v", v, "k", k).Infox(ctx)
 				}
 			}
 
 			return nil
 		})
+		if errPipex != nil {
+			xlog.Msg("mget setfn pipeline failed").Err(errPipex).Errorx(ctx)
+		}
+
+		return errPipex
 	}
 
 	if err != nil {
@@ -177,10 +226,15 @@ func (c *Cache[T]) MGet(ctx context.Context, keys []string, opts ...MGetOpt[T]) 
 
 		// set back to cache
 		if opt.bgSet {
-			concurrent.SafeGo(func() { setFn(t) })
+			concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+				Name: mgetBgSetJobName,
+				Job: func(ctx context.Context) error {
+					return setFn(ctx, t)
+				},
+			})
 			return
 		}
-		setFn(t)
+		setFn(ctx, t)
 	} else {
 		// 找出哪些需要调用fallback
 		fallbackKeys := []string{}
@@ -209,16 +263,19 @@ func (c *Cache[T]) MGet(ctx context.Context, keys []string, opts ...MGetOpt[T]) 
 				return
 			}
 
-			for k, v := range ftm {
-				t[k] = v
-			}
+			maps.Copy(t, ftm)
 
 			// set ftm back to cache
 			if opt.bgSet {
-				concurrent.SafeGo(func() { setFn(ftm) })
+				concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+					Name: mgetBgSetJobName,
+					Job: func(ctx context.Context) error {
+						return setFn(ctx, t)
+					},
+				})
 				return
 			}
-			setFn(ftm)
+			setFn(ctx, ftm)
 		}
 	}
 

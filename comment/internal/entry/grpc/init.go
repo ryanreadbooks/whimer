@@ -12,7 +12,7 @@ import (
 
 func Init(c zrpc.RpcServerConf, svc *srv.Service) *zrpc.RpcServer {
 	server := zrpc.MustNewServer(c, func(s *grpc.Server) {
-		commentv1.RegisterReplyServiceServer(s, NewReplyServiceServer(svc))
+		commentv1.RegisterCommentServiceServer(s, NewCommentServiceServer(svc))
 		xgrpc.EnableReflectionIfNecessary(c, s)
 	})
 	interceptor.InstallUnaryServerInterceptors(server,

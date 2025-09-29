@@ -76,17 +76,20 @@ message ListNoteResponse {
   bool has_next = 3;
 }
 
+// Deprecated
 message GetUploadAuthRequest {
   string resource = 1;
   string source = 2;
 }
 
+// Deprecated
 message BatchGetUploadAuthRequest {
   string resource = 1;
   string source = 2;
   int32 count = 3 [ (buf.validate.field).int32.gt = 0 ];
 }
 
+// Deprecated
 message UploadAuthResponseHeaders {
   string auth = 1;
   string sha256 = 2;
@@ -94,6 +97,7 @@ message UploadAuthResponseHeaders {
   string token = 4;
 }
 
+// Deprecated
 message GetUploadAuthResponse {
   string file_id = 1;
   int64 current_time = 2;
@@ -102,6 +106,7 @@ message GetUploadAuthResponse {
   UploadAuthResponseHeaders headers = 5;
 }
 
+// Deprecated
 message BatchGetUploadAuthResponse {
   repeated GetUploadAuthResponse tickets = 1;
 }
