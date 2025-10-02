@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	xcachev2 "github.com/ryanreadbooks/whimer/misc/xcache/v2"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xmap"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	slices "github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
+	"github.com/ryanreadbooks/whimer/misc/xtime"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -110,20 +114,42 @@ func (d *UserDao) FindUserBaseByTel(ctx context.Context, tel string) (*UserBase,
 	return d.findUserBaseBy(ctx, "tel", tel)
 }
 
-// TODO make it cache
+// 返回的切片不按照入参uids的顺序
 func (d *UserDao) FindUserBaseByUids(ctx context.Context, uids []int64) ([]*UserBase, error) {
 	model := make([]*UserBase, 0)
 	if len(uids) == 0 {
 		return model, nil
 	}
 
-	sql := fmt.Sprintf(sqlFindBasicIn, slices.JoinInts(uids))
-	err := d.db.QueryRowsCtx(ctx, &model, sql)
+	cacheKeys, keysMapping := xcachev2.KeysAndMap(uids, getCacheUserBaseUidKey)
+
+	result, err := xcachev2.New[*UserBase](d.cache).MGetOrFetch(ctx,
+		cacheKeys,
+		func(ctx context.Context, keys []string) (map[string]*UserBase, error) {
+			dbUids := xcachev2.RangeRevertKeys(keys, keysMapping, func(t int64) int64 { return t })
+			dbUids = xslice.Uniq(dbUids)
+
+			dbResult := make([]*UserBase, 0)
+			sql := fmt.Sprintf(sqlFindBasicIn, slices.JoinInts(dbUids))
+			err := d.db.QueryRowsCtx(ctx, &dbResult, sql)
+			if err != nil {
+				return nil, xerror.Wrapf(xsql.ConvertError(err), "user dao query user base by uids failed")
+			}
+
+			ret := xslice.MakeMap(dbResult, func(v *UserBase) string {
+				return getCacheUserBaseUidKey(v.Uid)
+			})
+
+			return ret, nil
+		},
+		xcachev2.WithTTL(xtime.WeekJitter(time.Hour*20)),
+	)
+
 	if err != nil {
-		return nil, xerror.Wrapf(xsql.ConvertError(err), "user dao query user base by uids failed")
+		return nil, err
 	}
 
-	return model, nil
+	return xmap.Values(result), nil
 }
 
 func (d *UserDao) Insert(ctx context.Context, user *User) error {
@@ -146,6 +172,7 @@ func (d *UserDao) Insert(ctx context.Context, user *User) error {
 
 func (d *UserDao) Delete(ctx context.Context, uid int64) error {
 	_, err := d.db.ExecCtx(ctx, sqlDel, uid)
+	d.CacheDelUserBaseByUid(ctx, uid)
 	return xerror.Wrapf(xsql.ConvertError(err), "user dao delete user %d failed", uid)
 }
 
@@ -153,8 +180,7 @@ func (d *UserDao) updateCol(ctx context.Context, col string, val interface{}, ui
 	statement := fmt.Sprintf(sqlUpdateCol, col)
 	_, err := d.db.ExecCtx(ctx, statement, val, time.Now().Unix(), uid)
 
-	defer func() {
-	}()
+	d.CacheDelUserBaseByUid(ctx, uid)
 
 	return xerror.Wrapf(xsql.ConvertError(err), "user dao update col(%s) failed", col)
 }
@@ -199,6 +225,7 @@ func (d *UserDao) UpdateUserBase(ctx context.Context, base *UserBase) error {
 		time.Now().Unix(),
 		base.Uid,
 	)
+	d.CacheDelUserBaseByUid(ctx, base.Uid)
 
 	return xerror.Wrapf(xsql.ConvertError(err), "user dao update user base failed")
 }
