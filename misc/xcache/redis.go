@@ -13,10 +13,16 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
+// Deprecated
+//
+// Use xcache/v2/cache.go
 type Cache[T any] struct {
 	r *redis.Redis
 }
 
+// Deprecated
+//
+// Use xcache/v2/cache.go
 func New[T any](rd *redis.Redis) *Cache[T] {
 	return &Cache[T]{
 		r: rd,

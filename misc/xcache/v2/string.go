@@ -83,7 +83,9 @@ func (c *Cache[T]) Setex(ctx context.Context, key string, val T, seconds int, op
 	return c.r.SetexCtx(ctx, key, xstring.FromBytes(content), seconds)
 }
 
-func (c *Cache[T]) setCacheBack(ctx context.Context, opt *cacheOption, f func(ctx context.Context) error) {
+type ctxFn func(ctx context.Context) error
+
+func (c *Cache[T]) setCacheBack(ctx context.Context, opt *cacheOption, f ctxFn) {
 	if opt.bgSet {
 		concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
 			Name: "misc.cachev2.bgset",
@@ -153,7 +155,11 @@ func (c *Cache[T]) mgetPartialFallback(ctx context.Context,
 		}
 
 		var tmp T
-		opt.serializer.Unmarshal(xstring.AsBytes(str), &tmp)
+		err = opt.serializer.Unmarshal(xstring.AsBytes(str), &tmp)
+		if err != nil {
+			missings = append(missings, keys[idx])
+			continue
+		}
 		t[keys[idx]] = tmp
 	}
 
