@@ -29,7 +29,24 @@ func KeysAndMap[T any](t []T, keyGen func(T) string) ([]string, map[string]T) {
 func RangeRevertKeys[T any, R any](keys []string, m map[string]T, revert func(T) R) []R {
 	rs := make([]R, 0, len(keys))
 	for _, k := range keys {
-		rs = append(rs, revert(m[k]))
+		if vv, ok := m[k]; !ok {
+			continue
+		} else {
+			rs = append(rs, revert(vv))
+		}
+	}
+
+	return rs
+}
+
+func RangeKeys[T any](keys []string, m map[string]T) []T {
+	rs := make([]T, 0, len(keys))
+	for _, k := range keys {
+		if vv, ok := m[k]; !ok {
+			continue
+		} else {
+			rs = append(rs, vv)
+		}
 	}
 
 	return rs

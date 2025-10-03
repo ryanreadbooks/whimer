@@ -41,6 +41,10 @@ func (c *Cache[T]) GetOrFetch(ctx context.Context, key string, fetcher Fetcher[T
 				return
 			}
 
+			if ttl == 0 {
+				ttl = time.Duration(opt.ttlSec) * time.Second
+			}
+
 			// we can put result back to cache here
 			c.setCacheBack(ctx, opt, func(ctx context.Context) error {
 				return c.setTFn(ctx, opt, key, t, ttl)

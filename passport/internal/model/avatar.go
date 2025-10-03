@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/utils"
-	global "github.com/ryanreadbooks/whimer/passport/internal/global"
+	"github.com/ryanreadbooks/whimer/passport/internal/global"
 
 	"github.com/gabriel-vasile/mimetype"
 )
