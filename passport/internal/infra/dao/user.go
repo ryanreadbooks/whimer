@@ -67,14 +67,15 @@ const (
 	allFields   = "uid,nickname,avatar,style_sign,gender,tel,email,pass,salt,status,create_at,update_at"
 	basicFields = "uid,nickname,avatar,style_sign,gender,tel,email,status,create_at,update_at"
 
-	sqlFindAll         = "SELECT " + allFields + " FROM user WHERE %s=?"
-	sqlInsertAll       = "INSERT INTO user(" + allFields + ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
-	sqlDel             = "DELETE FROM user WHERE uid=?"
-	sqlUpdateCol       = "UPDATE user set %s=?,update_at=? WHERE uid=?"
-	sqlFindPassSalt    = "SELECT uid,pass,salt FROM user WHERE uid=?"
-	sqlFindBasic       = "SELECT " + basicFields + " FROM user WHERE %s=?"
-	sqlFindBasicIn     = "SELECT " + basicFields + " FROM user WHERE uid IN (%s)"
-	sqlUpdateBasicCore = "UPDATE user SET nickname=?,style_sign=?,gender=?,update_at=? WHERE uid=?"
+	sqlFindAll           = "SELECT " + allFields + " FROM user WHERE %s=?"
+	sqlInsertAll         = "INSERT INTO user(" + allFields + ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
+	sqlDel               = "DELETE FROM user WHERE uid=?"
+	sqlUpdateCol         = "UPDATE user set %s=?,update_at=? WHERE uid=?"
+	sqlFindPassSalt      = "SELECT uid,pass,salt FROM user WHERE uid=?"
+	sqlFindBasic         = "SELECT " + basicFields + " FROM user WHERE %s=?"
+	sqlFindBasicIn       = "SELECT " + basicFields + " FROM user WHERE uid IN (%s)"
+	sqlUpdateBasicCore   = "UPDATE user SET nickname=?,style_sign=?,gender=?,update_at=? WHERE uid=?"
+	sqlFindBasicNameLike = "SELECT " + basicFields + " FROM user WHERE nickname LIKE ? ORDER BY nickname LIMIT ?,?"
 )
 
 func (d *UserDao) find(ctx context.Context, cond string, val any) (*User, error) {
@@ -95,6 +96,18 @@ func (d *UserDao) FindPassAndSaltByUid(ctx context.Context, uid int64) (*PassAnd
 	model := new(PassAndSalt)
 	err := d.db.QueryRowCtx(ctx, model, sqlFindPassSalt, uid)
 	return model, xerror.Wrapf(xsql.ConvertError(err), "user dao query pass and salt failed")
+}
+
+func (d *UserDao) FindByNickNameLike(ctx context.Context, nickname string, page, limit int32) ([]*UserBase, error) {
+	offset := (page - 1) * limit
+	cond := nickname + "%"
+
+	models := make([]*UserBase, 0, limit)
+	err := d.db.QueryRowsCtx(ctx, &models, sqlFindBasicNameLike, cond, offset, limit)
+	if err != nil {
+		return nil, xerror.Wrap(xsql.ConvertError(err))
+	}
+	return models, nil
 }
 
 func (d *UserDao) findUserBaseBy(ctx context.Context, cond string, val any) (*UserBase, error) {
