@@ -4,7 +4,7 @@ type SessionStatus string
 
 const (
 	StatusNoActive SessionStatus = "noactive" // 关闭
-	StatusActive   SessionStatus = "active"   // 获取中
+	StatusActive   SessionStatus = "active"   // 活跃中
 	StatusPending  SessionStatus = "pending"  // wslink服务重启过程
 )
 
