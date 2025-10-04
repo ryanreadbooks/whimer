@@ -8,15 +8,15 @@ import (
 
 var (
 	// 笔记服务
-	commenter commentv1.ReplyServiceClient
+	commenter commentv1.CommentServiceClient
 )
 
 func InitCommenter(c *config.Config) {
 	commenter = xgrpc.NewRecoverableClient(c.Backend.Comment,
-		commentv1.NewReplyServiceClient,
-		func(cc commentv1.ReplyServiceClient) { commenter = cc })
+		commentv1.NewCommentServiceClient,
+		func(cc commentv1.CommentServiceClient) { commenter = cc })
 }
 
-func Commenter() commentv1.ReplyServiceClient {
+func Commenter() commentv1.CommentServiceClient {
 	return commenter
 }

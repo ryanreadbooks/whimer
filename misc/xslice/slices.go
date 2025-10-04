@@ -48,6 +48,18 @@ func Uniq[T comparable](v []T) []T {
 	return u
 }
 
+func UniqF[T any, C comparable](v []T, f func(v T) C) []T {
+	u := make([]T, 0, len(v))
+	e := make(map[C]struct{})
+	for _, ele := range v {
+		if _, ok := e[f(ele)]; !ok {
+			u = append(u, ele)
+			e[f(ele)] = struct{}{}
+		}
+	}
+	return u
+}
+
 func SplitInts[T generics.Integer](s string, sep string) []T {
 	res := strings.Split(s, sep)
 	// convert string to T
@@ -127,4 +139,13 @@ func Filter[V any, T ~[]V](t T, filter func(idx int, v V) bool) T {
 		}
 	}
 	return dest
+}
+
+func Any[T any](t []T) []any {
+	a := make([]any, 0, len(t))
+	for _, item := range t {
+		a = append(a, item)
+	}
+
+	return a
 }

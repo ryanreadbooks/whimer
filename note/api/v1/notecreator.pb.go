@@ -915,6 +915,7 @@ func (x *ListNoteResponse) GetHasNext() bool {
 	return false
 }
 
+// Deprecated
 type GetUploadAuthRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -970,6 +971,7 @@ func (x *GetUploadAuthRequest) GetSource() string {
 	return ""
 }
 
+// Deprecated
 type BatchGetUploadAuthRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1033,6 +1035,7 @@ func (x *BatchGetUploadAuthRequest) GetCount() int32 {
 	return 0
 }
 
+// Deprecated
 type UploadAuthResponseHeaders struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1104,6 +1107,7 @@ func (x *UploadAuthResponseHeaders) GetToken() string {
 	return ""
 }
 
+// Deprecated
 type GetUploadAuthResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1183,6 +1187,7 @@ func (x *GetUploadAuthResponse) GetHeaders() *UploadAuthResponseHeaders {
 	return nil
 }
 
+// Deprecated
 type BatchGetUploadAuthResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

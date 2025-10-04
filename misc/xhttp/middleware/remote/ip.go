@@ -1,8 +1,8 @@
 package remote
 
 import (
+	"net"
 	"net/http"
-	"strings"
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 )
@@ -10,10 +10,9 @@ import (
 func ClientAddr(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rx := metadata.WithClientAddr(r.Context(), r.RemoteAddr)
-		// TODO not ipv6 compatible
-		res := strings.Split(r.RemoteAddr, ":")
-		rx = metadata.WithClientIp(rx, res[0])
-
+		var clientIp string
+		clientIp, _, _ = net.SplitHostPort(r.RemoteAddr) // ipv6-compatible
+		rx = metadata.WithClientIp(rx, clientIp)
 		next(w, r.WithContext(rx))
 	}
 }

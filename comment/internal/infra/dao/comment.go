@@ -9,7 +9,7 @@ const (
 type Comment struct {
 	Id       int64  `json:"id" db:"id"`
 	Oid      int64  `json:"oid" db:"oid"`
-	CType    int8   `json:"ctype" db:"ctype"`
+	Type     int8   `json:"type" db:"type"`
 	Content  string `json:"content" db:"content"`
 	Uid      int64  `json:"uid" db:"uid"`
 	RootId   int64  `json:"root" db:"root"`
@@ -20,7 +20,7 @@ type Comment struct {
 	Dislike  int    `json:"dislike" db:"dislike"`
 	Report   int    `json:"repot" db:"report"`
 	IsPin    int8   `json:"pin" db:"pin"`
-	Ip       int64  `json:"ip" db:"ip"`
+	Ip       []byte  `json:"ip" db:"ip"`
 	Ctime    int64  `json:"ctime" db:"ctime"`
 	Mtime    int64  `json:"mtime" db:"mtime"`
 }
@@ -41,4 +41,9 @@ type UidOid struct {
 type RootCnt struct {
 	Root int64 `db:"root"`
 	Cnt  int64 `db:"cnt"`
+}
+
+type OidCnt struct {
+	Oid int64 `db:"oid"`
+	Cnt int64 `db:"cnt"`
 }

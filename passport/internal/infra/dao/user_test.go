@@ -153,3 +153,14 @@ func TestFindBasicIn(t *testing.T) {
 		So(users, ShouldNotBeEmpty)
 	})
 }
+
+func TestFindBasicNameLike(t *testing.T) {
+	Convey("test userbase FindBasicNameLike", t, func() {
+		users, err := dao.FindByNickNameLike(ctx, "tester", 1, 10)
+		So(err, ShouldBeNil)
+		So(users, ShouldNotBeEmpty)
+		for _, u := range users {
+			t.Log(u)
+		}
+	})
+}

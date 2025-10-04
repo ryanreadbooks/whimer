@@ -23,6 +23,7 @@ message NoteItem {
   int64 replies = 9;          //评论数量
   repeated NoteTag tags = 10; // 笔记的标签
   int64 owner = 11;
+  string ip = 12;
 }
 
 message NoteImageMeta {
@@ -49,6 +50,7 @@ message FeedNoteItem {
   int64 author = 7;  // 笔记作者
   int64 replies = 8; // 点赞数
   int64 updated_at = 9;
+  string ip = 10;
 }
 
 message FeedNoteItemExt { repeated NoteTag tags = 1; }

@@ -87,7 +87,6 @@ func NewSessionBiz() SessionBiz {
 	}
 
 	b.closing.Store(false)
-	b.keepAliveSession()
 
 	return b
 }
@@ -209,9 +208,12 @@ func (b *sessionBiz) Connect(ctx context.Context, conn Session) error {
 
 	// connected
 	b.sessions.Put(conn.GetId(), conn)
-	// 开始续期
-	if err := b.beginKeepAlive(ctx, conn); err != nil {
-		xlog.Msgf("begin keepalive failed for conn %s", conn.GetId()).Err(err).Errorx(ctx)
+	err = infra.Dao().SessionDao.SetTTL(ctx, conn.GetId(), sessionTTL)
+	if err != nil {
+		xlog.Msg("session dao failed to set ttl").
+			Extras("id", conn.GetId()).
+			Err(err).
+			Errorx(ctx)
 	}
 
 	return nil
@@ -264,15 +266,27 @@ func (b *sessionBiz) Close(ctx context.Context) {
 
 func (b *sessionBiz) Heartbeat(ctx context.Context, conn Session) error {
 	// heartbeat
-	return b.updateSessionLastActiveTime(ctx, conn)
+	return b.doHeartbeat(ctx, conn)
 }
 
-func (b *sessionBiz) updateSessionLastActiveTime(ctx context.Context, conn Session) error {
+// heartbeat
+func (b *sessionBiz) doHeartbeat(ctx context.Context, conn Session) error {
+	// 1. update last active time
 	err := infra.Dao().SessionDao.UpdateLastActiveTime(ctx, conn.GetId(), time.Now().Unix())
 	if err != nil {
 		return xerror.Wrapf(err, "session dao failed to update heartbeat time").
 			WithExtras("cid", conn.GetId()).
 			WithCtx(ctx)
+	}
+
+	// we do not use pipeline here
+	// 2. set ttl
+	err = infra.Dao().SessionDao.SetTTL(ctx, conn.GetId(), sessionTTL)
+	if err != nil {
+		xlog.Msg("session dao heartbeat failed to set ttl").
+			Extras("id", conn.GetId()).
+			Err(err).
+			Errorx(ctx)
 	}
 
 	return nil

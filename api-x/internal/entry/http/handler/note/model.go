@@ -24,10 +24,33 @@ const (
 	AssetTypeVideo = 2
 )
 
+const (
+	maxTitleLen   = 48
+	maxDescLen    = 2048
+	maxTagNameLen = 255
+)
+
 type CreateReqBasic struct {
 	Title   string `json:"title"`
 	Desc    string `json:"desc"`
 	Privacy int    `json:"privacy"`
+}
+
+func (v *CreateReqBasic) Validate() error {
+	if v.Privacy != VisibilityPublic && v.Privacy != VisibilityPrivate {
+		return xerror.ErrArgs.Msg("不支的可见范围")
+	}
+
+	titleLen := utf8.RuneCountInString(v.Title)
+	if titleLen > maxTitleLen {
+		return xerror.ErrArgs.Msg("标题长度错误")
+	}
+	descLen := utf8.RuneCountInString(v.Desc)
+	if descLen > descLen {
+		return xerror.ErrArgs.Msg("简介超长")
+	}
+
+	return nil
 }
 
 func (b *CreateReqBasic) AsPb() *notev1.CreateReqBasic {
@@ -76,6 +99,10 @@ func (r *CreateReq) Validate() error {
 		return xerror.ErrNilArg
 	}
 
+	if err := r.Basic.Validate(); err != nil {
+		return err
+	}
+
 	for _, img := range r.Images {
 		if img.FileId == "" {
 			return xerror.ErrArgs.Msg("上传图片无名")
@@ -83,6 +110,10 @@ func (r *CreateReq) Validate() error {
 
 		if img.Width == 0 || img.Height == 0 || img.Format == "" {
 			return xerror.ErrArgs.Msg("上传图片未指定图片信息")
+		}
+
+		if err := model.CheckImageFormat(img.Format); err != nil {
+			return err
 		}
 	}
 
@@ -112,6 +143,18 @@ type CreateRes struct {
 type UpdateReq struct {
 	NoteId model.NoteId `json:"note_id"`
 	CreateReq
+}
+
+func (r *UpdateReq) Validate() error {
+	if r.NoteId <= 0 {
+		return errors.ErrNoteNotFound
+	}
+
+	if err := r.CreateReq.Validate(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type UpdateRes struct {
@@ -193,12 +236,16 @@ type UploadAuthReq struct {
 	Count    int32  `form:"count,optional"`
 }
 
+const (
+	maxCountOfUploadAuth = 8
+)
+
 func (r *UploadAuthReq) Validate() error {
 	if r.Count <= 0 {
 		r.Count = 1
 	}
 
-	if r.Count > 8 {
+	if r.Count > maxCountOfUploadAuth {
 		return xerror.ErrInvalidArgs.Msg("不支持请求这么多上传凭证")
 	}
 
@@ -259,8 +306,6 @@ type GetLikesRes struct {
 	NoteId model.NoteId `json:"note_id"`
 	Count  int64        `json:"count"`
 }
-
-const maxTagNameLen = 255
 
 func checkTagName(s string) error {
 	if !utf8.ValidString(s) {

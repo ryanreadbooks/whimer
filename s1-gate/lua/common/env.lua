@@ -72,6 +72,34 @@ function _M.get_aws_secret_access_key()
   return sk
 end
 
+function _M.get_jwt_valid_issuer()
+  local issuer, _ = globals:get('ENV_JWT_VALID_ISSUER')
+  if issuer == nil then
+    issuer = os.getenv('ENV_JWT_VALID_ISSUER')
+    if issuer == nil then
+      issuer = 'whimer'
+      ngx.log(ngx.WARN, 'ENV_JWT_VALID_ISSUER unset in env')
+    end
+    globals:set('ENV_JWT_VALID_ISSUER', issuer)
+  end
+
+  return issuer
+end
+
+function _M.get_jwt_valid_subject()
+  local subject, _ = globals:get('ENV_JWT_VALID_SUBJECT')
+  if subject == nil then
+    subject = os.getenv('ENV_JWT_VALID_SUBJECT')
+    if subject == nil then
+      subject = 'sts'
+      ngx.log(ngx.WARN, 'ENV_JWT_VALID_SUBJECT unset in env')
+    end
+    globals:set('ENV_JWT_VALID_SUBJECT', subject)
+  end
+
+  return subject
+end
+
 function _M.get_cors_allowed_origin()
   local origin, _ = globals:get('NGINX_ACCESS_CORS_ALLOWED_ORIGIN')
   if origin == nil then

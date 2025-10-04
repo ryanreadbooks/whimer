@@ -22,6 +22,12 @@ func (s RandomStringer) GetRandomString() string {
 	return uuid.NewString() + strconv.FormatInt(time.Now().UnixNano(), 10)
 }
 
+type RandomStringerV7 struct{}
+
+func (s RandomStringerV7) GetRandomString() string {
+	return utils.Must1(uuid.NewV7()).String()
+}
+
 type Generator struct {
 	bucket        string
 	prefix        string

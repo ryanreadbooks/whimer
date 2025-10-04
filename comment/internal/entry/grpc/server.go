@@ -8,73 +8,75 @@ import (
 	"github.com/ryanreadbooks/whimer/comment/internal/global"
 	"github.com/ryanreadbooks/whimer/comment/internal/model"
 	"github.com/ryanreadbooks/whimer/comment/internal/srv"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 )
 
-type ReplyServiceServer struct {
-	commentv1.UnimplementedReplyServiceServer
+type CommentServiceServer struct {
+	commentv1.UnimplementedCommentServiceServer
 
 	Svc *srv.Service
 }
 
-func NewReplyServiceServer(ctx *srv.Service) *ReplyServiceServer {
-	return &ReplyServiceServer{
+func NewCommentServiceServer(ctx *srv.Service) *CommentServiceServer {
+	return &CommentServiceServer{
 		Svc: ctx,
 	}
 }
 
 // 发布评论
-func (s *ReplyServiceServer) AddReply(ctx context.Context, in *commentv1.AddReplyRequest) (*commentv1.AddReplyResponse, error) {
-	req := &model.AddReplyReq{
-		Type:     model.ReplyType(in.GetReplyType()),
+func (s *CommentServiceServer) AddComment(ctx context.Context, in *commentv1.AddCommentRequest) (*commentv1.AddCommentResponse, error) {
+	req := &model.AddCommentReq{
+		Type:     model.CommentType(in.GetType()),
 		Oid:      in.GetOid(),
 		RootId:   in.GetRootId(),
 		ParentId: in.GetParentId(),
 		Content:  in.GetContent(),
 		ReplyUid: in.GetReplyUid(),
+		Images:   in.GetImages(),
 	}
 
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
 
-	res, err := s.Svc.CommentSrv.AddReply(ctx, req)
+	res, err := s.Svc.CommentSrv.AddComment(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	return &commentv1.AddReplyResponse{
-		ReplyId: res.ReplyId,
+	return &commentv1.AddCommentResponse{
+		CommentId: res.CommentId,
 	}, nil
 }
 
 // 删除评论
-func (s *ReplyServiceServer) DelReply(ctx context.Context, in *commentv1.DelReplyRequest) (*commentv1.DelReplyResponse, error) {
-	if in.ReplyId <= 0 {
-		return nil, global.ErrInvalidReplyId
+func (s *CommentServiceServer) DelComment(ctx context.Context, in *commentv1.DelCommentRequest) (*commentv1.DelCommentResponse, error) {
+	if in.CommentId <= 0 {
+		return nil, global.ErrInvalidCommentId
 	}
 	if in.Oid <= 0 {
 		return nil, global.ErrObjectIdEmpty
 	}
 
-	err := s.Svc.CommentSrv.DelReply(ctx, in.Oid, in.ReplyId)
+	err := s.Svc.CommentSrv.DelComment(ctx, in.Oid, in.CommentId)
 	if err != nil {
 		return nil, err
 	}
 
-	return &commentv1.DelReplyResponse{}, nil
+	return &commentv1.DelCommentResponse{}, nil
 }
 
-func (s *ReplyServiceServer) LikeAction(ctx context.Context, in *commentv1.LikeActionRequest) (*commentv1.LikeActionResponse, error) {
-	if in.ReplyId <= 0 {
-		return nil, global.ErrInvalidReplyId
+func (s *CommentServiceServer) LikeAction(ctx context.Context, in *commentv1.LikeActionRequest) (*commentv1.LikeActionResponse, error) {
+	if in.CommentId <= 0 {
+		return nil, global.ErrInvalidCommentId
 	}
 
-	if in.Action != commentv1.ReplyAction_REPLY_ACTION_DO &&
-		in.Action != commentv1.ReplyAction_REPLY_ACTION_UNDO {
+	if in.Action != commentv1.CommentAction_REPLY_ACTION_DO &&
+		in.Action != commentv1.CommentAction_REPLY_ACTION_UNDO {
 		return nil, global.ErrUnsupportedAction
 	}
 
-	err := s.Svc.CommentSrv.LikeReply(ctx, in.ReplyId, int8(in.Action))
+	err := s.Svc.CommentSrv.LikeComment(ctx, in.CommentId, int8(in.Action))
 	if err != nil {
 		return nil, err
 	}
@@ -82,17 +84,17 @@ func (s *ReplyServiceServer) LikeAction(ctx context.Context, in *commentv1.LikeA
 	return &commentv1.LikeActionResponse{}, nil
 }
 
-func (s *ReplyServiceServer) DislikeAction(ctx context.Context, in *commentv1.DislikeActionRequest) (*commentv1.DislikeActionResponse, error) {
-	if in.ReplyId <= 0 {
-		return nil, global.ErrInvalidReplyId
+func (s *CommentServiceServer) DislikeAction(ctx context.Context, in *commentv1.DislikeActionRequest) (*commentv1.DislikeActionResponse, error) {
+	if in.CommentId <= 0 {
+		return nil, global.ErrInvalidCommentId
 	}
 
-	if in.Action != commentv1.ReplyAction_REPLY_ACTION_DO &&
-		in.Action != commentv1.ReplyAction_REPLY_ACTION_UNDO {
+	if in.Action != commentv1.CommentAction_REPLY_ACTION_DO &&
+		in.Action != commentv1.CommentAction_REPLY_ACTION_UNDO {
 		return nil, global.ErrUnsupportedAction
 	}
 
-	err := s.Svc.CommentSrv.DislikeReply(ctx, in.ReplyId, int8(in.Action))
+	err := s.Svc.CommentSrv.DislikeComment(ctx, in.CommentId, int8(in.Action))
 	if err != nil {
 		return nil, err
 	}
@@ -101,59 +103,59 @@ func (s *ReplyServiceServer) DislikeAction(ctx context.Context, in *commentv1.Di
 }
 
 // TODO 举报
-func (s *ReplyServiceServer) ReportReply(ctx context.Context,
-	in *commentv1.ReportReplyRequest) (*commentv1.ReportReplyResponse, error) {
-	return &commentv1.ReportReplyResponse{}, nil
+func (s *CommentServiceServer) ReportComment(ctx context.Context,
+	in *commentv1.ReportCommentRequest) (*commentv1.ReportCommentResponse, error) {
+	return &commentv1.ReportCommentResponse{}, nil
 }
 
 // 置顶
-func (s *ReplyServiceServer) PinReply(ctx context.Context,
-	in *commentv1.PinReplyRequest) (*commentv1.PinReplyResponse, error) {
-	if in.Action != commentv1.ReplyAction_REPLY_ACTION_DO &&
-		in.Action != commentv1.ReplyAction_REPLY_ACTION_UNDO {
+func (s *CommentServiceServer) PinComment(ctx context.Context,
+	in *commentv1.PinCommentRequest) (*commentv1.PinCommentResponse, error) {
+	if in.Action != commentv1.CommentAction_REPLY_ACTION_DO &&
+		in.Action != commentv1.CommentAction_REPLY_ACTION_UNDO {
 		return nil, global.ErrUnsupportedAction
 	}
 
-	err := s.Svc.CommentSrv.PinReply(ctx, in.Oid, in.Rid, int8(in.Action))
+	err := s.Svc.CommentSrv.PinComment(ctx, in.Oid, in.CommentId, int8(in.Action))
 	if err != nil {
 		return nil, err
 	}
 
-	return &commentv1.PinReplyResponse{}, nil
+	return &commentv1.PinCommentResponse{}, nil
 }
 
 // 分页获取主评论
-func (s *ReplyServiceServer) PageGetReply(ctx context.Context,
-	in *commentv1.PageGetReplyRequest) (*commentv1.PageGetReplyResponse, error) {
-	resp, err := s.Svc.CommentSrv.PageGetRootReplies(ctx, in.Oid, in.Cursor, int8(in.SortBy))
+func (s *CommentServiceServer) PageGetComment(ctx context.Context,
+	in *commentv1.PageGetCommentRequest) (*commentv1.PageGetCommentResponse, error) {
+	resp, err := s.Svc.CommentSrv.PageGetRootComments(ctx, in.Oid, in.Cursor, int8(in.SortBy))
 	if err != nil {
 		return nil, err
 	}
 
-	return &commentv1.PageGetReplyResponse{
-		Replies:    model.ItemsAsPbs(resp.Items),
+	return &commentv1.PageGetCommentResponse{
+		Comments:   model.ItemsAsPbs(resp.Items),
 		HasNext:    resp.HasNext,
 		NextCursor: resp.NextCursor,
 	}, nil
 }
 
 // 分页获取子评论
-func (s *ReplyServiceServer) PageGetSubReply(ctx context.Context,
-	in *commentv1.PageGetSubReplyRequest) (*commentv1.PageGetSubReplyResponse, error) {
-	resp, err := s.Svc.CommentSrv.PageGetSubReplies(ctx, in.Oid, in.RootId, in.Cursor)
+func (s *CommentServiceServer) PageGetSubComment(ctx context.Context,
+	in *commentv1.PageGetSubCommentRequest) (*commentv1.PageGetSubCommentResponse, error) {
+	resp, err := s.Svc.CommentSrv.PageGetSubComments(ctx, in.Oid, in.RootId, in.Cursor)
 	if err != nil {
 		return nil, err
 	}
 
-	return &commentv1.PageGetSubReplyResponse{
-		Replies:    model.ItemsAsPbs(resp.Items),
+	return &commentv1.PageGetSubCommentResponse{
+		Comments:   model.ItemsAsPbs(resp.Items),
 		HasNext:    resp.HasNext,
 		NextCursor: resp.NextCursor,
 	}, nil
 }
 
-func (s *ReplyServiceServer) PageGetSubReplyV2(ctx context.Context,
-	in *commentv1.PageGetSubReplyV2Request) (*commentv1.PageGetSubReplyV2Response, error) {
+func (s *CommentServiceServer) PageGetSubCommentV2(ctx context.Context,
+	in *commentv1.PageGetSubCommentV2Request) (*commentv1.PageGetSubCommentV2Response, error) {
 	if in.Page <= 0 {
 		in.Page = 1
 	}
@@ -162,100 +164,100 @@ func (s *ReplyServiceServer) PageGetSubReplyV2(ctx context.Context,
 		in.Count = 10
 	}
 
-	resp, total, err := s.Svc.CommentSrv.PageListSubReplies(ctx, in.Oid, in.RootId, int(in.Page), int(in.Count))
+	resp, total, err := s.Svc.CommentSrv.PageListSubComments(ctx, in.Oid, in.RootId, int(in.Page), int(in.Count))
 	if err != nil {
 		return nil, err
 	}
 
-	return &commentv1.PageGetSubReplyV2Response{
-		Replies: model.ItemsAsPbs(resp),
-		Total:   total,
+	return &commentv1.PageGetSubCommentV2Response{
+		Comments: model.ItemsAsPbs(resp),
+		Total:    total,
 	}, nil
 }
 
-func (s *ReplyServiceServer) PageGetDetailedReply(ctx context.Context,
-	in *commentv1.PageGetDetailedReplyRequest) (*commentv1.PageGetDetailedReplyResponse, error) {
-	resp, err := s.Svc.CommentSrv.PageGetObjectReplies(ctx, in.Oid, in.Cursor, int8(in.SortBy))
+func (s *CommentServiceServer) PageGetDetailedComment(ctx context.Context,
+	in *commentv1.PageGetDetailedCommentRequest) (*commentv1.PageGetDetailedCommentResponse, error) {
+	resp, err := s.Svc.CommentSrv.PageGetObjectComments(ctx, in.Oid, in.Cursor, int8(in.SortBy))
 	if err != nil {
 		return nil, err
 	}
 
-	return &commentv1.PageGetDetailedReplyResponse{
-		Replies:    model.DetailedItemsAsPbs(resp.Items),
+	return &commentv1.PageGetDetailedCommentResponse{
+		Comments:   model.DetailedItemsAsPbs(resp.Items),
 		NextCursor: resp.NextCursor,
 		HasNext:    resp.HasNext,
 	}, nil
 }
 
-func (s *ReplyServiceServer) PageGetDetailedReplyV2(ctx context.Context,
-	in *commentv1.PageGetDetailedReplyV2Request) (*commentv1.PageGetDetailedReplyV2Response, error) {
-	resp, err := s.Svc.CommentSrv.PageGetObjectRepliesV2(ctx, in.Oid, in.Cursor, int8(in.SortBy))
+func (s *CommentServiceServer) PageGetDetailedCommentV2(ctx context.Context,
+	in *commentv1.PageGetDetailedCommentV2Request) (*commentv1.PageGetDetailedCommentV2Response, error) {
+	resp, err := s.Svc.CommentSrv.PageGetObjectCommentsV2(ctx, in.Oid, in.Cursor, int8(in.SortBy))
 	if err != nil {
 		return nil, err
 	}
 
-	return &commentv1.PageGetDetailedReplyV2Response{
-		Replies:    model.DetailedItemsV2AsPbs(resp.Items),
-		NextCursor: resp.NextCursor,
-		HasNext:    resp.HasNext,
+	return &commentv1.PageGetDetailedCommentV2Response{
+		RootComments: model.DetailedItemsV2AsPbs(resp.Items),
+		NextCursor:   resp.NextCursor,
+		HasNext:      resp.HasNext,
 	}, nil
 }
 
 // 获取置顶评论
-func (s *ReplyServiceServer) GetPinnedReply(ctx context.Context,
-	in *commentv1.GetPinnedReplyRequest) (*commentv1.GetPinnedReplyResponse, error) {
-	resp, err := s.Svc.CommentSrv.GetPinnedReply(ctx, in.Oid)
+func (s *CommentServiceServer) GetPinnedComment(ctx context.Context,
+	in *commentv1.GetPinnedCommentRequest) (*commentv1.GetPinnedCommentResponse, error) {
+	resp, err := s.Svc.CommentSrv.GetPinnedComment(ctx, in.Oid)
 	if err != nil {
-		if errors.Is(err, global.ErrNoPinReply) {
-			return &commentv1.GetPinnedReplyResponse{}, nil
+		if errors.Is(err, global.ErrNoPinComment) {
+			return &commentv1.GetPinnedCommentResponse{}, nil
 		}
 
 		return nil, err
 	}
 
-	return &commentv1.GetPinnedReplyResponse{
-		Reply: resp.AsPb(),
+	return &commentv1.GetPinnedCommentResponse{
+		Item: resp.AsPb(),
 	}, nil
 }
 
 // 获取评论数量
-func (s *ReplyServiceServer) CountReply(ctx context.Context,
-	in *commentv1.CountReplyRequest) (*commentv1.CountReplyResponse, error) {
-	count, err := s.Svc.CommentSrv.GetReplyCount(ctx, in.Oid)
+func (s *CommentServiceServer) CountComment(ctx context.Context,
+	in *commentv1.CountCommentRequest) (*commentv1.CountCommentResponse, error) {
+	count, err := s.Svc.CommentSrv.GetCommentCount(ctx, in.Oid)
 	if err != nil {
 		return nil, err
 	}
 
-	return &commentv1.CountReplyResponse{NumReply: count}, nil
+	return &commentv1.CountCommentResponse{Count: count}, nil
 }
 
 // 获取评论的点赞数量
-func (s *ReplyServiceServer) GetReplyLikeCount(ctx context.Context,
-	in *commentv1.GetReplyLikeCountRequest) (*commentv1.GetReplyLikeCountResponse, error) {
-	res, err := s.Svc.CommentSrv.GetReplyLikesCount(ctx, in.ReplyId)
+func (s *CommentServiceServer) GetCommentLikeCount(ctx context.Context,
+	in *commentv1.GetCommentLikeCountRequest) (*commentv1.GetCommentLikeCountResponse, error) {
+	res, err := s.Svc.CommentSrv.GetCommentLikesCount(ctx, in.CommentId)
 	if err != nil {
 		return nil, err
 	}
-	return &commentv1.GetReplyLikeCountResponse{
-		ReplyId: in.ReplyId,
-		Count:   res,
+	return &commentv1.GetCommentLikeCountResponse{
+		CommentId: in.CommentId,
+		Count:     res,
 	}, nil
 }
 
 // 获取评论的点踩数量
-func (s *ReplyServiceServer) GetReplyDislikeCount(ctx context.Context,
-	in *commentv1.GetReplyDislikeCountRequest) (*commentv1.GetReplyDislikeCountResponse, error) {
-	res, err := s.Svc.CommentSrv.GetReplyDislikesCount(ctx, in.ReplyId)
+func (s *CommentServiceServer) GetCommentDislikeCount(ctx context.Context,
+	in *commentv1.GetCommentDislikeCountRequest) (*commentv1.GetCommentDislikeCountResponse, error) {
+	res, err := s.Svc.CommentSrv.GetCommentDislikesCount(ctx, in.CommentId)
 	if err != nil {
 		return nil, err
 	}
-	return &commentv1.GetReplyDislikeCountResponse{
-		ReplyId: in.ReplyId,
-		Count:   res,
+	return &commentv1.GetCommentDislikeCountResponse{
+		CommentId: in.CommentId,
+		Count:     res,
 	}, nil
 }
 
-func (s *ReplyServiceServer) CheckUserOnObject(ctx context.Context,
+func (s *CommentServiceServer) CheckUserOnObject(ctx context.Context,
 	in *commentv1.CheckUserOnObjectRequest) (
 	*commentv1.CheckUserOnObjectResponse, error) {
 	ok, err := s.Svc.CommentSrv.CheckUserIsReplied(ctx, in.Uid, in.Oid)
@@ -272,18 +274,18 @@ func (s *ReplyServiceServer) CheckUserOnObject(ctx context.Context,
 }
 
 // 获取多个被评论对象的评论数
-func (s *ReplyServiceServer) BatchCountReply(ctx context.Context, in *commentv1.BatchCountReplyRequest) (
-	*commentv1.BatchCountReplyResponse, error) {
+func (s *CommentServiceServer) BatchCountComment(ctx context.Context, in *commentv1.BatchCountCommentRequest) (
+	*commentv1.BatchCountCommentResponse, error) {
 	oids := in.GetOids()
-	resp, err := s.Svc.CommentSrv.BatchGetCountReply(ctx, oids)
+	resp, err := s.Svc.CommentSrv.BatchGetCountComment(ctx, oids)
 	if err != nil {
 		return nil, err
 	}
 
-	return &commentv1.BatchCountReplyResponse{Numbers: resp}, nil
+	return &commentv1.BatchCountCommentResponse{Numbers: resp}, nil
 }
 
-func (s *ReplyServiceServer) BatchCheckUserOnObject(ctx context.Context,
+func (s *CommentServiceServer) BatchCheckUserOnObject(ctx context.Context,
 	in *commentv1.BatchCheckUserOnObjectRequest) (
 	*commentv1.BatchCheckUserOnObjectResponse, error) {
 
@@ -311,8 +313,8 @@ func (s *ReplyServiceServer) BatchCheckUserOnObject(ctx context.Context,
 	return &commentv1.BatchCheckUserOnObjectResponse{Results: m}, nil
 }
 
-func (s *ReplyServiceServer) BatchCheckUserLikeReply(ctx context.Context,
-	in *commentv1.BatchCheckUserLikeReplyRequest) (*commentv1.BatchCheckUserLikeReplyResponse, error) {
+func (s *CommentServiceServer) BatchCheckUserLikeComment(ctx context.Context,
+	in *commentv1.BatchCheckUserLikeCommentRequest) (*commentv1.BatchCheckUserLikeCommentResponse, error) {
 
 	l := len(in.Mappings)
 	if l > 50 {
@@ -332,19 +334,44 @@ func (s *ReplyServiceServer) BatchCheckUserLikeReply(ctx context.Context,
 		return nil, err
 	}
 
-	results := make(map[int64]*commentv1.BatchCheckUserLikeReplyResponse_ReplyLikedList, len(resp))
+	results := make(map[int64]*commentv1.BatchCheckUserLikeCommentResponse_CommentLikedList, len(resp))
 	for uid, statuses := range resp {
-		likeStatuses := make([]*commentv1.ReplyLiked, 0, len(statuses))
+		likeStatuses := make([]*commentv1.CommentLiked, 0, len(statuses))
 		for _, status := range statuses {
-			likeStatuses = append(likeStatuses, &commentv1.ReplyLiked{
-				ReplyId: status.ReplyId,
-				Liked:   status.Liked,
+			likeStatuses = append(likeStatuses, &commentv1.CommentLiked{
+				CommentId: status.CommentId,
+				Liked:     status.Liked,
 			})
 		}
-		results[uid] = &commentv1.BatchCheckUserLikeReplyResponse_ReplyLikedList{
+		results[uid] = &commentv1.BatchCheckUserLikeCommentResponse_CommentLikedList{
 			List: likeStatuses,
 		}
 	}
 
-	return &commentv1.BatchCheckUserLikeReplyResponse{Results: results}, nil
+	return &commentv1.BatchCheckUserLikeCommentResponse{Results: results}, nil
+}
+
+// 获取上传图片评论凭证
+func (s *CommentServiceServer) UploadCommentImages(ctx context.Context, in *commentv1.UploadCommentImagesRequest) (
+	*commentv1.UploadCommentImagesResponse, error) {
+	if in.RequestedCount <= 0 {
+		return &commentv1.UploadCommentImagesResponse{}, nil
+	}
+
+	if in.RequestedCount > model.MaxCommentImageCount {
+		return nil, xerror.ErrInvalidArgs.Msg("request count too large")
+	}
+
+	auths, err := s.Svc.CommentSrv.GetCommentImagesUploadAuth(ctx, in.RequestedCount)
+	if err != nil {
+		return nil, err
+	}
+
+	return &commentv1.UploadCommentImagesResponse{
+		StoreKeys:   auths.ImageIds,
+		CurrentTime: auths.CurrentTime,
+		ExpireTime:  auths.ExpireTime,
+		Token:       auths.Token,
+		UploadAddr:  auths.UploadAddr,
+	}, nil
 }

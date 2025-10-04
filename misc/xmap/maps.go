@@ -10,12 +10,36 @@ func Keys[M ~map[K]V, K comparable, V any](m M) []K {
 	return keys
 }
 
+// 获取map中所有key 过滤指定key
+// filter返回true表示过滤掉该key
+func KeysFilter[M ~map[K]V, K comparable, V any](m M, filter func(k K) bool) []K {
+	var keys = make([]K, 0, len(m))
+	for k := range m {
+		if !filter(k) {
+			keys = append(keys, k)
+		}
+	}
+	return keys
+}
+
 // 获取map中所有value
 // 注意map的遍历是无序的
 func Values[M ~map[K]V, K comparable, V any](m M) []V {
 	var vals = make([]V, 0, len(m))
 	for _, v := range m {
 		vals = append(vals, v)
+	}
+	return vals
+}
+
+// 获取map中所有value 过滤指定value
+// filter返回true表示过滤掉该value
+func ValuesFilter[M ~map[K]V, K comparable, V any](m M, filter func(v V) bool) []V {
+	var vals = make([]V, 0, len(m))
+	for _, v := range m {
+		if !filter(v) {
+			vals = append(vals, v)
+		}
 	}
 	return vals
 }

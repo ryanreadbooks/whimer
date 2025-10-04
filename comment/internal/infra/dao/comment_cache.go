@@ -21,16 +21,24 @@ const (
 
 // cache key templates
 const (
-	pinnedCmtKey = "comment:pinned:%d" // 置顶评论
-	countCmtKey  = "comment:count:%d"  // 评论数量
+	pinnedCommentForOidCacheKey = "comment:pinned:%d" // 置顶评论
+	commentCountForOidCacheKey  = "comment:count:%d"  // 评论数量
 )
 
-func getPinnedCmtKey(oid int64) string {
-	return fmt.Sprintf(pinnedCmtKey, oid)
+const (
+	assetListCacheKey = "comment:assets:list:%d" // 资源缓存
+)
+
+func getPinnedCommentCacheKey(oid int64) string {
+	return fmt.Sprintf(pinnedCommentForOidCacheKey, oid)
 }
 
-func getCountCmtKey(oid int64) string {
-	return fmt.Sprintf(countCmtKey, oid)
+func getCommentCountCacheKey(oid int64) string {
+	return fmt.Sprintf(commentCountForOidCacheKey, oid)
+}
+
+func getAssetListCacheKey(commentId int64) string {
+	return fmt.Sprintf(assetListCacheKey, commentId)
 }
 
 type CommentCache struct {
@@ -48,8 +56,8 @@ func NewCommentCache(rd *redis.Redis) *CommentCache {
 }
 
 // 被评论对象的评论数量
-func (c *CommentCache) GetReplyCount(ctx context.Context, oid int64) (int64, error) {
-	cnt, err := c.rd.GetCtx(ctx, getCountCmtKey(oid))
+func (c *CommentCache) GetCommentCount(ctx context.Context, oid int64) (int64, error) {
+	cnt, err := c.rd.GetCtx(ctx, getCommentCountCacheKey(oid))
 	if err != nil {
 		return 0, err
 	}
@@ -61,10 +69,10 @@ func (c *CommentCache) GetReplyCount(ctx context.Context, oid int64) (int64, err
 	return num, nil
 }
 
-func (c *CommentCache) BatchGetReplyCount(ctx context.Context, oids []int64) (map[int64]int64, error) {
+func (c *CommentCache) BatchGetCommentCount(ctx context.Context, oids []int64) (map[int64]int64, error) {
 	keys := make([]string, 0, len(oids))
 	for _, oid := range oids {
-		keys = append(keys, getCountCmtKey(oid))
+		keys = append(keys, getCommentCountCacheKey(oid))
 	}
 	cnts, err := c.rd.MgetCtx(ctx, keys...)
 	if err != nil {
@@ -77,7 +85,7 @@ func (c *CommentCache) BatchGetReplyCount(ctx context.Context, oids []int64) (ma
 
 	result := make(map[int64]int64)
 	// 返回结果是按照顺序的
-	for i := 0; i < len(oids); i++ {
+	for i := range oids {
 		oid := oids[i]
 		cnt := cnts[i]
 		num, err := strconv.ParseInt(cnt, 10, 64)
@@ -90,38 +98,38 @@ func (c *CommentCache) BatchGetReplyCount(ctx context.Context, oids []int64) (ma
 	return result, nil
 }
 
-func (c *CommentCache) SetReplyCount(ctx context.Context, oid, count int64) error {
-	return c.rd.SetCtx(ctx, getCountCmtKey(oid), strconv.FormatInt(count, 10))
+func (c *CommentCache) SetCommentCount(ctx context.Context, oid, count int64) error {
+	return c.rd.SetCtx(ctx, getCommentCountCacheKey(oid), strconv.FormatInt(count, 10))
 }
 
-func (c *CommentCache) BatchSetReplyCount(ctx context.Context, batch map[int64]int64) error {
+func (c *CommentCache) BatchSetCommentCount(ctx context.Context, batch map[int64]int64) error {
 	err := c.rd.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
 		for oid, cnt := range batch {
-			p.Set(ctx, getCountCmtKey(oid), strconv.FormatInt(cnt, 10), 0)
-			p.Expire(ctx, getCountCmtKey(oid), xtime.HourJitter(time.Hour*2))
+			p.Set(ctx, getCommentCountCacheKey(oid), strconv.FormatInt(cnt, 10), 0)
+			p.Expire(ctx, getCommentCountCacheKey(oid), xtime.HourJitter(time.Hour*2))
 		}
 		return nil
 	})
 	return err
 }
 
-func (c *CommentCache) IncrReplyCount(ctx context.Context, oid int64, increment int64) error {
-	_, err := c.rd.IncrbyCtx(ctx, getCountCmtKey(oid), increment)
+func (c *CommentCache) IncrCommentCount(ctx context.Context, oid int64, increment int64) error {
+	_, err := c.rd.IncrbyCtx(ctx, getCommentCountCacheKey(oid), increment)
 	return err
 }
 
-func (c *CommentCache) DecrReplyCount(ctx context.Context, oid int64, decrement int64) error {
-	_, err := c.rd.DecrbyCtx(ctx, getCountCmtKey(oid), decrement)
+func (c *CommentCache) DecrCommentCount(ctx context.Context, oid int64, decrement int64) error {
+	_, err := c.rd.DecrbyCtx(ctx, getCommentCountCacheKey(oid), decrement)
 	return err
 }
 
-func (c *CommentCache) DelReplyCount(ctx context.Context, oid int64) error {
-	_, err := c.rd.DelCtx(ctx, getCountCmtKey(oid))
+func (c *CommentCache) DelCommentCount(ctx context.Context, oid int64) error {
+	_, err := c.rd.DelCtx(ctx, getCommentCountCacheKey(oid))
 	return err
 }
 
 // 已经存在缓存才执行操作，否则不执行，尽可能防止数据出错
-func (c *CommentCache) IncrReplyCountWhenExist(ctx context.Context, oid int64, increment int64) error {
+func (c *CommentCache) IncrCommentCountWhenExist(ctx context.Context, oid int64, increment int64) error {
 	const script = `
 		local key = KEYS[1]
 		loval value = 1
@@ -140,12 +148,12 @@ func (c *CommentCache) IncrReplyCountWhenExist(ctx context.Context, oid int64, i
 		return err
 	}
 
-	_, err = c.rd.EvalShaCtx(ctx, c.incrSha, []string{getCountCmtKey(oid)})
+	_, err = c.rd.EvalShaCtx(ctx, c.incrSha, []string{getCommentCountCacheKey(oid)})
 	return err
 }
 
 // 已经存在缓存才执行操作，否则不执行，尽可能防止数据出错
-func (c *CommentCache) DecrReplyCountWhenExist(ctx context.Context, oid int64, decrement int64) error {
+func (c *CommentCache) DecrCommentCountWhenExist(ctx context.Context, oid int64, decrement int64) error {
 	const script = `
 		local key = KEYS[1]
 		loval value = 1
@@ -164,6 +172,6 @@ func (c *CommentCache) DecrReplyCountWhenExist(ctx context.Context, oid int64, d
 		return err
 	}
 
-	_, err = c.rd.EvalShaCtx(ctx, c.decrSha, []string{getCountCmtKey(oid)})
+	_, err = c.rd.EvalShaCtx(ctx, c.decrSha, []string{getCommentCountCacheKey(oid)})
 	return err
 }

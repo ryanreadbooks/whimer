@@ -102,3 +102,4 @@ func (r *UpdateUserRequest) Validate() error {
 
 	return nil
 }
+

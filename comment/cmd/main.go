@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
 	"github.com/ryanreadbooks/whimer/comment/internal/entry/grpc"
@@ -20,6 +21,9 @@ func main() {
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
 	infra.Init(&config.Conf)
+	if err := config.Conf.Init(); err != nil {
+		panic(fmt.Errorf("init config failed: %w", err))
+	}
 	svc := srv.NewService(&config.Conf)
 	server := grpc.Init(config.Conf.Grpc, svc)
 

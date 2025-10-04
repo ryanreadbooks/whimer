@@ -1,7 +1,8 @@
 package config
 
 import (
-	"github.com/ryanreadbooks/whimer/comment/internal/global"
+	"github.com/ryanreadbooks/whimer/misc/imgproxy"
+	"github.com/ryanreadbooks/whimer/misc/oss/signer"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -29,20 +30,40 @@ type Config struct {
 	} `json:"external"`
 
 	Seqer Seqer           `json:"seqer"`
-	Kafka xconf.KfkConf   `json:"kafka"`
 	Redis redis.RedisConf `json:"redis"`
 
 	Cron struct {
-		SyncReplySpec string `json:"sync_reply_spec"`
 	} `json:"cron"`
 
-	DataProxyMode global.ProxyMode `json:"data_proxy_mode"`
+	Oss struct {
+		InlineImage OssConfig `json:"inline_image"`
+	} `json:"oss"`
+
+	OssUploadAuth signer.JwtSignConfig `json:"oss_upload_auth"`
+	ImgProxyAuth  imgproxy.Auth        `json:"img_proxy_auth"`
+}
+
+func (c *Config) Init() error {
+	return c.ImgProxyAuth.Init()
 }
 
 type Seqer struct {
 	Addr string `json:"addr"`
 }
 
-func (c *Config) GetDataProxyMode() global.ProxyMode {
-	return c.DataProxyMode
+type OssConfig struct {
+	Endpoint        string `json:"endpoint"`
+	Location        string `json:"location"`
+	Bucket          string `json:"bucket"`
+	Prefix          string `json:"prefix"`
+	DisplayEndpoint string `json:"display_endpoint"`
+	UploadEndpoint  string `json:"upload_endpoint"`
+}
+
+func (c *OssConfig) DisplayEndpointBucket() string {
+	return c.DisplayEndpoint + "/" + c.Bucket
+}
+
+func (c *OssConfig) UploadEndpointBucket() string {
+	return c.UploadEndpoint + "/" + c.Bucket
 }

@@ -5,12 +5,11 @@ grpc:
   log:
     level: debug
   etcd:
-    hosts:
-      - 127.0.0.1:2379
+    hosts: ${ENV_ETCD_HOSTS}
     key: whimer.note.rpc
   telemetry:
     Name: note
-    Endpoint: http://127.0.0.1:14268/api/traces
+    Endpoint: ${ENV_JAEGER_ENDPOINT}
     Sampler: 1.0
     Batcher: jaeger
 
@@ -21,11 +20,11 @@ mysql:
   db_name: ${ENV_DB_NAME}
 
 redis:
-  host: 127.0.0.1:7542
+  host: ${ENV_REDIS_HOST}
 
 oss:
-  endpoint: localhost:9000
-  location: local
+  endpoint: ${ENV_OSS_ENDPOINT}
+  location: ${ENV_OSS_LOCATION}
   bucket: nota
   prefix: assets
   display_endpoint: http://s1-file.whimer.com
@@ -33,9 +32,9 @@ oss:
 
 upload_auth_sign:
   jwt_id: whm_ulas
-  jwt_issuer: whm_note
+  jwt_issuer: whimer
   jwt_subject: sts
-  jwt_duration: 2h
+  jwt_duration: 30m
   ak: ${ENV_OSS_AK}
   sk: ${ENV_OSS_SK}
 
@@ -47,16 +46,16 @@ img_proxy_auth:
 external:
   grpc:
     passport:
-      hosts: [127.0.0.1:2379]
+      hosts: ${ENV_ETCD_HOSTS}
       key: whimer.passport.rpc
     counter:
-      hosts: [127.0.0.1:2379]
+      hosts: ${ENV_ETCD_HOSTS}
       key: whimer.counter.rpc
     comment:
-      hosts: [127.0.0.1:2379]
+      hosts: ${ENV_ETCD_HOSTS}
       key: whimer.comment.rpc
     search:
-      hosts: [127.0.0.1:2379]
+      hosts: ${ENV_ETCD_HOSTS}
       key: whimer.search.rpc
 
 salt: ${ENV_NOTE_SALT}

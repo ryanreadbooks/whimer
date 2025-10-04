@@ -1,8 +1,8 @@
 package biz
 
 import (
-	"maps"
 	"context"
+	"maps"
 
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
@@ -213,14 +213,14 @@ func (b *NoteInteractBiz) GetNoteReplyCount(ctx context.Context, noteId int64) (
 		return 0, global.ErrNoteNotFound
 	}
 
-	resp, err := dep.GetCommenter().CountReply(ctx, &commentv1.CountReplyRequest{
+	resp, err := dep.GetCommenter().CountComment(ctx, &commentv1.CountCommentRequest{
 		Oid: noteId,
 	})
 	if err != nil {
 		return 0, xerror.Wrapf(err, "commenter count reply failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
-	return resp.NumReply, nil
+	return resp.Count, nil
 }
 
 // 获取笔记的评论信息并填充
@@ -229,7 +229,7 @@ func (b *NoteInteractBiz) AssignNoteReplies(ctx context.Context, batch *model.No
 		noteIds = batch.GetIds()
 	)
 
-	resp, err := dep.GetCommenter().BatchCountReply(ctx, &commentv1.BatchCountReplyRequest{
+	resp, err := dep.GetCommenter().BatchCountComment(ctx, &commentv1.BatchCountCommentRequest{
 		Oids: noteIds,
 	})
 	if err != nil {

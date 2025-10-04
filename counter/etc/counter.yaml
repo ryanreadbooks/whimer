@@ -5,12 +5,11 @@ grpc:
   log:
     level: debug
   etcd:
-    hosts:
-      - 127.0.0.1:2379
+    hosts: ${ENV_ETCD_HOSTS}
     key: whimer.counter.rpc
   telemetry:
     Name: counter
-    Endpoint: http://127.0.0.1:14268/api/traces
+    Endpoint: ${ENV_JAEGER_ENDPOINT}
     Sampler: 1.0
     Batcher: jaeger
 
@@ -21,7 +20,7 @@ mysql:
   db_name: ${ENV_DB_NAME}
 
 redis:
-  host: 127.0.0.1:7542
+  host: ${ENV_REDIS_HOST}
 
 cron:
   summary_spec: "0 3 * * *"

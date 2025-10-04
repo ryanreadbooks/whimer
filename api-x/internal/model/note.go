@@ -1,6 +1,9 @@
 package model
 
 import (
+	"context"
+
+	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 )
 
@@ -55,6 +58,8 @@ type AdminNoteItem struct {
 	Privacy  int8              `json:"privacy"`
 	CreateAt int64             `json:"create_at"`
 	UpdateAt int64             `json:"update_at"`
+	Ip       string            `json:"-"`
+	IpLoc    string            `json:"ip_loc"`
 	Images   NoteItemImageList `json:"images"`
 	Likes    int64             `json:"likes"`
 	Replies  int64             `json:"replies"`
@@ -81,6 +86,8 @@ func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
 	}
 
 	var tagList []*NoteTag = NoteTagsFromPbs(pb.GetTags())
+	ctx := context.Background()
+	ipLoc, _ := infra.Ip2Loc().Convert(ctx, pb.Ip)
 	return &AdminNoteItem{
 		NoteId:   NoteId(pb.NoteId),
 		Title:    pb.Title,
@@ -92,6 +99,8 @@ func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
 		Likes:    pb.Likes,
 		Replies:  pb.Replies,
 		TagList:  tagList,
+		Ip:       pb.Ip,
+		IpLoc:    ipLoc,
 	}
 }
 

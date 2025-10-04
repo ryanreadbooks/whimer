@@ -13,12 +13,11 @@ grpc:
   log:
     level: debug
   etcd:
-    hosts:
-      - 127.0.0.1:2379
+    hosts: ${ENV_ETCD_HOSTS}
     key: whimer.wslink.rpc
   telemetry:
     Name: wslink
-    Endpoint: http://127.0.0.1:14268/api/traces
+    Endpoint: ${ENV_JAEGER_ENDPOINT}
     Sampler: 1.0
     Batcher: jaeger
 
@@ -29,12 +28,12 @@ ws_server:
   max_conn_allowed: 1200
 
 redis:
-  host: 127.0.0.1:7542
+  host: ${ENV_REDIS_HOST}
 
 backend:
-  passport:
-    hosts: [127.0.0.1:2379]
-    key: whimer.passport.rpc
+    passport:
+      hosts: ${ENV_ETCD_HOSTS}
+      key: whimer.passport.rpc
 
 system:
   shutdown:

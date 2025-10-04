@@ -55,7 +55,7 @@ func (s *NoteEventManager) invoke() error {
 	if err != nil {
 		xlog.Msgf("nove evnt job mgr invoke err").Err(err).Errorx(s.ctx)
 	} else {
-		xlog.Msgf("note evnt job mgr invoke done").Infox(s.ctx)
+		// xlog.Msgf("note evnt job mgr invoke done").Infox(s.ctx)
 	}
 
 	return err

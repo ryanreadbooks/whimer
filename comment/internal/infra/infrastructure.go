@@ -2,7 +2,6 @@ package infra
 
 import (
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
-	"github.com/ryanreadbooks/whimer/comment/internal/infra/bus"
 	infradao "github.com/ryanreadbooks/whimer/comment/internal/infra/dao"
 	"github.com/ryanreadbooks/whimer/comment/internal/infra/dep"
 
@@ -13,13 +12,11 @@ import (
 var (
 	dao   *infradao.Dao
 	cache *redis.Redis
-	queue *bus.Bus
 )
 
 func Init(c *config.Config) {
-	cache := redis.MustNewRedis(c.Redis) // TODO make it less dependent
+	cache := redis.MustNewRedis(c.Redis)
 	dao = infradao.MustNew(c, cache)
-	queue = bus.New(c)
 	dep.Init(c)
 }
 
@@ -29,8 +26,4 @@ func Dao() *infradao.Dao {
 
 func Cache() *redis.Redis {
 	return cache
-}
-
-func Bus() *bus.Bus {
-	return queue
 }

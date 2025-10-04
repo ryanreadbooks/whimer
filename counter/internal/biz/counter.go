@@ -564,15 +564,16 @@ func (s *CounterBiz) BatchGetSummary(ctx context.Context, keys []SummaryKey) (
 	const batchsize = 200
 
 	var (
-		finalResult   = make(map[SummaryKey]int64, len(keys))
-		summaryDaoRes = make([]map[summarydao.PrimaryKey]int64, len(keys))
-		wg            sync.WaitGroup
-		mu            sync.Mutex
+		finalResult    = make(map[SummaryKey]int64, len(keys))
+		summaryDbDatas = make([]map[summarydao.PrimaryKey]int64, len(keys))
+		wg             sync.WaitGroup
+		mu             sync.Mutex
 	)
 
 	cacheKeys := make([]summarydao.CacheKey, 0, len(keys))
 	for _, r := range keys {
 		cacheKeys = append(cacheKeys, daoSummaryKeyFromBiz(r))
+		finalResult[r] = 0 // 最终先初始化填充0
 	}
 
 	missingKeys := make([]SummaryKey, 0, len(keys))
@@ -600,14 +601,14 @@ func (s *CounterBiz) BatchGetSummary(ctx context.Context, keys []SummaryKey) (
 		for _, targetKey := range targetKeys {
 			daoQueryConds = append(daoQueryConds, daoSummaryKeyFromBiz(targetKey))
 		}
-		daoRes, err := infra.Dao().SummaryRepo.Gets(ctx, daoQueryConds)
+		dbDatas, err := infra.Dao().SummaryRepo.Gets(ctx, daoQueryConds)
 		if err != nil {
 			return global.ErrCountSummary
 		}
 
 		mu.Lock()
 		defer mu.Unlock()
-		summaryDaoRes = append(summaryDaoRes, daoRes)
+		summaryDbDatas = append(summaryDbDatas, dbDatas)
 
 		return nil
 	})
@@ -618,29 +619,30 @@ func (s *CounterBiz) BatchGetSummary(ctx context.Context, keys []SummaryKey) (
 	}
 
 	// 整理db结果
-	merged := make(map[summarydao.PrimaryKey]int64, len(summaryDaoRes))
-	for _, sumRes := range summaryDaoRes {
-		maps.Copy(merged, sumRes)
+	dbMergedDatas := make(map[summarydao.PrimaryKey]int64, len(summaryDbDatas))
+	for _, sumRes := range summaryDbDatas {
+		maps.Copy(dbMergedDatas, sumRes)
 	}
 
-	for k, v := range merged {
-		finalResult[bizSummaryKeyFromDao(k)] = v
+	// db结果何进缓存结果中
+	for key, summaryCnt := range dbMergedDatas {
+		finalResult[bizSummaryKeyFromDao(key)] = summaryCnt
 	}
 
 	// set back to cache
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
 		Name: "counter.biz.batchgetsummary.cache.batchset",
 		Job: func(ctx context.Context) error {
-			cacheDatas := make([]summarydao.CacheData, 0, len(merged))
+			newCacheDatas := make([]summarydao.CacheData, 0, len(dbMergedDatas))
 			for key, count := range finalResult {
-				cacheDatas = append(cacheDatas,
+				newCacheDatas = append(newCacheDatas,
 					summarydao.CacheData{
 						CacheKey: daoSummaryKeyFromBiz(key),
 						Count:    count,
 					})
 			}
 
-			if err := infra.Dao().SummaryCache.BatchSetCount(ctx, cacheDatas); err != nil {
+			if err := infra.Dao().SummaryCache.BatchSetCount(ctx, newCacheDatas); err != nil {
 				xlog.Msg("counter biz failed to batch set summary cache after batch get summary").Err(err).Errorx(ctx)
 			}
 

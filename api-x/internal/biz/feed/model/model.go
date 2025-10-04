@@ -1,6 +1,9 @@
 package model
 
 import (
+	"context"
+
+	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	imodel "github.com/ryanreadbooks/whimer/api-x/internal/model"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
@@ -51,6 +54,8 @@ type FeedNoteItem struct {
 	UpdateAt int64             `json:"update_at"`
 	Images   NoteItemImageList `json:"images"`
 	Likes    int64             `json:"likes"` // 笔记总点赞数
+	Ip       string            `json:"-"`
+	IpLoc    string            `json:"ip_loc"`
 
 	// 下面这些字段要单独设置 不从note grpc接口中拿
 	Author   *Author     `json:"author"`   // 作者信息
@@ -85,6 +90,9 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 		})
 	}
 
+	ctx := context.Background()
+	ipLoc, _ := infra.Ip2Loc().Convert(ctx, pb.Ip)		
+
 	return &FeedNoteItem{
 		NoteId:   imodel.NoteId(pb.NoteId),
 		Title:    pb.Title,
@@ -93,5 +101,7 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 		UpdateAt: pb.UpdatedAt,
 		Images:   images,
 		Likes:    pb.Likes,
+		Ip:       pb.Ip,
+		IpLoc:    ipLoc,
 	}
 }

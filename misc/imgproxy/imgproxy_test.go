@@ -22,4 +22,9 @@ func TestGetPublicUrl(t *testing.T) {
 		"dbf5f7eedf9a04309a324ac63c6d01294d18e392",
 		"29868e116f43a735ad58cf963a8e9dd81779a796")
 	t.Log(res)
+
+	res = GetSignedUrlWith("127.0.0.1:10000", "pics/cmt_inline/abcedfe",
+		"dbf5f7eedf9a04309a324ac63c6d01294d18e392",
+		"29868e116f43a735ad58cf963a8e9dd81779a796")
+	t.Log(res)
 }

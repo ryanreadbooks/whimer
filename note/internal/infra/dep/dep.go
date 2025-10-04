@@ -11,7 +11,7 @@ import (
 
 var (
 	counter     counterv1.CounterServiceClient // 计数服务
-	commenter   commentv1.ReplyServiceClient   // 评论服务
+	commenter   commentv1.CommentServiceClient // 评论服务
 	searchdocer searchv1.DocumentServiceClient // 搜索服务
 	userer      userv1.UserServiceClient
 )
@@ -22,7 +22,7 @@ func Init(c *config.Config) {
 		func(nc counterv1.CounterServiceClient) { counter = nc })
 
 	commenter = xgrpc.NewRecoverableClient(c.External.Grpc.Comment,
-		commentv1.NewReplyServiceClient, func(nc commentv1.ReplyServiceClient) { commenter = nc })
+		commentv1.NewCommentServiceClient, func(nc commentv1.CommentServiceClient) { commenter = nc })
 
 	searchdocer = xgrpc.NewRecoverableClient(c.External.Grpc.Search,
 		searchv1.NewDocumentServiceClient, func(nc searchv1.DocumentServiceClient) { searchdocer = nc })
@@ -36,7 +36,7 @@ func GetCounter() counterv1.CounterServiceClient {
 	return counter
 }
 
-func GetCommenter() commentv1.ReplyServiceClient {
+func GetCommenter() commentv1.CommentServiceClient {
 	return commenter
 }
 
