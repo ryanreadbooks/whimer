@@ -100,7 +100,7 @@ func (d *UserDao) FindPassAndSaltByUid(ctx context.Context, uid int64) (*PassAnd
 
 func (d *UserDao) FindByNickNameLike(ctx context.Context, nickname string, page, limit int32) ([]*UserBase, error) {
 	offset := (page - 1) * limit
-	cond := nickname + "%"
+	cond := "%" + nickname + "%"
 
 	models := make([]*UserBase, 0, limit)
 	err := d.db.QueryRowsCtx(ctx, &models, sqlFindBasicNameLike, cond, offset, limit)

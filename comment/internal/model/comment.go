@@ -42,7 +42,7 @@ func NewCommentItemFromDao(d *dao.Comment) *CommentItem {
 		HateCount:  int64(d.Dislike),
 		Ctime:      d.Ctime,
 		Mtime:      d.Mtime,
-		Ip:         xnet.IntAsIp(uint32(d.Ip)),
+		Ip:         xnet.BytesIpAsString(d.Ip),
 		IsPin:      d.IsPin == dao.AlreadyPinned,
 	}
 }

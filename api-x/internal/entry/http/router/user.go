@@ -35,10 +35,8 @@ func regUserRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 
 			// 拉取单个用户的信息
 			v1g.Get("/get", h.User.GetUser())
-
 			// 获取用户的投稿数量、点赞数量等信息
 			v1g.Get("/stat", h.User.GetUserStat())
-
 			// 用户hover卡片信息
 			v1g.Get("/hover/profile", h.User.GetHoverProfile())
 		}

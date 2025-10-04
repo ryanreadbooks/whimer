@@ -20,21 +20,26 @@ import (
 
 // all sqls here
 const (
-	sqlFind                = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE id=?"
-	sqlInsertAll           = "INSERT INTO note(title,`desc`,privacy,owner,create_at,update_at) VALUES(?,?,?,?,?,?)"
-	sqlUpdateAll           = "UPDATE note SET title=?,`desc`=?,privacy=?,owner=?,update_at=? WHERE id=?"
-	sqlDeleteById          = "DELETE FROM note WHERE id=?"
-	sqlListByOwner         = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE owner=?"
-	sqlListByOwnerByCursor = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE owner=? AND id<? ORDER BY create_at DESC, id DESC LIMIT ?"
-	sqlGetByCursor         = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE id>=? AND privacy=? LIMIT ?"
-	sqlGetRecentPosted     = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE owner=? AND privacy=? ORDER BY create_at DESC LIMIT ?"
-	sqlGetLastId           = "SELECT id FROM note WHERE privacy=? ORDER BY id DESC LIMIT 1"
-	sqlGetAll              = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE privacy=?"
-	sqlGetCount            = "SELECT COUNT(*) FROM note WHERE privacy=?"
-	sqlCountByUid          = "SELECT COUNT(*) FROM note WHERE owner=?"
-	sqlBatchGet            = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note WHERE id IN (%s)"
-	sqlCountPublicByUid    = "SELECT COUNT(*) FROM note WHERE owner=? AND privacy=?"
-	sqlFindOwnerById       = "SELECT owner FROM note WHERE id=?"
+	noteFields = "id,title,`desc`,privacy,owner,ip,create_at,update_at"
+
+	sqlFind                   = "SELECT " + noteFields + " FROM note WHERE id=?"
+	sqlInsertAll              = "INSERT INTO note(title,`desc`,privacy,owner,ip,create_at,update_at) VALUES(?,?,?,?,?,?,?)"
+	sqlUpdateAll              = "UPDATE note SET title=?,`desc`=?,privacy=?,owner=?,ip=?,update_at=? WHERE id=?"
+	sqlDeleteById             = "DELETE FROM note WHERE id=?"
+	sqlListByOwner            = "SELECT " + noteFields + " FROM note WHERE owner=?"
+	sqlListByOwnerByCursor    = "SELECT " + noteFields + " FROM note WHERE owner=? AND id<? ORDER BY create_at DESC, id DESC LIMIT ?"
+	sqlGetByCursor            = "SELECT " + noteFields + " FROM note WHERE id>=? AND privacy=? LIMIT ?"
+	sqlGetRecentPosted        = "SELECT " + noteFields + " FROM note WHERE owner=? AND privacy=? ORDER BY create_at DESC LIMIT ?"
+	sqlGetLastId              = "SELECT id FROM note WHERE privacy=? ORDER BY id DESC LIMIT 1"
+	sqlGetAll                 = "SELECT " + noteFields + " FROM note WHERE privacy=?"
+	sqlGetCount               = "SELECT COUNT(*) FROM note WHERE privacy=?"
+	sqlCountByUid             = "SELECT COUNT(*) FROM note WHERE owner=?"
+	sqlBatchGet               = "SELECT " + noteFields + " FROM note WHERE id IN (%s)"
+	sqlCountPublicByUid       = "SELECT COUNT(*) FROM note WHERE owner=? AND privacy=?"
+	sqlFindOwnerById          = "SELECT owner FROM note WHERE id=?"
+	sqlPageListPublicByCursor = "SELECT " + noteFields + " FROM note " +
+		"WHERE id<? AND privacy=? ORDER BY create_at DESC, id DESC LIMIT ?"
+	sqlPageListByOwner = "SELECT " + noteFields + " FROM note WHERE owner=? ORDER BY create_at DESC, id DESC LIMIT ?,?"
 )
 
 type NoteDao struct {
@@ -57,10 +62,11 @@ func NewNoteDao(db *xsql.DB, cache *redis.Redis) *NoteDao {
 
 type Note struct {
 	Id       int64  `db:"id"`
-	Title    string `db:"title"`     // 标题
-	Desc     string `db:"desc"`      // 描述
-	Privacy  int8   `db:"privacy"`   // 公开类型
-	Owner    int64  `db:"owner"`     // 笔记作者
+	Title    string `db:"title"`   // 标题
+	Desc     string `db:"desc"`    // 描述
+	Privacy  int8   `db:"privacy"` // 公开类型
+	Owner    int64  `db:"owner"`   // 笔记作者
+	Ip       []byte `db:"ip"`
 	CreateAt int64  `db:"create_at"` // 创建时间
 	UpdateAt int64  `db:"update_at"` // 更新时间
 }
@@ -169,12 +175,8 @@ func (r *NoteDao) ListPublicByOwnerByCursor(ctx context.Context, uid int64, curs
 //
 // ATTENTION: listing is in reverse order
 func (r *NoteDao) ListPublicByCursor(ctx context.Context, cursor int64, limit int32) ([]*Note, error) {
-	const sql = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note " +
-		"WHERE id<? AND privacy=? " +
-		"ORDER BY create_at DESC, id DESC LIMIT ?"
-
 	res := make([]*Note, 0, limit)
-	err := r.db.QueryRowsCtx(ctx, &res, sql, cursor, global.PrivacyPublic, limit)
+	err := r.db.QueryRowsCtx(ctx, &res, sqlPageListPublicByCursor, cursor, global.PrivacyPublic, limit)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
@@ -183,11 +185,8 @@ func (r *NoteDao) ListPublicByCursor(ctx context.Context, cursor int64, limit in
 }
 
 func (r *NoteDao) PageListByOwner(ctx context.Context, uid int64, page, count int32) ([]*Note, error) {
-	const sql = "SELECT id,title,`desc`,privacy,owner,create_at,update_at FROM note " +
-		"WHERE owner=? ORDER BY create_at DESC, id DESC LIMIT ?,?"
-
 	res := make([]*Note, 0, count)
-	err := r.db.QueryRowsCtx(ctx, &res, sql, uid, (page-1)*count, count)
+	err := r.db.QueryRowsCtx(ctx, &res, sqlPageListByOwner, uid, (page-1)*count, count)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
@@ -203,6 +202,7 @@ func (r *NoteDao) insert(ctx context.Context, note *Note) (int64, error) {
 		note.Desc,
 		note.Privacy,
 		note.Owner,
+		note.Ip,
 		now,
 		now)
 
@@ -228,6 +228,7 @@ func (r *NoteDao) update(ctx context.Context, note *Note) error {
 		note.Desc,
 		note.Privacy,
 		note.Owner,
+		note.Ip,
 		time.Now().Unix(),
 		note.Id,
 	)

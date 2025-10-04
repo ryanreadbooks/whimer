@@ -1,9 +1,11 @@
 package comment
 
 import (
+	"context"
 	"fmt"
 	"unicode/utf8"
 
+	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/model"
 	"github.com/ryanreadbooks/whimer/api-x/internal/model/errors"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
@@ -207,7 +209,8 @@ type CommentItemBase struct {
 	HateCount int64               `json:"-"`                // 点踩数
 	Ctime     int64               `json:"ctime"`            // 发布时间
 	Mtime     int64               `json:"mtime"`            // 修改时间
-	Ip        string              `json:"ip"`               // TODO 发布时ip地址 隐藏ip 改为ip属地
+	Ip        string              `json:"-"`                // ip
+	IpLoc     string              `json:"ip_loc"`           // ip归属地
 	IsPin     bool                `json:"is_pin"`           // 是否为置顶评论
 	SubsCount int64               `json:"subs_count"`       // 子评论数
 	Images    []*CommentItemImage `json:"images,omitempty"` // 评论图片
@@ -225,6 +228,9 @@ func NewCommentItemBaseFromPb(p *commentv1.CommentItem) *CommentItemBase {
 		return &CommentItemBase{}
 	}
 
+	ctx := context.Background()
+	ipLoc, _ := infra.Ip2Loc().Convert(ctx, p.Ip)
+
 	return &CommentItemBase{
 		Id:        p.Id,
 		Oid:       model.NoteId(p.Oid),
@@ -239,6 +245,7 @@ func NewCommentItemBaseFromPb(p *commentv1.CommentItem) *CommentItemBase {
 		Mtime:     p.Mtime,
 		Ctime:     p.Ctime,
 		Ip:        p.Ip,
+		IpLoc:     ipLoc,
 		IsPin:     p.IsPin,
 		SubsCount: p.SubsCount,
 		Images:    NewCommentItemImageSliceFromPb(p.Images),

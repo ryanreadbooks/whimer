@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
@@ -76,6 +77,7 @@ type Note struct {
 	Privacy  int8          `json:"privacy,omitempty"`
 	CreateAt int64         `json:"create_at,omitempty"`
 	UpdateAt int64         `json:"update_at,omitempty"`
+	Ip       string        `json:"ip"`
 	Images   NoteImageList `json:"images"`
 	Likes    int64         `json:"likes"`   // 点赞数
 	Replies  int64         `json:"replies"` // 评论数
@@ -100,6 +102,7 @@ func NoteFromDao(d *notedao.Note) *Note {
 	n.Privacy = d.Privacy
 	n.CreateAt = d.CreateAt
 	n.UpdateAt = d.UpdateAt
+	n.Ip = xnet.BytesIpAsString(d.Ip)
 	n.Owner = d.Owner
 
 	return n
@@ -121,6 +124,7 @@ func (i *Note) AsPb() *notev1.NoteItem {
 		Privacy:  int32(i.Privacy),
 		CreateAt: i.CreateAt,
 		UpdateAt: i.UpdateAt,
+		Ip:       i.Ip,
 		Images:   i.Images.AsPb(),
 		Likes:    i.Likes,
 		Replies:  i.Replies,
@@ -147,6 +151,7 @@ func (i *Note) AsFeedPb() *notev1.FeedNoteItem {
 		CreatedAt: i.CreateAt,
 		UpdatedAt: i.UpdateAt,
 		Images:    i.Images.AsPb(),
+		Ip:        i.Ip,
 		Likes:     i.Likes,
 		Author:    i.Owner,
 		Replies:   i.Replies,

@@ -20,7 +20,7 @@ type Comment struct {
 	Dislike  int    `json:"dislike" db:"dislike"`
 	Report   int    `json:"repot" db:"report"`
 	IsPin    int8   `json:"pin" db:"pin"`
-	Ip       int64  `json:"ip" db:"ip"`
+	Ip       []byte  `json:"ip" db:"ip"`
 	Ctime    int64  `json:"ctime" db:"ctime"`
 	Mtime    int64  `json:"mtime" db:"mtime"`
 }

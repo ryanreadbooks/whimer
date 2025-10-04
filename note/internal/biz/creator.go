@@ -14,6 +14,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/oss/keygen"
 	"github.com/ryanreadbooks/whimer/misc/utils"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
@@ -60,6 +61,7 @@ func isNoteExtValid(ext *notedao.Ext) bool {
 func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *model.CreateNoteRequest) (int64, error) {
 	var (
 		uid    = metadata.Uid(ctx)
+		ip     = xnet.IpAsBytes(metadata.ClientIp(ctx))
 		noteId int64
 	)
 
@@ -69,6 +71,7 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *model.CreateNoteRe
 		Desc:    req.Basic.Desc,
 		Privacy: int8(req.Basic.Privacy),
 		Owner:   uid,
+		Ip:      ip,
 	}
 
 	var noteAssets = make([]*notedao.Asset, 0, len(req.Images))
@@ -131,6 +134,7 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *model.CreateNoteRe
 func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *model.UpdateNoteRequest) error {
 	var (
 		uid = metadata.Uid(ctx)
+		ip  = xnet.IpAsBytes(metadata.ClientIp(ctx))
 	)
 
 	now := time.Now().Unix()
@@ -154,6 +158,7 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *model.UpdateNoteRe
 		Desc:     req.Basic.Desc,
 		Privacy:  int8(req.Basic.Privacy),
 		Owner:    oldNote.Owner,
+		Ip:       ip,
 		CreateAt: oldNote.CreateAt,
 		UpdateAt: now,
 	}

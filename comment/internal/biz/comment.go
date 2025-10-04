@@ -46,7 +46,7 @@ func (b *CommentBiz) AddComment(ctx context.Context, req *model.AddCommentReq) (
 		oid      = req.Oid
 		rootId   = req.RootId
 		parentId = req.ParentId
-		ip       = xnet.IpAsInt(metadata.ClientIp(ctx))
+		ip       = xnet.IpAsBytes(metadata.ClientIp(ctx))
 	)
 
 	// 必须笔记存在才可以添加评论

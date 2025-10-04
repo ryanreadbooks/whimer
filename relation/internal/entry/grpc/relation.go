@@ -28,7 +28,9 @@ func NewRelationServiceServer(srv *srv.Service) *RelationServiceServer {
 	return s
 }
 
-func (s *RelationServiceServer) FollowUser(ctx context.Context, req *relationv1.FollowUserRequest) (*relationv1.FollowUserResponse, error) {
+func (s *RelationServiceServer) FollowUser(ctx context.Context, req *relationv1.FollowUserRequest) (
+	*relationv1.FollowUserResponse, error) {
+
 	var err error
 	switch req.Action {
 	case relationv1.FollowUserRequest_ACTION_FOLLOW:
@@ -46,12 +48,21 @@ func (s *RelationServiceServer) FollowUser(ctx context.Context, req *relationv1.
 	return &relationv1.FollowUserResponse{}, nil
 }
 
-func (s *RelationServiceServer) GetUserFanList(ctx context.Context, req *relationv1.GetUserFanListRequest) (*relationv1.GetUserFanListResponse, error) {
+func (s *RelationServiceServer) GetUserFanList(ctx context.Context, req *relationv1.GetUserFanListRequest) (
+	*relationv1.GetUserFanListResponse, error) {
+
+	if req.Cond == nil {
+		return nil, xerror.ErrArgs.Msg("cond is nil")
+	}
+
 	if req.Cond.Count < 0 {
 		req.Cond.Count = maxLimit
 	}
 	req.Cond.Count = min(req.Cond.Count, maxLimit)
-	fans, res, err := s.Srv.RelationSrv.GetUserFanList(ctx, req.Uid, req.Cond.Offset, int(req.Cond.Count))
+	fans, res, err := s.Srv.RelationSrv.GetUserFanList(ctx,
+		req.Uid,
+		req.Cond.Offset,
+		int(req.Cond.Count))
 	if err != nil {
 		return nil, err
 	}
@@ -64,11 +75,18 @@ func (s *RelationServiceServer) GetUserFanList(ctx context.Context, req *relatio
 
 func (s *RelationServiceServer) GetUserFollowingList(ctx context.Context, req *relationv1.GetUserFollowingListRequest) (
 	*relationv1.GetUserFollowingListResponse, error) {
+	if req.Cond == nil {
+		return nil, xerror.ErrArgs.Msg("cond is nil")
+	}
+
 	if req.Cond.Count < 0 {
 		req.Cond.Count = maxLimit
 	}
 	req.Cond.Count = min(req.Cond.Count, maxLimit)
-	followings, res, err := s.Srv.RelationSrv.GetUserFollowingList(ctx, req.Uid, req.Cond.Offset, int(req.Cond.Count))
+	followings, res, err := s.Srv.RelationSrv.GetUserFollowingList(ctx,
+		req.Uid,
+		req.Cond.Offset,
+		int(req.Cond.Count))
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +175,10 @@ func (s *RelationServiceServer) PageGetUserFollowingList(ctx context.Context,
 		req.Count = 30
 	}
 
-	fansId, total, err := s.Srv.RelationSrv.PageGetUserFollowingList(ctx, req.Target, req.Page, req.Count)
+	fansId, total, err := s.Srv.RelationSrv.PageGetUserFollowingList(ctx,
+		req.Target,
+		req.Page,
+		req.Count)
 	if err != nil {
 		return nil, err
 	}

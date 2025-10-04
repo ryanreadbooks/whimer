@@ -12,8 +12,9 @@ var (
 
 func Init(c *config.Config) {
 	initOnce.Do(func() {
+		initMisc(c)
 		initCache(c)
-		
+
 		InitPassport(c)
 		InitNote(c)
 		InitCommenter(c)
