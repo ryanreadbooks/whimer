@@ -44,10 +44,11 @@ func (b *UserBiz) GetUser(ctx context.Context, uid int64) (*userv1.UserInfo, err
 }
 
 func (b *UserBiz) batchGetFollowingStatus(ctx context.Context, uid int64, targets []int64, output []*model.UserWithFollowStatus) (map[int64]bool, error) {
-	resp, err := infra.RelationServer().BatchCheckUserFollowed(ctx, &relationv1.BatchCheckUserFollowedRequest{
-		Uid:     uid,
-		Targets: targets,
-	})
+	resp, err := infra.RelationServer().BatchCheckUserFollowed(ctx,
+		&relationv1.BatchCheckUserFollowedRequest{
+			Uid:     uid,
+			Targets: targets,
+		})
 	if err != nil {
 		return nil, xerror.Wrapf(err, "batch check user followed failed")
 	}
@@ -110,11 +111,12 @@ func (b *UserBiz) getUserWithFollowStatus(ctx context.Context, targetUids []int6
 
 // 获取用户粉丝列表
 func (b *UserBiz) ListUserFans(ctx context.Context, targetUid int64, page, count int32) ([]*model.UserWithFollowStatus, int64, error) {
-	resp, err := infra.RelationServer().PageGetUserFanList(ctx, &relationv1.PageGetUserFanListRequest{
-		Target: targetUid,
-		Page:   page,
-		Count:  count,
-	})
+	resp, err := infra.RelationServer().PageGetUserFanList(ctx,
+		&relationv1.PageGetUserFanListRequest{
+			Target: targetUid,
+			Page:   page,
+			Count:  count,
+		})
 
 	if err != nil {
 		return nil, 0, err
@@ -135,11 +137,12 @@ func (b *UserBiz) ListUserFans(ctx context.Context, targetUid int64, page, count
 
 // 获取用户关注列表
 func (b *UserBiz) ListUserFollowings(ctx context.Context, targetUid int64, page, count int32) ([]*model.UserWithFollowStatus, int64, error) {
-	resp, err := infra.RelationServer().PageGetUserFollowingList(ctx, &relationv1.PageGetUserFollowingListRequest{
-		Target: targetUid,
-		Page:   page,
-		Count:  count,
-	})
+	resp, err := infra.RelationServer().PageGetUserFollowingList(ctx,
+		&relationv1.PageGetUserFollowingListRequest{
+			Target: targetUid,
+			Page:   page,
+			Count:  count,
+		})
 
 	if err != nil {
 		return nil, 0, err

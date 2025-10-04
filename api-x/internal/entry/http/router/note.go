@@ -87,7 +87,7 @@ func regNoteRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 				// 评论中插入图片申请上传凭证
 				v1AuthedGroup.Get("/upload/images", h.Comment.UploadCommentImages())
 				// 获取at用户列表
-				v1AuthedGroup.Get("/at_users", nil)
+				// v1AuthedGroup.Get("/at_users", nil)
 			}
 		}
 	}
