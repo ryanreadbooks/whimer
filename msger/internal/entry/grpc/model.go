@@ -5,12 +5,12 @@ import (
 	bizp2p "github.com/ryanreadbooks/whimer/msger/internal/biz/p2p"
 )
 
-func makePbMessage(m *bizp2p.ChatMsg) *pbmsg.Message {
+func makePbMsg(m *bizp2p.ChatMsg) *pbmsg.Msg {
 	if m == nil {
-		return &pbmsg.Message{}
+		return &pbmsg.Msg{}
 	}
 
-	return &pbmsg.Message{
+	return &pbmsg.Msg{
 		MsgId:    m.MsgId,
 		ChatId:   m.ChatId,
 		Sender:   m.Sender,

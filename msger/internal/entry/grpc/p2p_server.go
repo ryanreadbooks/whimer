@@ -45,7 +45,7 @@ func validateMsgType(t pbmsg.MsgType) bool {
 	return t == pbmsg.MsgType_MSG_TYPE_TEXT || t == pbmsg.MsgType_MSG_TYPE_IMAGE
 }
 
-func validateSendMessageRequest(in *p2pv1.SendMessageRequest) error {
+func validateSendMsgRequest(in *p2pv1.SendMsgRequest) error {
 	if in.Sender == 0 {
 		return global.ErrP2PChatSenderEmpty
 	}
@@ -79,13 +79,13 @@ func validateSendMessageRequest(in *p2pv1.SendMessageRequest) error {
 	return nil
 }
 
-func (s *ChatServiceServer) SendMessage(ctx context.Context, in *p2pv1.SendMessageRequest) (
-	*p2pv1.SendMessageResponse, error) {
-	if err := validateSendMessageRequest(in); err != nil {
+func (s *ChatServiceServer) SendMsg(ctx context.Context, in *p2pv1.SendMsgRequest) (
+	*p2pv1.SendMsgResponse, error) {
+	if err := validateSendMsgRequest(in); err != nil {
 		return nil, err
 	}
 
-	respMsg, err := s.Svc.P2PChatSrv.SendMessage(ctx, &bizp2p.CreateMsgReq{
+	respMsg, err := s.Svc.P2PChatSrv.SendMsg(ctx, &bizp2p.CreateMsgReq{
 		ChatId:   in.ChatId,
 		Sender:   in.Sender,
 		Receiver: in.Receiver,
@@ -96,14 +96,14 @@ func (s *ChatServiceServer) SendMessage(ctx context.Context, in *p2pv1.SendMessa
 		return nil, err
 	}
 
-	return &p2pv1.SendMessageResponse{
+	return &p2pv1.SendMsgResponse{
 		MsgId: respMsg.MsgId,
 		Seq:   respMsg.Seq,
 	}, nil
 }
 
-func (s *ChatServiceServer) ListMessage(ctx context.Context, in *p2pv1.ListMessageRequest) (
-	*p2pv1.ListMessageResponse, error) {
+func (s *ChatServiceServer) ListMsg(ctx context.Context, in *p2pv1.ListMsgRequest) (
+	*p2pv1.ListMsgResponse, error) {
 	if err := checkChatIdUserId(in); err != nil {
 		return nil, err
 	}
@@ -114,18 +114,18 @@ func (s *ChatServiceServer) ListMessage(ctx context.Context, in *p2pv1.ListMessa
 		in.Count = 50
 	}
 
-	msgs, nextSeq, err := s.Svc.P2PChatSrv.ListMessage(ctx, in.UserId, in.ChatId, in.Seq, in.Count)
+	msgs, nextSeq, err := s.Svc.P2PChatSrv.ListMsg(ctx, in.UserId, in.ChatId, in.Seq, in.Count)
 	if err != nil {
 		return nil, err
 	}
 
-	respMsgs := make([]*pbmsg.Message, 0, len(msgs))
+	respMsgs := make([]*pbmsg.Msg, 0, len(msgs))
 	for _, m := range msgs {
-		respMsgs = append(respMsgs, makePbMessage(m))
+		respMsgs = append(respMsgs, makePbMsg(m))
 	}
 
-	return &p2pv1.ListMessageResponse{
-		Messages: respMsgs,
+	return &p2pv1.ListMsgResponse{
+		Msgs: respMsgs,
 		NextSeq:  nextSeq,
 	}, nil
 }
@@ -164,8 +164,8 @@ func (s *ChatServiceServer) ClearUnread(ctx context.Context, in *p2pv1.ClearUnre
 }
 
 // 撤回消息
-func (s *ChatServiceServer) RevokeMessage(ctx context.Context, in *p2pv1.RevokeMessageRequest) (
-	*p2pv1.RevokeMessageResponse, error) {
+func (s *ChatServiceServer) RevokeMsg(ctx context.Context, in *p2pv1.RevokeMsgRequest) (
+	*p2pv1.RevokeMsgResponse, error) {
 	if err := checkChatIdUserId(in); err != nil {
 		return nil, err
 	}
@@ -173,12 +173,12 @@ func (s *ChatServiceServer) RevokeMessage(ctx context.Context, in *p2pv1.RevokeM
 		return nil, err
 	}
 
-	err := s.Svc.P2PChatSrv.RevokeMessage(ctx, in.UserId, in.ChatId, in.MsgId)
+	err := s.Svc.P2PChatSrv.RevokeMsg(ctx, in.UserId, in.ChatId, in.MsgId)
 	if err != nil {
 		return nil, err
 	}
 
-	return &p2pv1.RevokeMessageResponse{}, nil
+	return &p2pv1.RevokeMsgResponse{}, nil
 }
 
 func (s *ChatServiceServer) ListChat(ctx context.Context, in *p2pv1.ListChatRequest) (
@@ -234,7 +234,7 @@ func makeChatFromBiz(c *bizp2p.Chat) *p2pv1.Chat {
 		LastMsgSeq:    c.LastMsgSeq,
 		LastReadMsgId: c.LastReadMsgId,
 		LastReadTime:  c.LastReadTime,
-		LastMsg:       makePbMessage(c.LastMsg),
+		LastMsg:       makePbMsg(c.LastMsg),
 	}
 }
 
@@ -253,8 +253,8 @@ func (s *ChatServiceServer) DeleteChat(ctx context.Context, in *p2pv1.DeleteChat
 }
 
 // 删除消息
-func (s *ChatServiceServer) DeleteMessage(ctx context.Context, in *p2pv1.DeleteMessageRequest) (
-	*p2pv1.DeleteMessageResponse, error) {
+func (s *ChatServiceServer) DeleteMsg(ctx context.Context, in *p2pv1.DeleteMsgRequest) (
+	*p2pv1.DeleteMsgResponse, error) {
 	if err := checkChatIdUserId(in); err != nil {
 		return nil, err
 	}
@@ -262,9 +262,9 @@ func (s *ChatServiceServer) DeleteMessage(ctx context.Context, in *p2pv1.DeleteM
 		return nil, err
 	}
 
-	if err := s.Svc.P2PChatSrv.DeleteChatMessage(ctx, in.UserId, in.ChatId, in.MsgId); err != nil {
+	if err := s.Svc.P2PChatSrv.DeleteChatMsg(ctx, in.UserId, in.ChatId, in.MsgId); err != nil {
 		return nil, err
 	}
 
-	return &p2pv1.DeleteMessageResponse{}, nil
+	return &p2pv1.DeleteMsgResponse{}, nil
 }

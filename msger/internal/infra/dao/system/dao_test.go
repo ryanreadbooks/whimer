@@ -1,4 +1,4 @@
-package p2p
+package system
 
 import (
 	"context"
@@ -10,10 +10,9 @@ import (
 )
 
 var (
-	chatDao    *ChatDao
-	messageDao *MsgDao
-	inboxDao   *InboxDao
-	ctx        = context.TODO()
+	systemChatDao *SystemChatDao
+	systemMsgDao  *SystemMsgDao
+	ctx           = context.TODO()
 )
 
 func TestMain(m *testing.M) {
@@ -25,8 +24,9 @@ func TestMain(m *testing.M) {
 	))
 
 	d := xsql.New(db)
-	chatDao = NewChatDao(d)
-	messageDao = NewMsgDao(d)
-	inboxDao = NewInboxDao(d)
+	systemChatDao = NewSystemChatDao(d)
+	systemMsgDao = NewSystemMsgDao(d)
 	m.Run()
+
+	// deleteForTest()
 }

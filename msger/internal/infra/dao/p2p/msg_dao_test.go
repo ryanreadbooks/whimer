@@ -7,9 +7,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestMessageDao_Create(t *testing.T) {
-	Convey("TestMessageDao_Create", t, func() {
-		err := messageDao.Create(ctx, &MessagePO{
+func TestMsgDao_Create(t *testing.T) {
+	Convey("TestMsgDao_Create", t, func() {
+		err := messageDao.Create(ctx, &MsgPO{
 			MsgId:    1,
 			SenderId: 100,
 			ChatId:   10,

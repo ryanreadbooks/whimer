@@ -21,7 +21,7 @@ func (m *ChatMsg) IsRevoked() bool {
 	return m.Status == gm.MsgStatusRevoked
 }
 
-func MakeChatMsgFromPO(po *p2pdao.MessagePO, recv int64) *ChatMsg {
+func MakeChatMsgFromPO(po *p2pdao.MsgPO, recv int64) *ChatMsg {
 	if po == nil {
 		return &ChatMsg{}
 	}
@@ -73,9 +73,9 @@ func MakeChatFromPO(po *p2pdao.ChatPO) *Chat {
 		UserId:        po.UserId,
 		PeerId:        po.PeerId,
 		Unread:        po.UnreadCount,
-		LastMsgId:     po.LastMessageId,
-		LastMsgSeq:    po.LastMessageSeq,
-		LastReadMsgId: po.LastReadMessageId,
+		LastMsgId:     po.LastMsgId,
+		LastMsgSeq:    po.LastMsgSeq,
+		LastReadMsgId: po.LastReadMsgId,
 		LastReadTime:  po.LastReadTime,
 	}
 }

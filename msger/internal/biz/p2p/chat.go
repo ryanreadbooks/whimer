@@ -153,7 +153,7 @@ func (b *ChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg, e
 	msgId := int64(msgNo)
 	seq := time.Now().UnixMicro()
 
-	msgPo := &p2pdao.MessagePO{
+	msgPo := &p2pdao.MsgPO{
 		MsgId:    msgId,
 		SenderId: req.Sender,
 		ChatId:   req.ChatId,
@@ -190,14 +190,14 @@ func (b *ChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg, e
 			ChatId: msgPo.ChatId,
 			MsgId:  msgId,
 			MsgSeq: seq,
-			Status: gm.InboxRead,
+			Status: gm.P2PInboxRead,
 		}
 		receiverInbox := p2pdao.InboxMsgPO{
 			UserId: req.Receiver,
 			ChatId: msgPo.ChatId,
 			MsgId:  msgId,
 			MsgSeq: seq,
-			Status: gm.InboxUnread,
+			Status: gm.P2PInboxUnread,
 		}
 		err = infra.Dao().P2PInboxDao.BatchCreate(ctx, []*p2pdao.InboxMsgPO{&senderInbox, &receiverInbox})
 		if err != nil {

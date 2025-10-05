@@ -1,8 +1,8 @@
 package router
 
 import (
-	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/middleware"
 	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/handler"
+	"github.com/ryanreadbooks/whimer/api-x/internal/entry/http/middleware"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 )
 
@@ -27,11 +27,11 @@ func regChatRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 			msgGroup := v1Group.Group("/message")
 			{
 				// 拉消息
-				msgGroup.Get("/list", h.Chat.ListMessages())
+				msgGroup.Get("/list", h.Chat.ListMsgs())
 				// 发消息
-				msgGroup.Post("/send", h.Chat.SendMessage())
+				msgGroup.Post("/send", h.Chat.SendMsg())
 				// 删除消息
-				msgGroup.Post("/delete", h.Chat.DeleteMessage())
+				msgGroup.Post("/delete", h.Chat.DeleteMsg())
 			}
 		}
 	}

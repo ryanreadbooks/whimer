@@ -112,9 +112,9 @@ func (h *Handler) GetChat() http.HandlerFunc {
 }
 
 // 拉消息列表
-func (h *Handler) ListMessages() http.HandlerFunc {
+func (h *Handler) ListMsgs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[ListMessagesReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[ListMsgsReq](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -122,7 +122,7 @@ func (h *Handler) ListMessages() http.HandlerFunc {
 
 		ctx := r.Context()
 		uid := metadata.Uid(ctx)
-		messages, err := infra.Chatter().ListMessage(ctx, &msgv1.ListMessageRequest{
+		messages, err := infra.Chatter().ListMsg(ctx, &msgv1.ListMsgRequest{
 			ChatId: req.ChatId,
 			UserId: uid,
 			Seq:    req.Seq,
@@ -138,9 +138,9 @@ func (h *Handler) ListMessages() http.HandlerFunc {
 }
 
 // 发消息
-func (h *Handler) SendMessage() http.HandlerFunc {
+func (h *Handler) SendMsg() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[SendMessageReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[SendMsgReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -151,7 +151,7 @@ func (h *Handler) SendMessage() http.HandlerFunc {
 
 		// TODO check if sender can send msg to receiver
 
-		resp, err := infra.Chatter().SendMessage(ctx, &msgv1.SendMessageRequest{
+		resp, err := infra.Chatter().SendMsg(ctx, &msgv1.SendMsgRequest{
 			Sender:   sender,
 			Receiver: req.Receiver,
 			ChatId:   req.ChatId,
@@ -197,9 +197,9 @@ func (h *Handler) DeleteChat() http.HandlerFunc {
 }
 
 // 删除消息
-func (h *Handler) DeleteMessage() http.HandlerFunc {
+func (h *Handler) DeleteMsg() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[DeleteMessageReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[DeleteMsgReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -210,7 +210,7 @@ func (h *Handler) DeleteMessage() http.HandlerFunc {
 
 		// TODO check uid can delete message or not
 
-		_, err = infra.Chatter().DeleteMessage(ctx, &msgv1.DeleteMessageRequest{
+		_, err = infra.Chatter().DeleteMsg(ctx, &msgv1.DeleteMsgRequest{
 			UserId: uid,
 			ChatId: req.ChatId,
 			MsgId:  req.MsgId,

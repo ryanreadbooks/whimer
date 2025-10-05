@@ -29,13 +29,13 @@ func (r *CreateChatReq) Validate() error {
 	return nil
 }
 
-type ListMessagesReq struct {
+type ListMsgsReq struct {
 	ChatId int64 `form:"chat_id"`
 	Seq    int64 `form:"seq,optional"`
 	Count  int   `form:"count,optional"`
 }
 
-func (r *ListMessagesReq) Validate() error {
+func (r *ListMsgsReq) Validate() error {
 	if r.ChatId <= 0 {
 		return ErrChatNotFound
 	}
@@ -43,14 +43,14 @@ func (r *ListMessagesReq) Validate() error {
 	return nil
 }
 
-type SendMessageReq struct {
+type SendMsgReq struct {
 	ChatId   int64  `json:"chat_id"`
 	Receiver int64  `json:"receiver"`
 	MsgType  int32  `json:"msg_type"`
 	Content  string `json:"content"`
 }
 
-func (r *SendMessageReq) Validate() error {
+func (r *SendMsgReq) Validate() error {
 	if r.Receiver == 0 {
 		return ErrUserNotFound
 	}
@@ -87,12 +87,12 @@ func (r *DeleteChatReq) Validate() error {
 	return nil
 }
 
-type DeleteMessageReq struct {
+type DeleteMsgReq struct {
 	ChatId int64 `json:"chat_id"`
 	MsgId  int64 `json:"msg_id"`
 }
 
-func (r *DeleteMessageReq) Validate() error {
+func (r *DeleteMsgReq) Validate() error {
 	if r.ChatId <= 0 {
 		return ErrChatNotFound
 	}

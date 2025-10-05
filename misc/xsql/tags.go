@@ -68,7 +68,7 @@ func getQuest(fields string) string {
 }
 
 // 同时返回参数化参数?
-func GetFields2(v any, skip ...string) (string, string) {
+func GetFields2WithSkip(v any, skip ...string) (string, string) {
 	fields := strings.TrimSpace(GetFields(v, skip...))
 	if len(fields) == 0 {
 		return fields, ""
