@@ -7,6 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/msger/internal/biz"
 	bizsyschat "github.com/ryanreadbooks/whimer/msger/internal/biz/system"
+	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
 )
 
 type SystemChatSrv struct {
@@ -31,26 +32,83 @@ func (s *SystemChatSrv) SendMsg(ctx context.Context, req bizsyschat.CreateSystem
 	return msgId.Id, nil
 }
 
-// 发送通用系统消息
-func (s *SystemChatSrv) NotifyCommonSystemMsg(ctx context.Context, uid int64) error {
+type NotifySystemMsgReq struct {
+	RecvUid int64
+	MsgType model.MsgType
+	Notice  SystemNotice
+}
 
-	return nil
+type SystemNotice struct {
+	Title   string
+	Content string
+}
+
+// TODO 系统通知格式化
+func (s *SystemNotice) Format() string {
+	return s.Title + "\n" + s.Content
+}
+
+// 发送通用系统消息
+func (s *SystemChatSrv) NotifySystemNoticeMsg(ctx context.Context, req NotifySystemMsgReq) (uuid.UUID, error) {
+	return s.SendMsg(ctx, bizsyschat.CreateSystemMsgReq{
+		TriggerUid: -1, // 系统
+		RecvUid:    req.RecvUid,
+		ChatType:   model.SystemNotifyNoticeChat,
+		MsgType:    req.MsgType,
+		Content:    req.Notice.Format(),
+	})
+}
+
+type NotifyReplySystemMsgReq struct {
+	ReplySender   int64
+	ReplyReceiver int64
+	MsgType       model.MsgType
+	MsgContent    string
 }
 
 // 发送回复我的系统消息
-func (s *SystemChatSrv) NotifyReplyToMeSystemMsg(ctx context.Context, uid int64) error {
+func (s *SystemChatSrv) NotifyReplySystemMsg(ctx context.Context, req NotifyReplySystemMsgReq) (uuid.UUID, error) {
+	return s.SendMsg(ctx, bizsyschat.CreateSystemMsgReq{
+		TriggerUid: req.ReplySender, // 系统
+		RecvUid:    req.ReplyReceiver,
+		ChatType:   model.SystemNotifyReplyChat,
+		MsgType:    req.MsgType,
+		Content:    req.MsgContent,
+	})
+}
 
-	return nil
+type NotifyMentionSystemMsgReq struct {
+	MentionSender   int64
+	MentionReceiver int64
+	MsgType         model.MsgType
+	MsgContent      string
 }
 
 // 发送@我的系统消息
-func (s *SystemChatSrv) NotifyMentionedByOthersSystemMsg(ctx context.Context, uid int64) error {
+func (s *SystemChatSrv) NotifyMentionSystemMsg(ctx context.Context, req NotifyMentionSystemMsgReq) (uuid.UUID, error) {
+	return s.SendMsg(ctx, bizsyschat.CreateSystemMsgReq{
+		TriggerUid: req.MentionSender, // 系统
+		RecvUid:    req.MentionReceiver,
+		ChatType:   model.SystemNotifyMentionedChat,
+		MsgType:    req.MsgType,
+		Content:    req.MsgContent,
+	})
+}
 
-	return nil
+type NotifyLikesSystemMsgReq struct {
+	LikesSender   int64
+	LikesReceiver int64
+	MsgType       model.MsgType
+	MsgContent    string
 }
 
 // 发送收到的赞系统消息
-func (s *SystemChatSrv) NotifyLikeReceivedSystemMsg(ctx context.Context, uid int64) error {
-
-	return nil
+func (s *SystemChatSrv) NotifyLikesSystemMsg(ctx context.Context, req NotifyLikesSystemMsgReq) (uuid.UUID, error) {
+	return s.SendMsg(ctx, bizsyschat.CreateSystemMsgReq{
+		TriggerUid: req.LikesSender, // 系统
+		RecvUid:    req.LikesReceiver,
+		ChatType:   model.SystemNotifyLikesChat,
+		MsgType:    req.MsgType,
+		Content:    req.MsgContent,
+	})
 }

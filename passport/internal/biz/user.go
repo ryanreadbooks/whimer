@@ -29,7 +29,7 @@ type UserBiz interface {
 	// 更新个人信息
 	UpdateUser(ctx context.Context, req *model.UpdateUserRequest) (*model.UserInfo, error)
 	// 上传头像
-	UpdateAvatar(ctx context.Context, uid int64, req *model.AvatarInfoRequest) (string, error)
+	UpdateAvatar(ctx context.Context, uid int64, req *model.AvatarInfoRequest) (string, string, error)
 	// 通过手机号获取用户
 	GetUserByTel(ctx context.Context, tel string) (*model.UserInfo, error)
 	// 获取头像链接
@@ -116,7 +116,7 @@ func (b *userBiz) UpdateUser(ctx context.Context, req *model.UpdateUserRequest) 
 }
 
 // 上传新头像
-func (b *userBiz) UpdateAvatar(ctx context.Context, uid int64, req *model.AvatarInfoRequest) (string, error) {
+func (b *userBiz) UpdateAvatar(ctx context.Context, uid int64, req *model.AvatarInfoRequest) (string, string, error) {
 	var (
 		objKey  = b.avatarKeyGen.Gen()
 		objName = objKey + req.Ext
@@ -131,7 +131,7 @@ func (b *userBiz) UpdateAvatar(ctx context.Context, uid int64, req *model.Avatar
 		ContentType: req.ContentType,
 	})
 	if err != nil {
-		return "", xerror.Wrapf(global.ErrUploadAvatar, "user biz failed to upload avatar to oss").
+		return "", "", xerror.Wrapf(global.ErrUploadAvatar, "user biz failed to upload avatar to oss").
 			WithExtras("bucket", bucket, "objName", objName, "cause", err).
 			WithCtx(ctx)
 	}
@@ -150,13 +150,13 @@ func (b *userBiz) UpdateAvatar(ctx context.Context, uid int64, req *model.Avatar
 			}
 		})
 
-		return "", xerror.Wrapf(err, "user biz failed to update avatar").WithExtras("objKey", objKey)
+		return "", "", xerror.Wrapf(err, "user biz failed to update avatar").WithExtras("objKey", objKey)
 	}
 
 	// 返回头像访问链接
 	visitUrl := getVisitUrlFromConf(objName)
 
-	return visitUrl, nil
+	return visitUrl, objName, nil
 }
 
 func getVisitUrlFromConf(avtr string) string {

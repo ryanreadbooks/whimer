@@ -6,21 +6,21 @@ package model
 type SystemChatType int8
 
 const (
-	SystemNotificationChat      SystemChatType = 1
-	SystemReplyToMeChat         SystemChatType = 2
-	SystemMentionedByOthersChat SystemChatType = 3
-	SystemLikeReceivedChat      SystemChatType = 4
+	SystemNotifyNoticeChat    SystemChatType = 1
+	SystemNotifyReplyChat     SystemChatType = 2
+	SystemNotifyMentionedChat SystemChatType = 3
+	SystemNotifyLikesChat     SystemChatType = 4
 )
 
 func (s SystemChatType) Desc() string {
 	switch s {
-	case SystemNotificationChat:
+	case SystemNotifyNoticeChat:
 		return "系统通知"
-	case SystemReplyToMeChat:
+	case SystemNotifyReplyChat:
 		return "回复我的"
-	case SystemMentionedByOthersChat:
+	case SystemNotifyMentionedChat:
 		return "@我的"
-	case SystemLikeReceivedChat:
+	case SystemNotifyLikesChat:
 		return "收到的赞"
 	}
 	return "通知"

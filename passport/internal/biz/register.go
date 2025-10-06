@@ -66,7 +66,7 @@ func (b *registerBiz) UserRegister(ctx context.Context, tel string) (*model.User
 		UserBase: dao.UserBase{
 			Uid:      uid,
 			Nickname: nickname,
-			Avatar:   "", // 默认头像在各端处理
+			Avatar:   "",
 			Tel:      encTel,
 			Status:   consts.UserStatusNormal,
 			Timing: dao.Timing{

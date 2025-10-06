@@ -39,6 +39,6 @@ func (s *UserSrv) UpdateUserAvatar(ctx context.Context, req *model.AvatarInfoReq
 		user = model.CtxGetUserInfo(ctx)
 	)
 
-	return s.userBiz.UpdateAvatar(ctx, user.Uid, req)
+	ret, _, err := s.userBiz.UpdateAvatar(ctx, user.Uid, req)
+	return ret, err
 }
-

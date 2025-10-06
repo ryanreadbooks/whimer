@@ -20,7 +20,7 @@ func TestSystemChatDao_Create(t *testing.T) {
 		chatId := uuid.NewUUID()
 		chat := &ChatPO{
 			Id:            chatId,
-			Type:          model.SystemNotificationChat,
+			Type:          model.SystemNotifyNoticeChat,
 			Uid:           10001,
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
@@ -41,7 +41,7 @@ func TestSystemChatDao_GetByUidAndType(t *testing.T) {
 		chatId := uuid.NewUUID()
 		chat := &ChatPO{
 			Id:            chatId,
-			Type:          model.SystemNotificationChat,
+			Type:          model.SystemNotifyNoticeChat,
 			Uid:           10002,
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
@@ -54,10 +54,10 @@ func TestSystemChatDao_GetByUidAndType(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		// 然后查询
-		got, err := systemChatDao.GetByUidAndType(ctx, 10002, model.SystemNotificationChat)
+		got, err := systemChatDao.GetByUidAndType(ctx, 10002, model.SystemNotifyNoticeChat)
 		So(err, ShouldBeNil)
 		So(got.Uid, ShouldEqual, 10002)
-		So(got.Type, ShouldEqual, model.SystemNotificationChat)
+		So(got.Type, ShouldEqual, model.SystemNotifyNoticeChat)
 		So(got.Id.String(), ShouldEqual, chatId.String())
 	})
 }
@@ -71,7 +71,7 @@ func TestSystemChatDao_ListByUid(t *testing.T) {
 			chatId := uuid.NewUUID()
 			chat := &ChatPO{
 				Id:            chatId,
-				Type:          model.SystemNotificationChat + model.SystemChatType(i),
+				Type:          model.SystemNotifyNoticeChat + model.SystemChatType(i),
 				Uid:           uid,
 				Mtime:         time.Now().UnixMicro(),
 				LastMsgId:     uuid.NewUUID(),
@@ -98,7 +98,7 @@ func TestSystemChatDao_UpdateLastMsg(t *testing.T) {
 		chatId := uuid.NewUUID()
 		chat := &ChatPO{
 			Id:            chatId,
-			Type:          model.SystemNotificationChat,
+			Type:          model.SystemNotifyNoticeChat,
 			Uid:           10004,
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
@@ -117,7 +117,7 @@ func TestSystemChatDao_UpdateLastMsg(t *testing.T) {
 
 		// 验证更新结果
 		updatedChat, err := systemChatDao.GetByUidAndType(ctx, 10004,
-			model.SystemNotificationChat)
+			model.SystemNotifyNoticeChat)
 		So(err, ShouldBeNil)
 		So(updatedChat.LastMsgId.String(), ShouldEqual, newLastMsgId.String())
 		So(updatedChat.UnreadCount, ShouldEqual, 1)
@@ -131,7 +131,7 @@ func TestSystemChatDao_ClearUnread(t *testing.T) {
 		chatId := uuid.NewUUID()
 		chat := &ChatPO{
 			Id:            chatId,
-			Type:          model.SystemNotificationChat,
+			Type:          model.SystemNotifyNoticeChat,
 			Uid:           10005,
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
@@ -149,7 +149,7 @@ func TestSystemChatDao_ClearUnread(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		// 验证更新结果
-		updatedChat, err := systemChatDao.GetByUidAndType(ctx, 10005, model.SystemNotificationChat)
+		updatedChat, err := systemChatDao.GetByUidAndType(ctx, 10005, model.SystemNotifyNoticeChat)
 		So(err, ShouldBeNil)
 		So(updatedChat.UnreadCount, ShouldEqual, 0)
 		So(updatedChat.LastReadMsgId, ShouldEqual, lastReadMsgId)
@@ -162,7 +162,7 @@ func TestSystemChatDao_Delete(t *testing.T) {
 		chatId := uuid.NewUUID()
 		chat := &ChatPO{
 			Id:            chatId,
-			Type:          model.SystemNotificationChat,
+			Type:          model.SystemNotifyNoticeChat,
 			Uid:           10006,
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
@@ -179,7 +179,7 @@ func TestSystemChatDao_Delete(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		// 验证删除结果
-		_, err = systemChatDao.GetByUidAndType(ctx, 10006, model.SystemNotificationChat)
+		_, err = systemChatDao.GetByUidAndType(ctx, 10006, model.SystemNotifyNoticeChat)
 		So(err, ShouldNotBeNil)
 	})
 }

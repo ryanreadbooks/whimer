@@ -116,7 +116,7 @@ func TestSystemMsgDao_ListByChatId(t *testing.T) {
 		chatId := uuid.NewUUID()
 		chat := &ChatPO{
 			Id:            chatId,
-			Type:          model.SystemNotificationChat,
+			Type:          model.SystemNotifyNoticeChat,
 			Uid:           10014,
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
@@ -253,7 +253,7 @@ func TestSystemMsgDao_DeleteByChatId(t *testing.T) {
 		chatId := uuid.NewUUID()
 		chat := &ChatPO{
 			Id:            chatId,
-			Type:          model.SystemNotificationChat,
+			Type:          model.SystemNotifyNoticeChat,
 			Uid:           10018,
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
