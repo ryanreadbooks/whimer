@@ -10,6 +10,10 @@ type UUID struct {
 	uuid.UUID
 }
 
+func EmptyUUID() UUID {
+	return UUID{}
+}
+
 func (u UUID) Value() (driver.Value, error) {
 	return u.UUID[:], nil
 }

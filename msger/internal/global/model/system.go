@@ -2,7 +2,7 @@ package model
 
 // 系统消息
 
-// 系统绘画类型
+// 系统会话类型
 type SystemChatType int8
 
 const (
@@ -30,7 +30,7 @@ func (s SystemChatType) Desc() string {
 type SystemMsgStatus int8
 
 const (
-	SystemMsgStatusNormal  = 1 // 正常
+	SystemMsgStatusNormal  = 1 // 正常 （未读）
 	SystemMsgStatusRevoked = 2 // 被撤回
 	SystemMsgStatusRead    = 3 // 已读
 )

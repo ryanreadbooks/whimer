@@ -9,6 +9,7 @@ import (
 
 type Service struct {
 	P2PChatSrv *P2PChatSrv
+	SystemChatSrv *SystemChatSrv
 }
 
 // 初始化一个service
@@ -20,6 +21,7 @@ func NewService(c *config.Config) *Service {
 	biz := biz.New()
 
 	s.P2PChatSrv = NewP2PChatSrv(biz)
+	s.SystemChatSrv = NewSystemChatSrv(biz)
 
 	return s
 }

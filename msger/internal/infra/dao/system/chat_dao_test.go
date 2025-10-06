@@ -18,7 +18,7 @@ func TestSystemChatDao_Create(t *testing.T) {
 	defer deleteForTest()
 	Convey("TestSystemChatDao_Create", t, func() {
 		chatId := uuid.NewUUID()
-		chat := &SystemChatPO{
+		chat := &ChatPO{
 			Id:            chatId,
 			Type:          model.SystemNotificationChat,
 			Uid:           10001,
@@ -39,7 +39,7 @@ func TestSystemChatDao_GetByUidAndType(t *testing.T) {
 	Convey("TestSystemChatDao_GetByUidAndType", t, func() {
 		// 先创建一个会话
 		chatId := uuid.NewUUID()
-		chat := &SystemChatPO{
+		chat := &ChatPO{
 			Id:            chatId,
 			Type:          model.SystemNotificationChat,
 			Uid:           10002,
@@ -69,7 +69,7 @@ func TestSystemChatDao_ListByUid(t *testing.T) {
 		uid := int64(10003)
 		for i := range 2 {
 			chatId := uuid.NewUUID()
-			chat := &SystemChatPO{
+			chat := &ChatPO{
 				Id:            chatId,
 				Type:          model.SystemNotificationChat + model.SystemChatType(i),
 				Uid:           uid,
@@ -96,7 +96,7 @@ func TestSystemChatDao_UpdateLastMsg(t *testing.T) {
 	Convey("TestSystemChatDao_UpdateLastMsg", t, func() {
 		// 先创建一个会话
 		chatId := uuid.NewUUID()
-		chat := &SystemChatPO{
+		chat := &ChatPO{
 			Id:            chatId,
 			Type:          model.SystemNotificationChat,
 			Uid:           10004,
@@ -129,7 +129,7 @@ func TestSystemChatDao_ClearUnread(t *testing.T) {
 	Convey("TestSystemChatDao_ClearUnread", t, func() {
 		// 先创建一个会话
 		chatId := uuid.NewUUID()
-		chat := &SystemChatPO{
+		chat := &ChatPO{
 			Id:            chatId,
 			Type:          model.SystemNotificationChat,
 			Uid:           10005,
@@ -160,7 +160,7 @@ func TestSystemChatDao_Delete(t *testing.T) {
 	Convey("TestSystemChatDao_Delete", t, func() {
 		// 先创建一个会话
 		chatId := uuid.NewUUID()
-		chat := &SystemChatPO{
+		chat := &ChatPO{
 			Id:            chatId,
 			Type:          model.SystemNotificationChat,
 			Uid:           10006,

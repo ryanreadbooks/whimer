@@ -28,7 +28,7 @@ var (
 	_assetInst = &CommentAsset{}
 
 	assetFields    = xsql.GetFields(_assetInst)
-	_, insAssetQst = xsql.GetFields2(_assetInst, "id") // for insert
+	_, insAssetQst = xsql.GetFields2WithSkip(_assetInst, "id") // for insert
 
 	sqlGetAssetByCommentId       = fmt.Sprintf("SELECT %s FROM comment_asset WHERE comment_id=?", assetFields)
 	sqlBatchGetAssetByCommentIds = fmt.Sprintf("SELECT %s FROM comment_asset WHERE comment_id IN (%%s)", assetFields)

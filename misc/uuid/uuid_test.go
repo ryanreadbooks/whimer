@@ -23,4 +23,8 @@ func TestUUIDCompare(t *testing.T) {
 	if u1.Compare(u2) == 0 {
 		t.Errorf("u1.Compare(u2) == 0, want not 0")
 	}
+
+	if u1.Compare(EmptyUUID()) != 1 {
+		t.Errorf("u1.Compare(EmptyUUID()) != 1, want 1")
+	}
 }

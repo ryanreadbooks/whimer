@@ -6,11 +6,11 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
 )
 
-type SystemMsgPO struct {
+type MsgPO struct {
 	Id           uuid.UUID             `db:"id"` // uuidv7
 	SystemChatId uuid.UUID             `db:"system_chat_id"`
-	Uid          int64                 `db:"uid"`
-	RecvUid      int64                 `db:"recv_uid"`
+	Uid          int64                 `db:"uid"`      // 触发系统消息的uid
+	RecvUid      int64                 `db:"recv_uid"` // 接收系统消息的uid
 	Status       model.SystemMsgStatus `db:"status"`
 	MsgType      model.MsgType         `db:"msg_type"`
 	Content      string                `db:"content"`
@@ -18,7 +18,7 @@ type SystemMsgPO struct {
 }
 
 var (
-	_systemMsgInst = &SystemMsgPO{}
+	_systemMsgInst = &MsgPO{}
 
 	systemMsgFields                     = xsql.GetFields(_systemMsgInst)
 	insSystemMsgFields, insSystemMsgQst = xsql.GetFields2WithSkip(_systemMsgInst) // for insert

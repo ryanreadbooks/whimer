@@ -6,10 +6,10 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
 )
 
-type SystemChatPO struct {
+type ChatPO struct {
 	Id            uuid.UUID            `db:"id"` // uuidv7
 	Type          model.SystemChatType `db:"type"`
-	Uid           int64                `db:"uid"`
+	Uid           int64                `db:"uid"` // 会话所属用户uid
 	Mtime         int64                `db:"mtime"`
 	LastMsgId     uuid.UUID            `db:"last_msg_id"`
 	LastReadMsgId uuid.UUID            `db:"last_read_msg_id"`
@@ -18,7 +18,7 @@ type SystemChatPO struct {
 }
 
 var (
-	_systemChatInst = &SystemChatPO{}
+	_systemChatInst = &ChatPO{}
 
 	systemChatFields                      = xsql.GetFields(_systemChatInst)
 	insSystemChatFields, insSystemChatQst = xsql.GetFields2WithSkip(_systemChatInst) // for insert

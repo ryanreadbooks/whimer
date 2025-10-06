@@ -1,0 +1,433 @@
+package system
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/ryanreadbooks/whimer/misc/uuid"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xsql"
+	"github.com/ryanreadbooks/whimer/msger/internal/global"
+	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
+	"github.com/ryanreadbooks/whimer/msger/internal/infra"
+	systemdao "github.com/ryanreadbooks/whimer/msger/internal/infra/dao/system"
+)
+
+type ChatBiz struct{}
+
+// 系统消息领域
+func NewSystemChatBiz() ChatBiz {
+	return ChatBiz{}
+}
+
+// 初始化用户的特定类型系统会话
+func (b *ChatBiz) InitChat(ctx context.Context, userId int64, chatType model.SystemChatType) (uuid.UUID, error) {
+	// 检查是否已存在该类型会话
+	chat, err := infra.Dao().SystemChatDao.GetByUidAndType(ctx, userId, chatType)
+	if err != nil {
+		if !errors.Is(err, xsql.ErrNoRecord) {
+			return uuid.UUID{}, xerror.Wrapf(err, "system chat dao failed to get chat").
+				WithExtras("user_id", userId, "chat_type", chatType).
+				WithCtx(ctx)
+		}
+		// 不存在则创建
+		chatId := uuid.NewUUID()
+		now := time.Now().UnixMicro()
+		emptyUUID := uuid.EmptyUUID()
+		err = infra.Dao().SystemChatDao.Create(ctx, &systemdao.ChatPO{
+			Id:            chatId,
+			Type:          chatType,
+			Uid:           userId,
+			Mtime:         now,
+			LastMsgId:     emptyUUID,
+			LastReadMsgId: emptyUUID,
+			LastReadTime:  now,
+			UnreadCount:   0,
+		})
+		if err != nil {
+			return uuid.UUID{}, xerror.Wrapf(err, "system chat dao failed to create").
+				WithExtras("user_id", userId, "chat_type", chatType).
+				WithCtx(ctx)
+		}
+		return chatId, nil
+	}
+
+	return chat.Id, nil
+}
+
+// 发送系统消息
+func (b *ChatBiz) CreateMsg(ctx context.Context, req *CreateSystemMsgReq) (*SystemMsg, error) {
+	// 初始化系统会话
+	chatId, err := b.InitChat(ctx, req.RecvUid, req.ChatType)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "system chat biz failed to init chat").
+			WithExtra("req", req).WithCtx(ctx)
+	}
+
+	msgId := uuid.NewUUID()
+	now := time.Now().UnixMicro()
+
+	msgPo := &systemdao.MsgPO{
+		Id:           msgId,
+		SystemChatId: chatId,
+		Uid:          req.TriggerUid,
+		RecvUid:      req.RecvUid,
+		Status:       model.SystemMsgStatusNormal,
+		MsgType:      req.MsgType,
+		Content:      req.Content,
+		Mtime:        now,
+	}
+
+	err = infra.Dao().DB().Transact(ctx, func(tctx context.Context) error {
+		// 创建消息
+		err := infra.Dao().SystemMsgDao.Create(tctx, msgPo)
+		if err != nil {
+			return xerror.Wrapf(err, "system msg dao failed to create")
+		}
+
+		// 更新会话的最后消息和未读数
+		err = infra.Dao().SystemChatDao.UpdateLastMsg(tctx, chatId, msgId, true)
+		if err != nil {
+			return xerror.Wrapf(err, "system chat dao failed to update last msg")
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, xerror.Wrapf(err, "system biz failed to create msg").
+			WithExtra("req", req).WithCtx(ctx)
+	}
+
+	resMsg := &SystemMsg{
+		Id:           msgId,
+		SystemChatId: chatId,
+		TriggerUid:   req.TriggerUid,
+		RecvUid:      req.RecvUid,
+		Status:       model.SystemMsgStatusNormal,
+		MsgType:      req.MsgType,
+		Content:      req.Content,
+		Mtime:        now,
+	}
+
+	return resMsg, nil
+}
+
+// 批量发送系统消息
+func (b *ChatBiz) BatchCreateMsg(ctx context.Context, reqs []*CreateSystemMsgReq) ([]*SystemMsg, error) {
+	msgs := make([]*SystemMsg, 0, len(reqs))
+	msgPos := make([]*systemdao.MsgPO, 0, len(reqs))
+	chatIds := make(map[int64]uuid.UUID)
+
+	now := time.Now().UnixMicro()
+
+	// 准备所有消息数据并确保会话存在
+	for _, req := range reqs {
+		chatId, ok := chatIds[req.RecvUid]
+		if !ok {
+			var err error
+			chatId, err = b.InitChat(ctx, req.RecvUid, req.ChatType)
+			if err != nil {
+				return nil, xerror.Wrapf(err, "system chat biz failed to init chat").
+					WithExtra("req", req).WithCtx(ctx)
+			}
+			chatIds[req.RecvUid] = chatId
+		}
+
+		msgId := uuid.NewUUID()
+		msgPo := &systemdao.MsgPO{
+			Id:           msgId,
+			SystemChatId: chatId,
+			Uid:          req.TriggerUid,
+			RecvUid:      req.RecvUid,
+			Status:       model.SystemMsgStatusNormal,
+			MsgType:      req.MsgType,
+			Content:      req.Content,
+			Mtime:        now,
+		}
+		msgPos = append(msgPos, msgPo)
+
+		msgs = append(msgs, &SystemMsg{
+			Id:           msgId,
+			SystemChatId: chatId,
+			TriggerUid:   0,
+			RecvUid:      req.RecvUid,
+			Status:       model.SystemMsgStatusNormal,
+			MsgType:      req.MsgType,
+			Content:      req.Content,
+			Mtime:        now,
+		})
+	}
+
+	err := infra.Dao().DB().Transact(ctx, func(tctx context.Context) error {
+		// 批量创建消息
+		err := infra.Dao().SystemMsgDao.BatchCreate(tctx, msgPos)
+		if err != nil {
+			return xerror.Wrapf(err, "system msg dao failed to batch create")
+		}
+
+		// 更新每个会话的最后消息和未读数
+		for recvUid, chatId := range chatIds {
+			// 找到该用户的最新消息
+			var latestMsgId uuid.UUID
+			for _, msg := range msgPos {
+				if msg.RecvUid == recvUid {
+					latestMsgId = msg.Id
+					break
+				}
+			}
+
+			if !latestMsgId.EqualsTo(uuid.EmptyUUID()) {
+				err = infra.Dao().SystemChatDao.UpdateLastMsg(tctx, chatId, latestMsgId, true)
+				if err != nil {
+					return xerror.Wrapf(err, "system chat dao failed to update last msg")
+				}
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, xerror.Wrapf(err, "system biz failed to batch create msg").WithCtx(ctx)
+	}
+
+	return msgs, nil
+}
+
+// 分页获取用户的系统消息
+func (b *ChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) ([]*SystemMsg, error) {
+	// 获取会话
+	chat, err := infra.Dao().SystemChatDao.GetByUidAndType(ctx, req.RecvUid, req.ChatType)
+	if err != nil {
+		if errors.Is(err, xsql.ErrNoRecord) {
+			// 会话不存在，返回空列表
+			return []*SystemMsg{}, nil
+		}
+		return nil, xerror.Wrapf(err, "system chat dao failed to get chat").
+			WithExtras("user_id", req.RecvUid, "chat_type", req.ChatType).
+			WithCtx(ctx)
+	}
+
+	offsetMtime := req.offsetMtime
+	if offsetMtime == 0 {
+		offsetMtime = time.Now().UnixMicro()
+	}
+
+	// 查询消息
+	msgPos, err := infra.Dao().SystemMsgDao.ListByChatId(ctx, chat.Id, offsetMtime, req.Count)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "system msg dao failed to list msg").WithCtx(ctx)
+	}
+
+	msgs := MakeSystemMsgsFromPOs(msgPos)
+
+	return msgs, nil
+}
+
+// 撤回系统消息
+func (b *ChatBiz) RevokeMsg(ctx context.Context, msgId uuid.UUID) error {
+	msgPo, err := infra.Dao().SystemMsgDao.GetById(ctx, msgId)
+	if err != nil {
+		// 消息不存在
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return xerror.Wrap(global.ErrMsgNotExist).WithExtra("msg_id", msgId)
+		}
+		return xerror.Wrapf(err, "system msg dao failed to get msg").
+			WithExtra("msg_id", msgId).WithCtx(ctx)
+	}
+
+	// 检查是否已撤回
+	if msgPo.Status == model.SystemMsgStatusRevoked {
+		return xerror.Wrapf(global.ErrMsgAlreadyRevoked,
+			"the message has been revoked").WithExtra("msg_id", msgId)
+	}
+
+	// 检查是否超时
+	if msgPo.Mtime+model.MaxRevokeTime.Microseconds() < time.Now().UnixMicro() {
+		return xerror.Wrapf(global.ErrMsgRevokedTimeReached,
+			"exceeded the maximum revocation time").WithExtra("msg_id", msgId)
+	}
+
+	err = infra.Dao().SystemMsgDao.UpdateStatus(ctx, msgId, model.SystemMsgStatusRevoked)
+	if err != nil {
+		return xerror.Wrapf(err, "system msg dao failed to update status").
+			WithExtra("msg_id", msgId).WithCtx(ctx)
+	}
+
+	return nil
+}
+
+// 删除uid的msgId系统消息
+func (b *ChatBiz) DeleteMsg(ctx context.Context, chatId, msgId uuid.UUID, recvUid int64) error {
+	// 先检查消息是否存在且属于该用户
+	msgPo, err := infra.Dao().SystemMsgDao.GetById(ctx, msgId)
+	if err != nil {
+		// 消息不存在
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return xerror.Wrap(global.ErrMsgNotExist)
+		}
+		return xerror.Wrapf(err, "system msg dao failed to get msg").
+			WithExtra("msg_id", msgId).WithCtx(ctx)
+	}
+
+	// 检查是否是该用户的消息
+	if msgPo.RecvUid != recvUid {
+		return xerror.Wrapf(global.ErrCantRevokeMsg, "not the owner of the message").
+			WithExtras("uid", recvUid, "msg_id", msgId)
+	}
+
+	err = infra.Dao().SystemMsgDao.DeleteByChatIdMsgIdRecvUid(ctx, chatId, msgId, recvUid)
+	if err != nil {
+		return xerror.Wrapf(err, "system msg dao failed to delete msg").
+			WithExtras("uid", recvUid, "msg_id", msgId).WithCtx(ctx)
+	}
+
+	return nil
+}
+
+// 获取uid的所有系统会话
+func (b *ChatBiz) ListChat(ctx context.Context, uid int64) ([]*SystemChat, error) {
+	chatPos, err := infra.Dao().SystemChatDao.ListByUid(ctx, uid)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "system chat dao failed to list chat").
+			WithExtra("uid", uid).WithCtx(ctx)
+	}
+
+	chats := make([]*SystemChat, 0, len(chatPos))
+	for _, c := range chatPos {
+		chats = append(chats, MakeSystemChatFromPO(c))
+	}
+
+	// 批量获取最后消息
+	if err := b.batchAssignLastMsg(ctx, chats); err != nil {
+		return nil, xerror.Wrapf(err, "batch assign last msg failed").WithCtx(ctx)
+	}
+
+	return chats, nil
+}
+
+// 获取用户的特定类型系统会话
+func (b *ChatBiz) GetChat(ctx context.Context, uid int64, chatType model.SystemChatType) (*SystemChat, error) {
+	chatPo, err := infra.Dao().SystemChatDao.GetByUidAndType(ctx, uid, chatType)
+	if err != nil {
+		// 会话不存在
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return nil, xerror.Wrapf(err, "system chat not exist").
+				WithExtras("uid", uid, "chat_type", chatType)
+		}
+		return nil, xerror.Wrapf(err, "system chat dao failed to get chat").
+			WithExtras("uid", uid, "chat_type", chatType).WithCtx(ctx)
+	}
+
+	chat := MakeSystemChatFromPO(chatPo)
+	if err := b.batchAssignLastMsg(ctx, []*SystemChat{chat}); err != nil {
+		return nil, xerror.Wrapf(err, "assign last msg failed").WithCtx(ctx)
+	}
+
+	return chat, nil
+}
+
+// 获取用户会话的未读数
+func (b *ChatBiz) GetUnreadCount(ctx context.Context, uid int64, chatType model.SystemChatType) (int64, error) {
+	chat, err := infra.Dao().SystemChatDao.GetByUidAndType(ctx, uid, chatType)
+	if err != nil {
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return 0, nil
+		}
+		return 0, xerror.Wrapf(err, "system chat dao failed to get chat").
+			WithExtras("uid", uid, "chat_type", chatType).WithCtx(ctx)
+	}
+
+	return chat.UnreadCount, nil
+}
+
+// 清空uid会话的未读数 同时需要把会话的最后已读消息ID设置为最后消息ID 并且更新msg的status
+func (b *ChatBiz) ClearUnreadCount(ctx context.Context, uid int64, chatType model.SystemChatType) error {
+	chat, err := infra.Dao().SystemChatDao.GetByUidAndType(ctx, uid, chatType)
+	if err != nil {
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return nil
+		}
+		return xerror.Wrapf(err, "system chat dao failed to get chat").
+			WithExtras("uid", uid, "chat_type", chatType).WithCtx(ctx)
+	}
+
+	// 获取会话最新一条消息
+	lastMsg, err := infra.Dao().SystemMsgDao.GetLastMsg(ctx, chat.Id, uid)
+	if err != nil {
+		return xerror.Wrapf(err, "system msg dao failed to get last msg").
+			WithExtras("uid", uid, "chat_type", chatType).WithCtx(ctx)
+	}
+
+	err = infra.Dao().DB().Transact(ctx, func(ctx context.Context) error {
+		// 更新chat
+		err = infra.Dao().SystemChatDao.ClearUnread(ctx, chat.Id, lastMsg.Id)
+		if err != nil {
+			return xerror.Wrapf(err, "system chat dao failed to clear unread").
+				WithExtras("uid", uid, "chat_type", chatType).WithCtx(ctx)
+		}
+
+		// 批量更新msg状态
+		err = infra.Dao().SystemMsgDao.UpdateStatusToTarget(ctx,
+			chat.Id, uid, model.SystemMsgStatusRead, model.SystemMsgStatusNormal)
+		if err != nil {
+			return xerror.Wrapf(err, "system msg dao failed to update status").
+				WithExtras("uid", uid, "chat_type", chatType).WithCtx(ctx)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return xerror.Wrapf(err, "transact failed").WithCtx(ctx)
+	}
+
+	return nil
+}
+
+// 批量获取会话的最后消息
+func (b *ChatBiz) batchAssignLastMsg(ctx context.Context, chats []*SystemChat) error {
+	if len(chats) == 0 {
+		return nil
+	}
+
+	// 收集需要查询的消息ID
+	msgIds := make([]uuid.UUID, 0, len(chats))
+	chatMap := make(map[uuid.UUID]*SystemChat, len(chats))
+
+	for _, chat := range chats {
+		if !chat.LastMsgId.EqualsTo(uuid.EmptyUUID()) {
+			msgIds = append(msgIds, chat.LastMsgId)
+			chatMap[chat.Id] = chat
+		}
+	}
+
+	if len(msgIds) == 0 {
+		return nil
+	}
+
+	// 批量获取消息
+	msgPos, err := infra.Dao().SystemMsgDao.BatchGetByIds(ctx, msgIds)
+	if err != nil {
+		return xerror.Wrapf(err, "system msg dao failed to batch get").WithCtx(ctx)
+	}
+
+	// 构建消息映射
+	msgMap := make(map[uuid.UUID]*systemdao.MsgPO, len(msgPos))
+	for _, msgPo := range msgPos {
+		msgMap[msgPo.Id] = msgPo
+	}
+
+	// 为每个会话设置最后消息
+	for _, chat := range chats {
+		if !chat.LastMsgId.EqualsTo(uuid.EmptyUUID()) {
+			if msgPo, ok := msgMap[chat.LastMsgId]; ok {
+				chat.LastMsg = MakeSystemMsgFromPO(msgPo)
+			}
+		}
+	}
+
+	return nil
+}

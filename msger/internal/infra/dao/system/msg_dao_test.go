@@ -13,7 +13,7 @@ func TestSystemMsgDao_Create(t *testing.T) {
 	Convey("TestSystemMsgDao_Create", t, func() {
 		msgId := uuid.NewUUID()
 		systemChatId := uuid.NewUUID()
-		msg := &SystemMsgPO{
+		msg := &MsgPO{
 			Id:           msgId,
 			SystemChatId: systemChatId,
 			Uid:          0, // 系统消息的发送者通常为0
@@ -32,9 +32,9 @@ func TestSystemMsgDao_Create(t *testing.T) {
 func TestSystemMsgDao_BatchCreate(t *testing.T) {
 	Convey("TestSystemMsgDao_BatchCreate", t, func() {
 		systemChatId := uuid.NewUUID()
-		msgs := make([]*SystemMsgPO, 3)
+		msgs := make([]*MsgPO, 3)
 		for i := range 3 {
-			msgs[i] = &SystemMsgPO{
+			msgs[i] = &MsgPO{
 				Id:           uuid.NewUUID(),
 				SystemChatId: systemChatId,
 				Uid:          0,
@@ -58,7 +58,7 @@ func TestSystemMsgDao_GetById(t *testing.T) {
 		msgId := uuid.NewUUID()
 		systemChatId := uuid.NewUUID()
 		content := "用于测试GetById的消息"
-		msg := &SystemMsgPO{
+		msg := &MsgPO{
 			Id:           msgId,
 			SystemChatId: systemChatId,
 			Uid:          0,
@@ -87,7 +87,7 @@ func TestSystemMsgDao_BatchGetByIds(t *testing.T) {
 		msgIds := make([]uuid.UUID, 2)
 		for i := range 2 {
 			msgIds[i] = uuid.NewUUID()
-			msg := &SystemMsgPO{
+			msg := &MsgPO{
 				Id:           msgIds[i],
 				SystemChatId: systemChatId,
 				Uid:          0,
@@ -114,7 +114,7 @@ func TestSystemMsgDao_ListByChatId(t *testing.T) {
 	Convey("TestSystemMsgDao_ListByChatId", t, func() {
 		// 先创建一个会话
 		chatId := uuid.NewUUID()
-		chat := &SystemChatPO{
+		chat := &ChatPO{
 			Id:            chatId,
 			Type:          model.SystemNotificationChat,
 			Uid:           10014,
@@ -130,7 +130,7 @@ func TestSystemMsgDao_ListByChatId(t *testing.T) {
 
 		// 再创建几条消息
 		for i := 0; i < 5; i++ {
-			msg := &SystemMsgPO{
+			msg := &MsgPO{
 				Id:           uuid.NewUUID(),
 				SystemChatId: chatId,
 				Uid:          0,
@@ -158,7 +158,7 @@ func TestSystemMsgDao_UpdateStatus(t *testing.T) {
 		// 先创建一条消息
 		msgId := uuid.NewUUID()
 		systemChatId := uuid.NewUUID()
-		msg := &SystemMsgPO{
+		msg := &MsgPO{
 			Id:           msgId,
 			SystemChatId: systemChatId,
 			Uid:          0,
@@ -190,7 +190,7 @@ func TestSystemMsgDao_BatchUpdateStatus(t *testing.T) {
 		msgIds := make([]uuid.UUID, 3)
 		for i := 0; i < 3; i++ {
 			msgIds[i] = uuid.NewUUID()
-			msg := &SystemMsgPO{
+			msg := &MsgPO{
 				Id:           msgIds[i],
 				SystemChatId: systemChatId,
 				Uid:          0,
@@ -223,7 +223,7 @@ func TestSystemMsgDao_Delete(t *testing.T) {
 		// 先创建一条消息
 		msgId := uuid.NewUUID()
 		systemChatId := uuid.NewUUID()
-		msg := &SystemMsgPO{
+		msg := &MsgPO{
 			Id:           msgId,
 			SystemChatId: systemChatId,
 			Uid:          0,
@@ -238,7 +238,7 @@ func TestSystemMsgDao_Delete(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		// 然后删除
-		err = systemMsgDao.Delete(ctx, msgId)
+		err = systemMsgDao.DeleteById(ctx, msgId)
 		So(err, ShouldBeNil)
 
 		// 验证删除结果
@@ -251,7 +251,7 @@ func TestSystemMsgDao_DeleteByChatId(t *testing.T) {
 	Convey("TestSystemMsgDao_DeleteByChatId", t, func() {
 		// 先创建一个会话
 		chatId := uuid.NewUUID()
-		chat := &SystemChatPO{
+		chat := &ChatPO{
 			Id:            chatId,
 			Type:          model.SystemNotificationChat,
 			Uid:           10018,
@@ -267,7 +267,7 @@ func TestSystemMsgDao_DeleteByChatId(t *testing.T) {
 
 		// 再创建几条消息
 		for i := 0; i < 3; i++ {
-			msg := &SystemMsgPO{
+			msg := &MsgPO{
 				Id:           uuid.NewUUID(),
 				SystemChatId: chatId,
 				Uid:          0,
