@@ -12,7 +12,13 @@ type UserStat struct {
 	Followings int64 `json:"followings"`
 }
 
+// 关注关系描述
 type RelationStatus string
+
+const (
+	RelationFollowing RelationStatus = "following"
+	RelationNone      RelationStatus = "none"
+)
 
 type HoverInfo struct {
 	BasicInfo struct {
@@ -39,11 +45,6 @@ type PostAsset struct {
 	Type   int    `json:"type"`
 	UrlPrv string `json:"url_prv"`
 }
-
-const (
-	RelationFollowing RelationStatus = "following"
-	RelationNone      RelationStatus = "none"
-)
 
 // 模糊化处理数字
 func HideActualCount(cnt int64) string {

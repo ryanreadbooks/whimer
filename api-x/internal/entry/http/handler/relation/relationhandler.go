@@ -3,18 +3,23 @@ package relation
 import (
 	"net/http"
 
+	"github.com/ryanreadbooks/whimer/api-x/internal/biz"
+	bizrelation "github.com/ryanreadbooks/whimer/api-x/internal/biz/relation"
+	bizmodel "github.com/ryanreadbooks/whimer/api-x/internal/biz/relation/model"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
-	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-type Handler struct{}
+type Handler struct {
+	relationBiz *bizrelation.Biz
+}
 
-func NewHandler(c *config.Config) *Handler {
-	return &Handler{}
+func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
+	return &Handler{
+		relationBiz: bizz.RelationBiz,
+	}
 }
 
 func (h *Handler) UserFollowAction() http.HandlerFunc {
@@ -24,24 +29,19 @@ func (h *Handler) UserFollowAction() http.HandlerFunc {
 			uid = metadata.Uid(ctx)
 		)
 
-		req, err := xhttp.ParseValidate[FollowReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[bizmodel.FollowReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
 		// 关注或者取消关注
-		resp, err := infra.RelationServer().FollowUser(ctx, &relationv1.FollowUserRequest{
-			Follower: uid,
-			Followee: req.Target,
-			Action:   relationv1.FollowUserRequest_Action(req.Action),
-		})
+		err = h.relationBiz.FollowOrUnfollow(ctx, uid, req)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		_ = resp
 		xhttp.OkJson(w, nil)
 	}
 }
@@ -49,7 +49,7 @@ func (h *Handler) UserFollowAction() http.HandlerFunc {
 // 检查是否关注了某个用户
 func (h *Handler) GetIsFollowing() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[GetIsFollowingReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[bizmodel.GetIsFollowingReq](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -63,24 +63,20 @@ func (h *Handler) GetIsFollowing() http.HandlerFunc {
 			return
 		}
 
-		resp, err := infra.RelationServer().BatchCheckUserFollowed(ctx,
-			&relationv1.BatchCheckUserFollowedRequest{
-				Uid:     metadata.Uid(ctx),
-				Targets: []int64{req.Uid},
-			})
+		followed, err := h.relationBiz.CheckUserFollows(ctx, uid, req.Uid)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		xhttp.OkJson(w, resp.GetStatus()[req.Uid])
+		xhttp.OkJson(w, followed)
 	}
 }
 
 // 用户关注设置
 func (h *Handler) UpdateSettings() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[UpdateSettingReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[bizmodel.UpdateSettingReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -91,11 +87,7 @@ func (h *Handler) UpdateSettings() http.HandlerFunc {
 			uid = metadata.Uid(ctx)
 		)
 
-		_, err = infra.RelationServer().UpdateUserSettings(ctx, &relationv1.UpdateUserSettingsRequest{
-			TargetUid:      uid,
-			ShowFanList:    req.ShowFans,
-			ShowFollowList: req.ShowFollows,
-		})
+		err = h.relationBiz.UpdateRelationSettings(ctx, uid, req)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

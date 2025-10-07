@@ -11,6 +11,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/oss/uploader"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/passport/internal/config"
 	global "github.com/ryanreadbooks/whimer/passport/internal/global"
@@ -184,7 +185,17 @@ func (b *userBiz) ReplaceAvatarUrl(url string) string {
 }
 
 func (b *userBiz) BatchGetUser(ctx context.Context, uids []int64) (map[int64]*model.UserInfo, error) {
-	users, err := infra.Dao().UserDao.FindUserBaseByUids(ctx, uids)
+	users := make([]*dao.UserBase, 0, len(uids))
+	err := xslice.BatchExec(uids, 200, func(start, end int) error {
+		tmpUsers, err := infra.Dao().UserDao.FindUserBaseByUids(ctx, uids[start:end])
+		if err != nil {
+			return xerror.Wrapf(err, "user biz failed to get users").WithExtra("uids", uids[start:end])
+		}
+
+		users = append(users, tmpUsers...)
+		return nil
+	})
+
 	if err != nil {
 		return nil, xerror.Wrapf(err, "user biz failed to get users").WithExtra("uids", uids)
 	}

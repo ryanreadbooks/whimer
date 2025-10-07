@@ -247,3 +247,5 @@ func (r *UploadImagesReq) Validate() error {
 
 	return nil
 }
+
+type UploadImagesRes = commentv1.UploadCommentImagesResponse

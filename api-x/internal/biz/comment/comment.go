@@ -11,6 +11,7 @@ import (
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
@@ -25,7 +26,7 @@ func NewBiz() *Biz { return &Biz{} }
 func (b *Biz) PublishNoteComment(ctx context.Context, req *model.PubReq) (*model.PubRes, error) {
 	resp, err := infra.Commenter().AddComment(ctx, req.AsPb())
 	if err != nil {
-		return nil, err
+		return nil, xerror.Wrapf(err, "remote commenter add comment failed")
 	}
 
 	return &model.PubRes{CommentId: resp.CommentId}, nil
@@ -34,8 +35,7 @@ func (b *Biz) PublishNoteComment(ctx context.Context, req *model.PubReq) (*model
 func (b *Biz) PageGetNoteRootComments(ctx context.Context, req *model.GetCommentsReq) (*model.CommentRes, error) {
 	rootReplies, err := infra.Commenter().PageGetComment(ctx, req.AsPb())
 	if err != nil {
-
-		return nil, err
+		return nil, xerror.Wrapf(err, "remote commenter page get comment failed")
 	}
 
 	// 整合用户的信息
@@ -43,7 +43,7 @@ func (b *Biz) PageGetNoteRootComments(ctx context.Context, req *model.GetComment
 	if len(rootReplies.Comments) > 0 {
 		comments, err = attachCommentsUsers(ctx, rootReplies.Comments)
 		if err != nil {
-			return nil, err
+			return nil, xerror.Wrapf(err, "attach comments user failed")
 		}
 	}
 
@@ -59,7 +59,7 @@ func (b *Biz) PageGetNoteRootComments(ctx context.Context, req *model.GetComment
 func (b *Biz) PageGetNoteSubComments(ctx context.Context, req *model.GetSubCommentsReq) (*model.CommentRes, error) {
 	subReplies, err := infra.Commenter().PageGetSubComment(ctx, req.AsPb())
 	if err != nil {
-		return nil, err
+		return nil, xerror.Wrapf(err, "remote commenter page get sub comment failed")
 	}
 
 	// 填充评论的用户信息
@@ -67,7 +67,7 @@ func (b *Biz) PageGetNoteSubComments(ctx context.Context, req *model.GetSubComme
 	if len(subReplies.Comments) > 0 {
 		comments, err = attachCommentsUsers(ctx, subReplies.Comments)
 		if err != nil {
-			return nil, err
+			return nil, xerror.Wrapf(err, "attach comments user failed")
 		}
 	}
 
@@ -118,10 +118,9 @@ func (b *Biz) PageGetNoteComments(ctx context.Context, req *model.GetCommentsReq
 		})
 	}
 
-	resp, err := infra.Commenter().
-		PageGetDetailedComment(ctx, req.AsDetailedPb())
+	resp, err := infra.Commenter().PageGetDetailedComment(ctx, req.AsDetailedPb())
 	if err != nil {
-		return nil, err
+		return nil, xerror.Wrapf(err, "remote commenter page get detailed comment failed")
 	}
 
 	var (
@@ -132,10 +131,10 @@ func (b *Biz) PageGetNoteComments(ctx context.Context, req *model.GetCommentsReq
 		uidsMap := extractUidsMap(resp.Comments)
 
 		// 发起请求获取uid的详细信息
-		userResp, err := infra.Userer().
-			BatchGetUser(ctx, &userv1.BatchGetUserRequest{Uids: xmap.Keys(uidsMap)})
+		userResp, err := infra.Userer().BatchGetUser(ctx,
+			&userv1.BatchGetUserRequest{Uids: xmap.Keys(uidsMap)})
 		if err != nil {
-			return nil, err
+			return nil, xerror.Wrapf(err, "remote userer batch get user failed")
 		}
 
 		// 拼接结果
@@ -171,61 +170,73 @@ func (b *Biz) PageGetNoteComments(ctx context.Context, req *model.GetCommentsReq
 
 func (b *Biz) DelNoteComment(ctx context.Context, req *model.DelReq) error {
 	_, err := infra.Commenter().DelComment(ctx, &commentv1.DelCommentRequest{
-			CommentId: req.CommentId,
-			Oid:       int64(req.Oid),
-		})
+		CommentId: req.CommentId,
+		Oid:       int64(req.Oid),
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "remote commenter del comment failed")
+	}
 
 	return err
 }
 
 func (b *Biz) PinNoteComment(ctx context.Context, req *model.PinReq) error {
 	_, err := infra.Commenter().PinComment(ctx, &commentv1.PinCommentRequest{
-			Oid:       int64(req.Oid),
-			CommentId: req.CommentId,
-			Action:    commentv1.CommentAction(req.Action),
-		})
+		Oid:       int64(req.Oid),
+		CommentId: req.CommentId,
+		Action:    commentv1.CommentAction(req.Action),
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "remote commenter pin comment failed")
+	}
 
-		return err
+	return err
 }
 
 func (b *Biz) LikeNoteComment(ctx context.Context, req *model.ThumbUpReq) error {
 	_, err := infra.Commenter().LikeAction(ctx, &commentv1.LikeActionRequest{
-			CommentId: req.CommentId,
-			Action:    commentv1.CommentAction(req.Action),
-		})
+		CommentId: req.CommentId,
+		Action:    commentv1.CommentAction(req.Action),
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "remote commenter like action failed")
+	}
 
-		return err
+	return err
 }
 
 func (b *Biz) DislikeNoteComment(ctx context.Context, req *model.ThumbDownReq) error {
 	_, err := infra.Commenter().DislikeAction(ctx, &commentv1.DislikeActionRequest{
-			CommentId: req.CommentId,
-			Action:    commentv1.CommentAction(req.Action),
-		})
+		CommentId: req.CommentId,
+		Action:    commentv1.CommentAction(req.Action),
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "remote commenter dislike action failed")
+	}
 
-		return err
+	return err
 }
 
 func (b *Biz) GetNoteCommentLikeCount(ctx context.Context, req *model.GetLikeCountReq) (*model.GetLikeCountRes, error) {
 	resp, err := infra.Commenter().GetCommentLikeCount(ctx, &commentv1.GetCommentLikeCountRequest{
-			CommentId: req.CommentId,
-		})
+		CommentId: req.CommentId,
+	})
 	if err != nil {
-		return nil, err
+		return nil, xerror.Wrapf(err, "remote commenter get comment like count failed")
 	}
 
 	return &model.GetLikeCountRes{
-			Comment: resp.CommentId,
-			Likes:   resp.Count,
-		}, nil
+		Comment: resp.CommentId,
+		Likes:   resp.Count,
+	}, nil
 }
 
-func (b *Biz) UploadCommentImages(ctx context.Context, req *model.UploadImagesReq) (*commentv1.UploadCommentImagesResponse, error ) {
+func (b *Biz) UploadCommentImages(ctx context.Context, req *model.UploadImagesReq) (*model.UploadImagesRes, error) {
 	resp, err := infra.Commenter().UploadCommentImages(ctx, &commentv1.UploadCommentImagesRequest{
 		RequestedCount: req.Count,
 	})
 	if err != nil {
-		return nil, err
+		return nil, xerror.Wrapf(err, "remote commenter upload comment images failed")
 	}
 
 	return resp, nil
@@ -241,7 +252,7 @@ func attachCommentsUsers(ctx context.Context, comments []*commentv1.CommentItem)
 	userResp, err := infra.Userer().
 		BatchGetUser(ctx, &userv1.BatchGetUserRequest{Uids: xmap.Keys(uidsMap)})
 	if err != nil {
-		return nil, err
+		return nil, xerror.Wrapf(err, "remote userer batch get user failed")
 	}
 
 	res := make([]*model.CommentItem, 0, len(comments))

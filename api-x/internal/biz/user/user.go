@@ -2,6 +2,8 @@ package user
 
 import (
 	"context"
+	"sort"
+	"strings"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/biz/user/model"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
@@ -9,19 +11,21 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/misc/xmap"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 	"golang.org/x/sync/errgroup"
 )
 
-type UserBiz struct{}
+type Biz struct{}
 
-func NewUserBiz(c *config.Config) *UserBiz {
-	return &UserBiz{}
+func NewUserBiz(c *config.Config) *Biz {
+	return &Biz{}
 }
 
-func (b *UserBiz) ListUsers(ctx context.Context, uids []int64) (map[string]*userv1.UserInfo, error) {
+func (b *Biz) ListUsers(ctx context.Context, uids []int64) (map[string]*userv1.UserInfo, error) {
 	resp, err := infra.Userer().BatchGetUser(ctx, &userv1.BatchGetUserRequest{
 		Uids: uids,
 	})
@@ -32,7 +36,7 @@ func (b *UserBiz) ListUsers(ctx context.Context, uids []int64) (map[string]*user
 	return resp.GetUsers(), nil
 }
 
-func (b *UserBiz) GetUser(ctx context.Context, uid int64) (*userv1.UserInfo, error) {
+func (b *Biz) GetUser(ctx context.Context, uid int64) (*userv1.UserInfo, error) {
 	resp, err := infra.Userer().GetUser(ctx, &userv1.GetUserRequest{
 		Uid: uid,
 	})
@@ -43,7 +47,10 @@ func (b *UserBiz) GetUser(ctx context.Context, uid int64) (*userv1.UserInfo, err
 	return resp.GetUser(), nil
 }
 
-func (b *UserBiz) batchGetFollowingStatus(ctx context.Context, uid int64, targets []int64, output []*model.UserWithFollowStatus) (map[int64]bool, error) {
+func (b *Biz) batchGetFollowingStatus(ctx context.Context,
+	uid int64,
+	targets []int64, output []*model.UserWithFollowStatus) (map[int64]bool, error) {
+
 	resp, err := infra.RelationServer().BatchCheckUserFollowed(ctx,
 		&relationv1.BatchCheckUserFollowedRequest{
 			Uid:     uid,
@@ -72,7 +79,8 @@ func (b *UserBiz) batchGetFollowingStatus(ctx context.Context, uid int64, target
 	return gotStatus, nil
 }
 
-func (b *UserBiz) getUserWithFollowStatus(ctx context.Context, targetUids []int64) ([]*model.UserWithFollowStatus, error) {
+func (b *Biz) getUserWithFollowStatus(ctx context.Context, targetUids []int64) (
+	[]*model.UserWithFollowStatus, error) {
 	var (
 		uid             = metadata.Uid(ctx)
 		isAuthedRequest = uid != 0
@@ -109,8 +117,10 @@ func (b *UserBiz) getUserWithFollowStatus(ctx context.Context, targetUids []int6
 	return result, nil
 }
 
-// 获取用户粉丝列表
-func (b *UserBiz) ListUserFans(ctx context.Context, targetUid int64, page, count int32) ([]*model.UserWithFollowStatus, int64, error) {
+// 分页获取用户粉丝列表
+func (b *Biz) ListUserFans(ctx context.Context, targetUid int64, page, count int32) (
+	[]*model.UserWithFollowStatus, int64, error) {
+
 	resp, err := infra.RelationServer().PageGetUserFanList(ctx,
 		&relationv1.PageGetUserFanListRequest{
 			Target: targetUid,
@@ -135,8 +145,10 @@ func (b *UserBiz) ListUserFans(ctx context.Context, targetUid int64, page, count
 	return result, total, nil
 }
 
-// 获取用户关注列表
-func (b *UserBiz) ListUserFollowings(ctx context.Context, targetUid int64, page, count int32) ([]*model.UserWithFollowStatus, int64, error) {
+// 分页获取用户关注列表
+func (b *Biz) ListUserFollowings(ctx context.Context, targetUid int64, page, count int32) (
+	[]*model.UserWithFollowStatus, int64, error) {
+
 	resp, err := infra.RelationServer().PageGetUserFollowingList(ctx,
 		&relationv1.PageGetUserFollowingListRequest{
 			Target: targetUid,
@@ -162,7 +174,7 @@ func (b *UserBiz) ListUserFollowings(ctx context.Context, targetUid int64, page,
 }
 
 // 获取用户的投稿数量、点赞数量等信息
-func (b *UserBiz) GetUserStat(ctx context.Context, targetUid int64) (*model.UserStat, error) {
+func (b *Biz) GetUserStat(ctx context.Context, targetUid int64) (*model.UserStat, error) {
 	var (
 		reqUid = metadata.Uid(ctx)
 		stat   model.UserStat
@@ -235,4 +247,107 @@ func (b *UserBiz) GetUserStat(ctx context.Context, targetUid int64) (*model.User
 	}
 
 	return &stat, nil
+}
+
+type UidAndTime struct {
+	Uid  int64
+	Time int64
+}
+
+type followingUser struct {
+	*model.User
+	followTime int64
+}
+
+// 按照nickname获取关注的用户
+//
+// 由于是不同服务存储关注关系和用户信息 所以此种方法可能在数据量大的时候很慢
+//
+// 这里只提供获取关注的方法不提供获取粉丝的方法 因为如果按照这种方式获取粉丝数量的话 在粉丝量庞大时会导致性能问题;
+// 由于限制了关注的人数 所以暴力获取的方式应该能接受
+func (b *Biz) BrutalListFollowingsByName(ctx context.Context, uid int64, target string) ([]*model.User, error) {
+	// 全量拿关注列表
+	var (
+		offset int64 = 0
+		count  int32 = 250
+	)
+
+	followings := make([]UidAndTime, 0, 128)
+	for {
+		tmpResp, err := infra.RelationServer().GetUserFollowingList(ctx,
+			&relationv1.GetUserFollowingListRequest{
+				Uid: uid,
+				Cond: &relationv1.QueryCondition{
+					Offset: offset,
+					Count:  count,
+				},
+			})
+		if err != nil {
+			return nil, xerror.Wrapf(err, "remote relation server get user following list failed")
+		}
+		if len(tmpResp.Followings) == 0 {
+			break
+		}
+
+		for idx := range tmpResp.Followings {
+			followings = append(followings, UidAndTime{
+				Uid:  tmpResp.Followings[idx],
+				Time: tmpResp.FollowTimes[idx],
+			})
+		}
+
+		if tmpResp.HasMore {
+			offset = tmpResp.NextOffset
+		} else {
+			break
+		}
+	}
+
+	if len(followings) == 0 {
+		return []*model.User{}, nil
+	}
+
+	followingsMap := xslice.MakeMap(followings, func(v UidAndTime) int64 {
+		return v.Uid
+	})
+
+	uids := xmap.Keys(followingsMap)
+	users, err := infra.Userer().BatchGetUserV2(ctx, &userv1.BatchGetUserV2Request{
+		Uids: uids,
+	})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "remote user server batch get user failed")
+	}
+
+	// 本地筛选nickname
+	resultUsers := make([]*model.User, 0, len(users.Users))
+	for _, user := range users.Users {
+		if strings.Contains(user.Nickname, target) {
+			resultUsers = append(resultUsers, user)
+		}
+	}
+
+	resultUsersMap := xslice.MakeMap(resultUsers, func(v *model.User) int64 {
+		return v.Uid
+	})
+
+	followingUsers := make([]*followingUser, 0, len(resultUsersMap))
+	for _, user := range resultUsersMap {
+		followingUsers = append(followingUsers, &followingUser{
+			User:       user,
+			followTime: followingsMap[user.Uid].Time,
+		})
+	}
+
+	// 按照关注时间排序
+	sort.Slice(followingUsers, func(i, j int) bool {
+		return followingUsers[i].followTime > followingUsers[j].followTime
+	})
+	
+	results := make([]*model.User, 0, len(followingUsers))
+	for _, user := range followingUsers {
+		results = append(results, user.User)
+	}
+
+	return results, nil
 }

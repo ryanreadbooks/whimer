@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	maxLimit = 20
+	maxLimit = 250
 )
 
 type RelationServiceServer struct {
@@ -66,11 +66,14 @@ func (s *RelationServiceServer) GetUserFanList(ctx context.Context, req *relatio
 	if err != nil {
 		return nil, err
 	}
+	uids, followedTimes := model.UidsSliceTimeSliceFrom(fans)
 
 	return &relationv1.GetUserFanListResponse{
-		Fans:       fans,
-		NextOffset: res.NextOffset,
-		HasMore:    res.HasMore}, nil
+		Fans:          uids,
+		NextOffset:    res.NextOffset,
+		HasMore:       res.HasMore,
+		FollowedTimes: followedTimes,
+	}, nil
 }
 
 func (s *RelationServiceServer) GetUserFollowingList(ctx context.Context, req *relationv1.GetUserFollowingListRequest) (
@@ -91,10 +94,14 @@ func (s *RelationServiceServer) GetUserFollowingList(ctx context.Context, req *r
 		return nil, err
 	}
 
+	uids, followTimes := model.UidsSliceTimeSliceFrom(followings)
+
 	return &relationv1.GetUserFollowingListResponse{
-		Followings: followings,
-		NextOffset: res.NextOffset,
-		HasMore:    res.HasMore}, nil
+		Followings:  uids,
+		NextOffset:  res.NextOffset,
+		HasMore:     res.HasMore,
+		FollowTimes: followTimes,
+	}, nil
 }
 
 func (s *RelationServiceServer) RemoveUserFan(ctx context.Context, req *relationv1.RemoveUserFanRequest) (
@@ -153,12 +160,12 @@ func (s *RelationServiceServer) PageGetUserFanList(ctx context.Context,
 		req.Count = 30
 	}
 
-	fansId, total, err := s.Srv.RelationSrv.PageGetUserFanList(ctx, req.Target, req.Page, req.Count)
+	fans, total, err := s.Srv.RelationSrv.PageGetUserFanList(ctx, req.Target, req.Page, req.Count)
 	if err != nil {
 		return nil, err
 	}
 
-	resp.FansId = fansId
+	resp.FansId, resp.FollowedTimes = model.UidsSliceTimeSliceFrom(fans)
 	resp.Total = total
 
 	return resp, nil
@@ -175,7 +182,7 @@ func (s *RelationServiceServer) PageGetUserFollowingList(ctx context.Context,
 		req.Count = 30
 	}
 
-	fansId, total, err := s.Srv.RelationSrv.PageGetUserFollowingList(ctx,
+	followings, total, err := s.Srv.RelationSrv.PageGetUserFollowingList(ctx,
 		req.Target,
 		req.Page,
 		req.Count)
@@ -183,7 +190,7 @@ func (s *RelationServiceServer) PageGetUserFollowingList(ctx context.Context,
 		return nil, err
 	}
 
-	resp.FollowingsId = fansId
+	resp.FollowingsId, resp.FollowTimes = model.UidsSliceTimeSliceFrom(followings)
 	resp.Total = total
 
 	return resp, nil

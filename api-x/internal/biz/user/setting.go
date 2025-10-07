@@ -10,7 +10,7 @@ import (
 	v1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 )
 
-func (b *UserBiz) GetSettings(ctx context.Context) (*model.UserSettings, error) {
+func (b *Biz) GetSettings(ctx context.Context) (*model.UserSettings, error) {
 	var (
 		uid    = metadata.Uid(ctx)
 		result model.UserSettings

@@ -1,13 +1,8 @@
-package relation
+package model
 
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/model/errors"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-)
-
-const (
-	ActionFollow   = 1
-	ActionUnFollow = 2
 )
 
 type FollowReq struct {

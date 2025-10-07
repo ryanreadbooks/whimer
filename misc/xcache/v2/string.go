@@ -29,26 +29,32 @@ func (c *Cache[T]) Get(ctx context.Context, key string, opts ...Option) (t T, er
 	return c.GetOrFetch(ctx, key, nil, opts...)
 }
 
+func (c *Cache[T]) getOrFetchFallback(ctx context.Context, opt *cacheOption, key string, fetcher Fetcher[T]) (t T, err error) {
+	var ttl time.Duration
+	t, ttl, err = fetcher(ctx)
+	if err != nil {
+		return
+	}
+
+	if ttl == 0 {
+		ttl = time.Duration(opt.ttlSec) * time.Second
+	}
+
+	// we can put result back to cache here
+	c.setCacheBack(ctx, opt, func(ctx context.Context) error {
+		return c.setTFn(ctx, opt, key, t, ttl)
+	})
+
+	return
+}
+
 func (c *Cache[T]) GetOrFetch(ctx context.Context, key string, fetcher Fetcher[T], opts ...Option) (t T, err error) {
 	opt := generics.MakeOpt(opts...)
 
 	resp, err := c.r.GetCtx(ctx, key)
 	if err != nil {
 		if fetcher != nil {
-			var ttl time.Duration
-			t, ttl, err = fetcher(ctx)
-			if err != nil {
-				return
-			}
-
-			if ttl == 0 {
-				ttl = time.Duration(opt.ttlSec) * time.Second
-			}
-
-			// we can put result back to cache here
-			c.setCacheBack(ctx, opt, func(ctx context.Context) error {
-				return c.setTFn(ctx, opt, key, t, ttl)
-			})
+			return c.getOrFetchFallback(ctx, opt, key, fetcher)
 		}
 
 		return
@@ -57,6 +63,9 @@ func (c *Cache[T]) GetOrFetch(ctx context.Context, key string, fetcher Fetcher[T
 	// err == nil
 	err = opt.serializer.Unmarshal(xstring.AsBytes(resp), &t)
 	if err != nil {
+		if fetcher != nil {
+			return c.getOrFetchFallback(ctx, opt, key, fetcher)
+		}
 		return
 	}
 

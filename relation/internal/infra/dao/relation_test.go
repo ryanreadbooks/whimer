@@ -214,8 +214,12 @@ func TestRelation_FindUidLinkTo(t *testing.T) {
 			res, _, _, err := testRelationDao.FindUidLinkTo(ctx, c.uid, 0, 10)
 			So(err, ShouldBeNil)
 			So(res, ShouldHaveLength, len(c.wants))
-			slices.Sort(res)
-			So(res, ShouldResemble, c.wants)
+			gotRes := []int64{}
+			for _, r := range res {
+				gotRes = append(gotRes, r.Uid)
+			}
+			slices.Sort(gotRes)
+			So(gotRes, ShouldResemble, c.wants)
 
 			// 查两次的结果应该和一次性查出来的结果是一样的
 			s1, err := testRelationDao.FindAlphaLinkTo(ctx, c.uid)
@@ -223,8 +227,12 @@ func TestRelation_FindUidLinkTo(t *testing.T) {
 			s2, err := testRelationDao.FindBetaLinkTo(ctx, c.uid)
 			So(err, ShouldBeNil)
 			got := xslice.ConcatUniq(s1, s2)
-			slices.Sort(got)
-			SoMsg(fmt.Sprintf("[%d]. %v, got:%v, s1:%v, s2:%v want:%v", idx, c, got, s1, s2, c.wants), got, ShouldResemble, c.wants)
+			gotRes = []int64{}
+			for _, r := range got {
+				gotRes = append(gotRes, r.Uid)
+			}
+			slices.Sort(gotRes)
+			SoMsg(fmt.Sprintf("[%d]. %v, got:%v, s1:%v, s2:%v want:%v", idx, c, got, s1, s2, c.wants), gotRes, ShouldResemble, c.wants)
 		}
 	})
 }
@@ -278,8 +286,12 @@ func TestRelation_FindUidGotLinked(t *testing.T) {
 			debug := fmt.Sprintf("uid: %d, got: %v, want: %v", c.uid, res, c.wants)
 			SoMsg(debug, err, ShouldBeNil)
 			SoMsg(debug, res, ShouldHaveLength, len(c.wants))
-			slices.Sort(res)
-			SoMsg(debug, res, ShouldResemble, c.wants)
+			gotRes := []int64{}
+			for _, r := range res {
+				gotRes = append(gotRes, r.Uid)
+			}
+			slices.Sort(gotRes)
+			SoMsg(debug, gotRes, ShouldResemble, c.wants)
 
 			// 查两次的结果应该和一次性查出来的结果是一样的
 			s1, err := testRelationDao.FindAlphaGotLinked(ctx, c.uid)
@@ -287,8 +299,12 @@ func TestRelation_FindUidGotLinked(t *testing.T) {
 			s2, err := testRelationDao.FindBetaGotLinked(ctx, c.uid)
 			So(err, ShouldBeNil)
 			got := xslice.ConcatUniq(s1, s2)
-			slices.Sort(got)
-			SoMsg(fmt.Sprintf("[%d]. %v, got:%v, s1:%v, s2:%v want:%v", idx, c, got, s1, s2, c.wants), got, ShouldResemble, c.wants)
+			gotRes = []int64{}
+			for _, r := range got {
+				gotRes = append(gotRes, r.Uid)
+			}
+			slices.Sort(gotRes)
+			SoMsg(fmt.Sprintf("[%d]. %v, got:%v, s1:%v, s2:%v want:%v", idx, c, got, s1, s2, c.wants), gotRes, ShouldResemble, c.wants)
 		}
 	})
 }

@@ -20,10 +20,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type FeedBiz struct {
+type Biz struct {
 }
 
-func NewFeedBiz() *FeedBiz { return &FeedBiz{} }
+func NewFeedBiz() *Biz { return &Biz{} }
 
 func isGuestFromCtx(ctx context.Context) bool {
 	return imodel.IsGuestFromCtx(ctx)
@@ -34,7 +34,7 @@ func isGuest(uid int64) bool {
 }
 
 // 收集作者信息
-func (b *FeedBiz) collectAuthor(ctx context.Context, uids []int64) (map[int64]*userv1.UserInfo, error) {
+func (b *Biz) collectAuthor(ctx context.Context, uids []int64) (map[int64]*userv1.UserInfo, error) {
 	authors := make(map[int64]*userv1.UserInfo)
 	resp, err := infra.Userer().BatchGetUser(ctx, &userv1.BatchGetUserRequest{
 		Uids: uids,
@@ -51,7 +51,7 @@ func (b *FeedBiz) collectAuthor(ctx context.Context, uids []int64) (map[int64]*u
 }
 
 // 收集reqUid和noteIds之间的评论关系
-func (b *FeedBiz) collectCommentStatus(ctx context.Context, reqUid int64, noteIds []int64) (map[int64]bool, error) {
+func (b *Biz) collectCommentStatus(ctx context.Context, reqUid int64, noteIds []int64) (map[int64]bool, error) {
 	if isGuestFromCtx(ctx) {
 		return map[int64]bool{}, nil
 	}
@@ -80,7 +80,7 @@ func (b *FeedBiz) collectCommentStatus(ctx context.Context, reqUid int64, noteId
 }
 
 // 获取评论数量
-func (b *FeedBiz) collectCommentNumber(ctx context.Context, noteIds []int64) (map[int64]int64, error) {
+func (b *Biz) collectCommentNumber(ctx context.Context, noteIds []int64) (map[int64]int64, error) {
 	resp, err := infra.Commenter().BatchCountComment(ctx, &commentv1.BatchCountCommentRequest{
 		Oids: noteIds,
 	})
@@ -94,7 +94,7 @@ func (b *FeedBiz) collectCommentNumber(ctx context.Context, noteIds []int64) (ma
 }
 
 // 获取reqUid和noteIds之间的点赞关系
-func (b *FeedBiz) collectLikeStatus(ctx context.Context, reqUid int64, noteIds []int64) (map[int64]bool, error) {
+func (b *Biz) collectLikeStatus(ctx context.Context, reqUid int64, noteIds []int64) (map[int64]bool, error) {
 	if isGuestFromCtx(ctx) {
 		return make(map[int64]bool), nil
 	}
@@ -118,7 +118,7 @@ func (b *FeedBiz) collectLikeStatus(ctx context.Context, reqUid int64, noteIds [
 	return oidLiked, nil
 }
 
-func (b *FeedBiz) collectRelationStatus(ctx context.Context, reqUid int64, authorUids []int64) (map[int64]bool, error) {
+func (b *Biz) collectRelationStatus(ctx context.Context, reqUid int64, authorUids []int64) (map[int64]bool, error) {
 	if isGuestFromCtx(ctx) {
 		return make(map[int64]bool), nil
 	}
@@ -137,7 +137,7 @@ func (b *FeedBiz) collectRelationStatus(ctx context.Context, reqUid int64, autho
 }
 
 // 组装notes的各种字段
-func (b *FeedBiz) AssembleNoteFeeds(ctx context.Context, notes []*notev1.FeedNoteItem) (
+func (b *Biz) AssembleNoteFeeds(ctx context.Context, notes []*notev1.FeedNoteItem) (
 	[]*model.FeedNoteItem, error) {
 	var (
 		err     error
@@ -253,7 +253,7 @@ func (b *FeedBiz) AssembleNoteFeeds(ctx context.Context, notes []*notev1.FeedNot
 	return feedNotes, nil
 }
 
-func (b *FeedBiz) RandomFeed(ctx context.Context, req *model.FeedRecommendRequest) ([]*model.FeedNoteItem, error) {
+func (b *Biz) RandomFeed(ctx context.Context, req *model.FeedRecommendRequest) ([]*model.FeedNoteItem, error) {
 	// 1. 获取笔记基础信息
 	resp, err := infra.NoteFeedServer().RandomGet(ctx, &notev1.RandomGetRequest{
 		Count: int32(req.NeedNum),
@@ -272,7 +272,7 @@ func (b *FeedBiz) RandomFeed(ctx context.Context, req *model.FeedRecommendReques
 }
 
 // 获取详细的笔记信息
-func (b *FeedBiz) GetNote(ctx context.Context, noteId int64) (*model.FullFeedNoteItem, error) {
+func (b *Biz) GetNote(ctx context.Context, noteId int64) (*model.FullFeedNoteItem, error) {
 	// 1. 获取指定笔记
 	resp, err := infra.NoteFeedServer().GetFeedNote(ctx, &notev1.GetFeedNoteRequest{
 		NoteId: noteId,
@@ -293,7 +293,7 @@ func (b *FeedBiz) GetNote(ctx context.Context, noteId int64) (*model.FullFeedNot
 	}, nil
 }
 
-func (b *FeedBiz) BatchGetNote(ctx context.Context, noteIds []int64) ([]*model.FeedNoteItem, error) {
+func (b *Biz) BatchGetNote(ctx context.Context, noteIds []int64) ([]*model.FeedNoteItem, error) {
 	noteResp, err := infra.NoteFeedServer().BatchGetFeedNotes(ctx, &notev1.BatchGetFeedNotesRequest{
 		NoteIds: noteIds,
 	})
@@ -333,7 +333,7 @@ func (b *FeedBiz) BatchGetNote(ctx context.Context, noteIds []int64) ([]*model.F
 	return filtered, nil
 }
 
-func (b *FeedBiz) ListNotesByUser(ctx context.Context, uid int64, cursor int64, count int32) ([]*model.FeedNoteItem,
+func (b *Biz) ListNotesByUser(ctx context.Context, uid int64, cursor int64, count int32) ([]*model.FeedNoteItem,
 	*model.PageResult, error) {
 
 	// 1. 笔记基础信息

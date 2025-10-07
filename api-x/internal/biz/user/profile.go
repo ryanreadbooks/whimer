@@ -16,7 +16,7 @@ import (
 )
 
 // 获取用户卡片信息
-func (b *UserBiz) GetHoverProfile(ctx context.Context, targetUid int64) (*model.HoverInfo, error) {
+func (b *Biz) GetHoverProfile(ctx context.Context, targetUid int64) (*model.HoverInfo, error) {
 	var (
 		uid             = metadata.Uid(ctx)
 		isAuthedRequest = uid != 0

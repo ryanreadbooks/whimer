@@ -17,7 +17,7 @@ import (
 )
 
 type UserHandler struct {
-	userBiz *bizuser.UserBiz
+	userBiz *bizuser.Biz
 }
 
 func NewUserHandler(c *config.Config, bizz *biz.Biz) *UserHandler {

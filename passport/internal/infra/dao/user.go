@@ -126,13 +126,17 @@ func (d *UserDao) FindUserBaseByUid(ctx context.Context, uid int64) (*UserBase, 
 					// 返回假数据
 					return &UserBase{Status: consts.UserStatusUnknown}, 0, nil
 				}
-				return nil, 0, err
+				return nil, 0, xerror.Wrapf(err, "user dao get user base failed")
 			}
 
 			return dbUser, 0, nil
 		},
 		xcachev2.WithTTL(xtime.WeekJitter(time.Minute*30)),
 	)
+
+	if err != nil {
+		return nil, xerror.Wrapf(err, "user dao get or fetch failed")
+	}
 
 	if userBase.Status.Unknown() {
 		return nil, xsql.ErrNoRecord

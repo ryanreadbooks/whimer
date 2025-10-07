@@ -18,7 +18,7 @@ type NoteEventManager struct {
 
 	tick      time.Duration
 	ticker    *time.Ticker
-	searchBiz *bizsearch.SearchBiz
+	searchBiz *bizsearch.Biz
 }
 
 type NoteEventManagerConfig struct {

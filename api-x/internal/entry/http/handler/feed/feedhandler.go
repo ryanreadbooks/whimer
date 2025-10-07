@@ -14,7 +14,7 @@ import (
 )
 
 type Handler struct {
-	feedBiz *bizfeed.FeedBiz
+	feedBiz *bizfeed.Biz
 }
 
 func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {

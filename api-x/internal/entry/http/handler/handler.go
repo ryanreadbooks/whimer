@@ -32,7 +32,7 @@ func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 		Config:   c,
 		Comment:  comment.NewHandler(c, bizz),
 		Note:     note.NewHandler(c, bizz),
-		Relation: relation.NewHandler(c),
+		Relation: relation.NewHandler(c, bizz),
 		Chat:     msg.NewHandler(c),
 		User:     user.NewUserHandler(c, bizz),
 		Feed:     feed.NewHandler(c, bizz),

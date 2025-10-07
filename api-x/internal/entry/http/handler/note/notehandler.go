@@ -25,8 +25,8 @@ import (
 )
 
 type Handler struct {
-	feedBiz   *bizfeed.FeedBiz
-	searchBiz *bizsearch.SearchBiz
+	feedBiz   *bizfeed.Biz
+	searchBiz *bizsearch.Biz
 }
 
 func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {

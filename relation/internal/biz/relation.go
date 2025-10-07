@@ -173,7 +173,8 @@ func (b *RelationBiz) UserUnFollow(ctx context.Context, follower, followee int64
 	})
 
 	if err != nil {
-		return xerror.Wrapf(err, "relation biz unfollow user transact failed").WithExtras("follower", follower, "followee", followee)
+		return xerror.Wrapf(err, "relation biz unfollow user transact failed").
+			WithExtras("follower", follower, "followee", followee)
 	}
 
 	if err = infra.Dao().RelationCache.UnFollow(ctx, follower, relation); err != nil {
@@ -187,21 +188,22 @@ func (b *RelationBiz) UserUnFollow(ctx context.Context, follower, followee int64
 
 // 获取用户的关注列表
 func (b *RelationBiz) GetUserFollowingList(ctx context.Context, uid int64, offset int64, limit int) (
-	[]int64, model.ListResult, error) {
+	[]model.UidAndTime, model.ListResult, error) {
 	var lr model.ListResult
 	followings, next, more, err := infra.Dao().RelationDao.FindUidLinkTo(ctx, uid, offset, limit)
 	if err != nil {
-		return nil, lr, xerror.Wrapf(err, "relation biz failed to find uid link to").WithExtras("offset", offset, "limit", limit)
+		return nil, lr, xerror.Wrapf(err, "relation biz failed to find uid link to").
+			WithExtras("offset", offset, "limit", limit)
 	}
 
 	lr.NextOffset = next
 	lr.HasMore = more
-	return followings, lr, nil
+	return model.NewUidAndTimeSliceFrom(followings), lr, nil
 }
 
 // 获取用户的粉丝列表
 func (b *RelationBiz) GetUserFansList(ctx context.Context, uid int64, offset int64, limit int) (
-	[]int64, model.ListResult, error) {
+	[]model.UidAndTime, model.ListResult, error) {
 	var lr model.ListResult
 	fans, next, more, err := infra.Dao().RelationDao.FindUidGotLinked(ctx, uid, offset, limit)
 	if err != nil {
@@ -211,7 +213,7 @@ func (b *RelationBiz) GetUserFansList(ctx context.Context, uid int64, offset int
 
 	lr.NextOffset = next
 	lr.HasMore = more
-	return fans, lr, nil
+	return model.NewUidAndTimeSliceFrom(fans), lr, nil
 }
 
 // 获取用户关注数
@@ -240,7 +242,7 @@ func (b *RelationBiz) GetUserFollowingCount(ctx context.Context, uid int64) (int
 }
 
 // 分页获取用户的关注列表
-func (b *RelationBiz) PageGetUserFollowingList(ctx context.Context, uid int64, page, count int32) ([]int64, int64, error) {
+func (b *RelationBiz) PageGetUserFollowingList(ctx context.Context, uid int64, page, count int32) ([]model.UidAndTime, int64, error) {
 	total, err := infra.Dao().RelationDao.CountUidLinkTo(ctx, uid)
 	if err != nil {
 		return nil, 0, xerror.Wrapf(err, "dao count uid lind to failed").WithExtras("uid", uid).WithCtx(ctx)
@@ -251,16 +253,16 @@ func (b *RelationBiz) PageGetUserFollowingList(ctx context.Context, uid int64, p
 		return nil, 0, xerror.Wrapf(err, "dao page get uid link to failed")
 	}
 
-	fansId := make([]int64, 0, len(res))
+	followings := make([]model.UidAndTime, 0, len(res))
 	for _, r := range res {
 		if r.Alpha == uid {
-			fansId = append(fansId, r.Beta)
+			followings = append(followings, model.UidAndTime{Uid: r.Beta, Time: r.Mtime})
 		} else {
-			fansId = append(fansId, r.Alpha)
+			followings = append(followings, model.UidAndTime{Uid: r.Alpha, Time: r.Mtime})
 		}
 	}
 
-	return fansId, total, nil
+	return followings, total, nil
 }
 
 // 获取用户粉丝数
@@ -291,7 +293,7 @@ func (b *RelationBiz) GetUserFanCount(ctx context.Context, uid int64) (int64, er
 }
 
 // 分页获取用户粉丝列表
-func (b *RelationBiz) PageGetUserFanList(ctx context.Context, uid int64, page, count int32) ([]int64, int64, error) {
+func (b *RelationBiz) PageGetUserFanList(ctx context.Context, uid int64, page, count int32) ([]model.UidAndTime, int64, error) {
 	total, err := infra.Dao().RelationDao.CountUidGotLinked(ctx, uid)
 	if err != nil {
 		return nil, 0, xerror.Wrapf(err, "dao count uid got linked failed").WithExtras("uid", uid).WithCtx(ctx)
@@ -302,16 +304,16 @@ func (b *RelationBiz) PageGetUserFanList(ctx context.Context, uid int64, page, c
 		return nil, 0, xerror.Wrapf(err, "dao page get uid got linked failed")
 	}
 
-	fansId := make([]int64, 0, len(res))
+	fans := make([]model.UidAndTime, 0, len(res))
 	for _, r := range res {
 		if r.Alpha == uid {
-			fansId = append(fansId, r.Beta)
+			fans = append(fans, model.UidAndTime{Uid: r.Beta, Time: r.Mtime})
 		} else {
-			fansId = append(fansId, r.Alpha)
+			fans = append(fans, model.UidAndTime{Uid: r.Alpha, Time: r.Mtime})
 		}
 	}
 
-	return fansId, total, nil
+	return fans, total, nil
 }
 
 // 检查uid是否关注了others
@@ -339,8 +341,8 @@ func (b *RelationBiz) BatchCheckUserFollowStatus(ctx context.Context, uid int64,
 	}
 
 	var (
-		daoResult           []*dao.RelationUser
-		newlyFoundDaoResult []*dao.RelationUser
+		daoResult           []*dao.Relation
+		newlyFoundDaoResult []*dao.Relation
 	)
 
 	cacheResult, err := infra.Dao().RelationCache.BatchGetLinks(ctx, cachePairs)

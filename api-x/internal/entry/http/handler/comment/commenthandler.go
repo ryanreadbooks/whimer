@@ -8,9 +8,11 @@ import (
 	bizcomment "github.com/ryanreadbooks/whimer/api-x/internal/biz/comment"
 	bizmodel "github.com/ryanreadbooks/whimer/api-x/internal/biz/comment/model"
 	bizsearch "github.com/ryanreadbooks/whimer/api-x/internal/biz/search"
+	bizuser "github.com/ryanreadbooks/whimer/api-x/internal/biz/user"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
+	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
@@ -20,12 +22,14 @@ import (
 )
 
 type Handler struct {
-	searchBiz  *bizsearch.SearchBiz
+	userBiz    *bizuser.Biz
+	searchBiz  *bizsearch.Biz
 	commentBiz *bizcomment.Biz
 }
 
 func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 	return &Handler{
+		userBiz:    bizz.UserBiz,
 		searchBiz:  bizz.SearchBiz,
 		commentBiz: bizz.CommentBiz,
 	}
@@ -274,5 +278,28 @@ func (h *Handler) UploadCommentImages() http.HandlerFunc {
 		}
 
 		xhttp.OkJson(w, resp)
+	}
+}
+
+func (h *Handler) MentionUsers() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[MentionUserReq](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		var (
+			ctx = r.Context()
+			uid = metadata.Uid(ctx)
+		)
+
+		res, err := h.userBiz.BrutalListFollowingsByName(ctx, uid, req.Search)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, res)
 	}
 }
