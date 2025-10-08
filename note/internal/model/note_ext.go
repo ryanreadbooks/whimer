@@ -39,6 +39,9 @@ func NoteTagListAsPb(tags []*NoteTag) []*notev1.NoteTag {
 
 	var r []*notev1.NoteTag
 	for _, t := range tags {
+		if t == nil {
+			continue
+		}
 		r = append(r, t.AsPb())
 	}
 
@@ -68,6 +71,9 @@ func AtUsersAsPb(atUsers []*AtUser) []*notev1.NoteAtUser {
 
 	var r []*notev1.NoteAtUser
 	for _, a := range atUsers {
+		if a == nil {
+			continue
+		}
 		r = append(r, a.AsPb())
 	}
 

@@ -102,13 +102,10 @@ func (i *Note) AsPb() *notev1.NoteItem {
 		Owner:    i.Owner,
 	}
 
-	if len(i.Tags) > 0 {
-		for _, t := range i.Tags {
-			if t != nil {
-				res.Tags = append(res.Tags, t.AsPb())
-			}
-		}
-	}
+	// note tags
+	res.Tags = NoteTagListAsPb(i.Tags)
+	// at_users
+	res.AtUsers = AtUsersAsPb(i.AtUsers)
 
 	return res
 }
