@@ -33,7 +33,7 @@ func (h *Handler) creatorSyncNoteToSearcher(ctx context.Context, noteId int64) {
 				return xerror.Wrapf(err, "get note failed").WithExtra("note_id", noteId).WithCtx(ctx)
 			}
 
-			if curNote.Note.GetPrivacy() == VisibilityPrivate {
+			if curNote.Note.GetPrivacy() == int32(notev1.NotePrivacy_NotePrivacy_Private) {
 				return nil
 			}
 
@@ -50,7 +50,7 @@ func (h *Handler) creatorSyncNoteToSearcher(ctx context.Context, noteId int64) {
 			}
 
 			vis := searchv1.Note_VISIBILITY_PUBLIC
-			if curNote.Note.GetPrivacy() == VisibilityPrivate {
+			if curNote.Note.GetPrivacy() == int32(notev1.NotePrivacy_NotePrivacy_Private) {
 				vis = searchv1.Note_VISIBILITY_PRIVATE
 			}
 			assetType := searchv1.Note_ASSET_TYPE_IMAGE // for now
@@ -121,6 +121,8 @@ func (h *Handler) CreatorCreateNote() http.HandlerFunc {
 
 		h.creatorSyncNoteToSearcher(ctx, resp.NoteId)
 
+		// TODO at_users handling  (notification and add to recent contacts)
+
 		xhttp.OkJson(w, CreateRes{NoteId: model.NoteId(resp.NoteId)})
 	}
 }
@@ -146,6 +148,8 @@ func (h *Handler) CreatorUpdateNote() http.HandlerFunc {
 		}
 
 		h.creatorSyncNoteToSearcher(ctx, int64(req.NoteId))
+
+		// TODO at_users handling  (notification and add to recent contacts)
 
 		xhttp.OkJson(w, UpdateRes{NoteId: req.NoteId})
 	}

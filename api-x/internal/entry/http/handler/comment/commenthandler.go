@@ -9,6 +9,7 @@ import (
 	bizmodel "github.com/ryanreadbooks/whimer/api-x/internal/biz/comment/model"
 	bizsearch "github.com/ryanreadbooks/whimer/api-x/internal/biz/search"
 	bizuser "github.com/ryanreadbooks/whimer/api-x/internal/biz/user"
+	usermodel "github.com/ryanreadbooks/whimer/api-x/internal/biz/user/model"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
@@ -17,6 +18,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -294,12 +296,50 @@ func (h *Handler) MentionUsers() http.HandlerFunc {
 			uid = metadata.Uid(ctx)
 		)
 
-		res, err := h.userBiz.BrutalListFollowingsByName(ctx, uid, req.Search)
-		if err != nil {
+		// 分组获取@用户
+		eg, ctx := errgroup.WithContext(ctx)
+
+		var result MentionUserResp
+		result.Groups = make([]*MentionUserRespItem, 3)
+
+		// TODO 拿最近联系人
+		eg.Go(func() error {
+			result.Groups[0] = &MentionUserRespItem{
+				Group:     MentionRecentContacts,
+				GroupDesc: MentionRecentContacts.Desc(),
+				Users:     []*usermodel.User{},
+			}
+
+			return nil
+		})
+
+		// 我的关注
+		eg.Go(func() error {
+			res, err := h.userBiz.BrutalListFollowingsByName(ctx, uid, req.Search)
+			// 错误仅打日志 不返回错误
+			if err != nil {
+				xlog.Msg("list followings groups failed").Err(err).Errorx(ctx)
+			}
+
+			result.Groups[1] = &MentionUserRespItem{
+				Group:     MentionFollowings,
+				GroupDesc: MentionFollowings.Desc(),
+				Users:     res,
+			}
+
+			return nil
+		})
+
+		// TODO 其他人
+		if len(req.Search) > 0 {
+
+		}
+
+		if err := eg.Wait(); err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		xhttp.OkJson(w, res)
+		xhttp.OkJson(w, &result)
 	}
 }

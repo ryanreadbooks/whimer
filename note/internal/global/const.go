@@ -1,13 +1,15 @@
 package global
 
+import v1 "github.com/ryanreadbooks/whimer/note/api/v1"
+
 const (
-	PrivacyPublic  = 1
-	PrivacyPrivate = 2
+	PrivacyPublic  = int8(v1.NotePrivacy_NotePrivacy_Public)
+	PrivacyPrivate = int8(v1.NotePrivacy_NotePrivacy_Private)
 )
 
 const (
-	AssetTypeImage = 1 // 完整图片
-	AssetTypeVideo = 2 // TODO 视频
+	AssetTypeImage = int8(v1.NoteAssetType_NoteAssetType_Image) // 完整图片
+	AssetTypeVideo = int8(v1.NoteAssetType_NoteAssetType_Video) // TODO 视频
 )
 
 // 计数服务的业务码

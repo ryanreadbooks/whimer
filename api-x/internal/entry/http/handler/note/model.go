@@ -15,13 +15,13 @@ import (
 )
 
 const (
-	VisibilityPublic  = 1
-	VisibilityPrivate = 2
+	VisibilityPublic  = int8(notev1.NotePrivacy_NotePrivacy_Public)
+	VisibilityPrivate = int8(notev1.NotePrivacy_NotePrivacy_Private)
 )
 
 const (
-	AssetTypeImage = 1
-	AssetTypeVideo = 2
+	AssetTypeImage = int8(notev1.NoteAssetType_NoteAssetType_Image)
+	AssetTypeVideo = int8(notev1.NoteAssetType_NoteAssetType_Video)
 )
 
 const (
@@ -33,7 +33,7 @@ const (
 type CreateReqBasic struct {
 	Title   string `json:"title"`
 	Desc    string `json:"desc"`
-	Privacy int    `json:"privacy"`
+	Privacy int8   `json:"privacy"`
 }
 
 func (v *CreateReqBasic) Validate() error {
@@ -46,7 +46,7 @@ func (v *CreateReqBasic) Validate() error {
 		return xerror.ErrArgs.Msg("标题长度错误")
 	}
 	descLen := utf8.RuneCountInString(v.Desc)
-	if descLen > descLen {
+	if descLen > maxDescLen {
 		return xerror.ErrArgs.Msg("简介超长")
 	}
 
@@ -88,6 +88,7 @@ type CreateReq struct {
 	Basic   CreateReqBasic     `json:"basic"`
 	Images  CreateReqImageList `json:"images"`
 	TagList []TagId            `json:"tag_list,omitempty,optional"`
+	AtUsers model.AtUserList   `json:"at_users,omitempty,optional"`
 }
 
 type TagId struct { // 必须再包一层 直接用数组无法解析
@@ -121,7 +122,21 @@ func (r *CreateReq) Validate() error {
 		return xerror.ErrArgs.Msg("标签超出限制")
 	}
 
+	r.AtUsers = r.AtUsers.Filter()
+
 	return nil
+}
+
+func AtUsersAsPb(atUsers model.AtUserList) []*notev1.NoteAtUser {
+	users := make([]*notev1.NoteAtUser, 0, len(atUsers))
+	for _, u := range atUsers {
+		users = append(users, &notev1.NoteAtUser{
+			Nickname: u.Nickname,
+			Uid:      u.Uid,
+		})
+	}
+
+	return users
 }
 
 func (r *CreateReq) AsPb() *notev1.CreateNoteRequest {
@@ -130,9 +145,10 @@ func (r *CreateReq) AsPb() *notev1.CreateNoteRequest {
 		tagList = append(tagList, int64(t.Id))
 	}
 	return &notev1.CreateNoteRequest{
-		Basic:  r.Basic.AsPb(),
-		Images: r.Images.AsPb(),
-		Tags:   &notev1.CreateReqTag{TagList: tagList},
+		Basic:   r.Basic.AsPb(),
+		Images:  r.Images.AsPb(),
+		Tags:    &notev1.CreateReqTag{TagList: tagList},
+		AtUsers: AtUsersAsPb(r.AtUsers),
 	}
 }
 

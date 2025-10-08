@@ -51,6 +51,21 @@ func NoteTagsFromPbs(ts []*notev1.NoteTag) []*NoteTag {
 	return r
 }
 
+func AtUsersFromNotePbs(us []*notev1.NoteAtUser) []*AtUser {
+	if len(us) == 0 {
+		return []*AtUser{}
+	}
+
+	var r = make([]*AtUser, 0, len(us))
+	for _, u := range us {
+		r = append(r, &AtUser{
+			Nickname: u.Nickname,
+			Uid:      u.Uid,
+		})
+	}
+	return r
+}
+
 type AdminNoteItem struct {
 	NoteId   NoteId            `json:"note_id"`
 	Title    string            `json:"title"`
@@ -65,6 +80,7 @@ type AdminNoteItem struct {
 	Replies  int64             `json:"replies"`
 	Interact Interaction       `json:"interact"`
 	TagList  []*NoteTag        `json:"tag_list,omitempty"`
+	AtUsers  []*AtUser         `json:"at_users,omitempty"`
 }
 
 func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
@@ -86,6 +102,8 @@ func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
 	}
 
 	var tagList []*NoteTag = NoteTagsFromPbs(pb.GetTags())
+	var atUsers []*AtUser = AtUsersFromNotePbs(pb.GetAtUsers())
+
 	ctx := context.Background()
 	ipLoc, _ := infra.Ip2Loc().Convert(ctx, pb.Ip)
 	return &AdminNoteItem{
@@ -101,6 +119,7 @@ func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
 		TagList:  tagList,
 		Ip:       pb.Ip,
 		IpLoc:    ipLoc,
+		AtUsers:  atUsers,
 	}
 }
 

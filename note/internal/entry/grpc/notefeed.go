@@ -51,7 +51,8 @@ func (s *NoteFeedServiceServer) GetFeedNote(ctx context.Context, in *notev1.GetF
 	return &notev1.GetFeedNoteResponse{
 		Item: resp.AsFeedPb(),
 		Ext: &notev1.FeedNoteItemExt{
-			Tags: model.NoteTagListAsPb(resp.Tags),
+			Tags:    model.NoteTagListAsPb(resp.Tags),
+			AtUsers: model.AtUsersAsPb(resp.AtUsers),
 		}}, nil
 }
 

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package msger.api.system.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/msger/api/system/v1";
+
+import "msg/msg.proto";
+
+service ChatService {
+  
+}

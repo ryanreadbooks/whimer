@@ -4,10 +4,27 @@ package note.api.v1;
 
 option go_package = "github.com/ryanreadbooks/whimer/note/api/v1";
 
+enum NotePrivacy {
+  NotePrivacy_Unspec = 0;
+  NotePrivacy_Public = 1;
+  NotePrivacy_Private = 2;
+}
+
+enum NoteAssetType {
+  NoteAssetType_Unspec = 0;
+  NoteAssetType_Image = 1;
+  NoteAssetType_Video = 2;
+}
+
 message NoteTag {
   int64 id = 1;
   string name = 2;
   int64 ctime = 3;
+}
+
+message NoteAtUser {
+  string nickname = 1;
+  int64 uid = 2;
 }
 
 // 笔记全量信息
@@ -24,6 +41,7 @@ message NoteItem {
   repeated NoteTag tags = 10; // 笔记的标签
   int64 owner = 11;
   string ip = 12;
+  repeated NoteAtUser at_users = 13; // @人
 }
 
 message NoteImageMeta {
@@ -53,4 +71,7 @@ message FeedNoteItem {
   string ip = 10;
 }
 
-message FeedNoteItemExt { repeated NoteTag tags = 1; }
+message FeedNoteItemExt {
+  repeated NoteTag tags = 1;
+  repeated NoteAtUser at_users = 2;
+}

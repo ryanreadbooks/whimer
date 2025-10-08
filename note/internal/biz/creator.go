@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"math"
 	"time"
@@ -51,7 +52,7 @@ func isNoteExtValid(ext *notedao.Ext) bool {
 		return false
 	}
 
-	if ext.Tags != "" {
+	if ext.Tags != "" || len(ext.AtUsers) > 0 {
 		return true
 	}
 
@@ -106,12 +107,18 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *model.CreateNoteRe
 		}
 
 		var ext = notedao.Ext{
-			NoteId: noteId,
+			NoteId:  noteId,
+			AtUsers: json.RawMessage{},
 		}
 		// 笔记额外信息
 		if len(req.TagIds) > 0 {
 			tagIdList := xslice.JoinInts(req.TagIds)
 			ext.Tags = tagIdList
+		}
+		if len(req.AtUsers) > 0 {
+			if data, err := json.Marshal(req.AtUsers); err == nil {
+				ext.AtUsers = data
+			}
 		}
 
 		if isNoteExtValid(&ext) {
@@ -229,12 +236,21 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *model.UpdateNoteRe
 
 		// ext处理
 		ext := notedao.Ext{
-			NoteId: oldNote.Id,
-			Tags:   xslice.JoinInts(req.TagIds),
+			NoteId:  oldNote.Id,
+			Tags:    xslice.JoinInts(req.TagIds),
+			AtUsers: json.RawMessage{},
 		}
-		err = infra.Dao().NoteExtDao.Upsert(ctx, &ext)
-		if err != nil {
-			return xerror.Wrapf(err, "noteext dao upsert tx failed")
+		if len(req.AtUsers) > 0 {
+			if data, err := json.Marshal(req.AtUsers); err == nil {
+				ext.AtUsers = data
+			}
+		}
+
+		if isNoteExtValid(&ext) {
+			err = infra.Dao().NoteExtDao.Upsert(ctx, &ext)
+			if err != nil {
+				return xerror.Wrapf(err, "noteext dao upsert tx failed when updating note")
+			}
 		}
 
 		return nil

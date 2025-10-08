@@ -6,9 +6,9 @@ import commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 type CommentType int8
 
 const (
-	CommentText        CommentType = CommentType(commentv1.CommentType_Text)        // 纯文本
-	CommentImageText   CommentType = CommentType(commentv1.CommentType_ImageText)   // 图文
-	CommentCustomEmoji CommentType = CommentType(commentv1.CommentType_CustomEmoji) // 自定义表情
+	CommentText        = CommentType(commentv1.CommentType_Text)        // 纯文本
+	CommentImageText   = CommentType(commentv1.CommentType_ImageText)   // 图文
+	CommentCustomEmoji = CommentType(commentv1.CommentType_CustomEmoji) // 自定义表情
 )
 
 // 评论是否置顶

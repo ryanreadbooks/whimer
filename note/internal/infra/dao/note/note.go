@@ -293,7 +293,7 @@ func (r *NoteDao) GetPrivateByCursor(ctx context.Context, id int64, count int) (
 	return r.getByCursor(ctx, id, count, global.PrivacyPrivate)
 }
 
-func (r *NoteDao) getByCursor(ctx context.Context, id int64, count, privacy int) ([]*Note, error) {
+func (r *NoteDao) getByCursor(ctx context.Context, id int64, count int, privacy int8) ([]*Note, error) {
 	var res = make([]*Note, 0, count)
 	err := r.db.QueryRowsCtx(ctx, &res, sqlGetByCursor, id, privacy, count)
 	return res, xerror.Wrap(xsql.ConvertError(err))
@@ -307,13 +307,13 @@ func (r *NoteDao) GetPrivateLastId(ctx context.Context) (int64, error) {
 	return r.getLastId(ctx, global.PrivacyPrivate)
 }
 
-func (r *NoteDao) getLastId(ctx context.Context, privacy int) (int64, error) {
+func (r *NoteDao) getLastId(ctx context.Context, privacy int8) (int64, error) {
 	var lastId int64
 	err := r.db.QueryRowCtx(ctx, &lastId, sqlGetLastId, privacy)
 	return lastId, xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteDao) getAll(ctx context.Context, privacy int) ([]*Note, error) {
+func (r *NoteDao) getAll(ctx context.Context, privacy int8) ([]*Note, error) {
 	var res = make([]*Note, 0, 16)
 	err := r.db.QueryRowsCtx(ctx, &res, sqlGetAll, privacy)
 	return res, xerror.Wrap(xsql.ConvertError(err))
@@ -335,7 +335,7 @@ func (r *NoteDao) GetPrivateCount(ctx context.Context) (int64, error) {
 	return r.getCount(ctx, global.PrivacyPrivate)
 }
 
-func (r *NoteDao) getCount(ctx context.Context, privacy int) (int64, error) {
+func (r *NoteDao) getCount(ctx context.Context, privacy int8) (int64, error) {
 	var cnt int64
 	err := r.db.QueryRowCtx(ctx, &cnt, sqlGetCount, privacy)
 	return cnt, xerror.Wrap(xsql.ConvertError(err))

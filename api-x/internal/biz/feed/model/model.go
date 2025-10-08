@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
+	"github.com/ryanreadbooks/whimer/api-x/internal/model"
 	imodel "github.com/ryanreadbooks/whimer/api-x/internal/model"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
@@ -69,6 +70,7 @@ type FullFeedNoteItem struct {
 
 	// 更多信息
 	TagList []*imodel.NoteTag `json:"tag_list,omitempty"`
+	AtUsers []*model.AtUser   `json:"at_users,omitempty"`
 }
 
 func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
@@ -91,7 +93,7 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 	}
 
 	ctx := context.Background()
-	ipLoc, _ := infra.Ip2Loc().Convert(ctx, pb.Ip)		
+	ipLoc, _ := infra.Ip2Loc().Convert(ctx, pb.Ip)
 
 	return &FeedNoteItem{
 		NoteId:   imodel.NoteId(pb.NoteId),

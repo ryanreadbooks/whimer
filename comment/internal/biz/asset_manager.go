@@ -70,7 +70,7 @@ func (b *AssetManagerBiz) BatchGetImageAuths(ctx context.Context, cnt int32) (*I
 	}, nil
 }
 
-func DoImageProxyUrl(asset *dao.CommentAsset) string {
+func getAssetKeyWithImgProxy(asset *dao.CommentAsset) string {
 	ak := config.Conf.ImgProxyAuth.GetKey()
 	salt := config.Conf.ImgProxyAuth.GetSalt()
 	if asset.Type == model.CommentAssetImage {
@@ -113,7 +113,7 @@ func makePbCommentImage(assets []*dao.CommentAsset) []*commentv1.CommentItemImag
 		var meta ImageAssetMetadata
 		_ = json.Unmarshal(img.Metadata, &meta)
 		imgs = append(imgs, &commentv1.CommentItemImage{
-			Url: DoImageProxyUrl(img),
+			Url: getAssetKeyWithImgProxy(img),
 			Meta: &commentv1.CommentItemImageMeta{
 				Width:  meta.Width,
 				Height: meta.Height,

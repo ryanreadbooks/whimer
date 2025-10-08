@@ -42,6 +42,7 @@ message CreateNoteRequest {
   CreateReqBasic basic = 1;
   repeated CreateReqImage images = 2;
   CreateReqTag tags = 3;
+  repeated NoteAtUser at_users = 4;
 }
 
 message CreateNoteResponse { int64 note_id = 1; }

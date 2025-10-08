@@ -64,10 +64,11 @@ func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.Cr
 		Basic: model.CreateNoteRequestBasic{
 			Title:   in.Basic.Title,
 			Desc:    in.Basic.Desc,
-			Privacy: int(in.Basic.Privacy),
+			Privacy: int8(in.Basic.Privacy),
 		},
-		Images: images,
-		TagIds: in.GetTags().GetTagList(),
+		Images:  images,
+		TagIds:  in.GetTags().GetTagList(),
+		AtUsers: model.AtUsersFromPb(in.GetAtUsers()),
 	}
 
 	if err := req.Validate(); err != nil {
@@ -94,6 +95,9 @@ func (s *NoteCreatorServiceServer) UpdateNote(ctx context.Context, in *notev1.Up
 	for _, img := range in.Note.Images {
 		images = append(images, model.CreateNoteRequestImage{
 			FileId: img.FileId,
+			Width:  img.Width,
+			Height: img.Height,
+			Format: img.Format,
 		})
 	}
 
@@ -103,10 +107,11 @@ func (s *NoteCreatorServiceServer) UpdateNote(ctx context.Context, in *notev1.Up
 			Basic: model.CreateNoteRequestBasic{
 				Title:   in.Note.Basic.Title,
 				Desc:    in.Note.Basic.Desc,
-				Privacy: int(in.Note.Basic.Privacy),
+				Privacy: int8(in.Note.Basic.Privacy),
 			},
-			Images: images,
-			TagIds: in.GetNote().GetTags().GetTagList(),
+			Images:  images,
+			TagIds:  in.GetNote().GetTags().GetTagList(),
+			AtUsers: model.AtUsersFromPb(in.GetNote().GetAtUsers()),
 		},
 	}
 

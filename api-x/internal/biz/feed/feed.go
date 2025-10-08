@@ -290,6 +290,7 @@ func (b *Biz) GetNote(ctx context.Context, noteId int64) (*model.FullFeedNoteIte
 	return &model.FullFeedNoteItem{
 		FeedNoteItem: feeds[0],
 		TagList:      imodel.NoteTagsFromPbs(resp.GetExt().GetTags()),
+		AtUsers:      imodel.AtUsersFromNotePbs(resp.GetExt().GetAtUsers()),
 	}, nil
 }
 
