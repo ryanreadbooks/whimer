@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	bizsysnotify "github.com/ryanreadbooks/whimer/api-x/internal/biz/sysnotify"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/model"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
@@ -12,35 +13,42 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *Handler) creatorSyncNoteToSearcher(ctx context.Context, noteId int64) {
+func (h *Handler) fetchNote(ctx context.Context, noteId int64) (*notev1.NoteItem, error) {
+	curNote, err := infra.NoteCreatorServer().GetNote(ctx,
+		&notev1.GetNoteRequest{
+			NoteId: noteId,
+		})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "get note failed").WithExtra("note_id", noteId).WithCtx(ctx)
+	}
+
+	return curNote.GetNote(), nil
+}
+
+func isNotePrivate(note *notev1.NoteItem) bool {
+	return note.GetPrivacy() == int32(notev1.NotePrivacy_NotePrivacy_Private)
+}
+
+func (h *Handler) creatorSyncNoteToSearcher(ctx context.Context, noteId int64, note *notev1.NoteItem) {
 	// add to es
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: fmt.Sprintf("creator_sync_note_%d", noteId),
+		Name: fmt.Sprintf("note_creator_sync_note_%d", noteId),
 		Job: func(ctx context.Context) error {
-			// 1. fetch first
-			curNote, err := infra.NoteCreatorServer().GetNote(ctx,
-				&notev1.GetNoteRequest{
-					NoteId: noteId,
-				})
-			if err != nil {
-				xlog.Msg("creator sync note to searcher failed").Err(err).Extras("note_id", noteId).Errorx(ctx)
-				return xerror.Wrapf(err, "get note failed").WithExtra("note_id", noteId).WithCtx(ctx)
-			}
-
-			if curNote.Note.GetPrivacy() == int32(notev1.NotePrivacy_NotePrivacy_Private) {
+			if isNotePrivate(note) {
 				return nil
 			}
 
 			// 2. add to searcher
 			nid := model.NoteId(noteId).String()
-			tagList := make([]*searchv1.NoteTag, 0, len(curNote.Note.GetTags()))
-			for _, tag := range curNote.Note.GetTags() {
+			tagList := make([]*searchv1.NoteTag, 0, len(note.GetTags()))
+			for _, tag := range note.GetTags() {
 				tagId := model.TagId(tag.GetId()).String()
 				tagList = append(tagList, &searchv1.NoteTag{
 					Id:    string(tagId),
@@ -50,29 +58,29 @@ func (h *Handler) creatorSyncNoteToSearcher(ctx context.Context, noteId int64) {
 			}
 
 			vis := searchv1.Note_VISIBILITY_PUBLIC
-			if curNote.Note.GetPrivacy() == int32(notev1.NotePrivacy_NotePrivacy_Private) {
+			if isNotePrivate(note) {
 				vis = searchv1.Note_VISIBILITY_PRIVATE
 			}
 			assetType := searchv1.Note_ASSET_TYPE_IMAGE // for now
 
 			docNote := []*searchv1.Note{{
 				NoteId:   string(nid),
-				Title:    curNote.Note.GetTitle(),
-				Desc:     curNote.Note.GetDesc(),
-				CreateAt: curNote.Note.GetCreateAt(),
-				UpdateAt: curNote.Note.GetUpdateAt(),
+				Title:    note.GetTitle(),
+				Desc:     note.GetDesc(),
+				CreateAt: note.GetCreateAt(),
+				UpdateAt: note.GetUpdateAt(),
 				Author: &searchv1.Note_Author{
-					Uid:      curNote.Note.GetOwner(),
+					Uid:      note.GetOwner(),
 					Nickname: metadata.UserNickname(ctx),
 				},
 				TagList:       tagList,
 				Visibility:    vis,
 				AssetType:     assetType,
-				LikesCount:    curNote.Note.Likes,
-				CommentsCount: curNote.Note.Replies,
+				LikesCount:    note.Likes,
+				CommentsCount: note.Replies,
 			}}
 
-			_, err = infra.DocumentServer().BatchAddNote(ctx, &searchv1.BatchAddNoteRequest{
+			_, err := infra.DocumentServer().BatchAddNote(ctx, &searchv1.BatchAddNoteRequest{
 				Notes: docNote,
 			})
 			if err != nil {
@@ -102,6 +110,12 @@ func (h *Handler) creatorDeleteNoteFromSearcher(ctx context.Context, noteId int6
 	})
 }
 
+func (h *Handler) afterNoteUpserted(ctx context.Context, note *notev1.NoteItem) {
+
+	h.creatorSyncNoteToSearcher(ctx, note.NoteId, note)
+	h.notifyWhenAtUsers(ctx, note)
+}
+
 // 发布笔记
 func (h *Handler) CreatorCreateNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -119,9 +133,10 @@ func (h *Handler) CreatorCreateNote() http.HandlerFunc {
 			return
 		}
 
-		h.creatorSyncNoteToSearcher(ctx, resp.NoteId)
-
-		// TODO at_users handling  (notification and add to recent contacts)
+		note, err := h.fetchNote(ctx, resp.NoteId)
+		if err == nil && note != nil {
+			h.afterNoteUpserted(ctx, note)
+		}
 
 		xhttp.OkJson(w, CreateRes{NoteId: model.NoteId(resp.NoteId)})
 	}
@@ -147,9 +162,10 @@ func (h *Handler) CreatorUpdateNote() http.HandlerFunc {
 			return
 		}
 
-		h.creatorSyncNoteToSearcher(ctx, int64(req.NoteId))
-
-		// TODO at_users handling  (notification and add to recent contacts)
+		note, err := h.fetchNote(ctx, int64(req.NoteId))
+		if err == nil && note != nil {
+			h.afterNoteUpserted(ctx, note)
+		}
 
 		xhttp.OkJson(w, UpdateRes{NoteId: req.NoteId})
 	}
@@ -268,4 +284,64 @@ func (h *Handler) CreatorUploadNoteAuthV2() http.HandlerFunc {
 
 		xhttp.OkJson(w, resp)
 	}
+}
+
+// 笔记中存在at_users通知用户
+func (h *Handler) notifyWhenAtUsers(ctx context.Context, note *notev1.NoteItem) {
+	if isNotePrivate(note) {
+		return
+	}
+
+	if len(note.AtUsers) == 0 {
+		return
+	}
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	atUids := make([]int64, 0, len(note.AtUsers))
+	for _, atUser := range note.AtUsers {
+		atUids = append(atUids, atUser.Uid)
+	}
+	atUids = xslice.Uniq(atUids)
+
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "note_creator_notify_at_users",
+		Job: func(ctx context.Context) error {
+			// filter invalid uids
+			atUsers, err := h.userBiz.ListUsersV2(ctx, atUids)
+			if err != nil {
+				xlog.Msg("note creator user biz list users failed").Err(err).Errorx(ctx)
+				return err
+			}
+
+			if len(atUsers) == 0 {
+				xlog.Msg("user biz return empty at users").Errorx(ctx)
+				return nil
+			}
+
+			validNoteAtUsers := make([]*notev1.NoteAtUser, 0, len(note.AtUsers))
+			for _, noteAtUser := range note.AtUsers {
+				if _, ok := atUsers[noteAtUser.Uid]; ok {
+					validNoteAtUsers = append(validNoteAtUsers, noteAtUser)
+				}
+			}
+
+			err = h.notifyBiz.NotifyAtUsersOnNote(ctx, &bizsysnotify.NotifyAtUsersOnNoteReq{
+				Uid:         uid,
+				TargetUsers: validNoteAtUsers,
+				Content: &bizsysnotify.NotifyAtUsersOnNoteReqContent{
+					NoteDesc:  note.Desc,
+					NoteId:    model.NoteId(note.NoteId),
+					SourceUid: uid,
+				},
+			})
+			if err != nil {
+				xlog.Msg("note creator notify biz failed to notify at users").Err(err).Errorx(ctx)
+				return err
+			}
+
+			return nil
+		},
+	})
 }

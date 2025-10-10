@@ -13,7 +13,7 @@ type MsgPO struct {
 	RecvUid      int64                 `db:"recv_uid"` // 接收系统消息的uid
 	Status       model.SystemMsgStatus `db:"status"`
 	MsgType      model.MsgType         `db:"msg_type"`
-	Content      string                `db:"content"`
+	Content      []byte                `db:"content"`
 	Mtime        int64                 `db:"mtime"`
 }
 

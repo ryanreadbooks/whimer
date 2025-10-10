@@ -7,7 +7,10 @@
 package v1
 
 import (
+	context "context"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -15,62 +18,226 @@ import (
 // Requires gRPC-Go v1.64.0 or later.
 const _ = grpc.SupportPackageIsVersion9
 
-// ChatServiceClient is the client API for ChatService service.
+const (
+	NotificationService_NotifySystemNotice_FullMethodName = "/msger.api.system.v1.NotificationService/NotifySystemNotice"
+	NotificationService_NotifyReplyMsg_FullMethodName     = "/msger.api.system.v1.NotificationService/NotifyReplyMsg"
+	NotificationService_NotifyMentionMsg_FullMethodName   = "/msger.api.system.v1.NotificationService/NotifyMentionMsg"
+	NotificationService_NotifyLikesMsg_FullMethodName     = "/msger.api.system.v1.NotificationService/NotifyLikesMsg"
+)
+
+// NotificationServiceClient is the client API for NotificationService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type ChatServiceClient interface {
+type NotificationServiceClient interface {
+	// 系统通知
+	NotifySystemNotice(ctx context.Context, in *NotifySystemNoticeRequest, opts ...grpc.CallOption) (*NotifySystemNoticeResponse, error)
+	// 回复我的
+	NotifyReplyMsg(ctx context.Context, in *NotifyReplyMsgRequest, opts ...grpc.CallOption) (*NotifyReplyMsgResponse, error)
+	// @我的
+	NotifyMentionMsg(ctx context.Context, in *NotifyMentionMsgRequest, opts ...grpc.CallOption) (*NotifyMentionMsgResponse, error)
+	// 收到的赞
+	NotifyLikesMsg(ctx context.Context, in *NotifyLikesMsgRequest, opts ...grpc.CallOption) (*NotifyLikesMsgResponse, error)
 }
 
-type chatServiceClient struct {
+type notificationServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewChatServiceClient(cc grpc.ClientConnInterface) ChatServiceClient {
-	return &chatServiceClient{cc}
+func NewNotificationServiceClient(cc grpc.ClientConnInterface) NotificationServiceClient {
+	return &notificationServiceClient{cc}
 }
 
-// ChatServiceServer is the server API for ChatService service.
-// All implementations must embed UnimplementedChatServiceServer
+func (c *notificationServiceClient) NotifySystemNotice(ctx context.Context, in *NotifySystemNoticeRequest, opts ...grpc.CallOption) (*NotifySystemNoticeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NotifySystemNoticeResponse)
+	err := c.cc.Invoke(ctx, NotificationService_NotifySystemNotice_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *notificationServiceClient) NotifyReplyMsg(ctx context.Context, in *NotifyReplyMsgRequest, opts ...grpc.CallOption) (*NotifyReplyMsgResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NotifyReplyMsgResponse)
+	err := c.cc.Invoke(ctx, NotificationService_NotifyReplyMsg_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *notificationServiceClient) NotifyMentionMsg(ctx context.Context, in *NotifyMentionMsgRequest, opts ...grpc.CallOption) (*NotifyMentionMsgResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NotifyMentionMsgResponse)
+	err := c.cc.Invoke(ctx, NotificationService_NotifyMentionMsg_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *notificationServiceClient) NotifyLikesMsg(ctx context.Context, in *NotifyLikesMsgRequest, opts ...grpc.CallOption) (*NotifyLikesMsgResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NotifyLikesMsgResponse)
+	err := c.cc.Invoke(ctx, NotificationService_NotifyLikesMsg_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// NotificationServiceServer is the server API for NotificationService service.
+// All implementations must embed UnimplementedNotificationServiceServer
 // for forward compatibility.
-type ChatServiceServer interface {
-	mustEmbedUnimplementedChatServiceServer()
+type NotificationServiceServer interface {
+	// 系统通知
+	NotifySystemNotice(context.Context, *NotifySystemNoticeRequest) (*NotifySystemNoticeResponse, error)
+	// 回复我的
+	NotifyReplyMsg(context.Context, *NotifyReplyMsgRequest) (*NotifyReplyMsgResponse, error)
+	// @我的
+	NotifyMentionMsg(context.Context, *NotifyMentionMsgRequest) (*NotifyMentionMsgResponse, error)
+	// 收到的赞
+	NotifyLikesMsg(context.Context, *NotifyLikesMsgRequest) (*NotifyLikesMsgResponse, error)
+	mustEmbedUnimplementedNotificationServiceServer()
 }
 
-// UnimplementedChatServiceServer must be embedded to have
+// UnimplementedNotificationServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedChatServiceServer struct{}
+type UnimplementedNotificationServiceServer struct{}
 
-func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
-func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
+func (UnimplementedNotificationServiceServer) NotifySystemNotice(context.Context, *NotifySystemNoticeRequest) (*NotifySystemNoticeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NotifySystemNotice not implemented")
+}
+func (UnimplementedNotificationServiceServer) NotifyReplyMsg(context.Context, *NotifyReplyMsgRequest) (*NotifyReplyMsgResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NotifyReplyMsg not implemented")
+}
+func (UnimplementedNotificationServiceServer) NotifyMentionMsg(context.Context, *NotifyMentionMsgRequest) (*NotifyMentionMsgResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NotifyMentionMsg not implemented")
+}
+func (UnimplementedNotificationServiceServer) NotifyLikesMsg(context.Context, *NotifyLikesMsgRequest) (*NotifyLikesMsgResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NotifyLikesMsg not implemented")
+}
+func (UnimplementedNotificationServiceServer) mustEmbedUnimplementedNotificationServiceServer() {}
+func (UnimplementedNotificationServiceServer) testEmbeddedByValue()                             {}
 
-// UnsafeChatServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to ChatServiceServer will
+// UnsafeNotificationServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to NotificationServiceServer will
 // result in compilation errors.
-type UnsafeChatServiceServer interface {
-	mustEmbedUnimplementedChatServiceServer()
+type UnsafeNotificationServiceServer interface {
+	mustEmbedUnimplementedNotificationServiceServer()
 }
 
-func RegisterChatServiceServer(s grpc.ServiceRegistrar, srv ChatServiceServer) {
-	// If the following call pancis, it indicates UnimplementedChatServiceServer was
+func RegisterNotificationServiceServer(s grpc.ServiceRegistrar, srv NotificationServiceServer) {
+	// If the following call pancis, it indicates UnimplementedNotificationServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&ChatService_ServiceDesc, srv)
+	s.RegisterService(&NotificationService_ServiceDesc, srv)
 }
 
-// ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
+func _NotificationService_NotifySystemNotice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NotifySystemNoticeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationServiceServer).NotifySystemNotice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotificationService_NotifySystemNotice_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationServiceServer).NotifySystemNotice(ctx, req.(*NotifySystemNoticeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NotificationService_NotifyReplyMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NotifyReplyMsgRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationServiceServer).NotifyReplyMsg(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotificationService_NotifyReplyMsg_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationServiceServer).NotifyReplyMsg(ctx, req.(*NotifyReplyMsgRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NotificationService_NotifyMentionMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NotifyMentionMsgRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationServiceServer).NotifyMentionMsg(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotificationService_NotifyMentionMsg_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationServiceServer).NotifyMentionMsg(ctx, req.(*NotifyMentionMsgRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NotificationService_NotifyLikesMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NotifyLikesMsgRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationServiceServer).NotifyLikesMsg(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotificationService_NotifyLikesMsg_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationServiceServer).NotifyLikesMsg(ctx, req.(*NotifyLikesMsgRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// NotificationService_ServiceDesc is the grpc.ServiceDesc for NotificationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var ChatService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "msger.api.system.v1.ChatService",
-	HandlerType: (*ChatServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams:     []grpc.StreamDesc{},
-	Metadata:    "system/v1/chat.proto",
+var NotificationService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "msger.api.system.v1.NotificationService",
+	HandlerType: (*NotificationServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "NotifySystemNotice",
+			Handler:    _NotificationService_NotifySystemNotice_Handler,
+		},
+		{
+			MethodName: "NotifyReplyMsg",
+			Handler:    _NotificationService_NotifyReplyMsg_Handler,
+		},
+		{
+			MethodName: "NotifyMentionMsg",
+			Handler:    _NotificationService_NotifyMentionMsg_Handler,
+		},
+		{
+			MethodName: "NotifyLikesMsg",
+			Handler:    _NotificationService_NotifyLikesMsg_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "system/v1/chat.proto",
 }

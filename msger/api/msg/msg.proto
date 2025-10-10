@@ -37,8 +37,10 @@ message Msg {
 
 // 图片消息
 message ImageMsgContent {
-  string url = 1; 
+  string url = 1;
   int32 width = 2;
   int32 height = 3;
   string image_type = 4;
 }
+
+message StringList { repeated string items = 1; }

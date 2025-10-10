@@ -13,19 +13,19 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/internal/srv"
 )
 
-type ChatServiceServer struct {
+type P2PChatServiceServer struct {
 	p2pv1.UnimplementedChatServiceServer
 
 	Svc *srv.Service
 }
 
-func NewChatServiceServer(svc *srv.Service) *ChatServiceServer {
-	return &ChatServiceServer{
+func NewP2PChatServiceServer(svc *srv.Service) *P2PChatServiceServer {
+	return &P2PChatServiceServer{
 		Svc: svc,
 	}
 }
 
-func (s *ChatServiceServer) CreateChat(ctx context.Context, in *p2pv1.CreateChatRequest) (
+func (s *P2PChatServiceServer) CreateChat(ctx context.Context, in *p2pv1.CreateChatRequest) (
 	*p2pv1.CreateChatResponse, error) {
 	if in.Initiator == 0 || in.Target == 0 {
 		return nil, global.ErrP2PChatUserEmpty
@@ -79,7 +79,7 @@ func validateSendMsgRequest(in *p2pv1.SendMsgRequest) error {
 	return nil
 }
 
-func (s *ChatServiceServer) SendMsg(ctx context.Context, in *p2pv1.SendMsgRequest) (
+func (s *P2PChatServiceServer) SendMsg(ctx context.Context, in *p2pv1.SendMsgRequest) (
 	*p2pv1.SendMsgResponse, error) {
 	if err := validateSendMsgRequest(in); err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func (s *ChatServiceServer) SendMsg(ctx context.Context, in *p2pv1.SendMsgReques
 	}, nil
 }
 
-func (s *ChatServiceServer) ListMsg(ctx context.Context, in *p2pv1.ListMsgRequest) (
+func (s *P2PChatServiceServer) ListMsg(ctx context.Context, in *p2pv1.ListMsgRequest) (
 	*p2pv1.ListMsgResponse, error) {
 	if err := checkChatIdUserId(in); err != nil {
 		return nil, err
@@ -125,13 +125,13 @@ func (s *ChatServiceServer) ListMsg(ctx context.Context, in *p2pv1.ListMsgReques
 	}
 
 	return &p2pv1.ListMsgResponse{
-		Msgs: respMsgs,
-		NextSeq:  nextSeq,
+		Msgs:    respMsgs,
+		NextSeq: nextSeq,
 	}, nil
 }
 
 // 获取用户会话未读数
-func (s *ChatServiceServer) GetUnreadCount(ctx context.Context, in *p2pv1.GetUnreadCountRequest) (
+func (s *P2PChatServiceServer) GetUnreadCount(ctx context.Context, in *p2pv1.GetUnreadCountRequest) (
 	*p2pv1.GetUnreadCountResponse, error) {
 	if err := checkChatIdUserId(in); err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func (s *ChatServiceServer) GetUnreadCount(ctx context.Context, in *p2pv1.GetUnr
 }
 
 // 清除未读数
-func (s *ChatServiceServer) ClearUnread(ctx context.Context, in *p2pv1.ClearUnreadRequest) (
+func (s *P2PChatServiceServer) ClearUnread(ctx context.Context, in *p2pv1.ClearUnreadRequest) (
 	*p2pv1.ClearUnreadResponse, error) {
 
 	if err := checkChatIdUserId(in); err != nil {
@@ -164,7 +164,7 @@ func (s *ChatServiceServer) ClearUnread(ctx context.Context, in *p2pv1.ClearUnre
 }
 
 // 撤回消息
-func (s *ChatServiceServer) RevokeMsg(ctx context.Context, in *p2pv1.RevokeMsgRequest) (
+func (s *P2PChatServiceServer) RevokeMsg(ctx context.Context, in *p2pv1.RevokeMsgRequest) (
 	*p2pv1.RevokeMsgResponse, error) {
 	if err := checkChatIdUserId(in); err != nil {
 		return nil, err
@@ -181,7 +181,7 @@ func (s *ChatServiceServer) RevokeMsg(ctx context.Context, in *p2pv1.RevokeMsgRe
 	return &p2pv1.RevokeMsgResponse{}, nil
 }
 
-func (s *ChatServiceServer) ListChat(ctx context.Context, in *p2pv1.ListChatRequest) (
+func (s *P2PChatServiceServer) ListChat(ctx context.Context, in *p2pv1.ListChatRequest) (
 	*p2pv1.ListChatResponse, error) {
 	if in.UserId == 0 {
 		return nil, global.ErrP2PChatUserEmpty
@@ -209,7 +209,7 @@ func (s *ChatServiceServer) ListChat(ctx context.Context, in *p2pv1.ListChatRequ
 	}, nil
 }
 
-func (s *ChatServiceServer) GetChat(ctx context.Context, in *p2pv1.GetChatRequest) (*p2pv1.GetChatResponse, error) {
+func (s *P2PChatServiceServer) GetChat(ctx context.Context, in *p2pv1.GetChatRequest) (*p2pv1.GetChatResponse, error) {
 	if in.ChatId == 0 {
 		return nil, global.ErrP2PChatNotExist
 	}
@@ -239,7 +239,7 @@ func makeChatFromBiz(c *bizp2p.Chat) *p2pv1.Chat {
 }
 
 // 删除会话
-func (s *ChatServiceServer) DeleteChat(ctx context.Context, in *p2pv1.DeleteChatRequest) (
+func (s *P2PChatServiceServer) DeleteChat(ctx context.Context, in *p2pv1.DeleteChatRequest) (
 	*p2pv1.DeleteChatResponse, error) {
 	if err := checkChatIdUserId(in); err != nil {
 		return nil, err
@@ -253,7 +253,7 @@ func (s *ChatServiceServer) DeleteChat(ctx context.Context, in *p2pv1.DeleteChat
 }
 
 // 删除消息
-func (s *ChatServiceServer) DeleteMsg(ctx context.Context, in *p2pv1.DeleteMsgRequest) (
+func (s *P2PChatServiceServer) DeleteMsg(ctx context.Context, in *p2pv1.DeleteMsgRequest) (
 	*p2pv1.DeleteMsgResponse, error) {
 	if err := checkChatIdUserId(in); err != nil {
 		return nil, err

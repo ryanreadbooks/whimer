@@ -7,6 +7,8 @@ import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/biz"
 	bizfeed "github.com/ryanreadbooks/whimer/api-x/internal/biz/feed"
 	bizsearch "github.com/ryanreadbooks/whimer/api-x/internal/biz/search"
+	bizsysnotify "github.com/ryanreadbooks/whimer/api-x/internal/biz/sysnotify"
+	bizuser "github.com/ryanreadbooks/whimer/api-x/internal/biz/user"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	"github.com/ryanreadbooks/whimer/api-x/internal/model"
@@ -27,12 +29,16 @@ import (
 type Handler struct {
 	feedBiz   *bizfeed.Biz
 	searchBiz *bizsearch.Biz
+	userBiz   *bizuser.Biz
+	notifyBiz *bizsysnotify.Biz
 }
 
 func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 	return &Handler{
 		feedBiz:   bizz.FeedBiz,
 		searchBiz: bizz.SearchBiz,
+		userBiz:   bizz.UserBiz,
+		notifyBiz: bizz.NotificationBiz,
 	}
 }
 

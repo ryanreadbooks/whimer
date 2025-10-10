@@ -36,6 +36,17 @@ func (b *Biz) ListUsers(ctx context.Context, uids []int64) (map[string]*userv1.U
 	return resp.GetUsers(), nil
 }
 
+func (b *Biz) ListUsersV2(ctx context.Context, uids []int64) (map[int64]*userv1.UserInfo, error) {
+	resp, err := infra.Userer().BatchGetUserV2(ctx, &userv1.BatchGetUserV2Request{
+		Uids: uids,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.GetUsers(), nil
+}
+
 func (b *Biz) GetUser(ctx context.Context, uid int64) (*userv1.UserInfo, error) {
 	resp, err := infra.Userer().GetUser(ctx, &userv1.GetUserRequest{
 		Uid: uid,
@@ -343,7 +354,7 @@ func (b *Biz) BrutalListFollowingsByName(ctx context.Context, uid int64, target 
 	sort.Slice(followingUsers, func(i, j int) bool {
 		return followingUsers[i].followTime > followingUsers[j].followTime
 	})
-	
+
 	results := make([]*model.User, 0, len(followingUsers))
 	for _, user := range followingUsers {
 		results = append(results, user.User)

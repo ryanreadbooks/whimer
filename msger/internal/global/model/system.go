@@ -34,3 +34,9 @@ const (
 	SystemMsgStatusRevoked = 2 // 被撤回
 	SystemMsgStatusRead    = 3 // 已读
 )
+
+type SystemNotifyMentionMsg struct {
+	Uid     int64  `json:"uid"`     // @人的用户
+	Target  int64  `json:"target"`  // 被@的用户
+	Content []byte `json:"content"` // 被@的完整内容
+}

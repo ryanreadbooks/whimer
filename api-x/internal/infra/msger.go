@@ -3,13 +3,15 @@ package infra
 import (
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	msgv1 "github.com/ryanreadbooks/whimer/msger/api/p2p/v1"
+	systemv1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
 
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 )
 
 // 消息服务
 var (
-	chatter msgv1.ChatServiceClient
+	chatter        msgv1.ChatServiceClient
+	systemNotifier systemv1.NotificationServiceClient
 )
 
 func InitMsger(c *config.Config) {
@@ -18,8 +20,18 @@ func InitMsger(c *config.Config) {
 		func(cc msgv1.ChatServiceClient) {
 			chatter = cc
 		})
+
+	systemNotifier = xgrpc.NewRecoverableClient(c.Backend.Msger,
+		systemv1.NewNotificationServiceClient,
+		func(cc systemv1.NotificationServiceClient) {
+			systemNotifier = cc
+		})
 }
 
 func Chatter() msgv1.ChatServiceClient {
 	return chatter
+}
+
+func SystemNotifier() systemv1.NotificationServiceClient {
+	return systemNotifier
 }

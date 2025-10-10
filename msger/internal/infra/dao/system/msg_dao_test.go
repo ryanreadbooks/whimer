@@ -1,6 +1,7 @@
 package system
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -20,7 +21,7 @@ func TestSystemMsgDao_Create(t *testing.T) {
 			RecvUid:      10010,
 			Status:       model.SystemMsgStatusNormal,
 			MsgType:      model.MsgText,
-			Content:      "测试系统消息",
+			Content:      json.RawMessage(`"测试系统消息"`),
 			Mtime:        time.Now().UnixMicro(),
 		}
 
@@ -41,7 +42,7 @@ func TestSystemMsgDao_BatchCreate(t *testing.T) {
 				RecvUid:      10011,
 				Status:       model.SystemMsgStatusNormal,
 				MsgType:      model.MsgText,
-				Content:      "测试批量系统消息" + string(rune('0'+i)),
+				Content:      json.RawMessage(`"测试批量系统消息"` + string(rune('0'+i))),
 				Mtime:        time.Now().UnixMicro(),
 			}
 			time.Sleep(1 * time.Millisecond) // 确保mtime有差异
@@ -65,7 +66,7 @@ func TestSystemMsgDao_GetById(t *testing.T) {
 			RecvUid:      10012,
 			Status:       model.SystemMsgStatusNormal,
 			MsgType:      model.MsgText,
-			Content:      content,
+			Content:      json.RawMessage(`"` + content + `"`),
 			Mtime:        time.Now().UnixMicro(),
 		}
 
@@ -94,7 +95,7 @@ func TestSystemMsgDao_BatchGetByIds(t *testing.T) {
 				RecvUid:      10013,
 				Status:       model.SystemMsgStatusNormal,
 				MsgType:      model.MsgText,
-				Content:      "批量获取消息测试" + string(rune('0'+i)),
+				Content:      json.RawMessage(`"批量获取消息测试"` + string(rune('0'+i))),
 				Mtime:        time.Now().UnixMicro(),
 			}
 
@@ -137,7 +138,7 @@ func TestSystemMsgDao_ListByChatId(t *testing.T) {
 				RecvUid:      10014,
 				Status:       model.SystemMsgStatusNormal,
 				MsgType:      model.MsgText,
-				Content:      "会话消息" + string(rune('0'+i)),
+				Content:      json.RawMessage(`"会话消息"` + string(rune('0'+i))),
 				Mtime:        time.Now().UnixMicro(),
 			}
 
@@ -165,7 +166,7 @@ func TestSystemMsgDao_UpdateStatus(t *testing.T) {
 			RecvUid:      10015,
 			Status:       model.SystemMsgStatusNormal,
 			MsgType:      model.MsgText,
-			Content:      "需要更新状态的消息",
+			Content:      json.RawMessage(`"需要更新状态的消息"`),
 			Mtime:        time.Now().UnixMicro(),
 		}
 
@@ -197,7 +198,7 @@ func TestSystemMsgDao_BatchUpdateStatus(t *testing.T) {
 				RecvUid:      10016,
 				Status:       model.SystemMsgStatusNormal,
 				MsgType:      model.MsgText,
-				Content:      "批量更新状态消息" + string(rune('0'+i)),
+				Content:      json.RawMessage(`"批量更新状态消息"` + string(rune('0'+i))),
 				Mtime:        time.Now().UnixMicro(),
 			}
 
@@ -230,7 +231,7 @@ func TestSystemMsgDao_Delete(t *testing.T) {
 			RecvUid:      10017,
 			Status:       model.SystemMsgStatusNormal,
 			MsgType:      model.MsgText,
-			Content:      "需要删除的消息",
+			Content:      json.RawMessage(`"需要删除的消息"`),
 			Mtime:        time.Now().UnixMicro(),
 		}
 
@@ -274,7 +275,7 @@ func TestSystemMsgDao_DeleteByChatId(t *testing.T) {
 				RecvUid:      10018,
 				Status:       model.SystemMsgStatusNormal,
 				MsgType:      model.MsgText,
-				Content:      "需要按会话删除的消息" + string(rune('0'+i)),
+				Content:      json.RawMessage(`"需要按会话删除的消息"` + string(rune('0'+i))),
 				Mtime:        time.Now().UnixMicro(),
 			}
 

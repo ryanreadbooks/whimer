@@ -7,11 +7,12 @@ import (
 )
 
 type CreateSystemMsgReq struct {
-	TriggerUid int64 // 触发系统消息的用户uid
-	RecvUid    int64 // 接收者uid
+	MsgId      uuid.UUID // 请求时无需设置
+	TriggerUid int64     // 触发系统消息的用户uid
+	RecvUid    int64     // 接收者uid
 	ChatType   model.SystemChatType
 	MsgType    model.MsgType
-	Content    string
+	Content    []byte
 }
 
 type ListMsgReq struct {
@@ -28,7 +29,7 @@ type SystemMsg struct {
 	RecvUid      int64
 	Status       model.SystemMsgStatus
 	MsgType      model.MsgType
-	Content      string
+	Content      []byte
 	Mtime        int64
 }
 

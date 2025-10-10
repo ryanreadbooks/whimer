@@ -4,8 +4,10 @@ import (
 	"context"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/msger/internal/biz"
 	bizp2p "github.com/ryanreadbooks/whimer/msger/internal/biz/p2p"
+	"github.com/ryanreadbooks/whimer/msger/internal/biz/websocket"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra/dep"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
@@ -14,12 +16,14 @@ import (
 )
 
 type P2PChatSrv struct {
-	chatBiz bizp2p.ChatBiz
+	chatBiz      bizp2p.ChatBiz
+	websocketBiz websocket.Biz
 }
 
 func NewP2PChatSrv(biz biz.Biz) *P2PChatSrv {
 	return &P2PChatSrv{
-		chatBiz: biz.P2PBiz,
+		chatBiz:      biz.P2PBiz,
+		websocketBiz: biz.WebsocketBiz,
 	}
 }
 
@@ -76,7 +80,9 @@ func (s *P2PChatSrv) SendMsg(ctx context.Context, req *bizp2p.CreateMsgReq) (
 		return nil, xerror.Wrapf(err, "p2p chat srv failed to create msg").WithCtx(ctx)
 	}
 
-	s.notifyReceiver(ctx, req.Receiver)
+	if err := s.websocketBiz.NotifyUserMsg(ctx, req.Receiver); err != nil {
+		xlog.Msg("p2p chat srv failed to notify user msg").Err(err).Errorx(ctx)
+	}
 
 	return msg, nil
 }
@@ -124,7 +130,9 @@ func (s *P2PChatSrv) RevokeMsg(ctx context.Context, userId, chatId, msgId int64)
 		return xerror.Wrapf(err, "p2p chat failed to revoke message")
 	}
 
-	s.notifyReceiver(ctx, cht.PeerId)
+	if err := s.websocketBiz.NotifyUserMsg(ctx, cht.PeerId); err != nil {
+		xlog.Msg("p2p chat srv failed to notify user msg").Err(err).Errorx(ctx)
+	}
 
 	return nil
 }
