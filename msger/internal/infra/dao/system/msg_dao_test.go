@@ -148,7 +148,7 @@ func TestSystemMsgDao_ListByChatId(t *testing.T) {
 		}
 
 		// 然后按会话ID查询
-		msgs, err := systemMsgDao.ListByChatId(ctx, chatId, time.Now().UnixMicro(), 10)
+		msgs, err := systemMsgDao.ListByChatId(ctx, chatId, uuid.EmptyUUID(), 10)
 		So(err, ShouldBeNil)
 		So(len(msgs), ShouldBeGreaterThanOrEqualTo, 5)
 	})
@@ -288,7 +288,7 @@ func TestSystemMsgDao_DeleteByChatId(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		// 验证删除结果
-		msgs, err := systemMsgDao.ListByChatId(ctx, chatId, time.Now().UnixMicro(), 10)
+		msgs, err := systemMsgDao.ListByChatId(ctx, chatId, uuid.EmptyUUID(), 10)
 		So(err, ShouldBeNil)
 		So(len(msgs), ShouldEqual, 0)
 	})

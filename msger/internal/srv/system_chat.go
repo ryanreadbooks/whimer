@@ -167,3 +167,21 @@ func (s *SystemChatSrv) NotifyLikesSystemMsg(ctx context.Context, req NotifyLike
 		Content:    req.MsgContent,
 	})
 }
+
+// 分页获取系统消息
+func (s *SystemChatSrv) ListSystemMsg(ctx context.Context,
+	recvUid int64, chatType model.SystemChatType,
+	cursor string, count int32) ([]*bizsyschat.SystemMsg, bool, error) {
+
+	msgs, hasMore, err := s.chatBiz.ListMsg(ctx, &bizsyschat.ListMsgReq{
+		RecvUid:  recvUid,
+		ChatType: chatType,
+		Cursor:   cursor,
+		Count:    count,
+	})
+	if err != nil {
+		return nil, false, xerror.Wrapf(err, "srv failed to list system msg").WithCtx(ctx)
+	}
+
+	return msgs, hasMore, nil
+}

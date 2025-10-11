@@ -19,10 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NotificationService_NotifySystemNotice_FullMethodName = "/msger.api.system.v1.NotificationService/NotifySystemNotice"
-	NotificationService_NotifyReplyMsg_FullMethodName     = "/msger.api.system.v1.NotificationService/NotifyReplyMsg"
-	NotificationService_NotifyMentionMsg_FullMethodName   = "/msger.api.system.v1.NotificationService/NotifyMentionMsg"
-	NotificationService_NotifyLikesMsg_FullMethodName     = "/msger.api.system.v1.NotificationService/NotifyLikesMsg"
+	NotificationService_NotifySystemNotice_FullMethodName   = "/msger.api.system.v1.NotificationService/NotifySystemNotice"
+	NotificationService_NotifyReplyMsg_FullMethodName       = "/msger.api.system.v1.NotificationService/NotifyReplyMsg"
+	NotificationService_NotifyMentionMsg_FullMethodName     = "/msger.api.system.v1.NotificationService/NotifyMentionMsg"
+	NotificationService_NotifyLikesMsg_FullMethodName       = "/msger.api.system.v1.NotificationService/NotifyLikesMsg"
+	NotificationService_ListSystemNotifyMsg_FullMethodName  = "/msger.api.system.v1.NotificationService/ListSystemNotifyMsg"
+	NotificationService_ListSystemReplyMsg_FullMethodName   = "/msger.api.system.v1.NotificationService/ListSystemReplyMsg"
+	NotificationService_ListSystemMentionMsg_FullMethodName = "/msger.api.system.v1.NotificationService/ListSystemMentionMsg"
+	NotificationService_ListSystemLikesMsg_FullMethodName   = "/msger.api.system.v1.NotificationService/ListSystemLikesMsg"
 )
 
 // NotificationServiceClient is the client API for NotificationService service.
@@ -37,6 +41,14 @@ type NotificationServiceClient interface {
 	NotifyMentionMsg(ctx context.Context, in *NotifyMentionMsgRequest, opts ...grpc.CallOption) (*NotifyMentionMsgResponse, error)
 	// 收到的赞
 	NotifyLikesMsg(ctx context.Context, in *NotifyLikesMsgRequest, opts ...grpc.CallOption) (*NotifyLikesMsgResponse, error)
+	// 分页获取系统通知消息
+	ListSystemNotifyMsg(ctx context.Context, in *ListSystemNotifyMsgRequest, opts ...grpc.CallOption) (*ListSystemMsgResponse, error)
+	// 分页获取系统回复消息
+	ListSystemReplyMsg(ctx context.Context, in *ListSystemReplyMsgRequest, opts ...grpc.CallOption) (*ListSystemMsgResponse, error)
+	// 分页获取系统@消息
+	ListSystemMentionMsg(ctx context.Context, in *ListSystemMentionMsgRequest, opts ...grpc.CallOption) (*ListSystemMsgResponse, error)
+	// 分页获取系统点赞消息
+	ListSystemLikesMsg(ctx context.Context, in *ListSystemLikesMsgRequest, opts ...grpc.CallOption) (*ListSystemMsgResponse, error)
 }
 
 type notificationServiceClient struct {
@@ -87,6 +99,46 @@ func (c *notificationServiceClient) NotifyLikesMsg(ctx context.Context, in *Noti
 	return out, nil
 }
 
+func (c *notificationServiceClient) ListSystemNotifyMsg(ctx context.Context, in *ListSystemNotifyMsgRequest, opts ...grpc.CallOption) (*ListSystemMsgResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSystemMsgResponse)
+	err := c.cc.Invoke(ctx, NotificationService_ListSystemNotifyMsg_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *notificationServiceClient) ListSystemReplyMsg(ctx context.Context, in *ListSystemReplyMsgRequest, opts ...grpc.CallOption) (*ListSystemMsgResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSystemMsgResponse)
+	err := c.cc.Invoke(ctx, NotificationService_ListSystemReplyMsg_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *notificationServiceClient) ListSystemMentionMsg(ctx context.Context, in *ListSystemMentionMsgRequest, opts ...grpc.CallOption) (*ListSystemMsgResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSystemMsgResponse)
+	err := c.cc.Invoke(ctx, NotificationService_ListSystemMentionMsg_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *notificationServiceClient) ListSystemLikesMsg(ctx context.Context, in *ListSystemLikesMsgRequest, opts ...grpc.CallOption) (*ListSystemMsgResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSystemMsgResponse)
+	err := c.cc.Invoke(ctx, NotificationService_ListSystemLikesMsg_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NotificationServiceServer is the server API for NotificationService service.
 // All implementations must embed UnimplementedNotificationServiceServer
 // for forward compatibility.
@@ -99,6 +151,14 @@ type NotificationServiceServer interface {
 	NotifyMentionMsg(context.Context, *NotifyMentionMsgRequest) (*NotifyMentionMsgResponse, error)
 	// 收到的赞
 	NotifyLikesMsg(context.Context, *NotifyLikesMsgRequest) (*NotifyLikesMsgResponse, error)
+	// 分页获取系统通知消息
+	ListSystemNotifyMsg(context.Context, *ListSystemNotifyMsgRequest) (*ListSystemMsgResponse, error)
+	// 分页获取系统回复消息
+	ListSystemReplyMsg(context.Context, *ListSystemReplyMsgRequest) (*ListSystemMsgResponse, error)
+	// 分页获取系统@消息
+	ListSystemMentionMsg(context.Context, *ListSystemMentionMsgRequest) (*ListSystemMsgResponse, error)
+	// 分页获取系统点赞消息
+	ListSystemLikesMsg(context.Context, *ListSystemLikesMsgRequest) (*ListSystemMsgResponse, error)
 	mustEmbedUnimplementedNotificationServiceServer()
 }
 
@@ -120,6 +180,18 @@ func (UnimplementedNotificationServiceServer) NotifyMentionMsg(context.Context, 
 }
 func (UnimplementedNotificationServiceServer) NotifyLikesMsg(context.Context, *NotifyLikesMsgRequest) (*NotifyLikesMsgResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NotifyLikesMsg not implemented")
+}
+func (UnimplementedNotificationServiceServer) ListSystemNotifyMsg(context.Context, *ListSystemNotifyMsgRequest) (*ListSystemMsgResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSystemNotifyMsg not implemented")
+}
+func (UnimplementedNotificationServiceServer) ListSystemReplyMsg(context.Context, *ListSystemReplyMsgRequest) (*ListSystemMsgResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSystemReplyMsg not implemented")
+}
+func (UnimplementedNotificationServiceServer) ListSystemMentionMsg(context.Context, *ListSystemMentionMsgRequest) (*ListSystemMsgResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSystemMentionMsg not implemented")
+}
+func (UnimplementedNotificationServiceServer) ListSystemLikesMsg(context.Context, *ListSystemLikesMsgRequest) (*ListSystemMsgResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSystemLikesMsg not implemented")
 }
 func (UnimplementedNotificationServiceServer) mustEmbedUnimplementedNotificationServiceServer() {}
 func (UnimplementedNotificationServiceServer) testEmbeddedByValue()                             {}
@@ -214,6 +286,78 @@ func _NotificationService_NotifyLikesMsg_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NotificationService_ListSystemNotifyMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSystemNotifyMsgRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationServiceServer).ListSystemNotifyMsg(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotificationService_ListSystemNotifyMsg_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationServiceServer).ListSystemNotifyMsg(ctx, req.(*ListSystemNotifyMsgRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NotificationService_ListSystemReplyMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSystemReplyMsgRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationServiceServer).ListSystemReplyMsg(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotificationService_ListSystemReplyMsg_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationServiceServer).ListSystemReplyMsg(ctx, req.(*ListSystemReplyMsgRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NotificationService_ListSystemMentionMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSystemMentionMsgRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationServiceServer).ListSystemMentionMsg(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotificationService_ListSystemMentionMsg_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationServiceServer).ListSystemMentionMsg(ctx, req.(*ListSystemMentionMsgRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NotificationService_ListSystemLikesMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSystemLikesMsgRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationServiceServer).ListSystemLikesMsg(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotificationService_ListSystemLikesMsg_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationServiceServer).ListSystemLikesMsg(ctx, req.(*ListSystemLikesMsgRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NotificationService_ServiceDesc is the grpc.ServiceDesc for NotificationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -236,6 +380,22 @@ var NotificationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "NotifyLikesMsg",
 			Handler:    _NotificationService_NotifyLikesMsg_Handler,
+		},
+		{
+			MethodName: "ListSystemNotifyMsg",
+			Handler:    _NotificationService_ListSystemNotifyMsg_Handler,
+		},
+		{
+			MethodName: "ListSystemReplyMsg",
+			Handler:    _NotificationService_ListSystemReplyMsg_Handler,
+		},
+		{
+			MethodName: "ListSystemMentionMsg",
+			Handler:    _NotificationService_ListSystemMentionMsg_Handler,
+		},
+		{
+			MethodName: "ListSystemLikesMsg",
+			Handler:    _NotificationService_ListSystemLikesMsg_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

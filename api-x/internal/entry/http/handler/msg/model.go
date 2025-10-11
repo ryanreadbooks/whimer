@@ -103,3 +103,15 @@ func (r *DeleteMsgReq) Validate() error {
 
 	return nil
 }
+
+
+type GetChatReq struct {
+	Id int64 `form:"id"`
+}
+func (r *GetChatReq) Validate() error {
+	if r.Id == 0 {
+		return xerror.ErrArgs.Msg("会话不存在")
+	}
+
+	return nil
+}

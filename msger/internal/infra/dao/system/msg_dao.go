@@ -107,12 +107,12 @@ func (d *SystemMsgDao) BatchGetByIds(ctx context.Context, msgIds []uuid.UUID) ([
 }
 
 // 获取系统会话中的消息列表
-func (d *SystemMsgDao) ListByChatId(ctx context.Context, chatId uuid.UUID, beforeTime int64, limit int32) ([]*MsgPO, error) {
+func (d *SystemMsgDao) ListByChatId(ctx context.Context, chatId uuid.UUID, offset uuid.UUID, limit int32) ([]*MsgPO, error) {
 	sql := fmt.Sprintf(
-		"SELECT %s FROM system_message WHERE system_chat_id=? AND mtime<? ORDER BY mtime DESC LIMIT ?",
+		"SELECT %s FROM system_message WHERE system_chat_id=? AND id<? ORDER BY id DESC LIMIT ?",
 		systemMsgFields)
 	var msgs []*MsgPO
-	err := d.db.QueryRowsCtx(ctx, &msgs, sql, chatId, beforeTime, limit)
+	err := d.db.QueryRowsCtx(ctx, &msgs, sql, chatId, offset, limit)
 	return msgs, xsql.ConvertError(err)
 }
 

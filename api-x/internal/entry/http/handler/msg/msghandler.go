@@ -6,18 +6,27 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/api/msg"
 	msgv1 "github.com/ryanreadbooks/whimer/msger/api/p2p/v1"
 
+	"github.com/ryanreadbooks/whimer/api-x/internal/biz"
+	bizsysnotify "github.com/ryanreadbooks/whimer/api-x/internal/biz/sysnotify"
+	bizuser "github.com/ryanreadbooks/whimer/api-x/internal/biz/user"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
-	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
+
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-type Handler struct{}
+type Handler struct {
+	sysNotifyMsgBiz *bizsysnotify.Biz
+	userBiz         *bizuser.Biz
+}
 
-func NewHandler(c *config.Config) *Handler {
-	return &Handler{}
+func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
+	return &Handler{
+		userBiz:         bizz.UserBiz,
+		sysNotifyMsgBiz: bizz.SysNotificationBiz,
+	}
 }
 
 // 发起会话
@@ -74,18 +83,6 @@ func (h *Handler) ListChats() http.HandlerFunc {
 
 		xhttp.OkJson(w, resp)
 	}
-}
-
-type GetChatReq struct {
-	Id int64 `form:"id"`
-}
-
-func (r *GetChatReq) Validate() error {
-	if r.Id == 0 {
-		return xerror.ErrArgs.Msg("会话不存在")
-	}
-
-	return nil
 }
 
 func (h *Handler) GetChat() http.HandlerFunc {

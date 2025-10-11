@@ -197,33 +197,42 @@ func (b *ChatBiz) BatchCreateMsg(ctx context.Context, reqs []*CreateSystemMsgReq
 }
 
 // 分页获取用户的系统消息
-func (b *ChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) ([]*SystemMsg, error) {
+func (b *ChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) ([]*SystemMsg, bool, error) {
 	// 获取会话
 	chat, err := infra.Dao().SystemChatDao.GetByUidAndType(ctx, req.RecvUid, req.ChatType)
 	if err != nil {
 		if errors.Is(err, xsql.ErrNoRecord) {
 			// 会话不存在，返回空列表
-			return []*SystemMsg{}, nil
+			return []*SystemMsg{}, false, nil
 		}
-		return nil, xerror.Wrapf(err, "system chat dao failed to get chat").
+		return nil, false, xerror.Wrapf(err, "system chat dao failed to get chat").
 			WithExtras("user_id", req.RecvUid, "chat_type", req.ChatType).
 			WithCtx(ctx)
 	}
 
-	offsetMtime := req.offsetMtime
-	if offsetMtime == 0 {
-		offsetMtime = time.Now().UnixMicro()
+	cursor, err := uuid.ParseString(req.Cursor)
+	if err != nil {
+		cursor = uuid.MaxUUID()
 	}
 
 	// 查询消息
-	msgPos, err := infra.Dao().SystemMsgDao.ListByChatId(ctx, chat.Id, offsetMtime, req.Count)
+	msgPos, err := infra.Dao().SystemMsgDao.ListByChatId(ctx, chat.Id, cursor, req.Count+1)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "system msg dao failed to list msg").WithCtx(ctx)
+		return nil, false, xerror.Wrapf(err, "system msg dao failed to list msg").WithCtx(ctx)
+	}
+	if len(msgPos) == 0 {
+		return []*SystemMsg{}, false, nil
+	}
+
+	hasMore := false
+	if len(msgPos) == int(req.Count)+1 {
+		hasMore = true
+		msgPos = msgPos[:len(msgPos)-1]
 	}
 
 	msgs := MakeSystemMsgsFromPOs(msgPos)
 
-	return msgs, nil
+	return msgs, hasMore, nil
 }
 
 // 撤回系统消息

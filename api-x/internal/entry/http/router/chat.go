@@ -35,4 +35,13 @@ func regChatRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 			}
 		}
 	}
+
+	// 系统消息
+	sg := group.Group("/sysmsg", middleware.MustLogin())
+	{
+		v1Group := sg.Group("/v1")
+		{
+			v1Group.Get("/mentions", h.Chat.ListSysMsgMentions())
+		}
+	}
 }

@@ -16,10 +16,10 @@ type CreateSystemMsgReq struct {
 }
 
 type ListMsgReq struct {
-	RecvUid     int64
-	ChatType    model.SystemChatType
-	offsetMtime int64
-	Count       int32
+	RecvUid  int64
+	ChatType model.SystemChatType
+	Cursor   string // msg主键uuid的string形式
+	Count    int32
 }
 
 type SystemMsg struct {
@@ -46,6 +46,10 @@ type SystemChat struct {
 }
 
 func MakeSystemMsgFromPO(po *systemdao.MsgPO) *SystemMsg {
+	content := po.Content
+	if po.Status == model.SystemMsgStatusRevoked {
+		content = []byte("消息已被撤回")
+	}
 	return &SystemMsg{
 		Id:           po.Id,
 		SystemChatId: po.SystemChatId,
@@ -53,7 +57,7 @@ func MakeSystemMsgFromPO(po *systemdao.MsgPO) *SystemMsg {
 		RecvUid:      po.RecvUid,
 		Status:       po.Status,
 		MsgType:      po.MsgType,
-		Content:      po.Content,
+		Content:      content,
 		Mtime:        po.Mtime,
 	}
 }

@@ -2,12 +2,14 @@ package uuid
 
 import (
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestUUIDCompare(t *testing.T) {
 	u1 := NewUUID()
 	u2 := NewUUID()
-	if u1 == u2 {	
+	if u1 == u2 {
 		t.Errorf("u1 == u2, want false")
 	}
 
@@ -27,4 +29,15 @@ func TestUUIDCompare(t *testing.T) {
 	if u1.Compare(EmptyUUID()) != 1 {
 		t.Errorf("u1.Compare(EmptyUUID()) != 1, want 1")
 	}
+}
+
+func TestUUid(t *testing.T) {
+	id, _ := uuid.NewV7()
+	t.Log(id)
+
+	parsed, err := ParseString(id.String())
+	t.Log(err)
+	t.Log(parsed)
+
+	t.Log(MaxUUID())
 }

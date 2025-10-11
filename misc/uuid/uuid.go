@@ -2,6 +2,7 @@ package uuid
 
 import (
 	"database/sql/driver"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -11,7 +12,12 @@ type UUID struct {
 }
 
 func EmptyUUID() UUID {
-	return UUID{}
+	return UUID{uuid.Nil}
+}
+
+func MaxUUID() UUID {
+	id := UUID{uuid.Max}
+	return id
 }
 
 func (u UUID) Value() (driver.Value, error) {
@@ -22,6 +28,28 @@ func (u UUID) Duplicate() UUID {
 	dst := [16]byte{}
 	copy(dst[:], u.UUID[:])
 	return UUID{dst}
+}
+
+func (u UUID) Time() time.Time {
+	t := u.UUID.Time()
+	sec, nesc := t.UnixTime() // unix time with second ang nanosec
+	return time.Unix(sec, nesc)
+}
+
+func (u UUID) UnixSec() int64 {
+	return u.Time().Unix()
+}
+
+func (u UUID) UnixMill() int64 {
+	return u.Time().UnixMilli()
+}
+
+func ParseString(s string) (UUID, error) {
+	u, err := uuid.Parse(s)
+	if err != nil {
+		return EmptyUUID(), err
+	}
+	return UUID{u}, nil
 }
 
 func NewUUID() UUID {

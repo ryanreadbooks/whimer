@@ -17,6 +17,19 @@ service NotificationService {
       returns (NotifyMentionMsgResponse);
   // 收到的赞
   rpc NotifyLikesMsg(NotifyLikesMsgRequest) returns (NotifyLikesMsgResponse);
+
+  // 分页获取系统通知消息
+  rpc ListSystemNotifyMsg(ListSystemNotifyMsgRequest)
+      returns (ListSystemMsgResponse);
+  // 分页获取系统回复消息
+  rpc ListSystemReplyMsg(ListSystemReplyMsgRequest)
+      returns (ListSystemMsgResponse);
+  // 分页获取系统@消息
+  rpc ListSystemMentionMsg(ListSystemMentionMsgRequest)
+      returns (ListSystemMsgResponse);
+  // 分页获取系统点赞消息
+  rpc ListSystemLikesMsg(ListSystemLikesMsgRequest)
+      returns (ListSystemMsgResponse);
 }
 
 message NotifySystemNoticeRequest {}
@@ -42,3 +55,56 @@ message NotifyMentionMsgResponse {
 message NotifyLikesMsgRequest {}
 
 message NotifyLikesMsgResponse {}
+
+// 分页获取系统通知消息请求
+message ListSystemNotifyMsgRequest {
+  int64 recv_uid = 1; // 接收者用户ID
+  string cursor = 2;  // 分页游标
+  int32 count = 3;    // 分页大小
+}
+
+// 分页获取系统回复消息请求
+message ListSystemReplyMsgRequest {
+  int64 recv_uid = 1; // 接收者用户ID
+  string cursor = 2;  // 分页游标
+  int32 count = 3;    // 分页大小
+}
+
+// 分页获取系统@消息请求
+message ListSystemMentionMsgRequest {
+  int64 recv_uid = 1; // 接收者用户ID
+  string cursor = 2;  // 分页游标
+  int32 count = 3;    // 分页大小
+}
+
+// 分页获取系统点赞消息请求
+message ListSystemLikesMsgRequest {
+  int64 recv_uid = 1; // 接收者用户ID
+  string cursor = 2;  // 分页游标
+  int32 count = 3;    // 分页大小
+}
+
+enum SystemMsgStatus {
+  SystemMsgStatus_Unspecified = 0;
+  SystemMsgStatus_Normal = 1;  // 正常
+  SystemMsgStatus_Revoked = 2; // 撤回
+  SystemMsgStatus_Read = 3;    // 已读
+}
+
+// 系统消息
+message SystemMsg {
+  string id = 1;                      // 消息ID
+  string system_chat_id = 2;          // 系统会话ID
+  int64 trigger_uid = 3;              // 触发者用户ID
+  int64 recv_uid = 4;                 // 接收者用户ID
+  SystemMsgStatus status = 5;         // 消息状态
+  msger.api.msg.MsgType msg_type = 6; // 消息类型
+  bytes content = 7;                  // 消息内容
+  int64 mtime = 8;                    // 消息时间戳
+}
+
+// 分页获取系统消息响应
+message ListSystemMsgResponse {
+  repeated SystemMsg messages = 1; // 系统消息列表
+  bool has_more = 2;
+}

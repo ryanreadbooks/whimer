@@ -1,5 +1,7 @@
 package model
 
+import v1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
+
 // 系统消息
 
 // 系统会话类型
@@ -30,9 +32,9 @@ func (s SystemChatType) Desc() string {
 type SystemMsgStatus int8
 
 const (
-	SystemMsgStatusNormal  = 1 // 正常 （未读）
-	SystemMsgStatusRevoked = 2 // 被撤回
-	SystemMsgStatusRead    = 3 // 已读
+	SystemMsgStatusNormal  SystemMsgStatus = SystemMsgStatus(v1.SystemMsgStatus_SystemMsgStatus_Normal)  // 正常 （未读）
+	SystemMsgStatusRevoked SystemMsgStatus = SystemMsgStatus(v1.SystemMsgStatus_SystemMsgStatus_Revoked) // 被撤回
+	SystemMsgStatusRead    SystemMsgStatus = SystemMsgStatus(v1.SystemMsgStatus_SystemMsgStatus_Read)    // 已读
 )
 
 type SystemNotifyMentionMsg struct {

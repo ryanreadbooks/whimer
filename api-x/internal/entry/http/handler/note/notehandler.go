@@ -38,7 +38,7 @@ func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 		feedBiz:   bizz.FeedBiz,
 		searchBiz: bizz.SearchBiz,
 		userBiz:   bizz.UserBiz,
-		notifyBiz: bizz.NotificationBiz,
+		notifyBiz: bizz.SysNotificationBiz,
 	}
 }
 
