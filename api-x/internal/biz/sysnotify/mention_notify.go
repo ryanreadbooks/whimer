@@ -138,7 +138,7 @@ func (b *Biz) ListUserMentionMsg(ctx context.Context, uid int64, cursor string, 
 
 	mentionMsgs := make([]*model.MentionedMsg, 0, mLen)
 	for _, msg := range resp.GetMessages() {
-		if msg.Status != sysnotifyv1.SystemMsgStatus_SystemMsgStatus_Revoked {
+		if msg.Status != sysnotifyv1.SystemMsgStatus_MsgStatus_Revoked {
 			// 不是撤回的消息可以直接反序列化
 			var v notifyAtUserReqContent
 			err = json.Unmarshal(msg.Content, &v)

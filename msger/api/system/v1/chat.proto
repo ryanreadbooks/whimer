@@ -85,10 +85,10 @@ message ListSystemLikesMsgRequest {
 }
 
 enum SystemMsgStatus {
-  SystemMsgStatus_Unspecified = 0;
-  SystemMsgStatus_Normal = 1;  // 正常
-  SystemMsgStatus_Revoked = 2; // 撤回
-  SystemMsgStatus_Read = 3;    // 已读
+  MsgStatus_Unspecified = 0;
+  MsgStatus_Normal = 1;  // 正常
+  MsgStatus_Revoked = 2; // 撤回
+  MsgStatus_Read = 3;    // 已读
 }
 
 // 系统消息

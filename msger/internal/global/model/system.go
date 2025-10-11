@@ -32,9 +32,9 @@ func (s SystemChatType) Desc() string {
 type SystemMsgStatus int8
 
 const (
-	SystemMsgStatusNormal  SystemMsgStatus = SystemMsgStatus(v1.SystemMsgStatus_SystemMsgStatus_Normal)  // 正常 （未读）
-	SystemMsgStatusRevoked SystemMsgStatus = SystemMsgStatus(v1.SystemMsgStatus_SystemMsgStatus_Revoked) // 被撤回
-	SystemMsgStatusRead    SystemMsgStatus = SystemMsgStatus(v1.SystemMsgStatus_SystemMsgStatus_Read)    // 已读
+	SystemMsgStatusNormal  SystemMsgStatus = SystemMsgStatus(v1.SystemMsgStatus_MsgStatus_Normal)  // 正常 （未读）
+	SystemMsgStatusRevoked SystemMsgStatus = SystemMsgStatus(v1.SystemMsgStatus_MsgStatus_Revoked) // 被撤回
+	SystemMsgStatusRead    SystemMsgStatus = SystemMsgStatus(v1.SystemMsgStatus_MsgStatus_Read)    // 已读
 )
 
 type SystemNotifyMentionMsg struct {
