@@ -132,17 +132,16 @@ func (s *SystemChatSrv) NotifyMentionSystemMsg(ctx context.Context, reqs []*mode
 
 	// 通知recvUid
 	for recvUid, reqs := range targetReqs {
-		targets := make([]*bizwebsocket.NotifySysContent, 0, len(reqs))
-		for _, t := range targetReqs[recvUid] {
-			webReq := &bizwebsocket.NotifySysContent{
-				MsgId:   t.MsgId.String(),
-				MsgType: t.MsgType,
-				Content: t.Content, // MentionMsgContent
+		cmdTargets := make([]*bizwebsocket.NotifySysCmdData, 0, len(reqs))
+		for range targetReqs[recvUid] {
+			webReq := &bizwebsocket.NotifySysCmdData{
+				Cmd:    bizwebsocket.NotifySysMentionCmd,
+				Action: []bizwebsocket.NotifyAction{bizwebsocket.NotifyActionPullUnread},
 			}
-			targets = append(targets, webReq)
+			cmdTargets = append(cmdTargets, webReq)
 		}
 
-		if err := s.websocketBiz.NotifySysMention(ctx, recvUid, targets); err != nil {
+		if err := s.websocketBiz.NotifySysMention(ctx, recvUid, cmdTargets); err != nil {
 			xlog.Msg("srv failed to notify sys mention").
 				Extras("recv_uid", recvUid).
 				Err(err).Errorx(ctx)

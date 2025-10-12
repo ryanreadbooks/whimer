@@ -20,7 +20,7 @@ func NewWebsocketBiz() Biz {
 func (b *Biz) NotifyUserMsg(ctx context.Context, receiver int64) error {
 	_, err := dep.WsLinker().Broadcast(ctx, &wspushv1.BroadcastRequest{
 		Targets: []int64{receiver},
-		Data:    []byte(NotifyUserMsg),
+		Data:    []byte(NotifyUserMsgCmd),
 	})
 	if err != nil {
 		return xerror.Wrapf(err, "websocket failed to notify user %d", receiver).WithCtx(ctx)
@@ -40,18 +40,14 @@ func (b *Biz) NotifySysReply(ctx context.Context, receiver int64) error {
 }
 
 // 通知被@的人
-func (b *Biz) NotifySysMention(ctx context.Context, receiver int64, targets []*NotifySysContent) error {
+func (b *Biz) NotifySysMention(ctx context.Context, receiver int64, cmdDatas []*NotifySysCmdData) error {
 	var errs []error
-	for _, target := range targets {
-		content := &notifySysContentInner{
-			Type:             NotifySysMention,
-			NotifySysContent: target,
-		}
-		data, err := json.Marshal(content)
+	for _, cmd := range cmdDatas {
+		cmdData, err := json.Marshal(cmd)
 		if err == nil {
 			if _, err := dep.WsLinker().Broadcast(ctx, &wspushv1.BroadcastRequest{
 				Targets: []int64{receiver},
-				Data:    data,
+				Data:    cmdData,
 			}); err != nil {
 				errs = append(errs, xerror.Wrapf(err, "websocket failed to notify user %d", receiver).WithCtx(ctx))
 			}

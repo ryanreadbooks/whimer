@@ -51,7 +51,11 @@ func (e *errProxy) Error() string {
 	var msg = e.msg
 	if e.cause != nil {
 		if c := e.cause.Error(); c != "" {
-			msg = msg + " <- " + c
+			if msg == "" {
+				msg = c
+			} else {
+				msg = msg + " <- " + c
+			}
 		}
 	}
 
