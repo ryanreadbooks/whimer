@@ -22,18 +22,19 @@ func (h *Handler) ListSysMsgMentions() http.HandlerFunc {
 			uid = metadata.Uid(ctx)
 		)
 
-		mentionMsgs, hasNext, err := h.sysNotifyMsgBiz.ListUserMentionMsg(ctx, uid, req.Cursor, req.Count)
+		result, err := h.sysNotifyBiz.ListUserMentionMsg(ctx, uid, req.Cursor, req.Count)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
 		// filter users
-		sourceUids := make([]int64, 0, len(mentionMsgs))
-		resultMsgs := make([]*SystemMsgForMention, 0, len(mentionMsgs))
-		uidMsgMappings := make(map[int64][]*SystemMsgForMention, len(mentionMsgs))
+		mLen := len(result.Msgs)
+		sourceUids := make([]int64, 0, mLen)
+		resultMsgs := make([]*SystemMsgForMention, 0, mLen)
+		uidMsgMappings := make(map[int64][]*SystemMsgForMention, mLen)
 
-		for _, msg := range mentionMsgs {
+		for _, msg := range result.Msgs {
 			sourceUids = append(sourceUids, msg.Uid)
 			tmp := &SystemMsgForMention{
 				MentionedMsg: msg,
@@ -54,6 +55,28 @@ func (h *Handler) ListSysMsgMentions() http.HandlerFunc {
 			resultMsg.User = sourceUsers[resultMsg.MentionedMsg.Uid]
 		}
 
-		xhttp.OkJson(w, &ListSysMsgMentionsResp{Msgs: resultMsgs, HasNext: hasNext})
+		xhttp.OkJson(w, &ListSysMsgMentionsResp{
+			ChatId:  result.ChatId,
+			Msgs:    resultMsgs,
+			HasNext: result.HasNext,
+		})
+	}
+}
+
+// 清除未读数
+func (h *Handler) ClearChatUnread() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[SysChatReq](httpx.ParseJsonBody, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		var (
+			ctx = r.Context()
+			uid = metadata.Uid(ctx)
+		)
+
+		h.sysNotifyBiz.ClearChatUnread(ctx, uid, req.ChatId)
 	}
 }

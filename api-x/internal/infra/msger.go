@@ -12,6 +12,7 @@ import (
 var (
 	chatter        msgv1.ChatServiceClient
 	systemNotifier systemv1.NotificationServiceClient
+	systemChatter  systemv1.ChatServiceClient
 )
 
 func InitMsger(c *config.Config) {
@@ -26,12 +27,22 @@ func InitMsger(c *config.Config) {
 		func(cc systemv1.NotificationServiceClient) {
 			systemNotifier = cc
 		})
+
+	systemChatter = xgrpc.NewRecoverableClient(c.Backend.Msger,
+		systemv1.NewChatServiceClient,
+		func(cc systemv1.ChatServiceClient) {
+			systemChatter = cc
+		})
 }
 
-func Chatter() msgv1.ChatServiceClient {
+func P2PChatter() msgv1.ChatServiceClient {
 	return chatter
 }
 
 func SystemNotifier() systemv1.NotificationServiceClient {
 	return systemNotifier
+}
+
+func SystemChatter() systemv1.ChatServiceClient {
+	return systemChatter
 }

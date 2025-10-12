@@ -7,17 +7,21 @@ import (
 	"github.com/google/uuid"
 )
 
+var (
+	zeroUUID = UUID{uuid.Nil}
+	maxUUID  = UUID{uuid.Max}
+)
+
 type UUID struct {
 	uuid.UUID
 }
 
 func EmptyUUID() UUID {
-	return UUID{uuid.Nil}
+	return zeroUUID
 }
 
 func MaxUUID() UUID {
-	id := UUID{uuid.Max}
-	return id
+	return maxUUID
 }
 
 func (u UUID) Value() (driver.Value, error) {
@@ -82,4 +86,12 @@ func (u UUID) EqualsTo(o UUID) bool {
 
 func (u UUID) LessThan(o UUID) bool {
 	return u.Compare(o) < 0
+}
+
+func (u UUID) IsZero() bool {
+	return u.EqualsTo(zeroUUID)
+}
+
+func (u UUID) IsMax() bool {
+	return u.EqualsTo(maxUUID)
 }

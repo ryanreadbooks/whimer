@@ -14,7 +14,7 @@ import (
 type Interaction struct {
 	Liked     bool `json:"liked"`     // 用户是否点赞过该笔记
 	Commented bool `json:"commented"` // 用户是否评论过该笔记
-	Followed  bool `json:"followed"`  // 用户是否关注了笔记作者
+	Following bool `json:"following"` // 用户是否关注了笔记作者
 }
 
 type NoteItemImageMeta struct {

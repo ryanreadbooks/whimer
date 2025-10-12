@@ -10,6 +10,7 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/internal/biz"
 	bizsyschat "github.com/ryanreadbooks/whimer/msger/internal/biz/system"
 	bizwebsocket "github.com/ryanreadbooks/whimer/msger/internal/biz/websocket"
+	"github.com/ryanreadbooks/whimer/msger/internal/global"
 	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
 
 	"golang.org/x/sync/errgroup"
@@ -171,17 +172,32 @@ func (s *SystemChatSrv) NotifyLikesSystemMsg(ctx context.Context, req NotifyLike
 // 分页获取系统消息
 func (s *SystemChatSrv) ListSystemMsg(ctx context.Context,
 	recvUid int64, chatType model.SystemChatType,
-	cursor string, count int32) ([]*bizsyschat.SystemMsg, bool, error) {
+	cursor string, count int32) (*bizsyschat.ListMsgResp, error) {
 
-	msgs, hasMore, err := s.chatBiz.ListMsg(ctx, &bizsyschat.ListMsgReq{
+	resp, err := s.chatBiz.ListMsg(ctx, &bizsyschat.ListMsgReq{
 		RecvUid:  recvUid,
 		ChatType: chatType,
 		Cursor:   cursor,
 		Count:    count,
 	})
 	if err != nil {
-		return nil, false, xerror.Wrapf(err, "srv failed to list system msg").WithCtx(ctx)
+		return resp, xerror.Wrapf(err, "srv failed to list system msg").WithCtx(ctx)
 	}
 
-	return msgs, hasMore, nil
+	return resp, nil
+}
+
+// 清除未读
+func (s *SystemChatSrv) ClearChatUnread(ctx context.Context, uid int64, chatId string) error {
+	cid, err := uuid.ParseString(chatId)
+	if err != nil {
+		return global.ErrSysChatNotExist
+	}
+
+	err = s.chatBiz.ClearChatUnread(ctx, uid, cid)
+	if err != nil {
+		return xerror.Wrapf(err, "srv failed to clear chat unread")
+	}
+
+	return nil
 }

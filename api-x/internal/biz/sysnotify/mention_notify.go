@@ -11,9 +11,6 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	sysnotifyv1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
-
-	"github.com/ryanreadbooks/whimer/misc/uuid"
-	"github.com/ryanreadbooks/whimer/misc/xlog"
 )
 
 type Biz struct {
@@ -117,83 +114,4 @@ func (b *Biz) NotifyAtUsersOnComment(ctx context.Context, req *NotifyAtUsersOnCo
 	}
 
 	return nil
-}
-
-// 获取用户的被@消息
-func (b *Biz) ListUserMentionMsg(ctx context.Context, uid int64, cursor string, count int32) ([]*model.MentionedMsg, bool, error) {
-	resp, err := infra.SystemNotifier().ListSystemMentionMsg(ctx, &sysnotifyv1.ListSystemMentionMsgRequest{
-		RecvUid: uid,
-		Cursor:  cursor,
-		Count:   count,
-	})
-	if err != nil {
-		return nil, false, xerror.Wrapf(err, "system notifier list mention msg failed").
-			WithExtras("uid", uid, "cursor", cursor, "count", count).
-			WithCtx(ctx)
-	}
-
-	var (
-		mLen = len(resp.GetMessages())
-	)
-
-	mentionMsgs := make([]*model.MentionedMsg, 0, mLen)
-	for _, msg := range resp.GetMessages() {
-		if msg.Status != sysnotifyv1.SystemMsgStatus_MsgStatus_Revoked {
-			// 不是撤回的消息可以直接反序列化
-			var v notifyAtUserReqContent
-			err = json.Unmarshal(msg.Content, &v)
-			if err != nil {
-				xlog.Msg("unmarshal mention msg content failed").Err(err).Errorx(ctx)
-				continue
-			}
-
-			mgid, err := uuid.ParseString(msg.Id)
-			if err != nil {
-				// should not be err
-				xlog.Msg("parse mention msg id failed, it should be successful").
-					Err(err).
-					Extras("msgid", msg.Id).
-					Errorx(ctx)
-				continue
-			}
-
-			var (
-				loc       model.MentionLocation
-				uid       int64
-				noteId    imodel.NoteId = 0
-				content   string
-				commentId int64 = 0
-			)
-
-			if v.NotifyAtUsersOnNoteReqContent != nil {
-				loc = model.MentionOnNote
-				uid = v.NotifyAtUsersOnNoteReqContent.SourceUid
-				noteId = v.NotifyAtUsersOnNoteReqContent.NoteId
-				content = v.NotifyAtUsersOnNoteReqContent.NoteDesc
-			} else if v.NotifyAtUsersOnCommentReqContent != nil {
-				loc = model.MentionOnComment
-				uid = v.NotifyAtUsersOnCommentReqContent.SourceUid
-				content = v.NotifyAtUsersOnCommentReqContent.Comment
-				commentId = v.NotifyAtUsersOnCommentReqContent.CommentId
-			}
-
-			mm := model.MentionedMsg{
-				Id:     msg.Id,
-				SendAt: mgid.UnixSec(),
-				Type:   loc,
-				Uid:    uid,
-				RecvUser: &model.MentionedRecvUser{
-					Uid:      v.RecvUid,
-					Nickname: v.RecvNickname,
-				},
-				NoteId:    noteId,
-				CommentId: commentId,
-				Content:   content,
-			}
-
-			mentionMsgs = append(mentionMsgs, &mm)
-		}
-	}
-
-	return mentionMsgs, resp.HasMore, nil
 }

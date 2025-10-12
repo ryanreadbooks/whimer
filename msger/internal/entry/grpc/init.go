@@ -15,6 +15,7 @@ func Init(c zrpc.RpcServerConf, svc *srv.Service) *zrpc.RpcServer {
 	server := zrpc.MustNewServer(c, func(s *grpc.Server) {
 		p2pv1.RegisterChatServiceServer(s, NewP2PChatServiceServer(svc))
 		systemv1.RegisterNotificationServiceServer(s, NewSystemNotificationServiceServer(svc))
+		systemv1.RegisterChatServiceServer(s, NewSystemChatServiceServer(svc))
 		xgrpc.EnableReflectionIfNecessary(c, s)
 	})
 	interceptor.InstallUnaryServerInterceptors(server,

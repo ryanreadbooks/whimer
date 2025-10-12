@@ -8,9 +8,9 @@ import (
 
 // 消息路由
 func regChatRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
-	g := group.Group("/msg", middleware.MustLogin())
+	whisperGroup := group.Group("/whisper", middleware.MustLogin())
 	{
-		v1Group := g.Group("/v1")
+		v1Group := whisperGroup.Group("/v1")
 		{
 			chatGroup := v1Group.Group("/chat")
 			{
@@ -37,11 +37,21 @@ func regChatRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 	}
 
 	// 系统消息
-	sg := group.Group("/sysmsg", middleware.MustLogin())
+	sysMsgGroup := group.Group("/sysmsg", middleware.MustLogin())
 	{
-		v1Group := sg.Group("/v1")
+		v1Group := sysMsgGroup.Group("/v1")
 		{
+			v1Group.Post("/chat/read", h.Chat.ClearChatUnread())
 			v1Group.Get("/mentions", h.Chat.ListSysMsgMentions())
+		}
+	}
+
+	// 聚合的未读数拉取
+	msgGroup := group.Group("/msg", middleware.MustLogin())
+	{
+		v1Group := msgGroup.Group("/v1")
+		{
+			v1Group.Get("/unread_count", h.Chat.GetTotalUnreadCount())
 		}
 	}
 }

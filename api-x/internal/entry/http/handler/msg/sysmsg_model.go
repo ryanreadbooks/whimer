@@ -25,6 +25,23 @@ type SystemMsgForMention struct {
 }
 
 type ListSysMsgMentionsResp struct {
+	ChatId  string                 `json:"chat_id"`
 	Msgs    []*SystemMsgForMention `json:"msgs"`
 	HasNext bool                   `json:"has_next"`
+}
+
+type SysChatReq struct {
+	ChatId string `form:"chat_id" json:"chat_id"`
+}
+
+func (r *SysChatReq) Validate() error {
+	if r == nil {
+		return xerror.ErrNilArg
+	}
+
+	if r.ChatId == "" {
+		return xerror.ErrArgs.Msg("会话不存在")
+	}
+
+	return nil
 }

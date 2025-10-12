@@ -18,14 +18,14 @@ import (
 )
 
 type Handler struct {
-	sysNotifyMsgBiz *bizsysnotify.Biz
-	userBiz         *bizuser.Biz
+	sysNotifyBiz *bizsysnotify.Biz
+	userBiz      *bizuser.Biz
 }
 
 func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 	return &Handler{
-		userBiz:         bizz.UserBiz,
-		sysNotifyMsgBiz: bizz.SysNotificationBiz,
+		userBiz:      bizz.UserBiz,
+		sysNotifyBiz: bizz.SysNotificationBiz,
 	}
 }
 
@@ -40,7 +40,7 @@ func (h *Handler) CreateChat() http.HandlerFunc {
 
 		ctx := r.Context()
 
-		resp, err := infra.Chatter().CreateChat(ctx, &msgv1.CreateChatRequest{
+		resp, err := infra.P2PChatter().CreateChat(ctx, &msgv1.CreateChatRequest{
 			Initiator: metadata.Uid(ctx),
 			Target:    req.Target,
 		})
@@ -71,7 +71,7 @@ func (h *Handler) ListChats() http.HandlerFunc {
 
 		ctx := r.Context()
 		uid := metadata.Uid(ctx)
-		resp, err := infra.Chatter().ListChat(ctx, &msgv1.ListChatRequest{
+		resp, err := infra.P2PChatter().ListChat(ctx, &msgv1.ListChatRequest{
 			UserId: uid,
 			Seq:    req.Seq,
 			Count:  int32(req.Count),
@@ -95,7 +95,7 @@ func (h *Handler) GetChat() http.HandlerFunc {
 		ctx := r.Context()
 		uid := metadata.Uid(ctx)
 
-		resp, err := infra.Chatter().GetChat(ctx, &msgv1.GetChatRequest{
+		resp, err := infra.P2PChatter().GetChat(ctx, &msgv1.GetChatRequest{
 			UserId: uid,
 			ChatId: req.Id,
 		})
@@ -119,7 +119,7 @@ func (h *Handler) ListMsgs() http.HandlerFunc {
 
 		ctx := r.Context()
 		uid := metadata.Uid(ctx)
-		messages, err := infra.Chatter().ListMsg(ctx, &msgv1.ListMsgRequest{
+		messages, err := infra.P2PChatter().ListMsg(ctx, &msgv1.ListMsgRequest{
 			ChatId: req.ChatId,
 			UserId: uid,
 			Seq:    req.Seq,
@@ -148,7 +148,7 @@ func (h *Handler) SendMsg() http.HandlerFunc {
 
 		// TODO check if sender can send msg to receiver
 
-		resp, err := infra.Chatter().SendMsg(ctx, &msgv1.SendMsgRequest{
+		resp, err := infra.P2PChatter().SendMsg(ctx, &msgv1.SendMsgRequest{
 			Sender:   sender,
 			Receiver: req.Receiver,
 			ChatId:   req.ChatId,
@@ -180,7 +180,7 @@ func (h *Handler) DeleteChat() http.HandlerFunc {
 
 		// TODO check uid can delete chat or not
 
-		_, err = infra.Chatter().DeleteChat(ctx, &msgv1.DeleteChatRequest{
+		_, err = infra.P2PChatter().DeleteChat(ctx, &msgv1.DeleteChatRequest{
 			UserId: uid,
 			ChatId: req.ChatId,
 		})
@@ -207,7 +207,7 @@ func (h *Handler) DeleteMsg() http.HandlerFunc {
 
 		// TODO check uid can delete message or not
 
-		_, err = infra.Chatter().DeleteMsg(ctx, &msgv1.DeleteMsgRequest{
+		_, err = infra.P2PChatter().DeleteMsg(ctx, &msgv1.DeleteMsgRequest{
 			UserId: uid,
 			ChatId: req.ChatId,
 			MsgId:  req.MsgId,

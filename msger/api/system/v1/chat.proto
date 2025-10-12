@@ -6,18 +6,7 @@ option go_package = "github.com/ryanreadbooks/whimer/msger/api/system/v1";
 
 import "msg/msg.proto";
 
-service NotificationService {
-  // 系统通知
-  rpc NotifySystemNotice(NotifySystemNoticeRequest)
-      returns (NotifySystemNoticeResponse);
-  // 回复我的
-  rpc NotifyReplyMsg(NotifyReplyMsgRequest) returns (NotifyReplyMsgResponse);
-  // @我的
-  rpc NotifyMentionMsg(NotifyMentionMsgRequest)
-      returns (NotifyMentionMsgResponse);
-  // 收到的赞
-  rpc NotifyLikesMsg(NotifyLikesMsgRequest) returns (NotifyLikesMsgResponse);
-
+service ChatService {
   // 分页获取系统通知消息
   rpc ListSystemNotifyMsg(ListSystemNotifyMsgRequest)
       returns (ListSystemMsgResponse);
@@ -30,31 +19,12 @@ service NotificationService {
   // 分页获取系统点赞消息
   rpc ListSystemLikesMsg(ListSystemLikesMsgRequest)
       returns (ListSystemMsgResponse);
+
+  // 系统会话相关
+
+  // 清除未读
+  rpc ClearChatUnread(ClearChatUnreadRequest) returns (ClearChatUnreadResponse);
 }
-
-message NotifySystemNoticeRequest {}
-
-message NotifySystemNoticeResponse {}
-
-message NotifyReplyMsgRequest {}
-
-message NotifyReplyMsgResponse {}
-
-message MentionMsgContent {
-  int64 uid = 1;        // 发起者
-  int64 target_uid = 2; // 被@的人
-  bytes content = 3;    // 内容
-}
-
-message NotifyMentionMsgRequest { repeated MentionMsgContent mentions = 1; }
-
-message NotifyMentionMsgResponse {
-  map<int64, msger.api.msg.StringList> msgIds = 1;
-}
-
-message NotifyLikesMsgRequest {}
-
-message NotifyLikesMsgResponse {}
 
 // 分页获取系统通知消息请求
 message ListSystemNotifyMsgRequest {
@@ -107,4 +77,14 @@ message SystemMsg {
 message ListSystemMsgResponse {
   repeated SystemMsg messages = 1; // 系统消息列表
   bool has_more = 2;
+  string chat_id = 3; // 所属系统会话id
 }
+
+// 清除未读请求
+message ClearChatUnreadRequest {
+  int64 uid = 1;
+  string chat_id = 2;
+}
+
+// 清除未读响应
+message ClearChatUnreadResponse {}

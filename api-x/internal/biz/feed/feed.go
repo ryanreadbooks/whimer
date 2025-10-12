@@ -245,7 +245,7 @@ func (b *Biz) AssembleNoteFeeds(ctx context.Context, notes []*notev1.FeedNoteIte
 		feedNote.Comments = commentNums[noteId]
 		feedNote.Interact.Commented = oidCommented[noteId]
 		feedNote.Interact.Liked = oidLiked[noteId]
-		feedNote.Interact.Followed = userFollows[author.Uid]
+		feedNote.Interact.Following = userFollows[author.Uid]
 
 		feedNotes = append(feedNotes, feedNote)
 	}

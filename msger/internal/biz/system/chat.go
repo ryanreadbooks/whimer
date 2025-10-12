@@ -196,16 +196,23 @@ func (b *ChatBiz) BatchCreateMsg(ctx context.Context, reqs []*CreateSystemMsgReq
 	return msgs, nil
 }
 
+type ListMsgResp struct {
+	Msgs    []*SystemMsg
+	ChatId  uuid.UUID
+	HasMore bool
+}
+
 // 分页获取用户的系统消息
-func (b *ChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) ([]*SystemMsg, bool, error) {
+func (b *ChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) (*ListMsgResp, error) {
 	// 获取会话
+	resp := &ListMsgResp{Msgs: []*SystemMsg{}}
 	chat, err := infra.Dao().SystemChatDao.GetByUidAndType(ctx, req.RecvUid, req.ChatType)
 	if err != nil {
 		if errors.Is(err, xsql.ErrNoRecord) {
 			// 会话不存在，返回空列表
-			return []*SystemMsg{}, false, nil
+			return resp, nil
 		}
-		return nil, false, xerror.Wrapf(err, "system chat dao failed to get chat").
+		return nil, xerror.Wrapf(err, "system chat dao failed to get chat").
 			WithExtras("user_id", req.RecvUid, "chat_type", req.ChatType).
 			WithCtx(ctx)
 	}
@@ -218,10 +225,10 @@ func (b *ChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) ([]*SystemMsg, b
 	// 查询消息
 	msgPos, err := infra.Dao().SystemMsgDao.ListByChatId(ctx, chat.Id, cursor, req.Count+1)
 	if err != nil {
-		return nil, false, xerror.Wrapf(err, "system msg dao failed to list msg").WithCtx(ctx)
+		return nil, xerror.Wrapf(err, "system msg dao failed to list msg").WithCtx(ctx)
 	}
 	if len(msgPos) == 0 {
-		return []*SystemMsg{}, false, nil
+		return resp, nil
 	}
 
 	hasMore := false
@@ -231,8 +238,11 @@ func (b *ChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) ([]*SystemMsg, b
 	}
 
 	msgs := MakeSystemMsgsFromPOs(msgPos)
+	resp.HasMore = hasMore
+	resp.Msgs = msgs
+	resp.ChatId = chat.Id
 
-	return msgs, hasMore, nil
+	return resp, nil
 }
 
 // 撤回系统消息
@@ -352,8 +362,31 @@ func (b *ChatBiz) GetUnreadCount(ctx context.Context, uid int64, chatType model.
 	return chat.UnreadCount, nil
 }
 
+// 清除特定会话的未读数
+func (b *ChatBiz) ClearChatUnread(ctx context.Context, uid int64, chatId uuid.UUID) error {
+	chat, err := infra.Dao().SystemChatDao.GetById(ctx, chatId)
+	if err != nil {
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return xerror.Wrap(global.ErrSysChatNotExist)
+		}
+
+		return xerror.Wrapf(err, "system chat dao failed to get by id").
+			WithExtra("chat_id", chatId).WithCtx(ctx)
+	}
+
+	if chat.Uid != uid {
+		return xerror.Wrap(global.ErrSysChatNotYours)
+	}
+
+	if err := b.clearUnread(ctx, uid, chat); err != nil {
+		return xerror.Wrap(err)
+	}
+
+	return nil
+}
+
 // 清空uid会话的未读数 同时需要把会话的最后已读消息ID设置为最后消息ID 并且更新msg的status
-func (b *ChatBiz) ClearUnreadCount(ctx context.Context, uid int64, chatType model.SystemChatType) error {
+func (b *ChatBiz) ClearUidUnread(ctx context.Context, uid int64, chatType model.SystemChatType) error {
 	chat, err := infra.Dao().SystemChatDao.GetByUidAndType(ctx, uid, chatType)
 	if err != nil {
 		if errors.Is(err, xsql.ErrNoRecord) {
@@ -363,32 +396,36 @@ func (b *ChatBiz) ClearUnreadCount(ctx context.Context, uid int64, chatType mode
 			WithExtras("uid", uid, "chat_type", chatType).WithCtx(ctx)
 	}
 
+	if err := b.clearUnread(ctx, uid, chat); err != nil {
+		return xerror.Wrap(err)
+	}
+
+	return nil
+}
+
+func (b *ChatBiz) clearUnread(ctx context.Context, uid int64, chat *systemdao.ChatPO) error {
 	// 获取会话最新一条消息
 	lastMsg, err := infra.Dao().SystemMsgDao.GetLastMsg(ctx, chat.Id, uid)
 	if err != nil {
-		return xerror.Wrapf(err, "system msg dao failed to get last msg").
-			WithExtras("uid", uid, "chat_type", chatType).WithCtx(ctx)
+		return xerror.Wrapf(err, "system msg dao failed to get last msg").WithCtx(ctx)
 	}
 
 	err = infra.Dao().DB().Transact(ctx, func(ctx context.Context) error {
 		// 更新chat
 		err = infra.Dao().SystemChatDao.ClearUnread(ctx, chat.Id, lastMsg.Id)
 		if err != nil {
-			return xerror.Wrapf(err, "system chat dao failed to clear unread").
-				WithExtras("uid", uid, "chat_type", chatType).WithCtx(ctx)
+			return xerror.Wrapf(err, "system chat dao failed to clear unread").WithCtx(ctx)
 		}
 
 		// 批量更新msg状态
 		err = infra.Dao().SystemMsgDao.UpdateStatusToTarget(ctx,
 			chat.Id, uid, model.SystemMsgStatusRead, model.SystemMsgStatusNormal)
 		if err != nil {
-			return xerror.Wrapf(err, "system msg dao failed to update status").
-				WithExtras("uid", uid, "chat_type", chatType).WithCtx(ctx)
+			return xerror.Wrapf(err, "system msg dao failed to update status").WithCtx(ctx)
 		}
 
 		return nil
 	})
-
 	if err != nil {
 		return xerror.Wrapf(err, "transact failed").WithCtx(ctx)
 	}

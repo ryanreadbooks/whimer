@@ -40,4 +40,6 @@ func TestUUid(t *testing.T) {
 	t.Log(parsed)
 
 	t.Log(MaxUUID())
+
+	t.Log(EmptyUUID().String())
 }

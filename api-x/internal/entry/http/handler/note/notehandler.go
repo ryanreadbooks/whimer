@@ -6,12 +6,13 @@ import (
 
 	"github.com/ryanreadbooks/whimer/api-x/internal/biz"
 	bizfeed "github.com/ryanreadbooks/whimer/api-x/internal/biz/feed"
+	feedmodel "github.com/ryanreadbooks/whimer/api-x/internal/biz/feed/model"
 	bizsearch "github.com/ryanreadbooks/whimer/api-x/internal/biz/search"
 	bizsysnotify "github.com/ryanreadbooks/whimer/api-x/internal/biz/sysnotify"
 	bizuser "github.com/ryanreadbooks/whimer/api-x/internal/biz/user"
 	"github.com/ryanreadbooks/whimer/api-x/internal/config"
 	"github.com/ryanreadbooks/whimer/api-x/internal/infra"
-	"github.com/ryanreadbooks/whimer/api-x/internal/model"
+	imodel "github.com/ryanreadbooks/whimer/api-x/internal/model"
 	"github.com/ryanreadbooks/whimer/api-x/internal/model/errors"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
@@ -59,7 +60,7 @@ func (h *Handler) CheckNoteExistence(ctx context.Context, noteId int64) error {
 }
 
 // 设置笔记的额外信息
-func (h *Handler) assignNoteExtra(ctx context.Context, notes []*model.AdminNoteItem) {
+func (h *Handler) assignNoteExtra(ctx context.Context, notes []*imodel.AdminNoteItem) {
 	var (
 		noteIds      = make([]int64, 0, len(notes))
 		oidLiked     = make(map[int64]bool)
@@ -168,7 +169,7 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 			Name: "note.handler.likenote.synces",
 			Job: func(ctx context.Context) error {
 				var incr int64 = 1
-				if req.Action == model.LikeReqActionUndo {
+				if req.Action == imodel.LikeReqActionUndo {
 					incr = -1
 				}
 
@@ -205,7 +206,7 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 		}
 
 		xhttp.OkJson(w, &GetLikesRes{
-			NoteId: model.NoteId(resp.NoteId),
+			NoteId: imodel.NoteId(resp.NoteId),
 			Count:  resp.Likes,
 		})
 	}
@@ -243,7 +244,7 @@ func (h *Handler) AddNewTag() http.HandlerFunc {
 					return err
 				}
 
-				tagId := model.TagId(newTag.Tag.Id).String()
+				tagId := imodel.TagId(newTag.Tag.Id).String()
 
 				_, err = infra.DocumentServer().BatchAddNoteTag(newCtx, &searchv1.BatchAddNoteTagRequest{
 					NoteTags: []*searchv1.NoteTag{
@@ -266,7 +267,7 @@ func (h *Handler) AddNewTag() http.HandlerFunc {
 			},
 		})
 
-		xhttp.OkJson(w, &AddTagRes{TagId: model.TagId(resp.Id)})
+		xhttp.OkJson(w, &AddTagRes{TagId: imodel.TagId(resp.Id)})
 	}
 }
 
@@ -330,16 +331,21 @@ func (b *Handler) ListLikedNotes() http.HandlerFunc {
 			return
 		}
 
-		targets, err := b.feedBiz.AssembleNoteFeeds(ctx, noteResp.GetItems())
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		xhttp.OkJson(w, &GetLikedNoteResponse{
-			Items:      targets,
+		resp := &GetLikedNoteResponse{
+			Items:      []*feedmodel.FeedNoteItem{},
 			NextCursor: noteResp.NextCursor,
 			HasNext:    noteResp.HasNext,
-		})
+		}
+
+		if len(noteResp.Items) > 0 {
+			targets, err := b.feedBiz.AssembleNoteFeeds(ctx, noteResp.GetItems())
+			if err != nil {
+				xhttp.Error(r, w, err)
+				return
+			}
+			resp.Items = targets
+		}
+
+		xhttp.OkJson(w, resp)
 	}
 }

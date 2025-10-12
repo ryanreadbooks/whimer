@@ -43,9 +43,16 @@ func (d *SystemChatDao) Create(ctx context.Context, chat *ChatPO) error {
 	return xsql.ConvertError(err)
 }
 
+// 获取系统会话
+func (d *SystemChatDao) GetById(ctx context.Context, id uuid.UUID) (*ChatPO, error) {
+	var sql = fmt.Sprintf("SELECT %s FROM system_chat WHERE id=?", systemChatFields)
+	var chat ChatPO
+	err := d.db.QueryRowCtx(ctx, &chat, sql, id)
+	return &chat, xsql.ConvertError(err)
+}
+
 // 获取用户的系统会话
 func (d *SystemChatDao) GetByUidAndType(ctx context.Context, uid int64, chatType model.SystemChatType) (*ChatPO, error) {
-
 	sql := fmt.Sprintf("SELECT %s FROM system_chat WHERE uid=? AND type=? LIMIT 1", systemChatFields)
 	var chat ChatPO
 	err := d.db.QueryRowCtx(ctx, &chat, sql, uid, chatType)
