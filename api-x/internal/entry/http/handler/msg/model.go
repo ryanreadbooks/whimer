@@ -104,7 +104,6 @@ func (r *DeleteMsgReq) Validate() error {
 	return nil
 }
 
-
 type GetChatReq struct {
 	Id int64 `form:"id"`
 }

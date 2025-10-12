@@ -307,7 +307,7 @@ func (b *ChatBiz) DeleteMsg(ctx context.Context, chatId, msgId uuid.UUID, recvUi
 }
 
 // 获取uid的所有系统会话
-func (b *ChatBiz) ListChat(ctx context.Context, uid int64) ([]*SystemChat, error) {
+func (b *ChatBiz) ListUserChats(ctx context.Context, uid int64) ([]*SystemChat, error) {
 	chatPos, err := infra.Dao().SystemChatDao.ListByUid(ctx, uid)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "system chat dao failed to list chat").
@@ -476,4 +476,37 @@ func (b *ChatBiz) batchAssignLastMsg(ctx context.Context, chats []*SystemChat) e
 	}
 
 	return nil
+}
+
+func (b *ChatBiz) GetChatUnreadCount(ctx context.Context, uid int64, chatId uuid.UUID) (*ChatUnread, error) {
+	// get chat
+	chat, err := infra.Dao().SystemChatDao.GetById(ctx, chatId)
+	if err != nil {
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return nil, xerror.Wrap(global.ErrSysChatNotExist)
+		}
+		return nil, xerror.Wrapf(err, "system chat dao failed to get by id").
+			WithExtra("chat_id", chatId).WithCtx(ctx)
+	}
+
+	if chat.Uid != uid {
+		return nil, xerror.Wrap(global.ErrSysChatNotYours)
+	}
+
+	return ChatUnreadFromPo(chat), nil
+}
+
+func (b *ChatBiz) GetUserAllChatUnreadCount(ctx context.Context, uid int64) ([]*ChatUnread, error) {
+	chats, err := infra.Dao().SystemChatDao.ListByUid(ctx, uid)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "system chat dao list by uid failed").
+			WithExtra("uid", uid).WithCtx(ctx)
+	}
+
+	cu := make([]*ChatUnread, 0, len(chats))
+	for _, c := range chats {
+		cu = append(cu, ChatUnreadFromPo(c))
+	}
+
+	return cu, nil
 }

@@ -167,3 +167,63 @@ func (s *SystemChatServiceServer) ClearChatUnread(ctx context.Context, in *syste
 
 	return &systemv1.ClearChatUnreadResponse{}, err
 }
+
+func bizUnreadToPbUnread(u *bizsyschat.ChatUnread) *systemv1.ChatUnread {
+	return &systemv1.ChatUnread{
+		ChatId:      convertChatIdToString(u.ChatId),
+		ChatType:    u.ChatType.Tag().String(),
+		UnreadCount: u.UnreadCount,
+	}
+}
+
+func bizUnreadsToPbUnreads(us []*bizsyschat.ChatUnread) []*systemv1.ChatUnread {
+	resp := make([]*systemv1.ChatUnread, 0, len(us))
+	for _, u := range us {
+		resp = append(resp, bizUnreadToPbUnread(u))
+	}
+
+	return resp
+}
+
+// 获取单个chat的未读数
+func (s *SystemChatServiceServer) GetChatUnread(ctx context.Context, in *systemv1.GetChatUnreadRequest) (
+	*systemv1.GetChatUnreadResponse, error) {
+	unread, err := s.Svc.SystemChatSrv.GetChatUnreadCount(ctx, in.Uid, in.ChatId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &systemv1.GetChatUnreadResponse{
+		Unread: bizUnreadToPbUnread(unread),
+	}, nil
+}
+
+// 获取全部系统会话的未读数
+func (s *SystemChatServiceServer) GetAllChatsUnread(ctx context.Context, in *systemv1.GetAllChatsUnreadRequest) (
+	*systemv1.GetAllChatsUnreadResponse, error) {
+	resp := systemv1.GetAllChatsUnreadResponse{}
+
+	if in.Uid == 0 {
+		return &resp, nil
+	}
+
+	unreads, err := s.Svc.SystemChatSrv.GetUserChatsUnreadCount(ctx, in.Uid)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, ur := range unreads {
+		switch ur.ChatType {
+		case model.SystemNotifyNoticeChat:
+			resp.NoticeUnread = bizUnreadToPbUnread(ur)
+		case model.SystemNotifyReplyChat:
+			resp.ReplyUnread = bizUnreadToPbUnread(ur)
+		case model.SystemNotifyMentionedChat:
+			resp.MentionUnread = bizUnreadToPbUnread(ur)
+		case model.SystemNotifyLikesChat:
+			resp.LikesUnread = bizUnreadToPbUnread(ur)
+		}
+	}
+
+	return &resp, nil
+}

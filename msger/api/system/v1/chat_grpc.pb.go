@@ -23,6 +23,8 @@ const (
 	ChatService_ListSystemReplyMsg_FullMethodName   = "/msger.api.system.v1.ChatService/ListSystemReplyMsg"
 	ChatService_ListSystemMentionMsg_FullMethodName = "/msger.api.system.v1.ChatService/ListSystemMentionMsg"
 	ChatService_ListSystemLikesMsg_FullMethodName   = "/msger.api.system.v1.ChatService/ListSystemLikesMsg"
+	ChatService_GetChatUnread_FullMethodName        = "/msger.api.system.v1.ChatService/GetChatUnread"
+	ChatService_GetAllChatsUnread_FullMethodName    = "/msger.api.system.v1.ChatService/GetAllChatsUnread"
 	ChatService_ClearChatUnread_FullMethodName      = "/msger.api.system.v1.ChatService/ClearChatUnread"
 )
 
@@ -38,6 +40,10 @@ type ChatServiceClient interface {
 	ListSystemMentionMsg(ctx context.Context, in *ListSystemMentionMsgRequest, opts ...grpc.CallOption) (*ListSystemMsgResponse, error)
 	// 分页获取系统点赞消息
 	ListSystemLikesMsg(ctx context.Context, in *ListSystemLikesMsgRequest, opts ...grpc.CallOption) (*ListSystemMsgResponse, error)
+	// 获取单个chat的未读数
+	GetChatUnread(ctx context.Context, in *GetChatUnreadRequest, opts ...grpc.CallOption) (*GetChatUnreadResponse, error)
+	// 获取全部系统会话的未读数
+	GetAllChatsUnread(ctx context.Context, in *GetAllChatsUnreadRequest, opts ...grpc.CallOption) (*GetAllChatsUnreadResponse, error)
 	// 清除未读
 	ClearChatUnread(ctx context.Context, in *ClearChatUnreadRequest, opts ...grpc.CallOption) (*ClearChatUnreadResponse, error)
 }
@@ -90,6 +96,26 @@ func (c *chatServiceClient) ListSystemLikesMsg(ctx context.Context, in *ListSyst
 	return out, nil
 }
 
+func (c *chatServiceClient) GetChatUnread(ctx context.Context, in *GetChatUnreadRequest, opts ...grpc.CallOption) (*GetChatUnreadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetChatUnreadResponse)
+	err := c.cc.Invoke(ctx, ChatService_GetChatUnread_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) GetAllChatsUnread(ctx context.Context, in *GetAllChatsUnreadRequest, opts ...grpc.CallOption) (*GetAllChatsUnreadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllChatsUnreadResponse)
+	err := c.cc.Invoke(ctx, ChatService_GetAllChatsUnread_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *chatServiceClient) ClearChatUnread(ctx context.Context, in *ClearChatUnreadRequest, opts ...grpc.CallOption) (*ClearChatUnreadResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ClearChatUnreadResponse)
@@ -112,6 +138,10 @@ type ChatServiceServer interface {
 	ListSystemMentionMsg(context.Context, *ListSystemMentionMsgRequest) (*ListSystemMsgResponse, error)
 	// 分页获取系统点赞消息
 	ListSystemLikesMsg(context.Context, *ListSystemLikesMsgRequest) (*ListSystemMsgResponse, error)
+	// 获取单个chat的未读数
+	GetChatUnread(context.Context, *GetChatUnreadRequest) (*GetChatUnreadResponse, error)
+	// 获取全部系统会话的未读数
+	GetAllChatsUnread(context.Context, *GetAllChatsUnreadRequest) (*GetAllChatsUnreadResponse, error)
 	// 清除未读
 	ClearChatUnread(context.Context, *ClearChatUnreadRequest) (*ClearChatUnreadResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
@@ -135,6 +165,12 @@ func (UnimplementedChatServiceServer) ListSystemMentionMsg(context.Context, *Lis
 }
 func (UnimplementedChatServiceServer) ListSystemLikesMsg(context.Context, *ListSystemLikesMsgRequest) (*ListSystemMsgResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListSystemLikesMsg not implemented")
+}
+func (UnimplementedChatServiceServer) GetChatUnread(context.Context, *GetChatUnreadRequest) (*GetChatUnreadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetChatUnread not implemented")
+}
+func (UnimplementedChatServiceServer) GetAllChatsUnread(context.Context, *GetAllChatsUnreadRequest) (*GetAllChatsUnreadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllChatsUnread not implemented")
 }
 func (UnimplementedChatServiceServer) ClearChatUnread(context.Context, *ClearChatUnreadRequest) (*ClearChatUnreadResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ClearChatUnread not implemented")
@@ -232,6 +268,42 @@ func _ChatService_ListSystemLikesMsg_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatService_GetChatUnread_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetChatUnreadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).GetChatUnread(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_GetChatUnread_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).GetChatUnread(ctx, req.(*GetChatUnreadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_GetAllChatsUnread_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllChatsUnreadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).GetAllChatsUnread(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_GetAllChatsUnread_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).GetAllChatsUnread(ctx, req.(*GetAllChatsUnreadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ChatService_ClearChatUnread_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ClearChatUnreadRequest)
 	if err := dec(in); err != nil {
@@ -272,6 +344,14 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListSystemLikesMsg",
 			Handler:    _ChatService_ListSystemLikesMsg_Handler,
+		},
+		{
+			MethodName: "GetChatUnread",
+			Handler:    _ChatService_GetChatUnread_Handler,
+		},
+		{
+			MethodName: "GetAllChatsUnread",
+			Handler:    _ChatService_GetAllChatsUnread_Handler,
 		},
 		{
 			MethodName: "ClearChatUnread",

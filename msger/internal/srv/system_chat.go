@@ -2,6 +2,7 @@ package srv
 
 import (
 	"context"
+	"sort"
 
 	"github.com/ryanreadbooks/whimer/misc/uuid"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -200,4 +201,50 @@ func (s *SystemChatSrv) ClearChatUnread(ctx context.Context, uid int64, chatId s
 	}
 
 	return nil
+}
+
+// 获取单个会话未读数
+func (s *SystemChatSrv) GetChatUnreadCount(ctx context.Context, uid int64, chatId string) (*bizsyschat.ChatUnread, error) {
+	cid, err := uuid.ParseString(chatId)
+	if err != nil {
+		return nil, global.ErrSysChatNotExist
+	}
+
+	unread, err := s.chatBiz.GetChatUnreadCount(ctx, uid, cid)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "srv failed to get chat unread count")
+	}
+
+	return unread, nil
+}
+
+// 获取某个用户所有系统会话的未读数
+func (s *SystemChatSrv) GetUserChatsUnreadCount(ctx context.Context, uid int64) ([]*bizsyschat.ChatUnread, error) {
+	unreads, err := s.chatBiz.GetUserAllChatUnreadCount(ctx, uid)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "srv failed to get user chat unread count")
+	}
+
+	// 补全缺失的chat
+	for _, t := range model.SystemChatTypeSlice {
+		found := false
+		for _, u := range unreads {
+			if u.ChatType == t {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			unreads = append(unreads, &bizsyschat.ChatUnread{
+				ChatId:      uuid.EmptyUUID(),
+				ChatType:    t,
+				UnreadCount: 0,
+			})
+		}
+	}
+
+	sort.Slice(unreads, func(i, j int) bool { return unreads[i].ChatType < unreads[j].ChatType })
+
+	return unreads, nil
 }

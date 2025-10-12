@@ -1,6 +1,9 @@
 package model
 
-import v1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
+import (
+	"github.com/ryanreadbooks/whimer/misc/xmap"
+	v1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
+)
 
 // 系统消息
 
@@ -12,6 +15,19 @@ const (
 	SystemNotifyReplyChat     SystemChatType = 2
 	SystemNotifyMentionedChat SystemChatType = 3
 	SystemNotifyLikesChat     SystemChatType = 4
+)
+
+type SystemChatTypeTag string
+
+func (t SystemChatTypeTag) String() string {
+	return string(t)
+}
+
+const (
+	SystemChatTypeTagNotice  SystemChatTypeTag = "sys_notice"
+	SystemChatTypeTagReply   SystemChatTypeTag = "sys_reply"
+	SystemChatTypeTagMention SystemChatTypeTag = "sys_mention"
+	SystemChatTypeTagLikes   SystemChatTypeTag = "sys_likes"
 )
 
 func (s SystemChatType) Desc() string {
@@ -27,6 +43,30 @@ func (s SystemChatType) Desc() string {
 	}
 	return "通知"
 }
+
+func (s SystemChatType) Tag() SystemChatTypeTag {
+	switch s {
+	case SystemNotifyNoticeChat:
+		return SystemChatTypeTagNotice
+	case SystemNotifyReplyChat:
+		return SystemChatTypeTagReply
+	case SystemNotifyMentionedChat:
+		return SystemChatTypeTagMention
+	case SystemNotifyLikesChat:
+		return SystemChatTypeTagLikes
+	}
+	return ""
+}
+
+var (
+	SystemChatTypeMap = map[SystemChatType]SystemChatTypeTag{
+		SystemNotifyNoticeChat:    SystemChatTypeTagNotice,
+		SystemNotifyReplyChat:     SystemChatTypeTagReply,
+		SystemNotifyMentionedChat: SystemChatTypeTagMention,
+		SystemNotifyLikesChat:     SystemChatTypeTagLikes,
+	}
+	SystemChatTypeSlice = xmap.Keys(SystemChatTypeMap)
+)
 
 // 系统消息类型
 type SystemMsgStatus int8

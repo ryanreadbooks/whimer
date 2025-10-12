@@ -3,9 +3,11 @@ package system
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/uuid"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
 )
@@ -49,6 +51,19 @@ func (d *SystemChatDao) GetById(ctx context.Context, id uuid.UUID) (*ChatPO, err
 	var chat ChatPO
 	err := d.db.QueryRowCtx(ctx, &chat, sql, id)
 	return &chat, xsql.ConvertError(err)
+}
+
+// 批量获取
+func (d *SystemChatDao) BatchGetById(ctx context.Context, chatIds []uuid.UUID) ([]*ChatPO, error) {
+	if len(chatIds) == 0 {
+		return nil, nil
+	}
+
+	var sql = fmt.Sprintf("SELECT %s FROM system_chat WHERE id IN (%s)",
+		systemChatFields, strings.Repeat("?,", len(chatIds)-1)+"?")
+	var chats []*ChatPO
+	err := d.db.QueryRowsCtx(ctx, &chats, sql, xslice.Any(chatIds)...)
+	return chats, xsql.ConvertError(err)
 }
 
 // 获取用户的系统会话
@@ -105,4 +120,11 @@ func (d *SystemChatDao) Delete(ctx context.Context, chatId uuid.UUID) error {
 	sql := "DELETE FROM system_chat WHERE id=?"
 	_, err := d.db.ExecCtx(ctx, sql, chatId)
 	return xsql.ConvertError(err)
+}
+
+func (d *SystemChatDao) GetUnreadCountById(ctx context.Context, chatId uuid.UUID) (int64, error) {
+	const sql = "SELECT unread_count FROM system_chat WHERE id=?"
+	var unreadCount int64
+	err := d.db.QueryRowCtx(ctx, &unreadCount, sql, chatId)
+	return unreadCount, xsql.ConvertError(err)
 }

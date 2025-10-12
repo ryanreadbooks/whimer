@@ -22,6 +22,13 @@ service ChatService {
 
   // 系统会话相关
 
+  // 获取单个chat的未读数
+  rpc GetChatUnread(GetChatUnreadRequest) returns (GetChatUnreadResponse);
+
+  // 获取全部系统会话的未读数
+  rpc GetAllChatsUnread(GetAllChatsUnreadRequest)
+      returns (GetAllChatsUnreadResponse);
+
   // 清除未读
   rpc ClearChatUnread(ClearChatUnreadRequest) returns (ClearChatUnreadResponse);
 }
@@ -78,6 +85,30 @@ message ListSystemMsgResponse {
   repeated SystemMsg messages = 1; // 系统消息列表
   bool has_more = 2;
   string chat_id = 3; // 所属系统会话id
+}
+
+message ChatUnread {
+  string chat_id = 1;
+  string chat_type = 2;
+  int64 unread_count = 3;
+}
+
+message GetChatUnreadRequest {
+  int64 uid = 1;
+  string chat_id = 2;
+}
+
+message GetChatUnreadResponse { ChatUnread unread = 1; }
+
+// 获取全部系统会话的未读数请求
+message GetAllChatsUnreadRequest { int64 uid = 1; }
+
+// 获取全部系统会话的未读数响应
+message GetAllChatsUnreadResponse {
+  ChatUnread notice_unread = 1;
+  ChatUnread reply_unread = 2;
+  ChatUnread mention_unread = 3;
+  ChatUnread likes_unread = 4;
 }
 
 // 清除未读请求

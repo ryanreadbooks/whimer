@@ -86,3 +86,17 @@ func MakeSystemChatFromPO(po *systemdao.ChatPO) *SystemChat {
 		UnreadCount:   po.UnreadCount,
 	}
 }
+
+type ChatUnread struct {
+	ChatId      uuid.UUID
+	ChatType    model.SystemChatType
+	UnreadCount int64
+}
+
+func ChatUnreadFromPo(c *systemdao.ChatPO) *ChatUnread {
+	return &ChatUnread{
+		ChatId:      c.Id,
+		ChatType:    c.Type,
+		UnreadCount: c.UnreadCount,
+	}
+}

@@ -119,3 +119,24 @@ func (b *Biz) ClearChatUnread(ctx context.Context, uid int64, chatId string) err
 
 	return nil
 }
+
+// 获取系统会话的未读数
+func (b *Biz) GetChatUnread(ctx context.Context, uid int64) (*model.ChatsUnreadCount, error) {
+	resp, err := infra.SystemChatter().GetAllChatsUnread(ctx, &v1.GetAllChatsUnreadRequest{
+		Uid: uid,
+	})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "system chatter get all chats unread failed").
+			WithExtra("uid", uid).
+			WithCtx(ctx)
+	}
+
+	result := &model.ChatsUnreadCount{
+		MentionUnread: model.ChatUnreadFromPb(resp.MentionUnread),
+		NoticeUnread:  model.ChatUnreadFromPb(resp.NoticeUnread),
+		LikesUnread:   model.ChatUnreadFromPb(resp.LikesUnread),
+		ReplyUnread:   model.ChatUnreadFromPb(resp.ReplyUnread),
+	}
+
+	return result, nil
+}
