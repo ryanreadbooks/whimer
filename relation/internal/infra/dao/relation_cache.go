@@ -204,7 +204,7 @@ func (c *RelationCache) BatchSetLinks(ctx context.Context, datas []CacheLink) er
 			link:   int8(link),
 			expire: xtime.NDayJitter(5, time.Hour),
 		})
-		args = append(args, key, link)
+		args = append(args, key, int8(link))
 	}
 
 	pipe, err := c.r.TxPipeline()

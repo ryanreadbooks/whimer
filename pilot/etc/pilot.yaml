@@ -1,0 +1,51 @@
+http:
+  mode: dev
+  name: pilot
+  host: 0.0.0.0
+  port: 8081
+  log:
+    level: debug
+  telemetry:
+    Name: pilot
+    Endpoint: ${ENV_JAEGER_ENDPOINT}
+    Sampler: 1.0
+    Batcher: jaeger
+
+redis:
+  host: ${ENV_REDIS_HOST}
+
+backend:
+  note:
+    hosts: ${ENV_ETCD_HOSTS}
+    key: whimer.note.rpc
+  passport:
+    hosts: ${ENV_ETCD_HOSTS}
+    key: whimer.passport.rpc
+  comment:
+    hosts: ${ENV_ETCD_HOSTS}
+    key: whimer.comment.rpc
+  relation:
+    hosts: ${ENV_ETCD_HOSTS}
+    key: whimer.relation.rpc
+  msger:
+    hosts: ${ENV_ETCD_HOSTS}
+    key: whimer.msger.rpc
+  search:
+    hosts: ${ENV_ETCD_HOSTS}
+    key: whimer.search.rpc
+  wslink:
+    hosts: ${ENV_ETCD_HOSTS}
+    key: whimer.wslink.rpc
+
+obfuscate:
+  note:
+    salt: ${ENV_OBFUSCATE_NOTE_SALT}
+  tag:
+    salt: ${ENV_OBFUSCATE_TAG_SALT}
+    min_length: 24
+    alphabet: 0123456789abcdef
+
+job_config:
+  note_event_job:
+    interval: 2s
+    num_of_list: 6

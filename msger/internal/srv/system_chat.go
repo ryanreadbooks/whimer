@@ -10,7 +10,6 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/api/msg"
 	"github.com/ryanreadbooks/whimer/msger/internal/biz"
 	bizsyschat "github.com/ryanreadbooks/whimer/msger/internal/biz/system"
-	bizwebsocket "github.com/ryanreadbooks/whimer/msger/internal/biz/websocket"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
 	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
 
@@ -18,14 +17,12 @@ import (
 )
 
 type SystemChatSrv struct {
-	chatBiz      bizsyschat.ChatBiz
-	websocketBiz bizwebsocket.Biz
+	chatBiz bizsyschat.ChatBiz
 }
 
 func NewSystemChatSrv(biz biz.Biz) *SystemChatSrv {
 	return &SystemChatSrv{
-		chatBiz:      biz.SystemBiz,
-		websocketBiz: biz.WebsocketBiz,
+		chatBiz: biz.SystemBiz,
 	}
 }
 
@@ -99,7 +96,7 @@ func (s *SystemChatSrv) NotifyMentionSystemMsg(ctx context.Context, reqs []*mode
 	}
 
 	var targetMsgIds = make(map[int64][]string, len(msgReqs))
-	var targetReqs = make(map[int64][]*bizsyschat.CreateSystemMsgReq, len(msgReqs))
+	var successTargets = make(map[int64][]*bizsyschat.CreateSystemMsgReq, len(msgReqs))
 
 	if len(msgReqs) == 0 {
 		return targetMsgIds, nil
@@ -121,7 +118,7 @@ func (s *SystemChatSrv) NotifyMentionSystemMsg(ctx context.Context, reqs []*mode
 			req.MsgId = msgId
 			// 落库成功将msgId返回
 			targetMsgIds[req.RecvUid] = append(targetMsgIds[req.RecvUid], msgId.String())
-			targetReqs[req.RecvUid] = append(targetReqs[req.RecvUid], req)
+			successTargets[req.RecvUid] = append(successTargets[req.RecvUid], req)
 			return nil
 		})
 	}
@@ -130,24 +127,7 @@ func (s *SystemChatSrv) NotifyMentionSystemMsg(ctx context.Context, reqs []*mode
 		return nil, xerror.Wrapf(err, "srv failed to send mention system msg").WithCtx(ctx)
 	}
 
-	// 通知recvUid
-	for recvUid, reqs := range targetReqs {
-		cmdTargets := make([]*bizwebsocket.NotifySysCmdData, 0, len(reqs))
-		for range targetReqs[recvUid] {
-			webReq := &bizwebsocket.NotifySysCmdData{
-				Cmd:    bizwebsocket.NotifySysMentionCmd,
-				Action: []bizwebsocket.NotifyAction{bizwebsocket.NotifyActionPullUnread},
-			}
-			cmdTargets = append(cmdTargets, webReq)
-		}
-
-		if err := s.websocketBiz.NotifySysMention(ctx, recvUid, cmdTargets); err != nil {
-			xlog.Msg("srv failed to notify sys mention").
-				Extras("recv_uid", recvUid).
-				Err(err).Errorx(ctx)
-		}
-	}
-
+	// 返回成成功创建的msgIds
 	return targetMsgIds, nil
 }
 

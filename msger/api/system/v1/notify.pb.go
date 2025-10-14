@@ -288,6 +288,7 @@ type NotifyMentionMsgResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// uid -> msgIds
 	MsgIds map[int64]*msg.StringList `protobuf:"bytes,1,rep,name=msgIds,proto3" json:"msgIds,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 

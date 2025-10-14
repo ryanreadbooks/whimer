@@ -17,8 +17,6 @@ service NotificationService {
       returns (NotifyMentionMsgResponse);
   // 收到的赞
   rpc NotifyLikesMsg(NotifyLikesMsgRequest) returns (NotifyLikesMsgResponse);
-
-  
 }
 
 message NotifySystemNoticeRequest {}
@@ -38,6 +36,7 @@ message MentionMsgContent {
 message NotifyMentionMsgRequest { repeated MentionMsgContent mentions = 1; }
 
 message NotifyMentionMsgResponse {
+  // uid -> msgIds
   map<int64, msger.api.msg.StringList> msgIds = 1;
 }
 
