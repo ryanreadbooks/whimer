@@ -15,7 +15,8 @@ import (
 var (
 	testCommentDao      *CommentDao
 	testCommentAssetDao *CommentAssetDao
-	ctx                 = context.TODO()
+	testCommentExtDao   *CommentExtDao
+	testCtx             = context.TODO()
 )
 
 func TestMain(m *testing.M) {
@@ -33,18 +34,19 @@ func TestMain(m *testing.M) {
 
 	testCommentDao = NewCommentDao(xsql.New(db), cache)
 	testCommentAssetDao = NewCommentAssetDao(xsql.New(db), cache)
+	testCommentExtDao = NewCommentExtDao(xsql.New(db), cache)
 	m.Run()
 }
 
 func TestRepo_GetRootCommentSortByCtime(t *testing.T) {
 	Convey("GetRootCommentSortByCtime", t, func() {
-		res, err := testCommentDao.GetRoots(ctx, 13, 0, 10)
+		res, err := testCommentDao.GetRoots(testCtx, 13, 0, 10)
 		So(err, ShouldBeNil)
 		So(res, ShouldNotBeNil)
 		for _, model := range res {
 			t.Logf("%+v\n", model)
 		}
-		res, err = testCommentDao.GetRoots(ctx, 13, 10124, 10)
+		res, err = testCommentDao.GetRoots(testCtx, 13, 10124, 10)
 		So(err, ShouldBeNil)
 		So(res, ShouldNotBeNil)
 		for _, model := range res {
@@ -56,7 +58,7 @@ func TestRepo_GetRootCommentSortByCtime(t *testing.T) {
 
 func TestRepo_CountByOid(t *testing.T) {
 	Convey("CountByOid", t, func() {
-		cnt, err := testCommentDao.CountByOid(ctx, 13)
+		cnt, err := testCommentDao.CountByOid(testCtx, 13)
 		So(err, ShouldBeNil)
 		So(cnt, ShouldNotBeZeroValue)
 		t.Logf("cnt = %d\n", cnt)
@@ -65,7 +67,7 @@ func TestRepo_CountByOid(t *testing.T) {
 
 func TestRepo_CountGroupByOid(t *testing.T) {
 	Convey("CountGroupByOid", t, func() {
-		res, err := testCommentDao.CountGroupByOid(ctx)
+		res, err := testCommentDao.CountGroupByOid(testCtx)
 		So(err, ShouldBeNil)
 		So(res, ShouldNotBeNil)
 		t.Logf("res = %v\n", res)
@@ -74,7 +76,7 @@ func TestRepo_CountGroupByOid(t *testing.T) {
 
 func TestRepo_CountGroupByOidLimit(t *testing.T) {
 	Convey("CountGroupByOidLimit", t, func() {
-		res, err := testCommentDao.CountGroupByOidLimit(ctx, 1, 2)
+		res, err := testCommentDao.CountGroupByOidLimit(testCtx, 1, 2)
 		So(err, ShouldBeNil)
 		So(res, ShouldNotBeNil)
 		t.Logf("res = %v\n", res)
@@ -83,7 +85,7 @@ func TestRepo_CountGroupByOidLimit(t *testing.T) {
 
 func TestRepo_BatchCountSubReplies(t *testing.T) {
 	Convey("BatchCountSubReplies", t, func() {
-		res, err := testCommentDao.BatchCountSubs(ctx, []int64{50})
+		res, err := testCommentDao.BatchCountSubs(testCtx, []int64{50})
 		So(err, ShouldBeNil)
 		So(res, ShouldNotBeNil)
 		t.Logf("res = %v\n", res)

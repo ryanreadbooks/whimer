@@ -2,11 +2,13 @@ package v2
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/generics"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xstring"
 )
 
@@ -105,7 +107,9 @@ func (c *Cache[T]) setCacheBack(ctx context.Context, opt *cacheOption, f ctxFn) 
 		return
 	}
 
-	f(ctx)
+	if err := f(ctx); err != nil {
+		xlog.Msg("xcachev2 setCacheBack err").Err(err).Errorx(ctx)
+	}
 }
 
 func (c *Cache[T]) setMapTFn(ctx context.Context, opt *cacheOption, m map[string]T) error {
@@ -122,6 +126,10 @@ func (c *Cache[T]) setMapTFn(ctx context.Context, opt *cacheOption, m map[string
 			keys = append(keys, key)
 			args = append(args, key, sv)
 		}
+	}
+
+	if len(args) == 0 {
+		return fmt.Errorf("before pipeline mset args is empty")
 	}
 
 	pipe.MSet(ctx, args...)

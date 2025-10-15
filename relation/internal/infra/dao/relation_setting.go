@@ -38,10 +38,10 @@ var (
 
 // 用户的关系设置
 type RelationSetting struct {
-	Uid      int64           `db:"uid" json:"uid"`
+	Uid      int64           `db:"uid"      json:"uid"`
 	Settings json.RawMessage `db:"settings" json:"settings"`
-	Ctime    int64           `db:"ctime" json:"ctime"`
-	Mtime    int64           `db:"mtime" json:"mtime"`
+	Ctime    int64           `db:"ctime"    json:"ctime"`
+	Mtime    int64           `db:"mtime"    json:"mtime"`
 }
 
 func (r *RelationSetting) ParseSettings() *Settings {

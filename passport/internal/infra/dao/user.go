@@ -34,14 +34,14 @@ type User struct {
 }
 
 type UserBase struct {
-	Uid       int64             `db:"uid" json:"uid,omitempty"`
-	Nickname  string            `db:"nickname" json:"nickname,omitempty"`
-	Avatar    string            `db:"avatar" json:"avatar,omitempty"`
+	Uid       int64             `db:"uid"        json:"uid,omitempty"`
+	Nickname  string            `db:"nickname"   json:"nickname,omitempty"`
+	Avatar    string            `db:"avatar"     json:"avatar,omitempty"`
 	StyleSign string            `db:"style_sign" json:"style_sign,omitempty"`
-	Gender    int8              `db:"gender" json:"gender,omitempty"`
-	Tel       string            `db:"tel" json:"tel,omitempty"`
-	Email     string            `db:"email" json:"email,omitempty"`
-	Status    consts.UserStatus `db:"status" json:"status"`
+	Gender    int8              `db:"gender"     json:"gender,omitempty"`
+	Tel       string            `db:"tel"        json:"tel,omitempty"`
+	Email     string            `db:"email"      json:"email,omitempty"`
+	Status    consts.UserStatus `db:"status"     json:"status"`
 	Timing
 }
 
