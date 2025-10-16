@@ -21,6 +21,7 @@ type CommentItem struct {
 	Ip         string                        `json:"ip"`
 	IsPin      bool                          `json:"is_pin"`
 	Images     []*commentv1.CommentItemImage `json:"images"`
+	AtUsers    []*commentv1.CommentAtUser    `json:"at_users"` // @用户列表
 
 	// 下面的字段需要额外填充
 	LikeCount int64 `json:"like_count"`
@@ -69,6 +70,7 @@ func (r *CommentItem) AsPb() *commentv1.CommentItem {
 		IsPin:     r.IsPin,
 		SubsCount: r.SubsCount,
 		Images:    r.Images,
+		AtUsers:   r.AtUsers,
 	}
 }
 

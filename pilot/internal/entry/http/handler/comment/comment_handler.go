@@ -14,6 +14,7 @@ import (
 	bizcomment "github.com/ryanreadbooks/whimer/pilot/internal/biz/comment"
 	bizmodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/comment/model"
 	bizsearch "github.com/ryanreadbooks/whimer/pilot/internal/biz/search"
+	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
 	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/user"
 	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
@@ -27,6 +28,7 @@ type Handler struct {
 	userBiz    *bizuser.Biz
 	searchBiz  *bizsearch.Biz
 	commentBiz *bizcomment.Biz
+	notifyBiz  *bizsysnotify.Biz
 }
 
 func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
@@ -34,12 +36,13 @@ func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 		userBiz:    bizz.UserBiz,
 		searchBiz:  bizz.SearchBiz,
 		commentBiz: bizz.CommentBiz,
+		notifyBiz:  bizz.SysNotificationBiz,
 	}
 }
 
 func (h *Handler) syncCommentCountToSearcher(ctx context.Context, noteId string, incr int64) {
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "note.handler.commentnote.synces",
+		Name: "comment.handler.synces",
 		Job: func(ctx context.Context) error {
 			err := h.searchBiz.NoteStatSyncer.AddCommentCount(ctx, noteId, incr)
 			if err != nil {
@@ -49,6 +52,37 @@ func (h *Handler) syncCommentCountToSearcher(ctx context.Context, noteId string,
 			}
 
 			return err
+		},
+	})
+}
+
+func (h *Handler) notifyWhenAtUsers(ctx context.Context, commentId int64, req *bizmodel.PubReq) {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "comment.handler.notify_at_users",
+		Job: func(ctx context.Context) error {
+			err := h.notifyBiz.NotifyAtUsersOnComment(ctx, &bizsysnotify.NotifyAtUsersOnCommentReq{
+				Uid:         uid,
+				TargetUsers: req.AtUsers,
+				Content: &bizsysnotify.NotifyAtUsersOnCommentReqContent{
+					SourceUid: uid,
+					Comment:   req.Content,
+					NoteId:    req.Oid,
+					CommentId: commentId,
+					RootId:    req.RootId,
+					ParentId:  req.ParentId,
+				},
+			})
+			if err != nil {
+				xlog.Msg("notify when at users failed").
+					Extras("at_users", req.AtUsers, "oid", req.Oid).
+					Err(err).Errorx(ctx)
+			}
+
+			return nil
 		},
 	})
 }
@@ -71,6 +105,10 @@ func (h *Handler) PublishNoteComment() http.HandlerFunc {
 
 		noteId := req.Oid.String()
 		h.syncCommentCountToSearcher(ctx, noteId, 1)
+		// 通知被@的用户
+		h.notifyWhenAtUsers(ctx, res.CommentId, req)
+
+		// TODO 通知被回复的用户
 
 		httpx.OkJson(w, res)
 	}
@@ -168,6 +206,9 @@ func (h *Handler) DelNoteComment() http.HandlerFunc {
 
 		noteId := req.Oid.String()
 		h.syncCommentCountToSearcher(ctx, noteId, -1)
+		// 撤销被@的
+
+		// 撤销被回复的
 
 		httpx.OkJson(w, nil)
 	}

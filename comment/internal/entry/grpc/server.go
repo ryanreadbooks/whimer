@@ -33,6 +33,7 @@ func (s *CommentServiceServer) AddComment(ctx context.Context, in *commentv1.Add
 		Content:  in.GetContent(),
 		ReplyUid: in.GetReplyUid(),
 		Images:   in.GetImages(),
+		AtUsers:  in.GetAtUsers(),
 	}
 
 	if err := req.Validate(); err != nil {

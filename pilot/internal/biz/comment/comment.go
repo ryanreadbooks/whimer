@@ -202,6 +202,8 @@ func (b *Biz) LikeNoteComment(ctx context.Context, req *model.ThumbUpReq) error 
 		return xerror.Wrapf(err, "remote commenter like action failed")
 	}
 
+	// TODO 通知用户
+
 	return err
 }
 

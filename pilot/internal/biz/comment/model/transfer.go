@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	"github.com/ryanreadbooks/whimer/pilot/internal/model"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 )
 
 const (
@@ -23,7 +23,8 @@ type PubReq struct {
 	ReplyUid    int64        `json:"reply_uid"`
 
 	// optional
-	Images []*CommentImage `json:"images,omitempty,optional"`
+	Images  []*CommentImage  `json:"images,omitempty,optional"`   // 评论图片资源
+	AtUsers model.AtUserList `json:"at_users,omitempty,optional"` // at_users 被@的用户列表
 }
 
 func (r *PubReq) Validate() error {
@@ -34,6 +35,11 @@ func (r *PubReq) Validate() error {
 	contentLen := utf8.RuneCountInString(r.Content)
 	if contentLen > maxContentLen {
 		return xerror.ErrArgs.Msg("评论内容太长")
+	}
+
+	if len(r.AtUsers) > 0 {
+		// 过滤重复用户
+		r.AtUsers = r.AtUsers.Filter()
 	}
 
 	switch r.CommentType {
@@ -80,6 +86,15 @@ func (r *PubReq) AsPb() *commentv1.AddCommentRequest {
 		})
 	}
 
+	// 转换@用户列表
+	atUsers := make([]*commentv1.CommentAtUser, 0, len(r.AtUsers))
+	for _, atUser := range r.AtUsers {
+		atUsers = append(atUsers, &commentv1.CommentAtUser{
+			Uid:      atUser.Uid,
+			Nickname: atUser.Nickname,
+		})
+	}
+
 	return &commentv1.AddCommentRequest{
 		Type:     commentv1.CommentType(r.CommentType),
 		Oid:      int64(r.Oid),
@@ -88,6 +103,7 @@ func (r *PubReq) AsPb() *commentv1.AddCommentRequest {
 		ParentId: r.ParentId,
 		ReplyUid: r.ReplyUid,
 		Images:   images,
+		AtUsers:  atUsers,
 	}
 }
 

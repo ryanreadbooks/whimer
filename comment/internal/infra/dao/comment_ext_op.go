@@ -37,6 +37,9 @@ const (
 
 	sqlDelExt         = "DELETE FROM comment_ext WHERE comment_id=? LIMIT 1"
 	sqlBatchSelExtAll = "SELECT " + extFields + " FROM comment_ext WHERE comment_id IN (%s)"
+
+	// 先查comment再删comment_ext
+	sqlBatchDelExtBySelectedCommentId = "DELETE FROM comment_ext WHERE comment_id IN (SELECT id FROM comment WHERE root=?) OR comment_id=?"
 )
 
 const (
@@ -119,4 +122,11 @@ func (d *CommentExtDao) Delete(ctx context.Context, cmtId int64) error {
 	_, err := d.db.ExecCtx(ctx, sqlDelExt, cmtId)
 	defer d.cache.Del(ctx, fmtCommentExtCacheKey(cmtId))
 	return xsql.ConvertError(err)
+}
+
+// 删除根评论为root的子评论的所有asset, 并且一并删除root的asset
+func (d *CommentExtDao) BatchDeleteByRoot(ctx context.Context, root int64) error {
+	_, err := d.db.ExecCtx(ctx, sqlBatchDelExtBySelectedCommentId, root, root)
+	// 不主动处理缓存 等自动过期即可
+	return xerror.Wrap(xsql.ConvertError(err))
 }

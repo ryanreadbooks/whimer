@@ -2,8 +2,10 @@ package biz
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
+	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/comment/internal/global"
 	"github.com/ryanreadbooks/whimer/comment/internal/infra"
 	"github.com/ryanreadbooks/whimer/comment/internal/infra/dao"
@@ -37,6 +39,22 @@ func (b *CommentBiz) addCommentAssets(ctx context.Context, newCommentId int64, r
 	}
 
 	return nil
+}
+
+func (b *CommentBiz) addCommentExts(ctx context.Context, newCommentId int64, ext *dao.CommentExt) error {
+	if ext == nil {
+		return nil
+	}
+	ext.CommentId = newCommentId
+	return infra.Dao().CommentExtDao.Upsert(ctx, ext)
+}
+
+func shouldUpsertCommentExt(req *dao.CommentExt) bool {
+	if req == nil {
+		return false
+	}
+
+	return len(req.AtUsers) > 0
 }
 
 // 用户发表评论
@@ -81,6 +99,15 @@ func (b *CommentBiz) AddComment(ctx context.Context, req *model.AddCommentReq) (
 		Mtime:    now,
 	}
 
+	var commentExt dao.CommentExt
+	if len(req.AtUsers) > 0 {
+		atUsersJSON, err := json.Marshal(req.AtUsers)
+		if err != nil {
+			return nil, xerror.Wrapf(err, "comment biz marshal at users failed")
+		}
+		commentExt.AtUsers = atUsersJSON
+	}
+
 	err = infra.Dao().Transact(ctx, func(ctx context.Context) error {
 		if model.IsRoot(rootId, parentId) {
 			// 新增的是主评论 直接新增
@@ -89,7 +116,17 @@ func (b *CommentBiz) AddComment(ctx context.Context, req *model.AddCommentReq) (
 				return xerror.Wrapf(err, "comment biz insert root comment failed")
 			}
 
-			return b.addCommentAssets(ctx, newCommentId, req)
+			if err := b.addCommentAssets(ctx, newCommentId, req); err != nil {
+				return err
+			}
+
+			if shouldUpsertCommentExt(&commentExt) {
+				if err := b.addCommentExts(ctx, newCommentId, &commentExt); err != nil {
+					return err
+				}
+			}
+
+			return nil
 		} else {
 			// 新增的是评论的评论 插入前校验能否插入
 			// 检查被评论的评论是否存在
@@ -104,7 +141,17 @@ func (b *CommentBiz) AddComment(ctx context.Context, req *model.AddCommentReq) (
 				return xerror.Wrapf(err, "comment biz dao insert comment failed")
 			}
 
-			return b.addCommentAssets(ctx, newCommentId, req)
+			if err := b.addCommentAssets(ctx, newCommentId, req); err != nil {
+				return err
+			}
+
+			if shouldUpsertCommentExt(&commentExt) {
+				if err := b.addCommentExts(ctx, newCommentId, &commentExt); err != nil {
+					return err
+				}
+			}
+
+			return nil
 		}
 	})
 
@@ -113,7 +160,9 @@ func (b *CommentBiz) AddComment(ctx context.Context, req *model.AddCommentReq) (
 	}
 
 	concurrent.DoneIn(10*time.Second, func(ctx context.Context) {
-		infra.Dao().CommentDao.IncrCommentCount(ctx, oid)
+		if err := infra.Dao().CommentDao.IncrCommentCount(ctx, oid); err != nil {
+			xlog.Msg("comment biz incr comment count failed").Err(err).Extras("oid", oid).Errorx(ctx)
+		}
 	})
 
 	return &model.AddCommentRes{Uid: uid, CommentId: newCommentId}, nil
@@ -181,22 +230,23 @@ func (b *CommentBiz) DelComment(ctx context.Context, oid, commentId int64) error
 	// 否则就只删除评论本身
 	// 删除子评论的子评论也只是只删除评论本身
 	err = infra.Dao().Transact(ctx, func(ctx context.Context) error {
+		_, err := b.findByIdForUpdate(ctx, commentId)
+		if err != nil {
+			return xerror.Wrapf(err, "comment biz find by for update failed")
+		}
+
+		// 先将评论本身删掉
+		err = infra.Dao().CommentDao.DeleteById(ctx, commentId)
+		if err != nil {
+			return xerror.Wrapf(err, "comment biz dao delete root by id failed")
+		}
+
+		// 删除的是主评论
 		if model.IsRoot(existingComment.RootId, existingComment.ParentId) {
-			_, err := b.findByIdForUpdate(ctx, commentId)
-			if err != nil {
-				return xerror.Wrapf(err, "comment biz dao find comment for update failed")
-			}
-
-			// 删除主评论
-			err = infra.Dao().CommentDao.DeleteById(ctx, commentId)
-			if err != nil {
-				return xerror.Wrapf(err, "comment biz dao delete root by id failed")
-			}
-
 			// 删除评论下的资源
 			err = infra.Dao().CommentAssetDao.BatchDeleteByRoot(ctx, commentId)
 			if err != nil {
-				return xerror.Wrapf(err, "comment biz dao delete by root failed")
+				return xerror.Wrapf(err, "comment biz dao delete asset by root failed")
 			}
 
 			// 删除其下子评论
@@ -205,12 +255,27 @@ func (b *CommentBiz) DelComment(ctx context.Context, oid, commentId int64) error
 				return xerror.Wrapf(err, "comment biz dao delete comments by rootid failed")
 			}
 
+			// 删除ext
+			err = infra.Dao().CommentExtDao.BatchDeleteByRoot(ctx, commentId)
+			if err != nil {
+				return xerror.Wrapf(err, "comment biz dao delete ext by root failed")
+			}
+
 			return nil
-		} else {
-			if err = infra.Dao().CommentDao.DeleteById(ctx, commentId); err != nil {
-				return xerror.Wrapf(err, "comment biz failed to delete")
+		} else { // 删除的不是主评论
+			// 删除评论下的资源
+			err = infra.Dao().CommentAssetDao.DeleteByCommentId(ctx, commentId)
+			if err != nil {
+				return xerror.Wrapf(err, "comment biz dao delete asset by comment id failed")
+			}
+
+			// 删除ext
+			err = infra.Dao().CommentExtDao.Delete(ctx, commentId)
+			if err != nil {
+				return xerror.Wrapf(err, "comment biz dao delete ext failed")
 			}
 		}
+
 		return nil
 	})
 
@@ -316,6 +381,13 @@ func (b *CommentBiz) GetRootComments(ctx context.Context, oid int64, cursor int6
 			WithExtra("rootIds", rootIds).WithCtx(ctx)
 	}
 
+	// 填充@用户信息
+	err = b.PopulateCommentExt(ctx, items)
+	if err != nil {
+		// 获取@用户信息失败不返回错误
+		xlog.Msg("comment biz populate at users failed").Extras("rootIds", rootIds).Errorx(ctx)
+	}
+
 	return &model.PageComments{
 		Items:      items,
 		NextCursor: nextCursor,
@@ -356,6 +428,12 @@ func (b *CommentBiz) GetSubComments(ctx context.Context, oid, rootId int64, want
 			WithExtras("rootId", rootId, "oid", oid).WithCtx(ctx)
 	}
 
+	// 填充@用户信息
+	if err := b.PopulateCommentExt(ctx, items); err != nil {
+		// 获取@用户信息失败不返回错误
+		xlog.Msg("comment biz populate at users failed").Extras("rootId", rootId, "oid", oid).Errorx(ctx)
+	}
+
 	return &model.PageComments{
 		Items:      items,
 		NextCursor: nextCursor,
@@ -384,6 +462,12 @@ func (b *CommentBiz) GetSubCommentsByPage(ctx context.Context, oid, rootId int64
 	if err := b.PopulateCommentImages(ctx, items); err != nil {
 		return nil, 0, xerror.Wrapf(err, "comment biz failed to populate images").
 			WithExtras("rootId", rootId, "oid", oid).WithCtx(ctx)
+	}
+
+	// 填充@用户信息
+	if err := b.PopulateCommentExt(ctx, items); err != nil {
+		// 获取@用户信息失败不返回错误
+		xlog.Msg("comment biz populate at users failed").Extras("rootId", rootId, "oid", oid).Errorx(ctx)
 	}
 
 	return items, total, nil
@@ -476,6 +560,12 @@ func (b *CommentBiz) GetPinnedComment(ctx context.Context, oid int64) (*model.Co
 			WithExtras("rootId", item.RootId, "oid", oid).WithCtx(ctx)
 	}
 
+	// 填充@用户信息
+	if err := b.PopulateCommentExt(ctx, []*model.CommentItem{item}); err != nil {
+		// 获取@用户信息失败不返回错误
+		xlog.Msg("comment biz populate at users failed").Extras("comment_id", item.Id, "oid", oid).Errorx(ctx)
+	}
+
 	return item, nil
 }
 
@@ -538,4 +628,53 @@ func (b *CommentBiz) PopulateCommentImages(ctx context.Context, items []*model.C
 	}
 
 	return nil
+}
+
+// 填充评论的扩展信息
+func (b *CommentBiz) PopulateCommentExt(ctx context.Context, items []*model.CommentItem) error {
+	if len(items) == 0 {
+		return nil
+	}
+
+	// 收集所有评论ID
+	commentIds := make([]int64, 0, len(items))
+	for _, item := range items {
+		commentIds = append(commentIds, item.Id)
+	}
+
+	// 批量获取评论扩展信息
+	exts, err := infra.Dao().CommentExtDao.BatchGet(ctx, commentIds)
+	if err != nil {
+		return xerror.Wrapf(err, "comment biz failed to batch get comment ext").
+			WithExtra("comment_ids", commentIds).
+			WithCtx(ctx)
+	}
+
+	// 构建评论ID到扩展信息的映射
+	extMap := make(map[int64]*dao.CommentExt)
+	for _, ext := range exts {
+		extMap[ext.CommentId] = ext
+	}
+
+	// 填充@用户信息
+	populateCommentAtUsers(ctx, items, extMap)
+	return nil
+}
+
+func populateCommentAtUsers(ctx context.Context, items []*model.CommentItem, extMap map[int64]*dao.CommentExt) {
+	for _, item := range items {
+		ext, ok := extMap[item.Id]
+		if !ok || ext.AtUsers == nil {
+			continue
+		}
+
+		// 解析JSON格式的@用户信息
+		var atUsers []*commentv1.CommentAtUser
+		if err := json.Unmarshal(ext.AtUsers, &atUsers); err != nil {
+			xlog.Msg("comment biz unmarshal at users failed").Errorx(ctx)
+			continue
+		}
+
+		item.AtUsers = atUsers
+	}
 }

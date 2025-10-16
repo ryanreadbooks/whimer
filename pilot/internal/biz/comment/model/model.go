@@ -3,11 +3,11 @@ package model
 import (
 	"context"
 
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model"
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xconv"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model"
 )
 
 type CommentImage struct {
@@ -66,23 +66,24 @@ func NewCommentItemImageSliceFromPb(imgs []*commentv1.CommentItemImage) []*Comme
 
 // 对客户端暴露的一条评论的结构
 type CommentItemBase struct {
-	Id        int64               `json:"id"`               // 评论id
-	Oid       model.NoteId        `json:"oid"`              // 被评论对象id
-	Type      int32               `json:"type"`             // 评论类型
-	Content   string              `json:"content"`          // 评论内容
-	Uid       int64               `json:"uid"`              // 评论发表用户uid
-	RootId    int64               `json:"root_id"`          // 根评论id
-	ParentId  int64               `json:"parent_id"`        // 父评论id
-	Ruid      int64               `json:"ruid"`             // 被回复的用户id
-	LikeCount int64               `json:"like_count"`       // 点赞数
-	HateCount int64               `json:"-"`                // 点踩数
-	Ctime     int64               `json:"ctime"`            // 发布时间
-	Mtime     int64               `json:"mtime"`            // 修改时间
-	Ip        string              `json:"-"`                // ip
-	IpLoc     string              `json:"ip_loc"`           // ip归属地
-	IsPin     bool                `json:"is_pin"`           // 是否为置顶评论
-	SubsCount int64               `json:"subs_count"`       // 子评论数
-	Images    []*CommentItemImage `json:"images,omitempty"` // 评论图片
+	Id        int64               `json:"id"`                 // 评论id
+	Oid       model.NoteId        `json:"oid"`                // 被评论对象id
+	Type      int32               `json:"type"`               // 评论类型
+	Content   string              `json:"content"`            // 评论内容
+	Uid       int64               `json:"uid"`                // 评论发表用户uid
+	RootId    int64               `json:"root_id"`            // 根评论id
+	ParentId  int64               `json:"parent_id"`          // 父评论id
+	Ruid      int64               `json:"ruid"`               // 被回复的用户id
+	LikeCount int64               `json:"like_count"`         // 点赞数
+	HateCount int64               `json:"-"`                  // 点踩数
+	Ctime     int64               `json:"ctime"`              // 发布时间
+	Mtime     int64               `json:"mtime"`              // 修改时间
+	Ip        string              `json:"-"`                  // ip
+	IpLoc     string              `json:"ip_loc"`             // ip归属地
+	IsPin     bool                `json:"is_pin"`             // 是否为置顶评论
+	SubsCount int64               `json:"subs_count"`         // 子评论数
+	Images    []*CommentItemImage `json:"images,omitempty"`   // 评论图片
+	AtUsers   []*model.AtUser     `json:"at_users,omitempty"` // at_users 被@的用户列表
 
 	Interact CommentItemBaseInteract `json:"interact"` // 交互信息
 }
@@ -99,6 +100,14 @@ func NewCommentItemBaseFromPb(p *commentv1.CommentItem) *CommentItemBase {
 
 	ctx := context.Background()
 	ipLoc, _ := infra.Ip2Loc().Convert(ctx, p.Ip)
+
+	atUsers := make([]*model.AtUser, 0, len(p.AtUsers))
+	for _, a := range p.AtUsers {
+		atUsers = append(atUsers, &model.AtUser{
+			Nickname: a.Nickname,
+			Uid:      a.Uid,
+		})
+	}
 
 	return &CommentItemBase{
 		Id:        p.Id,
@@ -118,6 +127,7 @@ func NewCommentItemBaseFromPb(p *commentv1.CommentItem) *CommentItemBase {
 		IsPin:     p.IsPin,
 		SubsCount: p.SubsCount,
 		Images:    NewCommentItemImageSliceFromPb(p.Images),
+		AtUsers:   atUsers,
 	}
 }
 

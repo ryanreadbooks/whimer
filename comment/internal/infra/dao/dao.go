@@ -15,6 +15,7 @@ type Dao struct {
 
 	CommentDao      *CommentDao
 	CommentAssetDao *CommentAssetDao
+	CommentExtDao   *CommentExtDao
 }
 
 func MustNew(c *config.Config, cache *redis.Redis) *Dao {
@@ -33,12 +34,12 @@ func MustNew(c *config.Config, cache *redis.Redis) *Dao {
 	if err = rdb.Ping(); err != nil {
 		panic(err)
 	}
-
 	db := xsql.New(conn)
 	return &Dao{
 		db:              db,
 		CommentDao:      NewCommentDao(db, cache),
 		CommentAssetDao: NewCommentAssetDao(db, cache),
+		CommentExtDao:   NewCommentExtDao(db, cache),
 	}
 }
 

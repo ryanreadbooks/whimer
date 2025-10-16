@@ -111,7 +111,6 @@ func (h *Handler) creatorDeleteNoteFromSearcher(ctx context.Context, noteId int6
 }
 
 func (h *Handler) afterNoteUpserted(ctx context.Context, note *notev1.NoteItem) {
-
 	h.creatorSyncNoteToSearcher(ctx, note.NoteId, note)
 	h.notifyWhenAtUsers(ctx, note)
 }

@@ -10,7 +10,6 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/common/push"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify/model"
-	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 )
@@ -29,7 +28,7 @@ type NotifyAtUsersOnNoteReq struct {
 type NotifyAtUsersOnNoteReqContent struct {
 	SourceUid int64         `json:"src_uid"` // trigger uid
 	NoteDesc  string        `json:"desc"`
-	NoteId    imodel.NoteId `json:"id"`
+	NoteId    imodel.NoteId `json:"id"` // 笔记id
 }
 
 // 消息内容 反序列化的时候用这个进行反序列化
@@ -85,15 +84,14 @@ func (b *Biz) NotifyAtUsersOnNote(ctx context.Context, req *NotifyAtUsersOnNoteR
 }
 
 type NotifyAtUsersOnCommentReq struct {
-	Uid         int64                             `json:"uid"`
-	TargetUsers []*usermodel.User                 `json:"target_users"` //TODO change user type
+	Uid         int64                             `json:"uid"`          // 谁@
+	TargetUsers []imodel.AtUser                   `json:"target_users"` // 谁被@
 	Content     *NotifyAtUsersOnCommentReqContent `json:"content"`
 }
 
 type NotifyAtUsersOnCommentReqContent struct {
-	SourceUid int64         `json:"src_uid"` // 评论发布者uid
-	RecvUid   int64         `json:"recv_uid"`
-	Comment   string        `json:"comment"`
+	SourceUid int64         `json:"src_uid"`    // 评论发布者uid
+	Comment   string        `json:"comment"`    // 评论内容
 	NoteId    imodel.NoteId `json:"note_id"`    // 评论归属笔记id
 	CommentId int64         `json:"comment_id"` // 评论id
 	RootId    int64         `json:"root_id"`    // 根评论id
@@ -107,16 +105,16 @@ func (b *Biz) NotifyAtUsersOnComment(ctx context.Context, req *NotifyAtUsersOnCo
 	}
 
 	mentions := make([]*sysnotifyv1.MentionMsgContent, 0, len(req.TargetUsers))
-	for _, user := range req.TargetUsers {
+	for _, ated := range req.TargetUsers {
 		contentData, _ := json.Marshal(&notifyAtUserReqContent{
 			NotifyAtUsersOnCommentReqContent: req.Content,
-			RecvUid:                          user.Uid,
+			RecvUid:                          ated.Uid,
 			Loc:                              model.MentionOnComment,
 		})
 		mentions = append(mentions, &sysnotifyv1.MentionMsgContent{
 			Content:   contentData,
 			Uid:       req.Uid,
-			TargetUid: user.Uid,
+			TargetUid: ated.Uid,
 		})
 	}
 

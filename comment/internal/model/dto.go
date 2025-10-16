@@ -16,6 +16,7 @@ type AddCommentReq struct {
 	ParentId int64                        `json:"rid"`     // 被回复的评论id
 	ReplyUid int64                        `json:"ruid"`    // 被回复的用户id
 	Images   []*commentv1.CommentReqImage `json:"images"`
+	AtUsers  []*commentv1.CommentAtUser   `json:"at_users"` // @用户列表
 }
 
 func (r *AddCommentReq) Validate() error {
@@ -60,6 +61,10 @@ func (r *AddCommentReq) Validate() error {
 		return global.ErrCommentWrongRelation
 	}
 
+	if len(r.AtUsers) > 0 {
+		r.AtUsers = FilterInvalidAtUsers(r.AtUsers)
+	}
+
 	return nil
 }
 
@@ -67,4 +72,21 @@ func (r *AddCommentReq) Validate() error {
 type AddCommentRes struct {
 	CommentId int64
 	Uid       int64
+}
+
+func FilterInvalidAtUsers(atUsers []*commentv1.CommentAtUser) []*commentv1.CommentAtUser {
+	if len(atUsers) == 0 {
+		return nil
+	}
+
+	var r []*commentv1.CommentAtUser
+	for _, a := range atUsers {
+		if len(a.Nickname) == 0 || a.Uid == 0 {
+			continue
+		}
+
+		r = append(r, a)
+	}
+
+	return r
 }

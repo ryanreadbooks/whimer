@@ -38,8 +38,6 @@ func (s *CommentSrv) AddComment(ctx context.Context, req *model.AddCommentReq) (
 		return nil, xerror.Wrapf(err, "comment srv failed to add comment").WithCtx(ctx).WithExtra("req", req)
 	}
 
-	// TODO 通知被评论的用户
-
 	return res, nil
 }
 

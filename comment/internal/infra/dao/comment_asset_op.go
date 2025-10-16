@@ -37,7 +37,7 @@ var (
 	sqlBatchDelByCommentId       = "DELETE FROM comment_asset WHERE comment_id IN (%s)"
 
 	// 先查comment再删comment_asset
-	sqlBatchDelBySelectedCommentId = "DELETE FROM comment_asset WHERE comment_id IN (SELECT id FROM comment WHERE root=?) OR comment_id=?"
+	sqlBatchDelAssetsBySelectedCommentId = "DELETE FROM comment_asset WHERE comment_id IN (SELECT id FROM comment WHERE root=?) OR comment_id=?"
 )
 
 // 批量插入
@@ -182,7 +182,7 @@ func (d *CommentAssetDao) BatchDeleteByCommentId(ctx context.Context, cids []int
 
 // 删除根评论为root的子评论的所有asset, 并且一并删除root的asset
 func (d *CommentAssetDao) BatchDeleteByRoot(ctx context.Context, root int64) error {
-	_, err := d.db.ExecCtx(ctx, sqlBatchDelBySelectedCommentId, root, root)
-
+	_, err := d.db.ExecCtx(ctx, sqlBatchDelAssetsBySelectedCommentId, root, root)
+	// 不主动处理缓存 等自动过期即可
 	return xerror.Wrap(xsql.ConvertError(err))
 }

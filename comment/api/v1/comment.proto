@@ -17,6 +17,11 @@ enum CommentType {
   CustomEmoji = 2; // 自定义表情
 }
 
+message CommentAtUser {
+  string nickname = 1;
+  int64 uid = 2;
+}
+
 // 发布评论
 message AddCommentRequest {
   CommentType type = 1;                // 评论类型 0-纯文本 1-图文
@@ -26,6 +31,7 @@ message AddCommentRequest {
   int64 parent_id = 5;                 // 被回复的评论id
   int64 reply_uid = 6;                 // 被回复的用户id
   repeated CommentReqImage images = 7; // 图片评论资源
+  repeated CommentAtUser at_users = 8; // @用户列表
 }
 
 // 图片评论
@@ -108,6 +114,7 @@ message CommentItem {
   bool is_pin = 14;                      // 是否为置顶评论
   int64 subs_count = 15;                 // 子评论数
   repeated CommentItemImage images = 16; // 评论图片资源
+  repeated CommentAtUser at_users = 17;  // @用户列表
 }
 
 message CommentItemImageMeta {
@@ -124,8 +131,8 @@ message CommentItemImage {
 
 message PageGetCommentResponse {
   repeated CommentItem comments = 1; // 评论数据
-  int64 next_cursor = 2;            // 分页获取下一次请求的游标
-  bool has_next = 3;                // 是否还有数据
+  int64 next_cursor = 2;             // 分页获取下一次请求的游标
+  bool has_next = 3;                 // 是否还有数据
 }
 
 // 获取子评论
