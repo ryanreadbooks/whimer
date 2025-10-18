@@ -13,6 +13,7 @@ import (
 	"github.com/ryanreadbooks/whimer/passport/internal/infra/dao"
 	"github.com/ryanreadbooks/whimer/passport/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
+	"github.com/ryanreadbooks/whimer/passport/internal/model/consts"
 )
 
 const (
@@ -65,8 +66,9 @@ func (b *registerBiz) UserRegister(ctx context.Context, tel string) (*model.User
 		UserBase: dao.UserBase{
 			Uid:      uid,
 			Nickname: nickname,
-			Avatar:   "", // 默认头像在各端处理
+			Avatar:   "",
 			Tel:      encTel,
+			Status:   consts.UserStatusNormal,
 			Timing: dao.Timing{
 				CreateAt: now,
 				UpdateAt: now,

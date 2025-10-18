@@ -11,7 +11,7 @@ import (
 
 var (
 	chatDao    *ChatDao
-	messageDao *MessageDao
+	messageDao *MsgDao
 	inboxDao   *InboxDao
 	ctx        = context.TODO()
 )
@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 
 	d := xsql.New(db)
 	chatDao = NewChatDao(d)
-	messageDao = NewMessageDao(d)
+	messageDao = NewMsgDao(d)
 	inboxDao = NewInboxDao(d)
 	m.Run()
 }

@@ -1,0 +1,74 @@
+package model
+
+import (
+	v1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model"
+)
+
+type MentionLocation string
+
+const (
+	MentionOnNote    MentionLocation = "on_note"
+	MentionOnComment MentionLocation = "on_comment"
+)
+
+type MentionedRecvUser struct {
+	Uid      int64  `json:"uid"`
+	Nickname string `json:"nickname"`
+}
+
+type MentionedMsgStatus string
+
+const (
+	MentionedMsgStatusNormal   = "normal"
+	MentionedMsgStatusNoReveal = "noreveal"
+)
+
+// 系统消息 被@
+//
+// 用于对接各端的被@的系统消息结构
+type MentionedMsg struct {
+	Id        string             `json:"id"`      // 消息uuidv7
+	SendAt    int64              `json:"send_at"` // 发送时间
+	Type      MentionLocation    `json:"type"`
+	Uid       int64              `json:"uid"`                  // 谁@的
+	RecvUser  *MentionedRecvUser `json:"recv_user"`            // 被@的
+	NoteId    model.NoteId       `json:"note_id,omitempty"`    // 从哪篇笔记@的
+	CommentId int64              `json:"comment_id,omitempty"` // 从哪条评论@的
+	Content   string             `json:"content"`              // 内容 笔记中的desc或者comment
+	Status    MentionedMsgStatus `json:"status"`
+}
+
+func (m *MentionedMsg) DoNotReveal() {
+	if m == nil {
+		return
+	}
+
+	m.Content = ""
+	m.Status = MentionedMsgStatusNoReveal
+	m.Id = ""
+	m.SendAt = 0
+	m.Type = ""
+	m.Uid = 0
+	m.NoteId = 0
+	m.CommentId = 0
+}
+
+type ChatUnread struct {
+	ChatId string `json:"chat_id"`
+	Count  int64  `json:"count"`
+}
+
+func ChatUnreadFromPb(pb *v1.ChatUnread) ChatUnread {
+	return ChatUnread{
+		ChatId: pb.GetChatId(),
+		Count:  pb.GetUnreadCount(),
+	}
+}
+
+type ChatsUnreadCount struct {
+	MentionUnread ChatUnread `json:"mention_unread"`
+	NoticeUnread  ChatUnread `json:"notice_unread"`
+	LikesUnread   ChatUnread `json:"likes_unread"`
+	ReplyUnread   ChatUnread `json:"reply_unread"`
+}

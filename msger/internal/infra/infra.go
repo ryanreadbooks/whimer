@@ -1,6 +1,8 @@
 package infra
 
 import (
+	"context"
+
 	"github.com/ryanreadbooks/whimer/msger/internal/config"
 	infradao "github.com/ryanreadbooks/whimer/msger/internal/infra/dao"
 
@@ -20,4 +22,8 @@ func Init(c *config.Config) {
 
 func Dao() *infradao.Dao {
 	return dao
+}
+
+func DaoTransact(ctx context.Context, f func(ctx context.Context) error) error {
+	return dao.DB().Transact(ctx, f)
 }

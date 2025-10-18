@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -85,4 +86,72 @@ func TestBatchReader(t *testing.T) {
 
 	wg.Wait()
 	batchReader.Close()
+}
+
+func TestReader(t *testing.T) {
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Topic:   "test_kfk_topic",
+		Brokers: []string{"127.0.0.1:9094"},
+		Dialer: &kafka.Dialer{
+			DualStack: true,
+			SASLMechanism: plain.Mechanism{
+				Username: os.Getenv("ENV_KFK_USERNAME"),
+				Password: os.Getenv("ENV_KFK_PASSWORD"),
+			},
+		},
+		GroupID: "batchreader-group",
+	})
+
+	go func() {
+		defer wg.Done()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+		defer cancel()
+		for {
+			msgs, err := reader.ReadMessage(ctx)
+			if err != nil {
+				t.Logf("reader err = %v", err)
+				if errors.Is(err, context.Canceled) {
+					break
+				}
+				continue
+			}
+
+			fmt.Printf("fetched msg[%v]: %s, %s\n", time.Now().Format(time.DateTime), msgs.Key, string(msgs.Value))
+			time.Sleep(time.Second * 1)
+		}
+
+		t.Log("reader finished")
+	}()
+
+	writer := kafka.Writer{
+		Addr: kafka.TCP("127.0.0.1:9094"),
+		Transport: &kafka.Transport{
+			SASL: plain.Mechanism{
+				Username: os.Getenv("ENV_KFK_USERNAME"),
+				Password: os.Getenv("ENV_KFK_PASSWORD"),
+			},
+		},
+		BatchSize: 1,
+	}
+
+	go func() {
+		defer wg.Done()
+		time.Sleep(time.Second)
+		for i := range 30 {
+			writer.WriteMessages(context.Background(), kafka.Message{
+				Key:   []byte("test-batch-reader-msg-key"),
+				Value: []byte(strconv.Itoa(i)),
+				Topic: "test_kfk_topic",
+			})
+			time.Sleep(time.Millisecond * 10)
+		}
+
+		t.Log("writer finished")
+	}()
+
+	wg.Wait()
+	reader.Close()
 }

@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"math"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/oss/keygen"
 	"github.com/ryanreadbooks/whimer/misc/utils"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
@@ -50,7 +52,7 @@ func isNoteExtValid(ext *notedao.Ext) bool {
 		return false
 	}
 
-	if ext.Tags != "" {
+	if ext.Tags != "" || len(ext.AtUsers) > 0 {
 		return true
 	}
 
@@ -60,6 +62,7 @@ func isNoteExtValid(ext *notedao.Ext) bool {
 func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *model.CreateNoteRequest) (int64, error) {
 	var (
 		uid    = metadata.Uid(ctx)
+		ip     = xnet.IpAsBytes(metadata.ClientIp(ctx))
 		noteId int64
 	)
 
@@ -69,6 +72,7 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *model.CreateNoteRe
 		Desc:    req.Basic.Desc,
 		Privacy: int8(req.Basic.Privacy),
 		Owner:   uid,
+		Ip:      ip,
 	}
 
 	var noteAssets = make([]*notedao.Asset, 0, len(req.Images))
@@ -103,12 +107,18 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *model.CreateNoteRe
 		}
 
 		var ext = notedao.Ext{
-			NoteId: noteId,
+			NoteId:  noteId,
+			AtUsers: json.RawMessage{},
 		}
 		// 笔记额外信息
 		if len(req.TagIds) > 0 {
 			tagIdList := xslice.JoinInts(req.TagIds)
 			ext.Tags = tagIdList
+		}
+		if len(req.AtUsers) > 0 {
+			if data, err := json.Marshal(req.AtUsers); err == nil {
+				ext.AtUsers = data
+			}
 		}
 
 		if isNoteExtValid(&ext) {
@@ -131,6 +141,7 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *model.CreateNoteRe
 func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *model.UpdateNoteRequest) error {
 	var (
 		uid = metadata.Uid(ctx)
+		ip  = xnet.IpAsBytes(metadata.ClientIp(ctx))
 	)
 
 	now := time.Now().Unix()
@@ -154,6 +165,7 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *model.UpdateNoteRe
 		Desc:     req.Basic.Desc,
 		Privacy:  int8(req.Basic.Privacy),
 		Owner:    oldNote.Owner,
+		Ip:       ip,
 		CreateAt: oldNote.CreateAt,
 		UpdateAt: now,
 	}
@@ -224,12 +236,21 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *model.UpdateNoteRe
 
 		// ext处理
 		ext := notedao.Ext{
-			NoteId: oldNote.Id,
-			Tags:   xslice.JoinInts(req.TagIds),
+			NoteId:  oldNote.Id,
+			Tags:    xslice.JoinInts(req.TagIds),
+			AtUsers: json.RawMessage{},
 		}
-		err = infra.Dao().NoteExtDao.Upsert(ctx, &ext)
-		if err != nil {
-			return xerror.Wrapf(err, "noteext dao upsert tx failed")
+		if len(req.AtUsers) > 0 {
+			if data, err := json.Marshal(req.AtUsers); err == nil {
+				ext.AtUsers = data
+			}
+		}
+
+		if isNoteExtValid(&ext) {
+			err = infra.Dao().NoteExtDao.Upsert(ctx, &ext)
+			if err != nil {
+				return xerror.Wrapf(err, "noteext dao upsert tx failed when updating note")
+			}
 		}
 
 		return nil
@@ -417,6 +438,7 @@ func (b *NoteCreatorBiz) PageListNote(ctx context.Context, page, count int32) (*
 	return notesResp, total, nil
 }
 
+// Deprecated
 func (b *NoteCreatorBiz) GetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {
 	return nil, xerror.Wrap(global.ErrPermDenied.Msg("服务器签名失败"))
 }

@@ -98,7 +98,7 @@ func (n *NoteTagIndexer) Init(ctx context.Context, opt *common.IndexerOption) er
 		Do(ctx)
 
 	if err != nil {
-		if xelaserror.IsResourceAlreadyExistsError(err) {
+		if xelaserror.IsResourceAlreadyExists(err) {
 			return nil
 		}
 

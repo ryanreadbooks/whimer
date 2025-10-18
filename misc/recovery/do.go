@@ -21,3 +21,9 @@ func Do(fn func() error) (err error) {
 
 	return fn()
 }
+
+func DoV2(fn func() error) func() error {
+	return func() error {
+		return Do(fn)
+	}
+}

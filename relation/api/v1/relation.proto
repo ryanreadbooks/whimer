@@ -21,7 +21,7 @@ message QueryCondition {
   int64 offset = 1;
   int32 count = 2 [
     (buf.validate.field).int32.gt = 0,
-    (buf.validate.field).int32.lte = 20
+    (buf.validate.field).int32.lte = 250
   ];
 }
 
@@ -36,6 +36,7 @@ message GetUserFanListResponse {
   repeated int64 fans = 1;
   int64 next_offset = 2;
   bool has_more = 3;
+  repeated int64 followed_times = 4; // 被关注时间
 }
 
 message GetUserFollowingListRequest {
@@ -47,6 +48,7 @@ message GetUserFollowingListResponse {
   repeated int64 followings = 1;
   int64 next_offset = 2;
   bool has_more = 3;
+  repeated int64 follow_times = 4; // 关注时间
 }
 
 message RemoveUserFanRequest {
@@ -91,6 +93,7 @@ message PageGetUserFanListRequest {
 message PageGetUserFanListResponse {
   repeated int64 fans_id = 1; // 粉丝uid
   int64 total = 2;
+  repeated int64 followed_times = 3; // 被关注时间
 }
 
 message PageGetUserFollowingListRequest {
@@ -102,6 +105,7 @@ message PageGetUserFollowingListRequest {
 message PageGetUserFollowingListResponse {
   repeated int64 followings_id = 1; // 关注的人uid
   int64 total = 2;
+  repeated int64 follow_times = 3; // 关注时间
 }
 
 message UpdateUserSettingsRequest {
@@ -112,9 +116,7 @@ message UpdateUserSettingsRequest {
 
 message UpdateUserSettingsResponse {}
 
-message GetUserSettingsRequest {
-  int64 uid = 1;
-}
+message GetUserSettingsRequest { int64 uid = 1; }
 
 message GetUserSettingsResponse {
   bool show_fan_list = 1;

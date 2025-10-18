@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"context"
+	"errors"
 
 	"github.com/ryanreadbooks/whimer/search/internal/srv"
 
@@ -18,7 +19,10 @@ func startHandlingNoteEvents(svc *srv.Service) {
 			msgs, err := noteEventBatchReader.BatchFetchMessages(ctx)
 			if err != nil {
 				xlog.Msg("when handling note events, fetch message failed").Err(err).Error()
-				break
+				if errors.Is(err, context.Canceled) {
+					break
+				}
+				continue
 			}
 
 			err = svc.DocumentSrv.DispatchNoteEvents(ctx, msgs)

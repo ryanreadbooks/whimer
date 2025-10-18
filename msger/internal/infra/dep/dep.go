@@ -5,16 +5,15 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/msger/internal/config"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
-	pushv1 "github.com/ryanreadbooks/whimer/wslink/api/push/v1"
+	wspushv1 "github.com/ryanreadbooks/whimer/wslink/api/push/v1"
 
 	foliumsdk "github.com/ryanreadbooks/folium/sdk"
 )
 
 var (
 	userer   userv1.UserServiceClient
-	notifier pushv1.PushServiceClient
+	wsLinker wspushv1.PushServiceClient
 	idGen    foliumsdk.IClient
-	err      error
 )
 
 func Init(c *config.Config) {
@@ -23,8 +22,8 @@ func Init(c *config.Config) {
 		userv1.NewUserServiceClient, func(cc userv1.UserServiceClient) { userer = cc },
 	)
 
-	notifier = xgrpc.NewRecoverableClient(c.External.Grpc.Wslink,
-		pushv1.NewPushServiceClient, func(psc pushv1.PushServiceClient) { notifier = psc },
+	wsLinker = xgrpc.NewRecoverableClient(c.External.Grpc.Wslink,
+		wspushv1.NewPushServiceClient, func(psc wspushv1.PushServiceClient) { wsLinker = psc },
 	)
 }
 
@@ -32,8 +31,8 @@ func Userer() userv1.UserServiceClient {
 	return userer
 }
 
-func Notifier() pushv1.PushServiceClient {
-	return notifier
+func WsLinker() wspushv1.PushServiceClient {
+	return wsLinker
 }
 
 func Idgen() foliumsdk.IClient {

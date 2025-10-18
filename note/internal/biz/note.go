@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math"
 
@@ -65,6 +66,28 @@ func (b *NoteBiz) BatchGetNote(ctx context.Context, noteIds []int64) (map[int64]
 
 	resp := make(map[int64]*model.Note, len(notes))
 	for _, n := range assembledNotes.Items {
+		resp[n.NoteId] = n
+	}
+
+	return resp, nil
+}
+
+// 批量获取笔记基础信息 不包含点赞等互动信息和标签 不包含asset
+func (b *NoteBiz) BatchGetNoteWithoutAsset(ctx context.Context, noteIds []int64) (map[int64]*model.Note, error) {
+	notesMap, err := infra.Dao().NoteDao.BatchGet(ctx, noteIds)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "biz batch get note failed").WithCtx(ctx)
+	}
+
+	if len(notesMap) == 0 {
+		return map[int64]*model.Note{}, nil
+	}
+
+	daoNotes := xmap.Values(notesMap)
+	notes := model.NoteSliceFromDao(daoNotes)
+
+	resp := make(map[int64]*model.Note, len(notes))
+	for _, n := range notes {
 		resp[n.NoteId] = n
 	}
 
@@ -243,17 +266,17 @@ func (b *NoteBiz) AssembleNotesExt(ctx context.Context, notes []*model.Note) err
 	}
 
 	noteIds = xslice.Uniq(noteIds)
-	exts, err := infra.Dao().NoteExtDao.BatchGetById(ctx, noteIds)
+	extsPo, err := infra.Dao().NoteExtDao.BatchGetById(ctx, noteIds)
 	if err != nil {
 		return xerror.Wrapf(err, "note ext dao failed to batch get")
 	}
 
 	// noteId -> ext
-	res := xslice.MakeMap(exts, func(e *notedao.Ext) int64 { return e.NoteId })
-	extMap := make(map[int64]*model.NoteExt, len(res))
-	totalTagIds := make([]int64, 0, len(res))
+	extsPoMap := xslice.MakeMap(extsPo, func(e *notedao.Ext) int64 { return e.NoteId })
+	extMap := make(map[int64]*model.NoteExt, len(extsPoMap))
+	totalTagIds := make([]int64, 0, len(extsPoMap))
 
-	for noteId, extPo := range res {
+	for noteId, extPo := range extsPoMap {
 		if extPo == nil {
 			continue
 		}
@@ -262,6 +285,13 @@ func (b *NoteBiz) AssembleNotesExt(ctx context.Context, notes []*model.Note) err
 		totalTagIds = append(totalTagIds, tIds...)
 		extMap[noteId] = &model.NoteExt{}
 		extMap[noteId].TagIds = tIds
+
+		if extPo.AtUsers != nil {
+			var atUsers []*model.AtUser
+			if errParseAtUsers := json.Unmarshal(extPo.AtUsers, &atUsers); errParseAtUsers == nil {
+				extMap[noteId].AtUsers = atUsers
+			}
+		}
 	}
 
 	totalTagIds = xslice.Uniq(totalTagIds)
@@ -288,6 +318,9 @@ func (b *NoteBiz) AssembleNotesExt(ctx context.Context, notes []*model.Note) err
 					})
 				}
 			}
+
+			// 2. at_users
+			n.AtUsers = ext.AtUsers
 
 			// TODO other ext attributes if necessary
 		}

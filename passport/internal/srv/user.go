@@ -3,6 +3,7 @@ package srv
 import (
 	"context"
 
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/passport/internal/biz"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
 )
@@ -27,6 +28,7 @@ func (s *UserSrv) GetUser(ctx context.Context, uid int64) (*model.UserInfo, erro
 }
 
 func (s *UserSrv) BatchGetUser(ctx context.Context, uids []int64) (map[int64]*model.UserInfo, error) {
+	uids = xslice.Uniq(uids)
 	return s.userBiz.BatchGetUser(ctx, uids)
 }
 
@@ -39,6 +41,6 @@ func (s *UserSrv) UpdateUserAvatar(ctx context.Context, req *model.AvatarInfoReq
 		user = model.CtxGetUserInfo(ctx)
 	)
 
-	return s.userBiz.UpdateAvatar(ctx, user.Uid, req)
+	ret, _, err := s.userBiz.UpdateAvatar(ctx, user.Uid, req)
+	return ret, err
 }
-

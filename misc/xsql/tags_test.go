@@ -45,9 +45,9 @@ func TestGetDbTags(t *testing.T) {
 }
 
 func TestGetFields2(t *testing.T) {
-	t.Log(GetFields2(TagTs{}))
-	t.Log(GetFields2(TagTs{}, "id", "ctime"))
-	t.Log(GetFields2(&NoTags{}))
-	t.Log(GetFields2(&PTags2{}))
-	t.Log(GetFields2(PTags{}))
+	t.Log(GetFields2WithSkip(TagTs{}))
+	t.Log(GetFields2WithSkip(TagTs{}, "id", "ctime"))
+	t.Log(GetFields2WithSkip(&NoTags{}))
+	t.Log(GetFields2WithSkip(&PTags2{}))
+	t.Log(GetFields2WithSkip(PTags{}))
 }

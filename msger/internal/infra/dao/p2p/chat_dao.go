@@ -28,7 +28,7 @@ var (
 	chatFields = xsql.GetFields(_chatInst)
 
 	initChatFields, initChatQuest = xsql.SelectFields2(_chatInst, "chat_id", "ctime", "user_id", "peer_id")
-	insChatFields, insChatQst     = xsql.GetFields2(_chatInst, "id") // for insert
+	insChatFields, insChatQst     = xsql.GetFields2WithSkip(_chatInst, "id") // for insert
 
 	sqlInitChat    = fmt.Sprintf("INSERT IGNORE INTO p2p_chat(%s) VALUES (%s), (%s)", initChatFields, initChatQuest, initChatQuest)
 	sqlCreateChat  = fmt.Sprintf("INSERT IGNORE INTO p2p_chat(%s) VALUES (%s)", insChatFields, insChatQst)
@@ -41,7 +41,7 @@ var (
 
 const (
 	sqlCountByUserId    = "SELECT COUNT(*) AS cnt FROM p2p_chat WHERE user_id=?"
-	sqlResetUnreadCount = "UPDATE p2p_chat SET unread_count=0, last_read_message_id=last_message_id, last_read_time=? " +
+	sqlResetUnreadCount = "UPDATE p2p_chat SET unread_count=0, last_read_msg_id=last_msg_id, last_read_time=? " +
 		"WHERE chat_id=? AND user_id=?"
 )
 
@@ -82,9 +82,9 @@ func (d *ChatDao) Create(ctx context.Context, chat *ChatPO) (int64, error) {
 		chat.PeerId,
 		chat.UnreadCount,
 		chat.Ctime,
-		chat.LastMessageId,
-		chat.LastMessageSeq,
-		chat.LastReadMessageId,
+		chat.LastMsgId,
+		chat.LastMsgSeq,
+		chat.LastReadMsgId,
 		chat.LastReadTime,
 	)
 	if err != nil {
@@ -139,11 +139,11 @@ func (d *ChatDao) BatchGetByChatIdsUserId(ctx context.Context, chatIds []int64, 
 // 分页获取
 func (d *ChatDao) PageListByUserId(ctx context.Context, userId, lastSeq int64, count int, unread bool) ([]*ChatPO, error) {
 	var chats []*ChatPO
-	sql := "SELECT %s FROM p2p_chat WHERE user_id=? AND last_message_seq<? "
+	sql := "SELECT %s FROM p2p_chat WHERE user_id=? AND last_msg_seq<? "
 	if unread {
 		sql += "AND unread_count>0 "
 	}
-	sql += "ORDER BY last_message_seq DESC LIMIT ?"
+	sql += "ORDER BY last_msg_seq DESC LIMIT ?"
 	sql = fmt.Sprintf(sql, chatFields)
 	err := d.db.QueryRowsCtx(ctx, &chats, sql, userId, lastSeq, count)
 
@@ -156,7 +156,7 @@ func (d *ChatDao) UpdateLastMsg(ctx context.Context,
 	incrUnread bool,
 ) error {
 
-	sql := "UPDATE p2p_chat SET last_message_id=?, last_message_seq=?"
+	sql := "UPDATE p2p_chat SET last_msg_id=?, last_msg_seq=?"
 	if incrUnread {
 		sql += ", unread_count=unread_count+1"
 	}
@@ -173,7 +173,7 @@ func (d *ChatDao) UpdateMsg(ctx context.Context,
 	incrUnread bool,
 ) error {
 
-	sql := "UPDATE p2p_chat SET last_message_id=?, last_message_seq=?, " +
+	sql := "UPDATE p2p_chat SET last_msg_id=?, last_msg_seq=?, " +
 		"last_read_message_id=?, last_read_time=?"
 	if incrUnread {
 		sql += ", unread_count=unread_count+1"

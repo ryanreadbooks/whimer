@@ -1,0 +1,10 @@
+package comment
+
+import usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
+
+type MentionUserReq struct {
+	Search string `form:"search,optional"`
+}
+type MentionUserResp struct {
+	Groups []*usermodel.MentionUserRespItem `json:"groups"`
+}

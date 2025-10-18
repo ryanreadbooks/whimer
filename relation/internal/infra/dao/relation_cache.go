@@ -38,7 +38,7 @@ var luaFunctionCodes string
 
 // 用户关注关系的缓存 缓存结构定义如下
 //
-// 仅缓存最新的120个关注的粉丝从而限制数量
+// 仅缓存最新的n个关注的粉丝从而限制数量
 // Sorted set as fans list: [{uid, time}, {uid, time}, ..., {uid, time}]
 //
 // 外层限制最大关注人数从而限制数量
@@ -184,6 +184,10 @@ func (c *RelationCache) SetLink(ctx context.Context, alpha, beta int64, link Lin
 }
 
 func (c *RelationCache) BatchSetLinks(ctx context.Context, datas []CacheLink) error {
+	if len(datas) == 0 {
+		return nil
+	}
+
 	type pipeDataType struct {
 		key    string
 		link   int8
@@ -200,7 +204,7 @@ func (c *RelationCache) BatchSetLinks(ctx context.Context, datas []CacheLink) er
 			link:   int8(link),
 			expire: xtime.NDayJitter(5, time.Hour),
 		})
-		args = append(args, key, link)
+		args = append(args, key, int8(link))
 	}
 
 	pipe, err := c.r.TxPipeline()
@@ -228,10 +232,10 @@ type CacheLink struct {
 }
 
 // 获取a和b的关系
-func (c *RelationCache) GetLink(ctx context.Context, alpha, beta int64) (*RelationUser, error) {
+func (c *RelationCache) GetLink(ctx context.Context, alpha, beta int64) (*Relation, error) {
 	alpha, beta = enforceUidRule(alpha, beta)
 	key := getLinkCacheKey(alpha, beta)
-	cl := &RelationUser{
+	cl := &Relation{
 		UserAlpha: alpha,
 		UserBeta:  beta,
 	}
@@ -257,7 +261,7 @@ type UserPair struct {
 }
 
 // 批量获取关注关系
-func (c *RelationCache) BatchGetLinks(ctx context.Context, users []UserPair) ([]*RelationUser, error) {
+func (c *RelationCache) BatchGetLinks(ctx context.Context, users []UserPair) ([]*Relation, error) {
 	keys := make([]string, 0, len(users))
 	for _, pair := range users {
 		alpha, beta := enforceUidRule(pair.UserA, pair.UserB)
@@ -270,7 +274,7 @@ func (c *RelationCache) BatchGetLinks(ctx context.Context, users []UserPair) ([]
 	}
 
 	dirtyKeys := make([]string, 0, len(keys))
-	cachedData := make([]*RelationUser, 0, len(keys))
+	cachedData := make([]*Relation, 0, len(keys))
 	for idx, r := range res {
 		key := keys[idx]
 
@@ -290,7 +294,7 @@ func (c *RelationCache) BatchGetLinks(ctx context.Context, users []UserPair) ([]
 		// found and valid
 		user := users[idx]
 		user.UserA, user.UserB = enforceUidRule(user.UserA, user.UserB)
-		cachedData = append(cachedData, &RelationUser{
+		cachedData = append(cachedData, &Relation{
 			UserAlpha: user.UserA,
 			UserBeta:  user.UserB,
 			Link:      linkSt,

@@ -22,7 +22,7 @@ const (
 type CreateNoteRequestBasic struct {
 	Title   string `json:"title"`
 	Desc    string `json:"desc"`
-	Privacy int    `json:"privacy"`
+	Privacy int8   `json:"privacy"`
 }
 
 type CreateNoteRequestImage struct {
@@ -33,9 +33,10 @@ type CreateNoteRequestImage struct {
 }
 
 type CreateNoteRequest struct {
-	Basic  CreateNoteRequestBasic   `json:"basic"`
-	Images []CreateNoteRequestImage `json:"images"`
-	TagIds []int64                  `json:"tag_ids"`
+	Basic   CreateNoteRequestBasic   `json:"basic"`
+	Images  []CreateNoteRequestImage `json:"images"`
+	TagIds  []int64                  `json:"tag_ids"`
+	AtUsers []*AtUser                `json:"at_users"`
 }
 
 func (r *CreateNoteRequest) Validate() error {
@@ -67,6 +68,8 @@ func (r *CreateNoteRequest) Validate() error {
 	if len(r.TagIds) >= maxTagCount {
 		return global.ErrArgs.Msg(fmt.Sprintf("笔记最多支持%d个标签", maxTagCount))
 	}
+
+	r.AtUsers = FilterInvalidAtUsers(r.AtUsers)
 
 	return nil
 }

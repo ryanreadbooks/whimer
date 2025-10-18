@@ -5,12 +5,11 @@ grpc:
   log:
     level: debug
   etcd:
-    hosts:
-      - 127.0.0.1:2379
+    hosts: ${ENV_ETCD_HOSTS}
     key: whimer.comment.rpc
   telemetry:
     Name: comment
-    Endpoint: http://127.0.0.1:14268/api/traces
+    Endpoint: ${ENV_JAEGER_ENDPOINT}
     Sampler: 1.0
     Batcher: jaeger
 
@@ -24,30 +23,37 @@ mysql:
 external:
   grpc:
     passport:
-      hosts: [127.0.0.1:2379]
+      hosts: ${ENV_ETCD_HOSTS}
       key: whimer.passport.rpc
     note:
-      hosts: [127.0.0.1:2379]
+      hosts: ${ENV_ETCD_HOSTS}
       key: whimer.note.rpc
     counter:
-      hosts: [127.0.0.1:2379]
+      hosts: ${ENV_ETCD_HOSTS}
       key: whimer.counter.rpc
 
 seqer: 
   addr: 127.0.0.1:9528
 
-kafka:
-  brokers:
-    - 127.0.0.1:9094
-  topic: reply-bus
-  consume_group: reply-job
-  num_consumers: 3
-  offset: first
-
 redis:
-  host: 127.0.0.1:7542
+  host: ${ENV_REDIS_HOST}
 
-cron:
-  sync_reply_spec: "0 3 * * *"
+oss:
+  inline_image:
+    endpoint: ${ENV_OSS_ENDPOINT}
+    location: ${ENV_OSS_LOCATION}
+    bucket: pics
+    prefix: cmt_inline
+    display_endpoint: http://s1-file.whimer.com
+    upload_endpoint: http://s1-upload.whimer.com
 
-data_proxy_mode: direct
+oss_upload_auth:
+  jwt_issuer: whimer
+  jwt_subject: sts
+  jwt_duration: 30m
+  ak: ${ENV_OSS_AK}
+  sk: ${ENV_OSS_SK}
+
+img_proxy_auth:
+  key: ${IMGPROXY_KEY}
+  salt: ${IMGPROXY_SALT}

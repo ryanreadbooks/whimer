@@ -155,7 +155,7 @@ func (n *NoteIndexer) Init(ctx context.Context, opt *common.IndexerOption) error
 		Settings(_noteIns.Settings(opt)).
 		Do(ctx)
 	if err != nil {
-		if xelaserror.IsResourceAlreadyExistsError(err) {
+		if xelaserror.IsResourceAlreadyExists(err) {
 			return nil
 		}
 

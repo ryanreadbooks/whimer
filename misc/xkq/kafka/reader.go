@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -34,7 +35,7 @@ func NewBatchReader(r *kafka.Reader, c BatchReaderConfig) *BatchReader {
 	if c.BatchSize == 0 {
 		c.BatchSize = 100
 	}
-	
+
 	br := &BatchReader{
 		r:       r,
 		c:       c,
@@ -62,8 +63,9 @@ func (r *BatchReader) prefetchMessages() {
 		default:
 			msg, err := r.r.FetchMessage(r.ctx)
 			if err != nil {
-				// 如果是上下文取消，不视为错误
-				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				// 如果是上下文取消，不视为错误 而是退出的信号
+				if errors.Is(err, context.Canceled) {
+					xlog.Msgf("batch reader prefetch messages ctx done").Err(err).Info()
 					return
 				}
 

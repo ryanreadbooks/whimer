@@ -38,10 +38,10 @@ var (
 
 // 用户的关系设置
 type RelationSetting struct {
-	Uid      int64           `db:"uid" json:"uid"`
+	Uid      int64           `db:"uid"      json:"uid"`
 	Settings json.RawMessage `db:"settings" json:"settings"`
-	Ctime    int64           `db:"ctime" json:"ctime"`
-	Mtime    int64           `db:"mtime" json:"mtime"`
+	Ctime    int64           `db:"ctime"    json:"ctime"`
+	Mtime    int64           `db:"mtime"    json:"mtime"`
 }
 
 func (r *RelationSetting) ParseSettings() *Settings {
@@ -111,6 +111,9 @@ func (d *RelationSettingDao) Update(ctx context.Context, s *RelationSetting) err
 	if s.Mtime == 0 {
 		s.Mtime = time.Now().Unix()
 	}
+	if s.Settings == nil {
+		s.Settings = DefaultSettingsJson
+	}
 	_, err := d.db.ExecCtx(ctx, sqlUpdateSetting, s.Settings, s.Mtime, s.Uid)
 
 	concurrent.SafeGo(func() {
@@ -140,7 +143,9 @@ func (d *RelationSettingDao) Insert(ctx context.Context, s *RelationSetting) err
 		s.Ctime = time.Now().Unix()
 		s.Mtime = s.Ctime
 	}
-
+	if s.Settings == nil {
+		s.Settings = DefaultSettingsJson
+	}
 	_, err := d.db.ExecCtx(ctx, sqlInsertSetting, s.Uid, s.Settings, s.Ctime, s.Mtime)
 
 	concurrent.SafeGo(func() {

@@ -76,20 +76,29 @@ message GetPublicPostedCountRequest {
 
 message GetPublicPostedCountResponse { int64 count = 1; }
 
+message BatchCheckFeedNoteExistRequest { repeated int64 note_ids = 1; }
+
+message BatchCheckFeedNoteExistResponse { map<int64, bool> existence = 1; }
+
 // note相关非管理功能服务
 service NoteFeedService {
   // 随机获取笔记内容
   rpc RandomGet(RandomGetRequest) returns (RandomGetResponse);
+
   // 获取笔记
   rpc GetFeedNote(GetFeedNoteRequest) returns (GetFeedNoteResponse);
+
   // 批量获取笔记
   rpc BatchGetFeedNotes(BatchGetFeedNotesRequest)
       returns (BatchGetFeedNotesResponse);
+
   // 按照推荐获取
   rpc RecommendGet(RecommendGetRequest) returns (RecommendGetResponse);
+
   // 获取指定用户的最近的笔记内容
   rpc GetUserRecentPost(GetUserRecentPostRequest)
       returns (GetUserRecentPostResponse);
+
   // 列出指定用户公开的笔记内容
   rpc ListFeedByUid(ListFeedByUidRequest) returns (ListFeedByUidResponse);
 
@@ -97,5 +106,10 @@ service NoteFeedService {
   rpc GetTagInfo(GetTagInfoRequest) returns (GetTagInfoResponse);
 
   // 获取用户投稿数量
-  rpc GetPublicPostedCount(GetPublicPostedCountRequest) returns (GetPublicPostedCountResponse);
+  rpc GetPublicPostedCount(GetPublicPostedCountRequest)
+      returns (GetPublicPostedCountResponse);
+
+  // 检查笔记是否存在（存在且公开）
+  rpc BatchCheckFeedNoteExist(BatchCheckFeedNoteExistRequest)
+      returns (BatchCheckFeedNoteExistResponse);
 }

@@ -16,15 +16,21 @@ func TestWrap(t *testing.T) {
 }
 
 func TestApiCall(t *testing.T) {
-	err := api()
+	err := testApi()
 	if err != nil {
 		fmt.Printf("%v\n", err)
 	}
 }
 
+func testConverErr(err error) error {
+	// 其它db错误全部视为5xx
+	return Wrapf(ErrInternal, "%s", err.Error())
+}
+
 func dao() error {
 	if n := rand.Intn(2); n >= 0 {
-		return Wrapf(ErrArgs, "dao rand error: %d", n)
+		// return Wrapf(ErrArgs, "dao rand error: %d", n)
+		return Wrap(testConverErr(fmt.Errorf("unknown db error")))
 	}
 	return nil
 }
@@ -32,7 +38,7 @@ func dao() error {
 func service2() error {
 	err := service()
 	if err != nil {
-		return Wrapf(err, "service2 error")
+		return Wrap(err)
 	}
 
 	return nil
@@ -41,13 +47,13 @@ func service2() error {
 func service() error {
 	err := dao()
 	if err != nil {
-		return Wrapf(err, "servier error, hello world, id:%d", rand.Intn(123))
+		return Wrapf(err, "hello world id:%d", rand.Intn(123))
 	}
 
 	return nil
 }
 
-func api() error {
+func testApi() error {
 	err := service2()
 	return err
 }
@@ -56,7 +62,7 @@ func TestWrap_UnwindFrames(t *testing.T) {
 	convey.Convey("UnwindFrames\n", t, func() {
 		sts := UnwrapFrames(nil)
 		convey.So(sts, convey.ShouldBeEmpty)
-		sts = UnwrapFrames(api())
+		sts = UnwrapFrames(testApi())
 		convey.So(sts, convey.ShouldNotBeEmpty)
 		fmt.Println(stacktrace.FormatFrames(sts))
 
@@ -69,7 +75,7 @@ func TestWrap_HasFramesHold(t *testing.T) {
 	convey.Convey("HasFramesHold\n", t, func() {
 		hold := FramesWrapped(nil)
 		convey.So(hold, convey.ShouldBeFalse)
-		hold = FramesWrapped(api())
+		hold = FramesWrapped(testApi())
 		convey.So(hold, convey.ShouldBeTrue)
 	})
 }
@@ -117,7 +123,7 @@ func TestWrap_UnwindMsg(t *testing.T) {
 }
 
 func TestStripFrames(t *testing.T) {
-	err := api()
+	err := testApi()
 	sts := UnwrapFrames(err)
 	fmt.Println(stacktrace.FormatFrames(sts))
 	t.Log(err)

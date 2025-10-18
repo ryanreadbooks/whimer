@@ -32,4 +32,6 @@ var (
 	ErrUserNotFound          = ErrArgs.Msg("用户不存在")
 	ErrUnsupportedMsgType    = ErrArgs.Msg("不支持的消息类型")
 	ErrEmptyMsg              = ErrArgs.Msg("消息内容为空")
+	ErrSysChatNotExist       = ErrArgs.Msg("系统会话不存在")
+	ErrSysChatNotYours       = ErrPermDenied.Msg("系统消息归属错误")
 )

@@ -64,7 +64,7 @@ func (d *InboxDao) ListMsg(ctx context.Context,
 		"chat_id=? AND msg_seq<? "
 	if unread {
 		sql += "AND status=? "
-		args = append(args, gm.InboxUnread)
+		args = append(args, gm.P2PInboxUnread)
 	}
 	sql += "ORDER BY msg_seq DESC LIMIT ?"
 	args = append(args, cnt)
@@ -91,13 +91,13 @@ func (d *InboxDao) DeleteMsgs(ctx context.Context, userId, chatId int64) error {
 // 更新状态为已读（不包含撤回）
 func (d *InboxDao) UpdateStatusToRead(ctx context.Context, userId, chatId int64) error {
 	sql := "UPDATE p2p_inbox SET status=? WHERE user_id=? AND chat_id=? AND status!=?"
-	_, err := d.db.ExecCtx(ctx, sql, gm.InboxRead, userId, chatId, gm.InboxRevoked)
+	_, err := d.db.ExecCtx(ctx, sql, gm.P2PInboxRead, userId, chatId, gm.P2PInboxRevoked)
 	return xsql.ConvertError(err)
 }
 
 // 撤回消息
 func (d *InboxDao) RevokeMsg(ctx context.Context, chatId, msgId int64) error {
 	sql := "UPDATE p2p_inbox SET status=? WHERE chat_id=? AND msg_id=?"
-	_, err := d.db.ExecCtx(ctx, sql, gm.InboxRevoked, chatId, msgId)
+	_, err := d.db.ExecCtx(ctx, sql, gm.P2PInboxRevoked, chatId, msgId)
 	return xsql.ConvertError(err)
 }

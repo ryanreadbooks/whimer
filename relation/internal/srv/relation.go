@@ -135,7 +135,7 @@ func (s *RelationSrv) UnfollowUser(ctx context.Context, follower, unfollowed int
 
 // 获取粉丝列表
 func (s *RelationSrv) GetUserFanList(ctx context.Context, who int64, offset int64, cnt int) (
-	fans []int64, result model.ListResult, err error) {
+	fans []model.UidAndTime, result model.ListResult, err error) {
 
 	var (
 		uid = metadata.Uid(ctx)
@@ -173,7 +173,7 @@ func limitPageAndCount(page, count int32) (int32, int32, bool) {
 }
 
 // 分页获取粉丝列表
-func (s *RelationSrv) PageGetUserFanList(ctx context.Context, target int64, page, count int32) ([]int64, int64, error) {
+func (s *RelationSrv) PageGetUserFanList(ctx context.Context, target int64, page, count int32) ([]model.UidAndTime, int64, error) {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -182,15 +182,22 @@ func (s *RelationSrv) PageGetUserFanList(ctx context.Context, target int64, page
 		return nil, 0, xerror.Wrap(err)
 	}
 
-	// 限制最大数量
-	page, adjustedCount, overflow := limitPageAndCount(page, count)
-	if overflow {
-		total, err := s.relationBiz.GetUserFanCount(ctx, target)
-		if err != nil {
-			return nil, 0, xerror.Wrapf(err, "biz get user fan count failed")
-		}
+	var (
+		adjustedCount int32 = count
+		overflow      bool
+	)
 
-		return nil, total, nil
+	// 如果不是uid自己访问需要限制最大数量
+	if uid != target {
+		page, adjustedCount, overflow = limitPageAndCount(page, count)
+		if overflow {
+			total, err := s.relationBiz.GetUserFanCount(ctx, target)
+			if err != nil {
+				return nil, 0, xerror.Wrapf(err, "biz get user fan count failed")
+			}
+
+			return []model.UidAndTime{}, total, nil // overflow后返回空数据
+		}
 	}
 
 	uids, total, err := s.relationBiz.PageGetUserFanList(ctx, target, page, adjustedCount)
@@ -203,7 +210,7 @@ func (s *RelationSrv) PageGetUserFanList(ctx context.Context, target int64, page
 
 // 获取关注列表
 func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offset int64, cnt int) (
-	followings []int64, result model.ListResult, err error) {
+	followings []model.UidAndTime, result model.ListResult, err error) {
 
 	var (
 		uid = metadata.Uid(ctx)
@@ -224,7 +231,7 @@ func (s *RelationSrv) GetUserFollowingList(ctx context.Context, who int64, offse
 
 // 分页获取关注列表
 func (r *RelationSrv) PageGetUserFollowingList(ctx context.Context, target int64, page, count int32) (
-	[]int64, int64, error) {
+	[]model.UidAndTime, int64, error) {
 	var (
 		uid = metadata.Uid(ctx)
 	)
@@ -233,15 +240,21 @@ func (r *RelationSrv) PageGetUserFollowingList(ctx context.Context, target int64
 		return nil, 0, xerror.Wrap(err)
 	}
 
-	// 限制最大数量
-	page, adjustedCount, overflow := limitPageAndCount(page, count)
-	if overflow {
-		total, err := r.relationBiz.GetUserFollowingCount(ctx, target)
-		if err != nil {
-			return nil, 0, xerror.Wrapf(err, "biz get user following count failed")
-		}
+	var (
+		adjustedCount int32 = count
+		overflow      bool
+	)
+	// 如果不是uid自己访问需要限制最大数量
+	if uid != target {
+		page, adjustedCount, overflow = limitPageAndCount(page, count)
+		if overflow {
+			total, err := r.relationBiz.GetUserFollowingCount(ctx, target)
+			if err != nil {
+				return nil, 0, xerror.Wrapf(err, "biz get user following count failed")
+			}
 
-		return nil, total, nil
+			return []model.UidAndTime{}, total, nil
+		}
 	}
 
 	uids, total, err := r.relationBiz.PageGetUserFollowingList(ctx, target, page, adjustedCount)

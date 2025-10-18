@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	maxLimit = 20
+	maxLimit = 250
 )
 
 type RelationServiceServer struct {
@@ -28,7 +28,9 @@ func NewRelationServiceServer(srv *srv.Service) *RelationServiceServer {
 	return s
 }
 
-func (s *RelationServiceServer) FollowUser(ctx context.Context, req *relationv1.FollowUserRequest) (*relationv1.FollowUserResponse, error) {
+func (s *RelationServiceServer) FollowUser(ctx context.Context, req *relationv1.FollowUserRequest) (
+	*relationv1.FollowUserResponse, error) {
+
 	var err error
 	switch req.Action {
 	case relationv1.FollowUserRequest_ACTION_FOLLOW:
@@ -46,37 +48,60 @@ func (s *RelationServiceServer) FollowUser(ctx context.Context, req *relationv1.
 	return &relationv1.FollowUserResponse{}, nil
 }
 
-func (s *RelationServiceServer) GetUserFanList(ctx context.Context, req *relationv1.GetUserFanListRequest) (*relationv1.GetUserFanListResponse, error) {
+func (s *RelationServiceServer) GetUserFanList(ctx context.Context, req *relationv1.GetUserFanListRequest) (
+	*relationv1.GetUserFanListResponse, error) {
+
+	if req.Cond == nil {
+		return nil, xerror.ErrArgs.Msg("cond is nil")
+	}
+
 	if req.Cond.Count < 0 {
 		req.Cond.Count = maxLimit
 	}
 	req.Cond.Count = min(req.Cond.Count, maxLimit)
-	fans, res, err := s.Srv.RelationSrv.GetUserFanList(ctx, req.Uid, req.Cond.Offset, int(req.Cond.Count))
+	fans, res, err := s.Srv.RelationSrv.GetUserFanList(ctx,
+		req.Uid,
+		req.Cond.Offset,
+		int(req.Cond.Count))
 	if err != nil {
 		return nil, err
 	}
+	uids, followedTimes := model.UidsSliceTimeSliceFrom(fans)
 
 	return &relationv1.GetUserFanListResponse{
-		Fans:       fans,
-		NextOffset: res.NextOffset,
-		HasMore:    res.HasMore}, nil
+		Fans:          uids,
+		NextOffset:    res.NextOffset,
+		HasMore:       res.HasMore,
+		FollowedTimes: followedTimes,
+	}, nil
 }
 
 func (s *RelationServiceServer) GetUserFollowingList(ctx context.Context, req *relationv1.GetUserFollowingListRequest) (
 	*relationv1.GetUserFollowingListResponse, error) {
+	if req.Cond == nil {
+		return nil, xerror.ErrArgs.Msg("cond is nil")
+	}
+
 	if req.Cond.Count < 0 {
 		req.Cond.Count = maxLimit
 	}
 	req.Cond.Count = min(req.Cond.Count, maxLimit)
-	followings, res, err := s.Srv.RelationSrv.GetUserFollowingList(ctx, req.Uid, req.Cond.Offset, int(req.Cond.Count))
+	followings, res, err := s.Srv.RelationSrv.GetUserFollowingList(ctx,
+		req.Uid,
+		req.Cond.Offset,
+		int(req.Cond.Count))
 	if err != nil {
 		return nil, err
 	}
 
+	uids, followTimes := model.UidsSliceTimeSliceFrom(followings)
+
 	return &relationv1.GetUserFollowingListResponse{
-		Followings: followings,
-		NextOffset: res.NextOffset,
-		HasMore:    res.HasMore}, nil
+		Followings:  uids,
+		NextOffset:  res.NextOffset,
+		HasMore:     res.HasMore,
+		FollowTimes: followTimes,
+	}, nil
 }
 
 func (s *RelationServiceServer) RemoveUserFan(ctx context.Context, req *relationv1.RemoveUserFanRequest) (
@@ -135,12 +160,12 @@ func (s *RelationServiceServer) PageGetUserFanList(ctx context.Context,
 		req.Count = 30
 	}
 
-	fansId, total, err := s.Srv.RelationSrv.PageGetUserFanList(ctx, req.Target, req.Page, req.Count)
+	fans, total, err := s.Srv.RelationSrv.PageGetUserFanList(ctx, req.Target, req.Page, req.Count)
 	if err != nil {
 		return nil, err
 	}
 
-	resp.FansId = fansId
+	resp.FansId, resp.FollowedTimes = model.UidsSliceTimeSliceFrom(fans)
 	resp.Total = total
 
 	return resp, nil
@@ -157,12 +182,15 @@ func (s *RelationServiceServer) PageGetUserFollowingList(ctx context.Context,
 		req.Count = 30
 	}
 
-	fansId, total, err := s.Srv.RelationSrv.PageGetUserFollowingList(ctx, req.Target, req.Page, req.Count)
+	followings, total, err := s.Srv.RelationSrv.PageGetUserFollowingList(ctx,
+		req.Target,
+		req.Page,
+		req.Count)
 	if err != nil {
 		return nil, err
 	}
 
-	resp.FollowingsId = fansId
+	resp.FollowingsId, resp.FollowTimes = model.UidsSliceTimeSliceFrom(followings)
 	resp.Total = total
 
 	return resp, nil

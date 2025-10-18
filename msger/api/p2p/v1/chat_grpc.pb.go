@@ -20,15 +20,15 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	ChatService_CreateChat_FullMethodName     = "/msger.api.p2p.v1.ChatService/CreateChat"
-	ChatService_SendMessage_FullMethodName    = "/msger.api.p2p.v1.ChatService/SendMessage"
-	ChatService_ListMessage_FullMethodName    = "/msger.api.p2p.v1.ChatService/ListMessage"
+	ChatService_SendMsg_FullMethodName        = "/msger.api.p2p.v1.ChatService/SendMsg"
+	ChatService_ListMsg_FullMethodName        = "/msger.api.p2p.v1.ChatService/ListMsg"
 	ChatService_GetUnreadCount_FullMethodName = "/msger.api.p2p.v1.ChatService/GetUnreadCount"
 	ChatService_ClearUnread_FullMethodName    = "/msger.api.p2p.v1.ChatService/ClearUnread"
-	ChatService_RevokeMessage_FullMethodName  = "/msger.api.p2p.v1.ChatService/RevokeMessage"
+	ChatService_RevokeMsg_FullMethodName      = "/msger.api.p2p.v1.ChatService/RevokeMsg"
 	ChatService_ListChat_FullMethodName       = "/msger.api.p2p.v1.ChatService/ListChat"
 	ChatService_GetChat_FullMethodName        = "/msger.api.p2p.v1.ChatService/GetChat"
 	ChatService_DeleteChat_FullMethodName     = "/msger.api.p2p.v1.ChatService/DeleteChat"
-	ChatService_DeleteMessage_FullMethodName  = "/msger.api.p2p.v1.ChatService/DeleteMessage"
+	ChatService_DeleteMsg_FullMethodName      = "/msger.api.p2p.v1.ChatService/DeleteMsg"
 )
 
 // ChatServiceClient is the client API for ChatService service.
@@ -40,15 +40,15 @@ type ChatServiceClient interface {
 	// 创建会话
 	CreateChat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*CreateChatResponse, error)
 	// 发送单聊消息
-	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
+	SendMsg(ctx context.Context, in *SendMsgRequest, opts ...grpc.CallOption) (*SendMsgResponse, error)
 	// 用户拉取单聊消息
-	ListMessage(ctx context.Context, in *ListMessageRequest, opts ...grpc.CallOption) (*ListMessageResponse, error)
+	ListMsg(ctx context.Context, in *ListMsgRequest, opts ...grpc.CallOption) (*ListMsgResponse, error)
 	// 获取用户会话未读数
 	GetUnreadCount(ctx context.Context, in *GetUnreadCountRequest, opts ...grpc.CallOption) (*GetUnreadCountResponse, error)
 	// 清除未读数
 	ClearUnread(ctx context.Context, in *ClearUnreadRequest, opts ...grpc.CallOption) (*ClearUnreadResponse, error)
 	// 撤回消息
-	RevokeMessage(ctx context.Context, in *RevokeMessageRequest, opts ...grpc.CallOption) (*RevokeMessageResponse, error)
+	RevokeMsg(ctx context.Context, in *RevokeMsgRequest, opts ...grpc.CallOption) (*RevokeMsgResponse, error)
 	// 列出用户单聊会话
 	ListChat(ctx context.Context, in *ListChatRequest, opts ...grpc.CallOption) (*ListChatResponse, error)
 	// 拉取会话
@@ -56,7 +56,7 @@ type ChatServiceClient interface {
 	// 删除会话
 	DeleteChat(ctx context.Context, in *DeleteChatRequest, opts ...grpc.CallOption) (*DeleteChatResponse, error)
 	// 删除消息
-	DeleteMessage(ctx context.Context, in *DeleteMessageRequest, opts ...grpc.CallOption) (*DeleteMessageResponse, error)
+	DeleteMsg(ctx context.Context, in *DeleteMsgRequest, opts ...grpc.CallOption) (*DeleteMsgResponse, error)
 }
 
 type chatServiceClient struct {
@@ -77,20 +77,20 @@ func (c *chatServiceClient) CreateChat(ctx context.Context, in *CreateChatReques
 	return out, nil
 }
 
-func (c *chatServiceClient) SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error) {
+func (c *chatServiceClient) SendMsg(ctx context.Context, in *SendMsgRequest, opts ...grpc.CallOption) (*SendMsgResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SendMessageResponse)
-	err := c.cc.Invoke(ctx, ChatService_SendMessage_FullMethodName, in, out, cOpts...)
+	out := new(SendMsgResponse)
+	err := c.cc.Invoke(ctx, ChatService_SendMsg_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *chatServiceClient) ListMessage(ctx context.Context, in *ListMessageRequest, opts ...grpc.CallOption) (*ListMessageResponse, error) {
+func (c *chatServiceClient) ListMsg(ctx context.Context, in *ListMsgRequest, opts ...grpc.CallOption) (*ListMsgResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListMessageResponse)
-	err := c.cc.Invoke(ctx, ChatService_ListMessage_FullMethodName, in, out, cOpts...)
+	out := new(ListMsgResponse)
+	err := c.cc.Invoke(ctx, ChatService_ListMsg_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -117,10 +117,10 @@ func (c *chatServiceClient) ClearUnread(ctx context.Context, in *ClearUnreadRequ
 	return out, nil
 }
 
-func (c *chatServiceClient) RevokeMessage(ctx context.Context, in *RevokeMessageRequest, opts ...grpc.CallOption) (*RevokeMessageResponse, error) {
+func (c *chatServiceClient) RevokeMsg(ctx context.Context, in *RevokeMsgRequest, opts ...grpc.CallOption) (*RevokeMsgResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RevokeMessageResponse)
-	err := c.cc.Invoke(ctx, ChatService_RevokeMessage_FullMethodName, in, out, cOpts...)
+	out := new(RevokeMsgResponse)
+	err := c.cc.Invoke(ctx, ChatService_RevokeMsg_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -157,10 +157,10 @@ func (c *chatServiceClient) DeleteChat(ctx context.Context, in *DeleteChatReques
 	return out, nil
 }
 
-func (c *chatServiceClient) DeleteMessage(ctx context.Context, in *DeleteMessageRequest, opts ...grpc.CallOption) (*DeleteMessageResponse, error) {
+func (c *chatServiceClient) DeleteMsg(ctx context.Context, in *DeleteMsgRequest, opts ...grpc.CallOption) (*DeleteMsgResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DeleteMessageResponse)
-	err := c.cc.Invoke(ctx, ChatService_DeleteMessage_FullMethodName, in, out, cOpts...)
+	out := new(DeleteMsgResponse)
+	err := c.cc.Invoke(ctx, ChatService_DeleteMsg_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -176,15 +176,15 @@ type ChatServiceServer interface {
 	// 创建会话
 	CreateChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error)
 	// 发送单聊消息
-	SendMessage(context.Context, *SendMessageRequest) (*SendMessageResponse, error)
+	SendMsg(context.Context, *SendMsgRequest) (*SendMsgResponse, error)
 	// 用户拉取单聊消息
-	ListMessage(context.Context, *ListMessageRequest) (*ListMessageResponse, error)
+	ListMsg(context.Context, *ListMsgRequest) (*ListMsgResponse, error)
 	// 获取用户会话未读数
 	GetUnreadCount(context.Context, *GetUnreadCountRequest) (*GetUnreadCountResponse, error)
 	// 清除未读数
 	ClearUnread(context.Context, *ClearUnreadRequest) (*ClearUnreadResponse, error)
 	// 撤回消息
-	RevokeMessage(context.Context, *RevokeMessageRequest) (*RevokeMessageResponse, error)
+	RevokeMsg(context.Context, *RevokeMsgRequest) (*RevokeMsgResponse, error)
 	// 列出用户单聊会话
 	ListChat(context.Context, *ListChatRequest) (*ListChatResponse, error)
 	// 拉取会话
@@ -192,7 +192,7 @@ type ChatServiceServer interface {
 	// 删除会话
 	DeleteChat(context.Context, *DeleteChatRequest) (*DeleteChatResponse, error)
 	// 删除消息
-	DeleteMessage(context.Context, *DeleteMessageRequest) (*DeleteMessageResponse, error)
+	DeleteMsg(context.Context, *DeleteMsgRequest) (*DeleteMsgResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -206,11 +206,11 @@ type UnimplementedChatServiceServer struct{}
 func (UnimplementedChatServiceServer) CreateChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateChat not implemented")
 }
-func (UnimplementedChatServiceServer) SendMessage(context.Context, *SendMessageRequest) (*SendMessageResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
+func (UnimplementedChatServiceServer) SendMsg(context.Context, *SendMsgRequest) (*SendMsgResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendMsg not implemented")
 }
-func (UnimplementedChatServiceServer) ListMessage(context.Context, *ListMessageRequest) (*ListMessageResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListMessage not implemented")
+func (UnimplementedChatServiceServer) ListMsg(context.Context, *ListMsgRequest) (*ListMsgResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListMsg not implemented")
 }
 func (UnimplementedChatServiceServer) GetUnreadCount(context.Context, *GetUnreadCountRequest) (*GetUnreadCountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUnreadCount not implemented")
@@ -218,8 +218,8 @@ func (UnimplementedChatServiceServer) GetUnreadCount(context.Context, *GetUnread
 func (UnimplementedChatServiceServer) ClearUnread(context.Context, *ClearUnreadRequest) (*ClearUnreadResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ClearUnread not implemented")
 }
-func (UnimplementedChatServiceServer) RevokeMessage(context.Context, *RevokeMessageRequest) (*RevokeMessageResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RevokeMessage not implemented")
+func (UnimplementedChatServiceServer) RevokeMsg(context.Context, *RevokeMsgRequest) (*RevokeMsgResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RevokeMsg not implemented")
 }
 func (UnimplementedChatServiceServer) ListChat(context.Context, *ListChatRequest) (*ListChatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListChat not implemented")
@@ -230,8 +230,8 @@ func (UnimplementedChatServiceServer) GetChat(context.Context, *GetChatRequest) 
 func (UnimplementedChatServiceServer) DeleteChat(context.Context, *DeleteChatRequest) (*DeleteChatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteChat not implemented")
 }
-func (UnimplementedChatServiceServer) DeleteMessage(context.Context, *DeleteMessageRequest) (*DeleteMessageResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteMessage not implemented")
+func (UnimplementedChatServiceServer) DeleteMsg(context.Context, *DeleteMsgRequest) (*DeleteMsgResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteMsg not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
@@ -272,38 +272,38 @@ func _ChatService_CreateChat_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ChatService_SendMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendMessageRequest)
+func _ChatService_SendMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendMsgRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ChatServiceServer).SendMessage(ctx, in)
+		return srv.(ChatServiceServer).SendMsg(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ChatService_SendMessage_FullMethodName,
+		FullMethod: ChatService_SendMsg_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).SendMessage(ctx, req.(*SendMessageRequest))
+		return srv.(ChatServiceServer).SendMsg(ctx, req.(*SendMsgRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ChatService_ListMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListMessageRequest)
+func _ChatService_ListMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMsgRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ChatServiceServer).ListMessage(ctx, in)
+		return srv.(ChatServiceServer).ListMsg(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ChatService_ListMessage_FullMethodName,
+		FullMethod: ChatService_ListMsg_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).ListMessage(ctx, req.(*ListMessageRequest))
+		return srv.(ChatServiceServer).ListMsg(ctx, req.(*ListMsgRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -344,20 +344,20 @@ func _ChatService_ClearUnread_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ChatService_RevokeMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RevokeMessageRequest)
+func _ChatService_RevokeMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeMsgRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ChatServiceServer).RevokeMessage(ctx, in)
+		return srv.(ChatServiceServer).RevokeMsg(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ChatService_RevokeMessage_FullMethodName,
+		FullMethod: ChatService_RevokeMsg_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).RevokeMessage(ctx, req.(*RevokeMessageRequest))
+		return srv.(ChatServiceServer).RevokeMsg(ctx, req.(*RevokeMsgRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -416,20 +416,20 @@ func _ChatService_DeleteChat_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ChatService_DeleteMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteMessageRequest)
+func _ChatService_DeleteMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMsgRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ChatServiceServer).DeleteMessage(ctx, in)
+		return srv.(ChatServiceServer).DeleteMsg(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ChatService_DeleteMessage_FullMethodName,
+		FullMethod: ChatService_DeleteMsg_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).DeleteMessage(ctx, req.(*DeleteMessageRequest))
+		return srv.(ChatServiceServer).DeleteMsg(ctx, req.(*DeleteMsgRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -446,12 +446,12 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ChatService_CreateChat_Handler,
 		},
 		{
-			MethodName: "SendMessage",
-			Handler:    _ChatService_SendMessage_Handler,
+			MethodName: "SendMsg",
+			Handler:    _ChatService_SendMsg_Handler,
 		},
 		{
-			MethodName: "ListMessage",
-			Handler:    _ChatService_ListMessage_Handler,
+			MethodName: "ListMsg",
+			Handler:    _ChatService_ListMsg_Handler,
 		},
 		{
 			MethodName: "GetUnreadCount",
@@ -462,8 +462,8 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ChatService_ClearUnread_Handler,
 		},
 		{
-			MethodName: "RevokeMessage",
-			Handler:    _ChatService_RevokeMessage_Handler,
+			MethodName: "RevokeMsg",
+			Handler:    _ChatService_RevokeMsg_Handler,
 		},
 		{
 			MethodName: "ListChat",
@@ -478,8 +478,8 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ChatService_DeleteChat_Handler,
 		},
 		{
-			MethodName: "DeleteMessage",
-			Handler:    _ChatService_DeleteMessage_Handler,
+			MethodName: "DeleteMsg",
+			Handler:    _ChatService_DeleteMsg_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

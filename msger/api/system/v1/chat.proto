@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+package msger.api.system.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/msger/api/system/v1";
+
+import "msg/msg.proto";
+
+service ChatService {
+  // 分页获取系统通知消息
+  rpc ListSystemNotifyMsg(ListSystemNotifyMsgRequest)
+      returns (ListSystemMsgResponse);
+  // 分页获取系统回复消息
+  rpc ListSystemReplyMsg(ListSystemReplyMsgRequest)
+      returns (ListSystemMsgResponse);
+  // 分页获取系统@消息
+  rpc ListSystemMentionMsg(ListSystemMentionMsgRequest)
+      returns (ListSystemMsgResponse);
+  // 分页获取系统点赞消息
+  rpc ListSystemLikesMsg(ListSystemLikesMsgRequest)
+      returns (ListSystemMsgResponse);
+
+  // 系统会话相关
+
+  // 获取单个chat的未读数
+  rpc GetChatUnread(GetChatUnreadRequest) returns (GetChatUnreadResponse);
+
+  // 获取全部系统会话的未读数
+  rpc GetAllChatsUnread(GetAllChatsUnreadRequest)
+      returns (GetAllChatsUnreadResponse);
+
+  // 清除未读
+  rpc ClearChatUnread(ClearChatUnreadRequest) returns (ClearChatUnreadResponse);
+
+  // 删除消息
+  rpc DeleteMsg(DeleteMsgRequest) returns (DeleteMsgResponse);
+}
+
+// 分页获取系统通知消息请求
+message ListSystemNotifyMsgRequest {
+  int64 recv_uid = 1; // 接收者用户ID
+  string cursor = 2;  // 分页游标
+  int32 count = 3;    // 分页大小
+}
+
+// 分页获取系统回复消息请求
+message ListSystemReplyMsgRequest {
+  int64 recv_uid = 1; // 接收者用户ID
+  string cursor = 2;  // 分页游标
+  int32 count = 3;    // 分页大小
+}
+
+// 分页获取系统@消息请求
+message ListSystemMentionMsgRequest {
+  int64 recv_uid = 1; // 接收者用户ID
+  string cursor = 2;  // 分页游标
+  int32 count = 3;    // 分页大小
+}
+
+// 分页获取系统点赞消息请求
+message ListSystemLikesMsgRequest {
+  int64 recv_uid = 1; // 接收者用户ID
+  string cursor = 2;  // 分页游标
+  int32 count = 3;    // 分页大小
+}
+
+enum SystemMsgStatus {
+  MsgStatus_Unspecified = 0;
+  MsgStatus_Normal = 1;  // 正常
+  MsgStatus_Revoked = 2; // 撤回
+  MsgStatus_Read = 3;    // 已读
+}
+
+// 系统消息
+message SystemMsg {
+  string id = 1;                      // 消息ID
+  string system_chat_id = 2;          // 系统会话ID
+  int64 trigger_uid = 3;              // 触发者用户ID
+  int64 recv_uid = 4;                 // 接收者用户ID
+  SystemMsgStatus status = 5;         // 消息状态
+  msger.api.msg.MsgType msg_type = 6; // 消息类型
+  bytes content = 7;                  // 消息内容
+  int64 mtime = 8;                    // 消息时间戳
+}
+
+// 分页获取系统消息响应
+message ListSystemMsgResponse {
+  repeated SystemMsg messages = 1; // 系统消息列表
+  bool has_more = 2;
+  string chat_id = 3; // 所属系统会话id
+}
+
+message ChatUnread {
+  string chat_id = 1;
+  string chat_type = 2;
+  int64 unread_count = 3;
+}
+
+message GetChatUnreadRequest {
+  int64 uid = 1;
+  string chat_id = 2;
+}
+
+message GetChatUnreadResponse { ChatUnread unread = 1; }
+
+// 获取全部系统会话的未读数请求
+message GetAllChatsUnreadRequest { int64 uid = 1; }
+
+// 获取全部系统会话的未读数响应
+message GetAllChatsUnreadResponse {
+  ChatUnread notice_unread = 1;
+  ChatUnread reply_unread = 2;
+  ChatUnread mention_unread = 3;
+  ChatUnread likes_unread = 4;
+}
+
+// 清除未读请求
+message ClearChatUnreadRequest {
+  int64 uid = 1;
+  string chat_id = 2;
+}
+
+// 清除未读响应
+message ClearChatUnreadResponse {}
+
+message DeleteMsgRequest {
+  string msg_id = 1;
+  int64 uid = 2;
+}
+
+message DeleteMsgResponse {}

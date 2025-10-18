@@ -3,10 +3,13 @@ package srv
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/passport/internal/biz"
+	"github.com/ryanreadbooks/whimer/passport/internal/biz/avatar"
 	global "github.com/ryanreadbooks/whimer/passport/internal/global"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
 )
@@ -63,6 +66,26 @@ func (s *AccessSrv) SmsCheckIn(ctx context.Context, req *model.SmsCheckInRequest
 		if err != nil {
 			err = xerror.Wrapf(err, "access srv failed to auto register for user").WithCtx(ctx)
 			return
+		}
+
+		// 设置默认avatar
+		defaultAvatar := avatar.DrawImage(user.Uid, user.Nickname)
+		defaultImg, err := avatar.EncodeToPng(defaultAvatar)
+		if err != nil {
+			xlog.Msg("access srv failed to encode default avatar to png").Err(err).Errorx(ctx)
+		} else {
+			// 更新avatar
+			_, avatarObjName, err := s.userBiz.UpdateAvatar(ctx, user.Uid, &model.AvatarInfoRequest{
+				Filename:    fmt.Sprintf("default_avt_%d_%d.png", user.Uid, time.Now().Unix()),
+				Ext:         ".png",
+				ContentType: "image/png",
+				Size:        int64(len(defaultImg)),
+				Content:     defaultImg,
+			})
+			user.Avatar = avatarObjName
+			if err != nil {
+				xlog.Msg("access srv failed to update default avatar").Err(err).Errorx(ctx)
+			}
 		}
 	}
 

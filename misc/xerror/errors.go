@@ -14,6 +14,7 @@ const (
 	CodeServiceUnavailable = 10007
 	CodeDuplicate          = 10008
 	CodeTooLong            = 10009
+	CodeServerSigningFail  = 10010
 	CodeInternalPanic      = 19000
 	CodeOther              = 19999
 )
@@ -32,6 +33,7 @@ var (
 	ErrInternalPanic      = NewError(InternalServerError, CodeInternalPanic, "服务器炸掉了")
 	ErrDuplicate          = NewError(InternalServerError, CodeDuplicate, "资源重复")
 	ErrDataTooLong        = NewError(InternalServerError, CodeTooLong, "数据超长")
+	ErrServerSigning      = NewError(InternalServerError, CodeServerSigningFail, "服务器签名失败")
 	ErrCsrf               = NewError(Forbidden, CodeCsrfFailed, "CSRF校验失败")
 	ErrServiceUnavailable = NewError(ServiceUnavailable, CodeServiceUnavailable, "服务暂不可用")
 	ErrOther              = NewError(InternalServerError, CodeOther, "服务错误")

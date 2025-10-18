@@ -30,11 +30,11 @@ const (
 //
 // 推送相关grpc功能
 type PushServiceClient interface {
-	// 推送给某个用户
+	// 异步 推送给某个用户的某个设备
 	Push(ctx context.Context, in *PushRequest, opts ...grpc.CallOption) (*PushResponse, error)
-	// 广播推送 所有用户的所有设备都是同样的数据
+	// 异步 广播推送 所有用户的所有设备都是同样的数据
 	Broadcast(ctx context.Context, in *BroadcastRequest, opts ...grpc.CallOption) (*BroadcastResponse, error)
-	// 批量推送 每个用户推送的数据不一样 不保证推送顺序
+	// 异步 批量推送 每个用户推送的数据不一样 不保证推送顺序
 	BatchPush(ctx context.Context, in *BatchPushRequest, opts ...grpc.CallOption) (*BatchPushResponse, error)
 }
 
@@ -82,11 +82,11 @@ func (c *pushServiceClient) BatchPush(ctx context.Context, in *BatchPushRequest,
 //
 // 推送相关grpc功能
 type PushServiceServer interface {
-	// 推送给某个用户
+	// 异步 推送给某个用户的某个设备
 	Push(context.Context, *PushRequest) (*PushResponse, error)
-	// 广播推送 所有用户的所有设备都是同样的数据
+	// 异步 广播推送 所有用户的所有设备都是同样的数据
 	Broadcast(context.Context, *BroadcastRequest) (*BroadcastResponse, error)
-	// 批量推送 每个用户推送的数据不一样 不保证推送顺序
+	// 异步 批量推送 每个用户推送的数据不一样 不保证推送顺序
 	BatchPush(context.Context, *BatchPushRequest) (*BatchPushResponse, error)
 	mustEmbedUnimplementedPushServiceServer()
 }
