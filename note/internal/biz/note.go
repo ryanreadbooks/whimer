@@ -72,6 +72,28 @@ func (b *NoteBiz) BatchGetNote(ctx context.Context, noteIds []int64) (map[int64]
 	return resp, nil
 }
 
+// 批量获取笔记基础信息 不包含点赞等互动信息和标签 不包含asset
+func (b *NoteBiz) BatchGetNoteWithoutAsset(ctx context.Context, noteIds []int64) (map[int64]*model.Note, error) {
+	notesMap, err := infra.Dao().NoteDao.BatchGet(ctx, noteIds)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "biz batch get note failed").WithCtx(ctx)
+	}
+
+	if len(notesMap) == 0 {
+		return map[int64]*model.Note{}, nil
+	}
+
+	daoNotes := xmap.Values(notesMap)
+	notes := model.NoteSliceFromDao(daoNotes)
+
+	resp := make(map[int64]*model.Note, len(notes))
+	for _, n := range notes {
+		resp[n.NoteId] = n
+	}
+
+	return resp, nil
+}
+
 // 获取用户最近发布的笔记
 func (b *NoteBiz) GetUserRecentNote(ctx context.Context, uid int64, count int32) (*model.Notes, error) {
 	notes, err := infra.Dao().NoteDao.GetRecentPublicPosted(ctx, uid, count)

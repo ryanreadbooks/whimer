@@ -158,3 +158,17 @@ func (s *NoteFeedServiceServer) GetPublicPostedCount(ctx context.Context, in *no
 
 	return &notev1.GetPublicPostedCountResponse{Count: cnt}, nil
 }
+
+func (s *NoteFeedServiceServer) BatchCheckFeedNoteExist(ctx context.Context, in *notev1.BatchCheckFeedNoteExistRequest) (
+	*notev1.BatchCheckFeedNoteExistResponse, error,
+) {
+
+	resp, err := s.Srv.NoteFeedSrv.BatchCheckNoteExistence(ctx, in.NoteIds)
+	if err != nil {
+		return nil, err
+	}
+
+	return &notev1.BatchCheckFeedNoteExistResponse{
+		Existence: resp,
+	}, nil
+}

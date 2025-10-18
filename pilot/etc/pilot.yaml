@@ -49,3 +49,8 @@ job_config:
   note_event_job:
     interval: 2s
     num_of_list: 6
+
+kafka:
+  brokers: ${ENV_KFK_BROKERS}
+  username: ${ENV_KFK_USERNAME}
+  password: ${ENV_KFK_PASSWORD}

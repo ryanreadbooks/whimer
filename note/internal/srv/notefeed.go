@@ -214,3 +214,26 @@ func (s *NoteFeedSrv) GetUserPublicPostedCount(ctx context.Context, user int64) 
 	}
 	return cnt, nil
 }
+
+func (s *NoteFeedSrv) BatchCheckNoteExistence(ctx context.Context, noteIds []int64) (map[int64]bool, error) {
+	var (
+		reqUid = metadata.Uid(ctx)
+	)
+
+	notes, err := s.noteBiz.BatchGetNoteWithoutAsset(ctx, noteIds)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "note biz failed to batch get")
+	}
+
+	var result = make(map[int64]bool, len(notes))
+	for _, noteId := range noteIds {
+		if target, ok := notes[noteId]; ok {
+			// 如果笔记存在，公开笔记所有人都可访问，私有笔记只有所有者可访问
+			result[noteId] = target.Privacy != global.PrivacyPrivate || target.Owner == reqUid
+		} else {
+			result[noteId] = false
+		}
+	}
+
+	return result, nil
+}

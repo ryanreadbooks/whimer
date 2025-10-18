@@ -13,7 +13,6 @@ type ChatPO struct {
 	Mtime         int64                `db:"mtime"`
 	LastMsgId     uuid.UUID            `db:"last_msg_id"`
 	LastReadMsgId uuid.UUID            `db:"last_read_msg_id"`
-	LastReadTime  int64                `db:"last_read_time"`
 	UnreadCount   int64                `db:"unread_count"`
 }
 

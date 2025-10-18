@@ -26,7 +26,7 @@ type Handler struct {
 func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 	return &Handler{
 		userBiz:      bizz.UserBiz,
-		sysNotifyBiz: bizz.SysNotificationBiz,
+		sysNotifyBiz: bizz.SysNotifyBiz,
 	}
 }
 

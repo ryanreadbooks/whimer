@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xmap"
@@ -194,62 +195,68 @@ func (b *Biz) GetUserStat(ctx context.Context, targetUid int64) (*model.UserStat
 	eg, ctx := errgroup.WithContext(ctx)
 	// 用户投稿数量
 	eg.Go(func() error {
-		var (
-			err error
-			cnt int64
-		)
+		return recovery.Do(func() error {
+			var (
+				err error
+				cnt int64
+			)
 
-		if reqUid == targetUid {
-			var resp *notev1.GetPostedCountResponse
-			resp, err = dep.NoteCreatorServer().GetPostedCount(ctx, &notev1.GetPostedCountRequest{
-				Uid: reqUid,
-			})
-			if resp != nil {
-				cnt = resp.Count
+			if reqUid == targetUid {
+				var resp *notev1.GetPostedCountResponse
+				resp, err = dep.NoteCreatorServer().GetPostedCount(ctx, &notev1.GetPostedCountRequest{
+					Uid: reqUid,
+				})
+				if resp != nil {
+					cnt = resp.Count
+				}
+			} else {
+				var resp *notev1.GetPublicPostedCountResponse
+				resp, err = dep.NoteFeedServer().GetPublicPostedCount(ctx, &notev1.GetPublicPostedCountRequest{
+					Uid: targetUid,
+				})
+				if resp != nil {
+					cnt = resp.Count
+				}
 			}
-		} else {
-			var resp *notev1.GetPublicPostedCountResponse
-			resp, err = dep.NoteFeedServer().GetPublicPostedCount(ctx, &notev1.GetPublicPostedCountRequest{
-				Uid: targetUid,
-			})
-			if resp != nil {
-				cnt = resp.Count
+			if err != nil {
+				return err
 			}
-		}
-		if err != nil {
-			return err
-		}
 
-		stat.Posted = cnt
-		return nil
+			stat.Posted = cnt
+			return nil
+		})
 	})
 
 	// 用户粉丝数量
 	eg.Go(func() error {
-		resp, err := dep.RelationServer().GetUserFanCount(ctx,
-			&relationv1.GetUserFanCountRequest{
-				Uid: targetUid,
-			})
-		if err != nil {
-			return err
-		}
+		return recovery.Do(func() error {
+			resp, err := dep.RelationServer().GetUserFanCount(ctx,
+				&relationv1.GetUserFanCountRequest{
+					Uid: targetUid,
+				})
+			if err != nil {
+				return err
+			}
 
-		stat.Fans = resp.Count
-		return nil
+			stat.Fans = resp.Count
+			return nil
+		})
 	})
 
 	eg.Go(func() error {
-		// 用户关注数量
-		resp, err := dep.RelationServer().GetUserFollowingCount(ctx,
-			&relationv1.GetUserFollowingCountRequest{
-				Uid: targetUid,
-			})
-		if err != nil {
-			return err
-		}
+		return recovery.Do(func() error {
+			// 用户关注数量
+			resp, err := dep.RelationServer().GetUserFollowingCount(ctx,
+				&relationv1.GetUserFollowingCountRequest{
+					Uid: targetUid,
+				})
+			if err != nil {
+				return err
+			}
 
-		stat.Followings = resp.Count
-		return nil
+			stat.Followings = resp.Count
+			return nil
+		})
 	})
 
 	err := eg.Wait()

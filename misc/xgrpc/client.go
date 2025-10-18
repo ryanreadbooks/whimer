@@ -102,23 +102,20 @@ func RetryConnectConn(c xconf.Discovery, connecter func(cc grpc.ClientConnInterf
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-outer:
-	for {
-		select {
-		case <-ticker.C:
-			// try to reconnect
-			logx.Infof("retrying to connect to conn at %s(%v)", c.Key, c.Hosts)
-			cc, err := NewClientConn(c)
-			if err != nil {
-				logx.Infof("retrying to connect to conn at %s(%v) failed again: %v", c.Key, c.Hosts, err)
-			} else {
-				// retry connect succeeded
-				// ignore concurrency
-				connecter(cc)
-				logx.Infof("retry connect %s(%v) loop exited", c.Key, c.Hosts)
-				break outer
-			}
+	for range ticker.C {
+		// try to reconnect
+		logx.Infof("retrying to connect to conn at %s(%v)", c.Key, c.Hosts)
+		cc, err := NewClientConn(c)
+		if err != nil {
+			logx.Infof("retrying to connect to conn at %s(%v) failed again: %v", c.Key, c.Hosts, err)
+			continue
 		}
+
+		// retry connect succeeded
+		// ignore concurrency
+		connecter(cc)
+		logx.Infof("retry connecting %s(%v) loop succeeded", c.Key, c.Hosts)
+		break
 	}
 }
 

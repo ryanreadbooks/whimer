@@ -9,7 +9,7 @@ const (
 type Comment struct {
 	Id       int64  `json:"id"      db:"id"`
 	Oid      int64  `json:"oid"     db:"oid"`
-	Type     int8   `json:"type"    db:"type"`
+	Type     int8   `json:"type"    db:"type"` // 见model.CommentType
 	Content  string `json:"content" db:"content"`
 	Uid      int64  `json:"uid"     db:"uid"`
 	RootId   int64  `json:"root"    db:"root"`

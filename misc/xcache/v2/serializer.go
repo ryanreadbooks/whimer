@@ -30,3 +30,8 @@ func (j MsgPackSerializer) Marshal(v any) ([]byte, error) {
 func (j MsgPackSerializer) Unmarshal(data []byte, v any) error {
 	return msgpack.Unmarshal(data, v)
 }
+
+var (
+	JSONSer    = JSONSerializer{}
+	MsgpackSer = MsgPackSerializer{}
+)

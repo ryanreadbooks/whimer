@@ -3,6 +3,7 @@ package srv
 import (
 	"context"
 
+	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/msger/internal/biz"
 	bizp2p "github.com/ryanreadbooks/whimer/msger/internal/biz/p2p"
@@ -32,14 +33,16 @@ func (s *P2PChatSrv) checkUsers(ctx context.Context, uid1, uid2 int64) error {
 	for _, user := range []int64{uid1, uid2} {
 		var userId = user
 		eg.Go(func() error {
-			resp, err := dep.Userer().HasUser(ctx, &userv1.HasUserRequest{Uid: userId})
-			if err != nil {
-				return xerror.Wrapf(err, "get user failed").WithCtx(ctx)
-			}
-			if resp.GetHas() {
-				return nil
-			}
-			return global.ErrUserNotFound
+			return recovery.Do(func() error {
+				resp, err := dep.Userer().HasUser(ctx, &userv1.HasUserRequest{Uid: userId})
+				if err != nil {
+					return xerror.Wrapf(err, "get user failed").WithCtx(ctx)
+				}
+				if resp.GetHas() {
+					return nil
+				}
+				return global.ErrUserNotFound
+			})
 		})
 	}
 	if err := eg.Wait(); err != nil {

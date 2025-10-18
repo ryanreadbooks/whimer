@@ -32,7 +32,7 @@ func (s *SystemChatSrv) saveMsg(ctx context.Context, req *bizsyschat.CreateSyste
 
 	msgId, err := s.chatBiz.CreateMsg(ctx, req)
 	if err != nil {
-		return uuid.UUID{}, xerror.Wrapf(err, "srv failed to send system msg").WithCtx(ctx)
+		return uuid.UUID{}, xerror.Wrapf(err, "system chat srv failed to send system msg").WithCtx(ctx)
 	}
 
 	return msgId.Id, nil
@@ -109,7 +109,7 @@ func (s *SystemChatSrv) NotifyMentionSystemMsg(ctx context.Context, reqs []*mode
 		wg.Go(func() error {
 			msgId, err := s.saveMsg(ctx, req)
 			if err != nil {
-				xlog.Msg("srv failed to save mention system msg").
+				xlog.Msg("system chat srv failed to save mention system msg").
 					Extras("uid", req.TriggerUid, "recv_uid", req.RecvUid).
 					Err(err).Errorx(ctx)
 				return nil // 不返回err
@@ -124,7 +124,7 @@ func (s *SystemChatSrv) NotifyMentionSystemMsg(ctx context.Context, reqs []*mode
 	}
 
 	if err := wg.Wait(); err != nil {
-		return nil, xerror.Wrapf(err, "srv failed to send mention system msg").WithCtx(ctx)
+		return nil, xerror.Wrapf(err, "system chat srv failed to send mention system msg").WithCtx(ctx)
 	}
 
 	// 返回成成功创建的msgIds
@@ -161,7 +161,7 @@ func (s *SystemChatSrv) ListSystemMsg(ctx context.Context,
 		Count:    count,
 	})
 	if err != nil {
-		return resp, xerror.Wrapf(err, "srv failed to list system msg").WithCtx(ctx)
+		return resp, xerror.Wrapf(err, "system chat srv failed to list system msg").WithCtx(ctx)
 	}
 
 	return resp, nil
@@ -176,7 +176,7 @@ func (s *SystemChatSrv) ClearChatUnread(ctx context.Context, uid int64, chatId s
 
 	err = s.chatBiz.ClearChatUnread(ctx, uid, cid)
 	if err != nil {
-		return xerror.Wrapf(err, "srv failed to clear chat unread")
+		return xerror.Wrapf(err, "system chat srv failed to clear chat unread")
 	}
 
 	return nil
@@ -191,7 +191,7 @@ func (s *SystemChatSrv) GetChatUnreadCount(ctx context.Context, uid int64, chatI
 
 	unread, err := s.chatBiz.GetChatUnreadCount(ctx, uid, cid)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "srv failed to get chat unread count")
+		return nil, xerror.Wrapf(err, "system chat srv failed to get chat unread count")
 	}
 
 	return unread, nil
@@ -201,7 +201,7 @@ func (s *SystemChatSrv) GetChatUnreadCount(ctx context.Context, uid int64, chatI
 func (s *SystemChatSrv) GetUserChatsUnreadCount(ctx context.Context, uid int64) ([]*bizsyschat.ChatUnread, error) {
 	unreads, err := s.chatBiz.GetUserAllChatUnreadCount(ctx, uid)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "srv failed to get user chat unread count")
+		return nil, xerror.Wrapf(err, "system chat srv failed to get user chat unread count")
 	}
 
 	// 补全缺失的chat
@@ -226,4 +226,24 @@ func (s *SystemChatSrv) GetUserChatsUnreadCount(ctx context.Context, uid int64) 
 	sort.Slice(unreads, func(i, j int) bool { return unreads[i].ChatType < unreads[j].ChatType })
 
 	return unreads, nil
+}
+
+// 删除系统会话消息
+func (s *SystemChatSrv) DeleteSystemMsg(ctx context.Context, uid int64, msgId string) error {
+	msgUUID, err := uuid.ParseString(msgId)
+	if err != nil {
+		return nil
+	}
+
+	chatId, err := s.chatBiz.GetMsgChatId(ctx, msgUUID)
+	if err != nil {
+		return xerror.Wrapf(err, "system chat srv failed to get chat_id by msg_id")
+	}
+
+	err = s.chatBiz.DeleteMsg(ctx, chatId, msgUUID, uid)
+	if err != nil {
+		return xerror.Wrapf(err, "system chat srv failed to delete msg")
+	}
+
+	return nil
 }

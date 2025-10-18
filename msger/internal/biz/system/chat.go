@@ -42,7 +42,6 @@ func (b *ChatBiz) InitChat(ctx context.Context, userId int64, chatType model.Sys
 			Mtime:         now,
 			LastMsgId:     emptyUUID,
 			LastReadMsgId: emptyUUID,
-			LastReadTime:  now,
 			UnreadCount:   0,
 		})
 		if err != nil {
@@ -202,6 +201,29 @@ type ListMsgResp struct {
 	HasMore bool
 }
 
+func (b *ChatBiz) GetMsg(ctx context.Context, msgId uuid.UUID) (*SystemMsg, error) {
+	m, err := infra.Dao().SystemMsgDao.GetById(ctx, msgId)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "system msg dao get by id failed").WithExtra("msg_id", msgId).WithCtx(ctx)
+	}
+
+	return MakeSystemMsgFromPO(m), nil
+}
+
+func (b *ChatBiz) GetMsgChatId(ctx context.Context, msgId uuid.UUID) (uuid.UUID, error) {
+	zeroUUID := uuid.EmptyUUID()
+	chatId, err := infra.Dao().SystemMsgDao.GetChatIdById(ctx, msgId)
+	if err != nil {
+		if errors.Is(err, xsql.ErrNoRecord) {
+			return zeroUUID, nil
+		}
+
+		return zeroUUID, xerror.Wrapf(err, "system msg dao get by id failed").
+			WithExtra("msg_id", msgId).WithCtx(ctx)
+	}
+	return chatId, nil
+}
+
 // 分页获取用户的系统消息
 func (b *ChatBiz) ListMsg(ctx context.Context, req *ListMsgReq) (*ListMsgResp, error) {
 	// 获取会话
@@ -278,32 +300,95 @@ func (b *ChatBiz) RevokeMsg(ctx context.Context, msgId uuid.UUID) error {
 	return nil
 }
 
-// 删除uid的msgId系统消息
+// 删除uid的chatId中的msgId系统消息
 func (b *ChatBiz) DeleteMsg(ctx context.Context, chatId, msgId uuid.UUID, recvUid int64) error {
-	// 先检查消息是否存在且属于该用户
-	msgPo, err := infra.Dao().SystemMsgDao.GetById(ctx, msgId)
-	if err != nil {
-		// 消息不存在
-		if errors.Is(err, xsql.ErrNoRecord) {
-			return xerror.Wrap(global.ErrMsgNotExist)
+	var (
+		logExtras = []any{"chat_id", chatId, "msg_id", msgId, "recv_uid", recvUid}
+	)
+
+	err := infra.DaoTransact(ctx, func(ctx context.Context) error {
+		chat, err := infra.Dao().SystemChatDao.GetByIdForUpdate(ctx, chatId)
+		if err != nil {
+			if errors.Is(err, xsql.ErrNoRecord) {
+				return nil
+			}
+
+			return xerror.Wrapf(err, "deleting msg get system chat by id failed")
 		}
-		return xerror.Wrapf(err, "system msg dao failed to get msg").
-			WithExtra("msg_id", msgId).WithCtx(ctx)
-	}
 
-	// 检查是否是该用户的消息
-	if msgPo.RecvUid != recvUid {
-		return xerror.Wrapf(global.ErrCantRevokeMsg, "not the owner of the message").
-			WithExtras("uid", recvUid, "msg_id", msgId)
-	}
+		// 先检查消息是否存在且属于该用户
+		msgPo, err := infra.Dao().SystemMsgDao.GetByIdForUpdate(ctx, msgId)
+		if err != nil {
+			// 消息不存在
+			if errors.Is(err, xsql.ErrNoRecord) {
+				return nil
+			}
 
-	err = infra.Dao().SystemMsgDao.DeleteByChatIdMsgIdRecvUid(ctx, chatId, msgId, recvUid)
+			return xerror.Wrapf(err, "system msg dao failed to get msg")
+		}
+
+		// 检查是否是该用户的消息
+		if msgPo.RecvUid != recvUid {
+			return xerror.Wrapf(global.ErrCantRevokeMsg, "not the owner of the message")
+		}
+
+		err = infra.Dao().SystemMsgDao.DeleteByChatIdMsgIdRecvUid(ctx, chatId, msgId, recvUid)
+		if err != nil {
+			return xerror.Wrapf(err, "system msg dao failed to delete msg")
+		}
+
+		// 对应chat的处理
+		var (
+			curChatLastMsgId     = chat.LastMsgId
+			curChatLastReadMsgId = chat.LastReadMsgId
+			curChatUnread        = chat.UnreadCount
+
+			newLastMsgId     = curChatLastMsgId
+			newLastReadMsgId = curChatLastReadMsgId
+			newUnreadCount   = curChatUnread
+		)
+
+		if curChatLastMsgId.EqualsTo(msgId) {
+			// find last msg
+			newLastMsg, err := infra.Dao().SystemMsgDao.GetLastMsg(ctx, chatId, recvUid)
+			if err != nil {
+				return xerror.Wrapf(err, "system msg dao get last failed")
+			}
+
+			newLastMsgId = newLastMsg.Id
+		}
+
+		if curChatLastReadMsgId.EqualsTo(msgId) {
+			// find last status=read msg
+			newLastReadMsg, err := infra.Dao().SystemMsgDao.GetLastReadMsg(ctx, chatId, recvUid)
+			if err != nil {
+				return xerror.Wrapf(err, "system msg dao get last read msg failed")
+			}
+
+			newLastReadMsgId = newLastReadMsg.Id
+		}
+
+		if curChatUnread != 0 && msgPo.Status.Unread() {
+			newUnreadCount -= 1
+			newUnreadCount = max(0, newUnreadCount)
+		}
+
+		if newLastMsgId != curChatLastMsgId ||
+			newLastReadMsgId != curChatLastReadMsgId ||
+			newUnreadCount != curChatUnread {
+			err = infra.Dao().SystemChatDao.UpdateMsgs(ctx, chatId, newLastMsgId, newLastReadMsgId, newUnreadCount)
+			if err != nil {
+				return xerror.Wrapf(err, "system chat dao update msgs failed")
+			}
+		}
+
+		return nil
+	})
 	if err != nil {
-		return xerror.Wrapf(err, "system msg dao failed to delete msg").
-			WithExtras("uid", recvUid, "msg_id", msgId).WithCtx(ctx)
+		return xerror.Wrapf(err, "delete msg transaction failed").WithExtras(logExtras...).WithCtx(ctx)
 	}
 
-	return nil
+	return err
 }
 
 // 获取uid的所有系统会话
@@ -364,22 +449,28 @@ func (b *ChatBiz) GetUnreadCount(ctx context.Context, uid int64, chatType model.
 
 // 清除特定会话的未读数
 func (b *ChatBiz) ClearChatUnread(ctx context.Context, uid int64, chatId uuid.UUID) error {
-	chat, err := infra.Dao().SystemChatDao.GetById(ctx, chatId)
-	if err != nil {
-		if errors.Is(err, xsql.ErrNoRecord) {
-			return xerror.Wrap(global.ErrSysChatNotExist)
+	err := infra.DaoTransact(ctx, func(ctx context.Context) error {
+		chat, err := infra.Dao().SystemChatDao.GetByIdForUpdate(ctx, chatId)
+		if err != nil {
+			if errors.Is(err, xsql.ErrNoRecord) {
+				return xerror.Wrap(global.ErrSysChatNotExist)
+			}
+
+			return xerror.Wrapf(err, "system chat dao failed to get by id").
+				WithExtra("chat_id", chatId).WithCtx(ctx)
 		}
 
-		return xerror.Wrapf(err, "system chat dao failed to get by id").
-			WithExtra("chat_id", chatId).WithCtx(ctx)
-	}
+		if chat.Uid != uid {
+			return xerror.Wrap(global.ErrSysChatNotYours)
+		}
 
-	if chat.Uid != uid {
-		return xerror.Wrap(global.ErrSysChatNotYours)
-	}
-
-	if err := b.clearUnread(ctx, uid, chat); err != nil {
-		return xerror.Wrap(err)
+		if err := b.clearUnread(ctx, uid, chat); err != nil {
+			return xerror.Wrap(err)
+		}
+		return nil
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "clear chat unread transaction failed")
 	}
 
 	return nil
@@ -387,17 +478,24 @@ func (b *ChatBiz) ClearChatUnread(ctx context.Context, uid int64, chatId uuid.UU
 
 // 清空uid会话的未读数 同时需要把会话的最后已读消息ID设置为最后消息ID 并且更新msg的status
 func (b *ChatBiz) ClearUidUnread(ctx context.Context, uid int64, chatType model.SystemChatType) error {
-	chat, err := infra.Dao().SystemChatDao.GetByUidAndType(ctx, uid, chatType)
-	if err != nil {
-		if errors.Is(err, xsql.ErrNoRecord) {
-			return nil
+	err := infra.DaoTransact(ctx, func(ctx context.Context) error {
+		chat, err := infra.Dao().SystemChatDao.GetByUidAndTypeForUpdate(ctx, uid, chatType)
+		if err != nil {
+			if errors.Is(err, xsql.ErrNoRecord) {
+				return nil
+			}
+			return xerror.Wrapf(err, "system chat dao failed to get chat").
+				WithExtras("uid", uid, "chat_type", chatType).WithCtx(ctx)
 		}
-		return xerror.Wrapf(err, "system chat dao failed to get chat").
-			WithExtras("uid", uid, "chat_type", chatType).WithCtx(ctx)
-	}
 
-	if err := b.clearUnread(ctx, uid, chat); err != nil {
-		return xerror.Wrap(err)
+		if err := b.clearUnread(ctx, uid, chat); err != nil {
+			return xerror.Wrap(err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "clear uid unread transaction failed")
 	}
 
 	return nil
@@ -410,24 +508,17 @@ func (b *ChatBiz) clearUnread(ctx context.Context, uid int64, chat *systemdao.Ch
 		return xerror.Wrapf(err, "system msg dao failed to get last msg").WithCtx(ctx)
 	}
 
-	err = infra.Dao().DB().Transact(ctx, func(ctx context.Context) error {
-		// 更新chat
-		err = infra.Dao().SystemChatDao.ClearUnread(ctx, chat.Id, lastMsg.Id)
-		if err != nil {
-			return xerror.Wrapf(err, "system chat dao failed to clear unread").WithCtx(ctx)
-		}
-
-		// 批量更新msg状态
-		err = infra.Dao().SystemMsgDao.UpdateStatusToTarget(ctx,
-			chat.Id, uid, model.SystemMsgStatusRead, model.SystemMsgStatusNormal)
-		if err != nil {
-			return xerror.Wrapf(err, "system msg dao failed to update status").WithCtx(ctx)
-		}
-
-		return nil
-	})
+	// 更新chat
+	err = infra.Dao().SystemChatDao.ClearUnread(ctx, chat.Id, lastMsg.Id)
 	if err != nil {
-		return xerror.Wrapf(err, "transact failed").WithCtx(ctx)
+		return xerror.Wrapf(err, "system chat dao failed to clear unread").WithCtx(ctx)
+	}
+
+	// 批量更新msg状态
+	err = infra.Dao().SystemMsgDao.UpdateStatusToTarget(ctx,
+		chat.Id, uid, model.SystemMsgStatusRead, model.SystemMsgStatusNormal)
+	if err != nil {
+		return xerror.Wrapf(err, "system msg dao failed to update status").WithCtx(ctx)
 	}
 
 	return nil

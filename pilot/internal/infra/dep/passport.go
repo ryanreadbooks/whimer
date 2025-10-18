@@ -13,8 +13,12 @@ var (
 )
 
 func InitPassport(c *config.Config) {
-	auther = auth.MustAuther(c.Backend.Passport)
-	userer = xgrpc.NewRecoverableClient(c.Backend.Passport, userv1.NewUserServiceClient, func(cc userv1.UserServiceClient) { userer = cc })
+	auther = auth.RecoverableAuther(c.Backend.Passport)
+	userer = xgrpc.NewRecoverableClient(c.Backend.Passport,
+		userv1.NewUserServiceClient,
+		func(cc userv1.UserServiceClient) {
+			userer = cc
+		})
 }
 
 func Auther() *auth.Auth {

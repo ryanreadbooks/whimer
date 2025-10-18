@@ -25,7 +25,7 @@ func TestSystemMsgDao_Create(t *testing.T) {
 			Mtime:        time.Now().UnixMicro(),
 		}
 
-		err := systemMsgDao.Create(ctx, msg)
+		err := testSystemMsgDao.Create(textctx, msg)
 		So(err, ShouldBeNil)
 	})
 }
@@ -48,7 +48,7 @@ func TestSystemMsgDao_BatchCreate(t *testing.T) {
 			time.Sleep(1 * time.Millisecond) // 确保mtime有差异
 		}
 
-		err := systemMsgDao.BatchCreate(ctx, msgs)
+		err := testSystemMsgDao.BatchCreate(textctx, msgs)
 		So(err, ShouldBeNil)
 	})
 }
@@ -66,18 +66,23 @@ func TestSystemMsgDao_GetById(t *testing.T) {
 			RecvUid:      10012,
 			Status:       model.SystemMsgStatusNormal,
 			MsgType:      model.MsgText,
-			Content:      json.RawMessage(`"` + content + `"`),
+			Content:      json.RawMessage(content),
 			Mtime:        time.Now().UnixMicro(),
 		}
 
-		err := systemMsgDao.Create(ctx, msg)
+		err := testSystemMsgDao.Create(textctx, msg)
 		So(err, ShouldBeNil)
 
 		// 然后查询
-		result, err := systemMsgDao.GetById(ctx, msgId)
+		result, err := testSystemMsgDao.GetById(textctx, msgId)
 		So(err, ShouldBeNil)
 		So(result.Id, ShouldEqual, msgId)
-		So(result.Content, ShouldEqual, content)
+		So(string(result.Content), ShouldEqual, string(content))
+
+		chatId, err := testSystemMsgDao.GetChatIdById(textctx, msgId)
+		So(err, ShouldBeNil)
+		So(chatId.EqualsTo(systemChatId), ShouldBeTrue)
+		t.Log(chatId.String())
 	})
 }
 
@@ -99,13 +104,13 @@ func TestSystemMsgDao_BatchGetByIds(t *testing.T) {
 				Mtime:        time.Now().UnixMicro(),
 			}
 
-			err := systemMsgDao.Create(ctx, msg)
+			err := testSystemMsgDao.Create(textctx, msg)
 			So(err, ShouldBeNil)
 			time.Sleep(1 * time.Millisecond) // 确保mtime有差异
 		}
 
 		// 然后批量查询
-		results, err := systemMsgDao.BatchGetByIds(ctx, msgIds)
+		results, err := testSystemMsgDao.BatchGetByIds(textctx, msgIds)
 		So(err, ShouldBeNil)
 		So(len(results), ShouldEqual, 2)
 	})
@@ -122,11 +127,10 @@ func TestSystemMsgDao_ListByChatId(t *testing.T) {
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
 			LastReadMsgId: uuid.NewUUID(),
-			LastReadTime:  time.Now().UnixMicro(),
 			UnreadCount:   0,
 		}
 
-		err := systemChatDao.Create(ctx, chat)
+		err := testSystemChatDao.Create(textctx, chat)
 		So(err, ShouldBeNil)
 
 		// 再创建几条消息
@@ -142,13 +146,13 @@ func TestSystemMsgDao_ListByChatId(t *testing.T) {
 				Mtime:        time.Now().UnixMicro(),
 			}
 
-			err = systemMsgDao.Create(ctx, msg)
+			err = testSystemMsgDao.Create(textctx, msg)
 			So(err, ShouldBeNil)
 			time.Sleep(1 * time.Millisecond) // 确保mtime有差异
 		}
 
 		// 然后按会话ID查询
-		msgs, err := systemMsgDao.ListByChatId(ctx, chatId, uuid.EmptyUUID(), 10)
+		msgs, err := testSystemMsgDao.ListByChatId(textctx, chatId, uuid.MaxUUID(), 10)
 		So(err, ShouldBeNil)
 		So(len(msgs), ShouldBeGreaterThanOrEqualTo, 5)
 	})
@@ -170,15 +174,15 @@ func TestSystemMsgDao_UpdateStatus(t *testing.T) {
 			Mtime:        time.Now().UnixMicro(),
 		}
 
-		err := systemMsgDao.Create(ctx, msg)
+		err := testSystemMsgDao.Create(textctx, msg)
 		So(err, ShouldBeNil)
 
 		// 然后更新状态
-		err = systemMsgDao.UpdateStatus(ctx, msgId, model.SystemMsgStatusRead)
+		err = testSystemMsgDao.UpdateStatus(textctx, msgId, model.SystemMsgStatusRead)
 		So(err, ShouldBeNil)
 
 		// 验证更新结果
-		updatedMsg, err := systemMsgDao.GetById(ctx, msgId)
+		updatedMsg, err := testSystemMsgDao.GetById(textctx, msgId)
 		So(err, ShouldBeNil)
 		So(updatedMsg.Status, ShouldEqual, model.SystemMsgStatusRead)
 	})
@@ -202,16 +206,16 @@ func TestSystemMsgDao_BatchUpdateStatus(t *testing.T) {
 				Mtime:        time.Now().UnixMicro(),
 			}
 
-			err := systemMsgDao.Create(ctx, msg)
+			err := testSystemMsgDao.Create(textctx, msg)
 			So(err, ShouldBeNil)
 		}
 
 		// 然后批量更新状态
-		err := systemMsgDao.BatchUpdateStatus(ctx, msgIds, model.SystemMsgStatusRead)
+		err := testSystemMsgDao.BatchUpdateStatus(textctx, msgIds, model.SystemMsgStatusRead)
 		So(err, ShouldBeNil)
 
 		// 验证更新结果
-		updatedMsgs, err := systemMsgDao.BatchGetByIds(ctx, msgIds)
+		updatedMsgs, err := testSystemMsgDao.BatchGetByIds(textctx, msgIds)
 		So(err, ShouldBeNil)
 		for _, msg := range updatedMsgs {
 			So(msg.Status, ShouldEqual, model.SystemMsgStatusRead)
@@ -235,15 +239,15 @@ func TestSystemMsgDao_Delete(t *testing.T) {
 			Mtime:        time.Now().UnixMicro(),
 		}
 
-		err := systemMsgDao.Create(ctx, msg)
+		err := testSystemMsgDao.Create(textctx, msg)
 		So(err, ShouldBeNil)
 
 		// 然后删除
-		err = systemMsgDao.DeleteById(ctx, msgId)
+		err = testSystemMsgDao.DeleteById(textctx, msgId)
 		So(err, ShouldBeNil)
 
 		// 验证删除结果
-		_, err = systemMsgDao.GetById(ctx, msgId)
+		_, err = testSystemMsgDao.GetById(textctx, msgId)
 		So(err, ShouldNotBeNil)
 	})
 }
@@ -259,11 +263,10 @@ func TestSystemMsgDao_DeleteByChatId(t *testing.T) {
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
 			LastReadMsgId: uuid.NewUUID(),
-			LastReadTime:  time.Now().UnixMicro(),
 			UnreadCount:   0,
 		}
 
-		err := systemChatDao.Create(ctx, chat)
+		err := testSystemChatDao.Create(textctx, chat)
 		So(err, ShouldBeNil)
 
 		// 再创建几条消息
@@ -279,16 +282,16 @@ func TestSystemMsgDao_DeleteByChatId(t *testing.T) {
 				Mtime:        time.Now().UnixMicro(),
 			}
 
-			err = systemMsgDao.Create(ctx, msg)
+			err = testSystemMsgDao.Create(textctx, msg)
 			So(err, ShouldBeNil)
 		}
 
 		// 然后按会话ID删除所有消息
-		err = systemMsgDao.DeleteByChatId(ctx, chatId)
+		err = testSystemMsgDao.DeleteByChatId(textctx, chatId)
 		So(err, ShouldBeNil)
 
 		// 验证删除结果
-		msgs, err := systemMsgDao.ListByChatId(ctx, chatId, uuid.EmptyUUID(), 10)
+		msgs, err := testSystemMsgDao.ListByChatId(textctx, chatId, uuid.EmptyUUID(), 10)
 		So(err, ShouldBeNil)
 		So(len(msgs), ShouldEqual, 0)
 	})

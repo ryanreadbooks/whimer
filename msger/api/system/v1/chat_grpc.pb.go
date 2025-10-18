@@ -26,6 +26,7 @@ const (
 	ChatService_GetChatUnread_FullMethodName        = "/msger.api.system.v1.ChatService/GetChatUnread"
 	ChatService_GetAllChatsUnread_FullMethodName    = "/msger.api.system.v1.ChatService/GetAllChatsUnread"
 	ChatService_ClearChatUnread_FullMethodName      = "/msger.api.system.v1.ChatService/ClearChatUnread"
+	ChatService_DeleteMsg_FullMethodName            = "/msger.api.system.v1.ChatService/DeleteMsg"
 )
 
 // ChatServiceClient is the client API for ChatService service.
@@ -46,6 +47,8 @@ type ChatServiceClient interface {
 	GetAllChatsUnread(ctx context.Context, in *GetAllChatsUnreadRequest, opts ...grpc.CallOption) (*GetAllChatsUnreadResponse, error)
 	// 清除未读
 	ClearChatUnread(ctx context.Context, in *ClearChatUnreadRequest, opts ...grpc.CallOption) (*ClearChatUnreadResponse, error)
+	// 删除消息
+	DeleteMsg(ctx context.Context, in *DeleteMsgRequest, opts ...grpc.CallOption) (*DeleteMsgResponse, error)
 }
 
 type chatServiceClient struct {
@@ -126,6 +129,16 @@ func (c *chatServiceClient) ClearChatUnread(ctx context.Context, in *ClearChatUn
 	return out, nil
 }
 
+func (c *chatServiceClient) DeleteMsg(ctx context.Context, in *DeleteMsgRequest, opts ...grpc.CallOption) (*DeleteMsgResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteMsgResponse)
+	err := c.cc.Invoke(ctx, ChatService_DeleteMsg_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChatServiceServer is the server API for ChatService service.
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility.
@@ -144,6 +157,8 @@ type ChatServiceServer interface {
 	GetAllChatsUnread(context.Context, *GetAllChatsUnreadRequest) (*GetAllChatsUnreadResponse, error)
 	// 清除未读
 	ClearChatUnread(context.Context, *ClearChatUnreadRequest) (*ClearChatUnreadResponse, error)
+	// 删除消息
+	DeleteMsg(context.Context, *DeleteMsgRequest) (*DeleteMsgResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -174,6 +189,9 @@ func (UnimplementedChatServiceServer) GetAllChatsUnread(context.Context, *GetAll
 }
 func (UnimplementedChatServiceServer) ClearChatUnread(context.Context, *ClearChatUnreadRequest) (*ClearChatUnreadResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ClearChatUnread not implemented")
+}
+func (UnimplementedChatServiceServer) DeleteMsg(context.Context, *DeleteMsgRequest) (*DeleteMsgResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteMsg not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
@@ -322,6 +340,24 @@ func _ChatService_ClearChatUnread_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatService_DeleteMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMsgRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).DeleteMsg(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_DeleteMsg_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).DeleteMsg(ctx, req.(*DeleteMsgRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -356,6 +392,10 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ClearChatUnread",
 			Handler:    _ChatService_ClearChatUnread_Handler,
+		},
+		{
+			MethodName: "DeleteMsg",
+			Handler:    _ChatService_DeleteMsg_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

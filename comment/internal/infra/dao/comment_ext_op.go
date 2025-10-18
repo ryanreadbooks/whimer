@@ -43,6 +43,7 @@ const (
 )
 
 const (
+	commentIdCacheKeyTmpl = "comment:id:" // comment:id:commentId
 	commentExtCacheKeyTmpl = "comment:ext:" // comment:ext:commentId
 )
 

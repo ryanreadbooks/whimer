@@ -82,7 +82,6 @@ func MakeSystemChatFromPO(po *systemdao.ChatPO) *SystemChat {
 		Mtime:         po.Mtime,
 		LastMsgId:     po.LastMsgId,
 		LastReadMsgId: po.LastReadMsgId,
-		LastReadTime:  po.LastReadTime,
 		UnreadCount:   po.UnreadCount,
 	}
 }

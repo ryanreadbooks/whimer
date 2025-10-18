@@ -48,6 +48,15 @@ func NewCommentItemFromDao(d *dao.Comment) *CommentItem {
 	}
 }
 
+func NewCommentItemSliceFromDao(ds []*dao.Comment) []*CommentItem {
+	result := make([]*CommentItem, 0, len(ds))
+	for _, d := range ds {
+		result = append(result, NewCommentItemFromDao(d))
+	}
+
+	return result
+}
+
 func (r *CommentItem) IsRoot() bool {
 	return r.RootId == 0 && r.ParentId == 0
 }

@@ -7,6 +7,7 @@ import (
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
@@ -20,7 +21,6 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
@@ -39,24 +39,8 @@ func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 		feedBiz:   bizz.FeedBiz,
 		searchBiz: bizz.SearchBiz,
 		userBiz:   bizz.UserBiz,
-		notifyBiz: bizz.SysNotificationBiz,
+		notifyBiz: bizz.SysNotifyBiz,
 	}
-}
-
-// 检查笔记是否存在
-func (h *Handler) CheckNoteExistence(ctx context.Context, noteId int64) error {
-	if resp, err := dep.NoteCreatorServer().IsNoteExist(ctx,
-		&notev1.IsNoteExistRequest{
-			NoteId: noteId,
-		}); err != nil {
-		return err
-	} else {
-		if !resp.Exist {
-			return errors.ErrNoteNotFound
-		}
-	}
-
-	return nil
 }
 
 // 设置笔记的额外信息
@@ -74,57 +58,61 @@ func (h *Handler) assignNoteExtra(ctx context.Context, notes []*imodel.AdminNote
 	}
 
 	eg.Go(func() error {
-		mappings := make(map[int64]*notev1.NoteIdList)
-		mappings[uid] = &notev1.NoteIdList{
-			NoteIds: noteIds,
-		}
+		return recovery.Do(func() error {
+			mappings := make(map[int64]*notev1.NoteIdList)
+			mappings[uid] = &notev1.NoteIdList{
+				NoteIds: noteIds,
+			}
 
-		// 点赞信息
-		resp, err := dep.NoteInteractServer().BatchCheckUserLikeStatus(ctx,
-			&notev1.BatchCheckUserLikeStatusRequest{
-				Mappings: mappings,
-			})
-		if err != nil {
-			return xerror.Wrapf(err, "failed to get user like status").WithCtx(ctx)
-		}
+			// 点赞信息
+			resp, err := dep.NoteInteractServer().BatchCheckUserLikeStatus(ctx,
+				&notev1.BatchCheckUserLikeStatusRequest{
+					Mappings: mappings,
+				})
+			if err != nil {
+				return xerror.Wrapf(err, "failed to get user like status").WithCtx(ctx)
+			}
 
-		pairs := resp.GetResults()
-		for _, likedInfo := range pairs[uid].GetList() {
-			oidLiked[likedInfo.NoteId] = likedInfo.Liked
-		}
+			pairs := resp.GetResults()
+			for _, likedInfo := range pairs[uid].GetList() {
+				oidLiked[likedInfo.NoteId] = likedInfo.Liked
+			}
 
-		for _, note := range notes {
-			noteId := int64(note.NoteId)
-			note.Interact.Liked = oidLiked[noteId]
-		}
+			for _, note := range notes {
+				noteId := int64(note.NoteId)
+				note.Interact.Liked = oidLiked[noteId]
+			}
 
-		return nil
+			return nil
+		})
 	})
 
 	eg.Go(func() error {
-		commentMappings := make(map[int64]*commentv1.BatchCheckUserOnObjectRequest_Objects)
-		commentMappings[uid] = &commentv1.BatchCheckUserOnObjectRequest_Objects{
-			Oids: noteIds,
-		}
-		// 评论信息
-		resp, err := dep.Commenter().BatchCheckUserOnObject(ctx,
-			&commentv1.BatchCheckUserOnObjectRequest{
-				Mappings: commentMappings,
-			})
-		if err != nil {
-			return xerror.Wrapf(err, "failed to get comment status").WithCtx(ctx)
-		}
+		return recovery.Do(func() error {
+			commentMappings := make(map[int64]*commentv1.BatchCheckUserOnObjectRequest_Objects)
+			commentMappings[uid] = &commentv1.BatchCheckUserOnObjectRequest_Objects{
+				Oids: noteIds,
+			}
+			// 评论信息
+			resp, err := dep.Commenter().BatchCheckUserOnObject(ctx,
+				&commentv1.BatchCheckUserOnObjectRequest{
+					Mappings: commentMappings,
+				})
+			if err != nil {
+				return xerror.Wrapf(err, "failed to get comment status").WithCtx(ctx)
+			}
 
-		// organize result
-		pairs := resp.GetResults()
-		for _, comInfo := range pairs[uid].GetList() {
-			oidCommented[comInfo.Oid] = comInfo.Commented
-		}
-		for _, note := range notes {
-			noteId := int64(note.NoteId)
-			note.Interact.Commented = oidCommented[noteId]
-		}
-		return nil
+			// organize result
+			pairs := resp.GetResults()
+			for _, comInfo := range pairs[uid].GetList() {
+				oidCommented[comInfo.Oid] = comInfo.Commented
+			}
+			for _, note := range notes {
+				noteId := int64(note.NoteId)
+				note.Interact.Commented = oidCommented[noteId]
+			}
+			return nil
+		})
 	})
 
 	if err := eg.Wait(); err != nil {

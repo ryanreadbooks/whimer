@@ -77,6 +77,18 @@ const (
 	SystemMsgStatusRead    SystemMsgStatus = SystemMsgStatus(v1.SystemMsgStatus_MsgStatus_Read)    // 已读
 )
 
+func (s SystemMsgStatus) Unread() bool {
+	return s == SystemMsgStatusNormal
+}
+
+func (s SystemMsgStatus) Revoked() bool {
+	return s == SystemMsgStatusRevoked
+}
+
+func (s SystemMsgStatus) Read() bool {
+	return s == SystemMsgStatusRead
+}
+
 type SystemNotifyMentionMsg struct {
 	Uid     int64  `json:"uid"`     // @人的用户
 	Target  int64  `json:"target"`  // 被@的用户

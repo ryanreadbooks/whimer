@@ -11,21 +11,21 @@ import (
 )
 
 type Biz struct {
-	FeedBiz            *bizfeed.Biz
-	SearchBiz          *bizsearch.Biz
-	UserBiz            *bizuser.Biz
-	CommentBiz         *bizcomment.Biz
-	RelationBiz        *bizrelation.Biz
-	SysNotificationBiz *bizsysnotify.Biz
+	FeedBiz      *bizfeed.Biz
+	SearchBiz    *bizsearch.Biz
+	UserBiz      *bizuser.Biz
+	CommentBiz   *bizcomment.Biz
+	RelationBiz  *bizrelation.Biz
+	SysNotifyBiz *bizsysnotify.Biz
 }
 
 func New(c *config.Config) *Biz {
 	return &Biz{
-		FeedBiz:            bizfeed.NewFeedBiz(),
-		SearchBiz:          bizsearch.NewSearchBiz(c),
-		UserBiz:            bizuser.NewUserBiz(c),
-		CommentBiz:         bizcomment.NewBiz(),
-		RelationBiz:        bizrelation.NewBiz(),
-		SysNotificationBiz: bizsysnotify.NewBiz(),
+		FeedBiz:      bizfeed.NewFeedBiz(),
+		SearchBiz:    bizsearch.NewSearchBiz(c),
+		UserBiz:      bizuser.NewUserBiz(c),
+		CommentBiz:   bizcomment.NewBiz(),
+		RelationBiz:  bizrelation.NewBiz(),
+		SysNotifyBiz: bizsysnotify.NewBiz(),
 	}
 }

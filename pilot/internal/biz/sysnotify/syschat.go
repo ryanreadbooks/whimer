@@ -4,12 +4,19 @@ import (
 	"context"
 	"encoding/json"
 
+	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
+	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	sysnotifyv1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
-	v1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
+	systemv1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify/model"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/kafka"
+	sysmsgkfkdao "github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/kafka/sysmsg"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/ryanreadbooks/whimer/misc/uuid"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
@@ -78,6 +85,7 @@ func (b *Biz) ListUserMentionMsg(ctx context.Context, uid int64, cursor string, 
 				uid = v.NotifyAtUsersOnCommentReqContent.SourceUid
 				content = v.NotifyAtUsersOnCommentReqContent.Comment
 				commentId = v.NotifyAtUsersOnCommentReqContent.CommentId
+				noteId = v.NotifyAtUsersOnCommentReqContent.NoteId
 			}
 
 			mm := model.MentionedMsg{
@@ -92,10 +100,15 @@ func (b *Biz) ListUserMentionMsg(ctx context.Context, uid int64, cursor string, 
 				NoteId:    noteId,
 				CommentId: commentId,
 				Content:   content,
+				Status:    model.MentionedMsgStatusNormal,
 			}
 
 			mentionMsgs = append(mentionMsgs, &mm)
 		}
+	}
+
+	if err := b.lazyCheckMentionSource(ctx, mentionMsgs); err != nil {
+		return nil, xerror.Wrapf(err, "sysmsg biz lazy check mention source failed")
 	}
 
 	result.Msgs = mentionMsgs
@@ -107,7 +120,7 @@ func (b *Biz) ListUserMentionMsg(ctx context.Context, uid int64, cursor string, 
 
 // 清除系统会话已读
 func (b *Biz) ClearChatUnread(ctx context.Context, uid int64, chatId string) error {
-	_, err := dep.SystemChatter().ClearChatUnread(ctx, &v1.ClearChatUnreadRequest{
+	_, err := dep.SystemChatter().ClearChatUnread(ctx, &systemv1.ClearChatUnreadRequest{
 		Uid:    uid,
 		ChatId: chatId,
 	})
@@ -122,7 +135,7 @@ func (b *Biz) ClearChatUnread(ctx context.Context, uid int64, chatId string) err
 
 // 获取系统会话的未读数
 func (b *Biz) GetChatUnread(ctx context.Context, uid int64) (*model.ChatsUnreadCount, error) {
-	resp, err := dep.SystemChatter().GetAllChatsUnread(ctx, &v1.GetAllChatsUnreadRequest{
+	resp, err := dep.SystemChatter().GetAllChatsUnread(ctx, &systemv1.GetAllChatsUnreadRequest{
 		Uid: uid,
 	})
 	if err != nil {
@@ -139,4 +152,125 @@ func (b *Biz) GetChatUnread(ctx context.Context, uid int64) (*model.ChatsUnreadC
 	}
 
 	return result, nil
+}
+
+// 检查原始数据是否还存在 不存在需要屏蔽掉对应消息
+func (b *Biz) lazyCheckMentionSource(ctx context.Context, msgs []*model.MentionedMsg) error {
+	var (
+		uid        = metadata.Uid(ctx)
+		numMsgs    = len(msgs)
+		noteIds    = make([]int64, 0, numMsgs)
+		commentIds = make([]int64, 0, numMsgs)
+	)
+
+	for _, msg := range msgs {
+		noteId := int64(msg.NoteId)
+		switch msg.Type {
+		case model.MentionOnComment:
+			noteIds = append(noteIds, noteId)
+			commentIds = append(commentIds, msg.CommentId)
+		case model.MentionOnNote:
+			noteIds = append(noteIds, noteId)
+		}
+	}
+
+	var (
+		noteExistence    map[int64]bool
+		commentExistence map[int64]bool
+	)
+
+	// batch check
+	eg, ctx := errgroup.WithContext(ctx)
+	if len(noteIds) > 0 {
+		eg.Go(recovery.DoV2(func() error {
+			resp, err := dep.NoteFeedServer().BatchCheckFeedNoteExist(ctx,
+				&notev1.BatchCheckFeedNoteExistRequest{
+					NoteIds: noteIds,
+				})
+			if err != nil {
+				return xerror.Wrapf(err, "batch check note failed").WithExtras("note_ids", noteIds)
+			}
+
+			noteExistence = resp.GetExistence()
+
+			return nil
+		}))
+	}
+
+	if len(commentIds) > 0 {
+		eg.Go(recovery.DoV2(func() error {
+			resp, err := dep.Commenter().BatchCheckCommentExist(ctx, &commentv1.BatchCheckCommentExistRequest{
+				Ids: commentIds,
+			})
+			if err != nil {
+				return xerror.Wrapf(err, "batch check comment failed").WithExtras("comment_ids", commentIds)
+			}
+
+			commentExistence = resp.GetExistence()
+			return nil
+		}))
+	}
+
+	err := eg.Wait()
+	if err != nil {
+		return xerror.Wrap(err).WithCtx(ctx)
+	}
+
+	pendingMsgIds := make([]string, 0, numMsgs)
+
+	// noteExistence
+	for _, msg := range msgs {
+		noteId := int64(msg.NoteId)
+		switch msg.Type {
+		case model.MentionOnComment:
+			noteOk, _ := noteExistence[noteId]
+			commentOk, _ := commentExistence[msg.CommentId]
+			if !noteOk || !commentOk {
+				msg.DoNotReveal()
+				pendingMsgIds = append(pendingMsgIds, msg.Id)
+			}
+		case model.MentionOnNote:
+			noteOk, _ := noteExistence[noteId]
+			if !noteOk {
+				msg.DoNotReveal()
+				pendingMsgIds = append(pendingMsgIds, msg.Id)
+			}
+		}
+	}
+
+	xlog.Msgf("sysmsg check pending msgids length = %d", len(pendingMsgIds)).Debugx(ctx)
+
+	// batch delete system msgs for the same uid (by kafka)
+	if len(pendingMsgIds) > 0 {
+		deletions := make([]*sysmsgkfkdao.DeletionEvent, 0, len(pendingMsgIds))
+		for _, msgId := range pendingMsgIds {
+			deletions = append(deletions, &sysmsgkfkdao.DeletionEvent{
+				Uid:   uid,
+				MsgId: msgId,
+			})
+		}
+
+		if err := kafka.Dao().SysMsgEventProducer.AsyncPutDeletion(ctx, deletions); err != nil {
+			xlog.Msg("sysmsg biz async put deletion failed").Err(err).Extras("args", deletions).Errorx(ctx)
+		}
+	}
+
+	return nil
+}
+
+// 删除系统消息
+func (b *Biz) DeleteSysMsg(ctx context.Context, uid int64, msgId string) error {
+	if uid == 0 || msgId == "" {
+		return xerror.Wrapf(xerror.ErrArgs, "invalid params").WithExtras("uid", uid, "msg_id", msgId).WithCtx(ctx)
+	}
+
+	_, err := dep.SystemChatter().DeleteMsg(ctx, &systemv1.DeleteMsgRequest{
+		MsgId: msgId,
+		Uid:   uid,
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "sysmsg biz failed to delete msg").WithCtx(ctx)
+	}
+
+	return nil
 }

@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	systemChatDao *SystemChatDao
-	systemMsgDao  *SystemMsgDao
-	ctx           = context.TODO()
+	testSystemChatDao *SystemChatDao
+	testSystemMsgDao  *SystemMsgDao
+	textctx           = context.TODO()
 )
 
 func TestMain(m *testing.M) {
@@ -24,8 +24,8 @@ func TestMain(m *testing.M) {
 	))
 
 	d := xsql.New(db)
-	systemChatDao = NewSystemChatDao(d)
-	systemMsgDao = NewSystemMsgDao(d)
+	testSystemChatDao = NewSystemChatDao(d)
+	testSystemMsgDao = NewSystemMsgDao(d)
 	m.Run()
 
 	// deleteForTest()

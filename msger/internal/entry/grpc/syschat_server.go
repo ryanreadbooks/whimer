@@ -227,3 +227,14 @@ func (s *SystemChatServiceServer) GetAllChatsUnread(ctx context.Context, in *sys
 
 	return &resp, nil
 }
+
+func (s *SystemChatServiceServer) DeleteMsg(ctx context.Context, in *systemv1.DeleteMsgRequest) (
+	*systemv1.DeleteMsgResponse, error) {
+
+	err := s.Svc.SystemChatSrv.DeleteSystemMsg(ctx, in.Uid, in.MsgId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &systemv1.DeleteMsgResponse{}, nil
+}

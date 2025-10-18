@@ -309,6 +309,10 @@ message UploadCommentImagesResponse {
   string token = 5;
 }
 
+message BatchCheckCommentExistRequest { repeated int64 ids = 1; }
+
+message BatchCheckCommentExistResponse { map<int64, bool> existence = 1; }
+
 service CommentService {
   // 发表评论
   rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
@@ -364,4 +368,8 @@ service CommentService {
   // 上传图片评论（申请上传凭证）
   rpc UploadCommentImages(UploadCommentImagesRequest)
       returns (UploadCommentImagesResponse);
+
+  // 批量检查评论是否存在
+  rpc BatchCheckCommentExist(BatchCheckCommentExistRequest)
+      returns (BatchCheckCommentExistResponse);
 }

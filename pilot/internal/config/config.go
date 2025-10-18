@@ -36,9 +36,17 @@ type Config struct {
 	JobConfig struct {
 		NoteEventJob NoteEventJob `json:"note_event_job"`
 	} `json:"job_config"`
+
+	Kafka *KafkaConfig `json:"kafka"`
 }
 
 type NoteEventJob struct {
 	Interval  time.Duration `json:"interval,default=10s"`
 	NumOfList uint32        `json:"num_of_list,default=6"`
+}
+
+type KafkaConfig struct {
+	Brokers  string `json:"brokers"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }

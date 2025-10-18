@@ -12,6 +12,7 @@ require (
 	github.com/ryanreadbooks/whimer/relation v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/search v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/wslink v0.0.0-00010101000000-000000000000
+	github.com/segmentio/kafka-go v0.4.49
 	github.com/zeromicro/go-zero v1.8.5
 	golang.org/x/sync v0.16.0
 )
@@ -65,7 +66,6 @@ require (
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
-	github.com/segmentio/kafka-go v0.4.49 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/speps/go-hashids/v2 v2.0.1 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect

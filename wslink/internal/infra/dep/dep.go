@@ -10,12 +10,10 @@ import (
 var (
 	auther *auth.Auth
 	userer userv1.UserServiceClient
-
-	err error
 )
 
 func Init(c *config.Config) {
-	auther = auth.MustAuther(c.Backend.Passport)
+	auther = auth.RecoverableAuther(c.Backend.Passport)
 	userer = xgrpc.NewRecoverableClient(c.Backend.Passport,
 		userv1.NewUserServiceClient, func(nc userv1.UserServiceClient) { userer = nc })
 }

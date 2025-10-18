@@ -3,6 +3,7 @@ package srv
 import (
 	"context"
 
+	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
@@ -54,13 +55,15 @@ func (s *NoteCreatorSrv) BatchGetUploadAuth(ctx context.Context,
 	var resps = make([]*model.UploadAuthResponse, req.Count)
 	for i := range req.Count {
 		eg.Go(func() error {
-			resp, err := s.noteCreatorBiz.GetUploadAuth(ctx, req)
-			if err != nil {
-				return xerror.Wrapf(err, "get upload auth failed").WithExtra("req", req)
-			}
+			return recovery.Do(func() error {
+				resp, err := s.noteCreatorBiz.GetUploadAuth(ctx, req)
+				if err != nil {
+					return xerror.Wrapf(err, "get upload auth failed").WithExtra("req", req)
+				}
 
-			resps[i] = resp
-			return nil
+				resps[i] = resp
+				return nil
+			})
 		})
 	}
 

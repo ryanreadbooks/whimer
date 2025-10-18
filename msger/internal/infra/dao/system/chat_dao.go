@@ -40,14 +40,29 @@ func (d *SystemChatDao) Create(ctx context.Context, chat *ChatPO) error {
 		chat.Mtime,
 		chat.LastMsgId,
 		chat.LastReadMsgId,
-		chat.LastReadTime,
 		chat.UnreadCount)
+	return xsql.ConvertError(err)
+}
+
+func (d *SystemChatDao) UpdateMsgs(ctx context.Context, chatId,
+	lastMsgId, lastReadMsgId uuid.UUID, unread int64) error {
+
+	now := time.Now().UnixNano()
+	sql := "UPDATE system_chat SET last_msg_id=?, last_read_msg_id=?, unread_count=?, mtime=? WHERE id=?"
+	_, err := d.db.ExecCtx(ctx, sql, lastMsgId, lastReadMsgId, unread, now, chatId)
 	return xsql.ConvertError(err)
 }
 
 // 获取系统会话
 func (d *SystemChatDao) GetById(ctx context.Context, id uuid.UUID) (*ChatPO, error) {
 	var sql = fmt.Sprintf("SELECT %s FROM system_chat WHERE id=?", systemChatFields)
+	var chat ChatPO
+	err := d.db.QueryRowCtx(ctx, &chat, sql, id)
+	return &chat, xsql.ConvertError(err)
+}
+
+func (d *SystemChatDao) GetByIdForUpdate(ctx context.Context, id uuid.UUID) (*ChatPO, error) {
+	var sql = fmt.Sprintf("SELECT %s FROM system_chat WHERE id=? FOR UPDATE", systemChatFields)
 	var chat ChatPO
 	err := d.db.QueryRowCtx(ctx, &chat, sql, id)
 	return &chat, xsql.ConvertError(err)
@@ -69,6 +84,13 @@ func (d *SystemChatDao) BatchGetById(ctx context.Context, chatIds []uuid.UUID) (
 // 获取用户的系统会话
 func (d *SystemChatDao) GetByUidAndType(ctx context.Context, uid int64, chatType model.SystemChatType) (*ChatPO, error) {
 	sql := fmt.Sprintf("SELECT %s FROM system_chat WHERE uid=? AND type=? LIMIT 1", systemChatFields)
+	var chat ChatPO
+	err := d.db.QueryRowCtx(ctx, &chat, sql, uid, chatType)
+	return &chat, xsql.ConvertError(err)
+}
+
+func (d *SystemChatDao) GetByUidAndTypeForUpdate(ctx context.Context, uid int64, chatType model.SystemChatType) (*ChatPO, error) {
+	sql := fmt.Sprintf("SELECT %s FROM system_chat WHERE uid=? AND type=? LIMIT 1 FOR UPDATE", systemChatFields)
 	var chat ChatPO
 	err := d.db.QueryRowCtx(ctx, &chat, sql, uid, chatType)
 	return &chat, xsql.ConvertError(err)
@@ -109,9 +131,9 @@ func (d *SystemChatDao) UpdateUnreadCount(ctx context.Context, chatId uuid.UUID,
 
 // 清空未读消息数 并设置最后读取消息id
 func (d *SystemChatDao) ClearUnread(ctx context.Context, chatId uuid.UUID, lastReadMsgId uuid.UUID) error {
-	sql := "UPDATE system_chat SET unread_count=0, last_read_msg_id=?, last_read_time=?, mtime=? WHERE id=?"
+	sql := "UPDATE system_chat SET unread_count=0, last_read_msg_id=?, mtime=? WHERE id=?"
 	now := time.Now().UnixMicro()
-	_, err := d.db.ExecCtx(ctx, sql, lastReadMsgId, now, now, chatId)
+	_, err := d.db.ExecCtx(ctx, sql, lastReadMsgId, now, chatId)
 	return xsql.ConvertError(err)
 }
 

@@ -10,8 +10,8 @@ import (
 )
 
 func deleteForTest() {
-	systemMsgDao.db.Exec("DELETE FROM system_msg WHERE 1=1")
-	systemChatDao.db.Exec("DELETE FROM system_chat WHERE 1=1")
+	testSystemMsgDao.db.Exec("DELETE FROM system_msg WHERE 1=1")
+	testSystemChatDao.db.Exec("DELETE FROM system_chat WHERE 1=1")
 }
 
 func TestSystemChatDao_Create(t *testing.T) {
@@ -25,11 +25,10 @@ func TestSystemChatDao_Create(t *testing.T) {
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
 			LastReadMsgId: uuid.NewUUID(),
-			LastReadTime:  time.Now().UnixMicro(),
 			UnreadCount:   0,
 		}
 
-		err := systemChatDao.Create(ctx, chat)
+		err := testSystemChatDao.Create(textctx, chat)
 		So(err, ShouldBeNil)
 	})
 }
@@ -46,15 +45,14 @@ func TestSystemChatDao_GetByUidAndType(t *testing.T) {
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
 			LastReadMsgId: uuid.NewUUID(),
-			LastReadTime:  time.Now().UnixMicro(),
 			UnreadCount:   0,
 		}
 
-		err := systemChatDao.Create(ctx, chat)
+		err := testSystemChatDao.Create(textctx, chat)
 		So(err, ShouldBeNil)
 
 		// 然后查询
-		got, err := systemChatDao.GetByUidAndType(ctx, 10002, model.SystemNotifyNoticeChat)
+		got, err := testSystemChatDao.GetByUidAndType(textctx, 10002, model.SystemNotifyNoticeChat)
 		So(err, ShouldBeNil)
 		So(got.Uid, ShouldEqual, 10002)
 		So(got.Type, ShouldEqual, model.SystemNotifyNoticeChat)
@@ -76,17 +74,16 @@ func TestSystemChatDao_ListByUid(t *testing.T) {
 				Mtime:         time.Now().UnixMicro(),
 				LastMsgId:     uuid.NewUUID(),
 				LastReadMsgId: uuid.NewUUID(),
-				LastReadTime:  time.Now().UnixMicro(),
 				UnreadCount:   int64(i),
 			}
 
-			err := systemChatDao.Create(ctx, chat)
+			err := testSystemChatDao.Create(textctx, chat)
 			So(err, ShouldBeNil)
 			time.Sleep(10 * time.Millisecond) // 确保mtime有差异
 		}
 
 		// 然后查询
-		results, err := systemChatDao.ListByUid(ctx, uid)
+		results, err := testSystemChatDao.ListByUid(textctx, uid)
 		So(err, ShouldBeNil)
 		So(len(results), ShouldBeGreaterThanOrEqualTo, 2)
 	})
@@ -103,20 +100,19 @@ func TestSystemChatDao_UpdateLastMsg(t *testing.T) {
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
 			LastReadMsgId: uuid.NewUUID(),
-			LastReadTime:  time.Now().UnixMicro(),
 			UnreadCount:   0,
 		}
 
-		err := systemChatDao.Create(ctx, chat)
+		err := testSystemChatDao.Create(textctx, chat)
 		So(err, ShouldBeNil)
 
 		// 然后更新
 		newLastMsgId := uuid.NewUUID()
-		err = systemChatDao.UpdateLastMsg(ctx, chatId, newLastMsgId, true)
+		err = testSystemChatDao.UpdateLastMsg(textctx, chatId, newLastMsgId, true)
 		So(err, ShouldBeNil)
 
 		// 验证更新结果
-		updatedChat, err := systemChatDao.GetByUidAndType(ctx, 10004,
+		updatedChat, err := testSystemChatDao.GetByUidAndType(textctx, 10004,
 			model.SystemNotifyNoticeChat)
 		So(err, ShouldBeNil)
 		So(updatedChat.LastMsgId.String(), ShouldEqual, newLastMsgId.String())
@@ -136,20 +132,19 @@ func TestSystemChatDao_ClearUnread(t *testing.T) {
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
 			LastReadMsgId: uuid.NewUUID(),
-			LastReadTime:  time.Now().UnixMicro(),
 			UnreadCount:   5,
 		}
 
-		err := systemChatDao.Create(ctx, chat)
+		err := testSystemChatDao.Create(textctx, chat)
 		So(err, ShouldBeNil)
 
 		// 然后清空未读
 		lastReadMsgId := uuid.NewUUID()
-		err = systemChatDao.ClearUnread(ctx, chatId, lastReadMsgId)
+		err = testSystemChatDao.ClearUnread(textctx, chatId, lastReadMsgId)
 		So(err, ShouldBeNil)
 
 		// 验证更新结果
-		updatedChat, err := systemChatDao.GetByUidAndType(ctx, 10005, model.SystemNotifyNoticeChat)
+		updatedChat, err := testSystemChatDao.GetByUidAndType(textctx, 10005, model.SystemNotifyNoticeChat)
 		So(err, ShouldBeNil)
 		So(updatedChat.UnreadCount, ShouldEqual, 0)
 		So(updatedChat.LastReadMsgId, ShouldEqual, lastReadMsgId)
@@ -167,19 +162,18 @@ func TestSystemChatDao_Delete(t *testing.T) {
 			Mtime:         time.Now().UnixMicro(),
 			LastMsgId:     uuid.NewUUID(),
 			LastReadMsgId: uuid.NewUUID(),
-			LastReadTime:  time.Now().UnixMicro(),
 			UnreadCount:   0,
 		}
 
-		err := systemChatDao.Create(ctx, chat)
+		err := testSystemChatDao.Create(textctx, chat)
 		So(err, ShouldBeNil)
 
 		// 然后删除
-		err = systemChatDao.Delete(ctx, chatId)
+		err = testSystemChatDao.Delete(textctx, chatId)
 		So(err, ShouldBeNil)
 
 		// 验证删除结果
-		_, err = systemChatDao.GetByUidAndType(ctx, 10006, model.SystemNotifyNoticeChat)
+		_, err = testSystemChatDao.GetByUidAndType(textctx, 10006, model.SystemNotifyNoticeChat)
 		So(err, ShouldNotBeNil)
 	})
 }

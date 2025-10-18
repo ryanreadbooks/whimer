@@ -6,6 +6,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	accessv1 "github.com/ryanreadbooks/whimer/passport/api/access/v1"
 	v1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -41,6 +42,17 @@ func MustAuther(c xconf.Discovery) *Auth {
 		panic(err)
 	}
 	return NewFromConn(authCli)
+}
+
+func RecoverableAuther(c xconf.Discovery) *Auth {
+	var auth Auth
+	auth.AccessServiceClient = xgrpc.NewRecoverableClient(c,
+		accessv1.NewAccessServiceClient,
+		func(cc accessv1.AccessServiceClient) {
+			auth.AccessServiceClient = cc
+		})
+
+	return &auth
 }
 
 func rawSignInReq(sessId, platform string) *accessv1.IsCheckedInRequest {

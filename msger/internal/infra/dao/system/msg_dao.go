@@ -81,8 +81,23 @@ func (d *SystemMsgDao) BatchCreate(ctx context.Context, msgs []*MsgPO) error {
 }
 
 // 根据消息ID获取消息
+func (d *SystemMsgDao) GetChatIdById(ctx context.Context, msgId uuid.UUID) (uuid.UUID, error) {
+	const sql = "SELECT system_chat_id FROM system_message WHERE id=?"
+	var msg uuid.UUID
+	err := d.db.QueryRowCtx(ctx, &msg, sql, msgId)
+	return msg, xsql.ConvertError(err)
+}
+
+// 根据消息ID获取消息
 func (d *SystemMsgDao) GetById(ctx context.Context, msgId uuid.UUID) (*MsgPO, error) {
 	sql := fmt.Sprintf("SELECT %s FROM system_message WHERE id=?", systemMsgFields)
+	var msg MsgPO
+	err := d.db.QueryRowCtx(ctx, &msg, sql, msgId)
+	return &msg, xsql.ConvertError(err)
+}
+
+func (d *SystemMsgDao) GetByIdForUpdate(ctx context.Context, msgId uuid.UUID) (*MsgPO, error) {
+	sql := fmt.Sprintf("SELECT %s FROM system_message WHERE id=? FOR UPDATE", systemMsgFields)
 	var msg MsgPO
 	err := d.db.QueryRowCtx(ctx, &msg, sql, msgId)
 	return &msg, xsql.ConvertError(err)
@@ -100,7 +115,7 @@ func (d *SystemMsgDao) BatchGetByIds(ctx context.Context, msgIds []uuid.UUID) ([
 		params[i] = id
 	}
 	sql := fmt.Sprintf(
-		"SELECT %s FROM system_message WHERE id IN (%s) ORDER BY mtime DESC",
+		"SELECT %s FROM system_message WHERE id IN (%s) ORDER BY mtime DESC, id DESC",
 		systemMsgFields, xslice.JoinStrings(xslice.Repeat("?", len(msgIds))))
 	err := d.db.QueryRowsCtx(ctx, &msgs, sql, params...)
 	return msgs, xsql.ConvertError(err)
@@ -117,29 +132,29 @@ func (d *SystemMsgDao) ListByChatId(ctx context.Context, chatId uuid.UUID, offse
 }
 
 func (d *SystemMsgDao) ListUnreadMsgId(ctx context.Context, chatId uuid.UUID, recvUid int64) ([]uuid.UUID, error) {
-	sql := "SELECT id FROM system_message WHERE system_chat_id=? AND recv_uid=? AND status=? ORDER BY mtime DESC"
+	sql := "SELECT id FROM system_message WHERE system_chat_id=? AND recv_uid=? AND status=? ORDER BY mtime DESC, id DESC"
 	var msgIds []uuid.UUID
 	err := d.db.QueryRowsCtx(ctx, &msgIds, sql, chatId, recvUid, model.SystemMsgStatusNormal)
 	return msgIds, xsql.ConvertError(err)
 }
 
-func (d *SystemMsgDao) ListUnreadMsgIdWithLimit(ctx context.Context,
-	chatId uuid.UUID, recvUid int64, offsetId uuid.UUID, cnt int32) ([]uuid.UUID, error) {
-	sql := "SELECT id FROM system_message WHERE id>? AND system_chat_id=? AND recv_uid=? AND status=? " +
-		" ORDER BY mtime DESC LIMIT ?"
-	var msgIds []uuid.UUID
-	err := d.db.QueryRowsCtx(ctx, &msgIds, sql,
-		offsetId, chatId, recvUid, model.SystemMsgStatusNormal, cnt)
-	return msgIds, xsql.ConvertError(err)
-}
-
-// 获取最新一条消息
+// 获取最新一条消息(mtime最大的)
 func (d *SystemMsgDao) GetLastMsg(ctx context.Context, chatId uuid.UUID, recvUid int64) (*MsgPO, error) {
 	sql := fmt.Sprintf(
-		"SELECT %s FROM system_message WHERE system_chat_id=? AND recv_uid=? ORDER BY mtime DESC LIMIT 1",
+		"SELECT %s FROM system_message WHERE system_chat_id=? AND recv_uid=? ORDER BY mtime DESC, id DESC LIMIT 1",
 		systemMsgFields)
 	var msg MsgPO
 	err := d.db.QueryRowCtx(ctx, &msg, sql, chatId, recvUid)
+	return &msg, xsql.ConvertError(err)
+}
+
+// 获取最新一条消息(mtime最大的且status=read)
+func (d *SystemMsgDao) GetLastReadMsg(ctx context.Context, chatId uuid.UUID, recvUid int64) (*MsgPO, error) {
+	sql := fmt.Sprintf(
+		"SELECT %s FROM system_message WHERE system_chat_id=? AND recv_uid=? AND status=? ORDER BY mtime DESC, id DESC LIMIT 1",
+		systemMsgFields)
+	var msg MsgPO
+	err := d.db.QueryRowCtx(ctx, &msg, sql, chatId, recvUid, model.SystemMsgStatusRead)
 	return &msg, xsql.ConvertError(err)
 }
 
@@ -166,13 +181,15 @@ func (d *SystemMsgDao) BatchUpdateStatus(ctx context.Context, msgIds []uuid.UUID
 		return nil
 	}
 
-	params := make([]any, 0, len(msgIds)+1)
-	params = append(params, status)
+	mtime := time.Now().UnixMicro()
+	params := make([]any, 0, len(msgIds)+2)
+	params = append(params, status, mtime)
+
 	for _, id := range msgIds {
 		params = append(params, id)
 	}
 	sql := fmt.Sprintf(
-		"UPDATE system_message SET status=? WHERE id IN (%s)",
+		"UPDATE system_message SET status=?, mtime=? WHERE id IN (%s)",
 		xslice.JoinStrings(xslice.Repeat("?", len(msgIds))))
 	_, err := d.db.ExecCtx(ctx, sql, params...)
 	return xsql.ConvertError(err)
@@ -194,6 +211,6 @@ func (d *SystemMsgDao) DeleteByChatId(ctx context.Context, chatId uuid.UUID) err
 
 func (d *SystemMsgDao) DeleteByChatIdMsgIdRecvUid(ctx context.Context, chatId, msgId uuid.UUID, recvUid int64) error {
 	sql := "DELETE FROM system_message WHERE id=? AND system_chat_id=? AND recv_uid=?"
-	_, err := d.db.ExecCtx(ctx, sql, chatId, msgId, recvUid)
+	_, err := d.db.ExecCtx(ctx, sql, msgId, chatId, recvUid)
 	return xsql.ConvertError(err)
 }

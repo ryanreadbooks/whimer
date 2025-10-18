@@ -12,6 +12,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 
 	"golang.org/x/sync/errgroup"
@@ -42,36 +43,48 @@ func (s *CommentSrv) AddComment(ctx context.Context, req *model.AddCommentReq) (
 }
 
 // 用户删除评论
-func (s *CommentSrv) DelComment(ctx context.Context, oid, rid int64) error {
-	err := s.CommentBiz.DelComment(ctx, oid, rid)
+func (s *CommentSrv) DelComment(ctx context.Context, oid, commentId int64) error {
+	err := s.CommentBiz.DelComment(ctx, oid, commentId)
 	if err != nil {
 		return xerror.Wrapf(err, "comment srv failed to del comment").
 			WithCtx(ctx).
-			WithExtra("rid", rid)
+			WithExtra("commentId", commentId)
 	}
 
 	return nil
 }
 
 // 用户点赞/取消点赞某条评论
-func (s *CommentSrv) LikeComment(ctx context.Context, rid int64, action int8) error {
-	err := s.CommentInteractBiz.LikeComment(ctx, rid, action)
+func (s *CommentSrv) LikeComment(ctx context.Context, commentId int64, action int8) error {
+	_, err := s.CommentBiz.GetComment(ctx, commentId,
+		biz.DoNotPopulateExt(), biz.DoNotPopulateImages())
+	if err != nil {
+		return xerror.Wrapf(err, "comment srv pin comment failed").WithCtx(ctx)
+	}
+
+	err = s.CommentInteractBiz.LikeComment(ctx, commentId, action)
 	if err != nil {
 		return xerror.Wrapf(err, "comment srv failed to do like comment").
 			WithCtx(ctx).
-			WithExtras("rid", rid, "action", action)
+			WithExtras("commentId", commentId, "action", action)
 	}
 
 	return nil
 }
 
 // 用户点踩/取消点踩某条评论
-func (s *CommentSrv) DislikeComment(ctx context.Context, rid int64, action int8) error {
-	err := s.CommentInteractBiz.DislikeComment(ctx, rid, action)
+func (s *CommentSrv) DislikeComment(ctx context.Context, commentId int64, action int8) error {
+	_, err := s.CommentBiz.GetComment(ctx, commentId,
+		biz.DoNotPopulateExt(), biz.DoNotPopulateImages())
+	if err != nil {
+		return xerror.Wrapf(err, "comment srv pin comment failed").WithCtx(ctx)
+	}
+
+	err = s.CommentInteractBiz.DislikeComment(ctx, commentId, action)
 	if err != nil {
 		return xerror.Wrapf(err, "comment srv failed to do dislike comment").
 			WithCtx(ctx).
-			WithExtras("rid", rid, "action", action)
+			WithExtras("commentId", commentId, "action", action)
 	}
 
 	return nil
@@ -83,8 +96,9 @@ func (s *CommentSrv) PinComment(ctx context.Context, oid, commentId int64, actio
 		uid = metadata.Uid(ctx)
 	)
 
-	// 检查rid
-	comment, err := s.CommentBiz.GetComment(ctx, commentId)
+	// 检查commentId
+	comment, err := s.CommentBiz.GetComment(ctx, commentId,
+		biz.DoNotPopulateExt(), biz.DoNotPopulateImages())
 	if err != nil {
 		return xerror.Wrapf(err, "comment srv pin comment failed").WithCtx(ctx)
 	}
@@ -117,7 +131,7 @@ func (s *CommentSrv) PinComment(ctx context.Context, oid, commentId int64, actio
 	if err != nil {
 		return xerror.Wrapf(err, "comment srv failed to do pin comment").
 			WithCtx(ctx).
-			WithExtras("rid", commentId, "action", action, "oid", oid)
+			WithExtras("commentId", commentId, "action", action, "oid", oid)
 	}
 	return nil
 }
@@ -332,21 +346,21 @@ func (s *CommentSrv) GetCommentCount(ctx context.Context, oid int64) (int64, err
 }
 
 // 获取评论点赞数量
-func (s *CommentSrv) GetCommentLikesCount(ctx context.Context, rid int64) (int64, error) {
-	cnt, err := s.CommentInteractBiz.CountCommentLikes(ctx, rid)
+func (s *CommentSrv) GetCommentLikesCount(ctx context.Context, commentId int64) (int64, error) {
+	cnt, err := s.CommentInteractBiz.CountCommentLikes(ctx, commentId)
 	if err != nil {
-		return 0, xerror.Wrapf(err, "comment srv failed to get comment likes count").WithExtra("rid", rid).WithCtx(ctx)
+		return 0, xerror.Wrapf(err, "comment srv failed to get comment likes count").WithExtra("commentId", commentId).WithCtx(ctx)
 	}
 
 	return cnt, nil
 }
 
 // 获取评论点踩数量
-func (s *CommentSrv) GetCommentDislikesCount(ctx context.Context, rid int64) (int64, error) {
-	cnt, err := s.CommentInteractBiz.CountCommentDislikes(ctx, rid)
+func (s *CommentSrv) GetCommentDislikesCount(ctx context.Context, commentId int64) (int64, error) {
+	cnt, err := s.CommentInteractBiz.CountCommentDislikes(ctx, commentId)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "comment srv failed to get comment dislikes count").
-			WithExtra("rid", rid).WithCtx(ctx)
+			WithExtra("commentId", commentId).WithCtx(ctx)
 	}
 
 	return cnt, nil
@@ -400,4 +414,31 @@ func (s *CommentSrv) BatchCheckUserLikeStatus(ctx context.Context, uidCommentIds
 
 func (s *CommentSrv) GetCommentImagesUploadAuth(ctx context.Context, cnt int32) (*biz.ImageAuth, error) {
 	return s.AssetManagerBiz.BatchGetImageAuths(ctx, cnt)
+}
+
+// 检查评论是否存在
+func (s *CommentSrv) BatchCheckCommentExist(ctx context.Context, ids []int64) (map[int64]bool, error) {
+	ids = xslice.Uniq(ids)
+
+	result := make(map[int64]bool, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+
+	exists, err := s.CommentBiz.BatchGetComment(ctx, ids,
+		biz.DoNotPopulateExt(), biz.DoNotPopulateImages())
+	if err != nil {
+		return nil, xerror.Wrapf(err, "comment srv batch get comment failed").WithCtx(ctx)
+	}
+
+	m := xslice.MakeMap(exists, func(v *model.CommentItem) int64 { return v.Id })
+	for _, id := range ids {
+		if _, ok := m[id]; ok {
+			result[id] = true
+		} else {
+			result[id] = false
+		}
+	}
+
+	return result, nil
 }

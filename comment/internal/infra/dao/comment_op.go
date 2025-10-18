@@ -3,12 +3,15 @@ package dao
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xcache"
+	xcachev2 "github.com/ryanreadbooks/whimer/misc/xcache/v2"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	maps "github.com/ryanreadbooks/whimer/misc/xmap"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	slices "github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/misc/xtime"
@@ -18,16 +21,18 @@ import (
 type CommentDao struct {
 	db          *xsql.DB
 	cache       *CommentCache
+	cacheV2     *xcachev2.Cache[*Comment]
 	pinnedCache *xcache.Cache[*Comment] // 置顶评论缓存
 	countCache  *xcache.Cache[int64]    // 评论数量的缓存
 }
 
-func NewCommentDao(db *xsql.DB, cache *redis.Redis) *CommentDao {
+func NewCommentDao(db *xsql.DB, rd *redis.Redis) *CommentDao {
 	return &CommentDao{
 		db:          db,
-		cache:       NewCommentCache(cache),
-		pinnedCache: xcache.New[*Comment](cache),
-		countCache:  xcache.New[int64](cache),
+		cache:       NewCommentCache(rd),
+		cacheV2:     xcachev2.New[*Comment](rd),
+		pinnedCache: xcache.New[*Comment](rd),
+		countCache:  xcache.New[int64](rd),
 	}
 }
 
@@ -36,6 +41,8 @@ const (
 	fields          = "id,oid,type,content,uid,root,parent,ruid,state,`like`,dislike,report,pin,ip,ctime,mtime"
 	fieldsWithoutId = "oid,type,content,uid,root,parent,ruid,state,`like`,dislike,report,pin,ip,ctime,mtime"
 
+	forUpdate = "FOR UPDATE"
+
 	sqlUdState    = "UPDATE comment SET state=?, mtime=? WHERE id=?"
 	sqlIncLike    = "UPDATE comment SET `like`=`like`+1, mtime=? WHERE id=?"
 	sqlDecLike    = "UPDATE comment SET `like`=`like`-1, mtime=? WHERE id=?"
@@ -43,14 +50,8 @@ const (
 	sqlDecDislike = "UPDATE comment SET dislike=dislike-1, mtime=? WHERE id=?"
 	sqlIncReport  = "UPDATE comment SET report=report+1, mtime=? WHERE id=?"
 	sqlDecReport  = "UPDATE comment SET report=report-1, mtime=? WHERE id=?"
-
-	sqlPin   = "UPDATE comment SET pin=1, mtime=? WHERE id=? AND oid=? AND root=0"
-	sqlUnpin = "UPDATE comment SET pin=0, mtime=? WHERE id=? AND oid=? AND root=0"
-	// 一次性将已有的pin改为0，将目标id pin改为1
-	sqlDoPin = `UPDATE comment SET pin=1-pin, mtime=? WHERE id=(
-								SELECT id FROM (SELECT id FROM comment WHERE id>0 AND oid=? AND root=0 AND pin=1) tmp
-							) OR id=?`
-
+	sqlPin        = "UPDATE comment SET pin=1, mtime=? WHERE id=? AND oid=? AND root=0"
+	sqlUnpin      = "UPDATE comment SET pin=0, mtime=? WHERE id=? AND oid=? AND root=0"
 	sqlSetLike    = "UPDATE comment SET `like`=?, mtime=? WHERE id=?"
 	sqlSetDisLike = "UPDATE comment SET dislike=?, mtime=? WHERE id=?"
 	sqlSetReport  = "UPDATE comment SET report=?, mtime=? WHERE id=?"
@@ -60,29 +61,34 @@ const (
 
 	sqlFindUOIn = "SELECT DISTINCT uid, oid FROM comment WHERE uid IN (%s) AND oid IN (%s)"
 
-	forUpdate = "FOR UPDATE"
+	// 一次性将已有的pin改为0，将目标id pin改为1
+	sqlDoPin = `UPDATE comment SET pin=1-pin, mtime=? WHERE id=(
+								SELECT id FROM (SELECT id FROM comment WHERE id>0 AND oid=? AND root=0 AND pin=1) tmp
+							) OR id=?`
 )
 
-var (
+const (
 	sqlSelRootParentById = "SELECT id,root,parent,oid,pin FROM comment WHERE id=?"
 	sqlCountByO          = "SELECT COUNT(*) FROM comment WHERE oid=?"
 	sqlBatchCountByO     = "SELECT oid, COUNT(*) AS cnt FROM comment WHERE oid IN (%s) GROUP BY oid"
 	sqlCountByOU         = "SELECT COUNT(*) FROM comment WHERE oid=? AND uid=?"
 	sqlCountGbO          = "SELECT oid, COUNT(*) AS cnt FROM comment GROUP BY oid"
 	sqlCountGbOLimit     = "SELECT oid, COUNT(*) AS cnt FROM comment GROUP BY oid LIMIT ?,?"
-	sqlSelPinned         = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? AND pin=1 LIMIT 1", fields)
-	sqlSel               = fmt.Sprintf("SELECT %s FROM comment WHERE id=?", fields)
-	sqlSel4Ud            = fmt.Sprintf("SELECT %s FROM comment WHERE id=? FOR UPDATE", fields)
-	sqlSelByO            = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? %%s", fields)
-	sqlSelByRoot         = fmt.Sprintf("SELECT %s FROM comment WHERE root=? %%s", fields)
-	sqlInsert            = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fieldsWithoutId)
+	sqlSelPinned         = "SELECT " + fields + " FROM comment WHERE oid=? AND pin=1 LIMIT 1"
+	sqlSel               = "SELECT " + fields + " FROM comment WHERE id=?"
+	sqlSel4Ud            = "SELECT " + fields + " FROM comment WHERE id=? FOR UPDATE"
+	sqlSelByO            = "SELECT " + fields + " FROM comment WHERE oid=? %s"
+	sqlSelByRoot         = "SELECT " + fields + " FROM comment WHERE root=? %s"
+	sqlSelRoots          = "SELECT " + fields + " FROM comment WHERE %s oid=? AND root=0 AND pin=0 ORDER BY ctime DESC LIMIT ?"
+	sqlSelSubs           = "SELECT " + fields + " FROM comment WHERE id>? AND oid=? AND root=? ORDER BY ctime ASC LIMIT ?"
+	sqlPageSelSubs       = "SELECT " + fields + " FROM comment WHERE oid=? AND root=? ORDER BY ctime ASC, id ASC LIMIT ?,?"
+	sqlBatchCountSubs    = "SELECT root, COUNT(id) cnt FROM comment WHERE root!=0 AND root IN (%s) GROUP BY root"
+	sqlCountSubs         = "SELECT COUNT(*) FROM comment WHERE oid=? AND root=?"
+	sqlBatchSelAll       = "SELECT " + fields + " FROM comment WHERE id IN (%s)"
+)
 
-	sqlSelRoots       = fmt.Sprintf("SELECT %s FROM comment WHERE %%s oid=? AND root=0 AND pin=0 ORDER BY ctime DESC LIMIT ?", fields)
-	sqlSelSubs        = fmt.Sprintf("SELECT %s FROM comment WHERE id>? AND oid=? AND root=? ORDER BY ctime ASC LIMIT ?", fields)
-	sqlBatchCountSubs = "SELECT root, COUNT(id) cnt FROM comment WHERE root!=0 AND root IN (%s) GROUP BY root"
-
-	sqlCountSubs   = "SELECT COUNT(*) FROM comment WHERE oid=? AND root=?"
-	sqlPageSelSubs = fmt.Sprintf("SELECT %s FROM comment WHERE oid=? AND root=? ORDER BY ctime ASC, id ASC LIMIT ?,?", fields)
+var (
+	sqlInsert = fmt.Sprintf("INSERT INTO comment(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fieldsWithoutId)
 )
 
 func (r *CommentDao) FindByIdForUpdate(ctx context.Context, id int64) (*Comment, error) {
@@ -106,6 +112,23 @@ func (r *CommentDao) FindRootParent(ctx context.Context, id int64) (*RootParent,
 }
 
 func (r *CommentDao) FindById(ctx context.Context, id int64) (*Comment, error) {
+	// res, err := r.cacheV2.GetOrFetch(ctx, fmtCommentCacheKey(id),
+	// 	func(ctx context.Context) (*Comment, time.Duration, error) {
+	// 		var res Comment
+	// 		err := r.db.QueryRowCtx(ctx, &res, sqlSel, id)
+	// 		if err != nil {
+	// 			return nil, 0, xsql.ConvertError(err)
+	// 		}
+
+	// 		return &res, xtime.DayJitter(time.Minute * 30), nil
+	// 	},
+	// 	xcachev2.WithSerializer(xcachev2.MsgpackSer),
+	// )
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// return res, nil
 	var res Comment
 	err := r.db.QueryRowCtx(ctx, &res, sqlSel, id)
 	if err != nil {
@@ -113,6 +136,55 @@ func (r *CommentDao) FindById(ctx context.Context, id int64) (*Comment, error) {
 	}
 
 	return &res, nil
+}
+
+func fmtCommentCacheKey(id int64) string {
+	return commentIdCacheKeyTmpl + strconv.FormatInt(id, 10)
+}
+
+func (r *CommentDao) BatchFindById(ctx context.Context, ids []int64) ([]*Comment, error) {
+	if len(ids) == 0 {
+		return []*Comment{}, nil
+	}
+
+	// 	keys, keysMapping := xcachev2.KeysAndMap(ids, fmtCommentCacheKey)
+	// 	result, err := r.cacheV2.MGetOrFetch(ctx,
+	// 		keys,
+	// 		func(ctx context.Context, keys []string) (map[string]*Comment, error) {
+	// 			dbIds := xcachev2.RangeKeys(keys, keysMapping)
+	// 			dbIds = xslice.Uniq(dbIds)
+
+	// 			dbResult := make([]*Comment, 0)
+	// 			sql := fmt.Sprintf(sqlBatchSelAll, xslice.JoinInts(dbIds))
+	// 			err := r.db.QueryRowsCtx(ctx, &dbResult, sql)
+	// 			if err != nil {
+	// 				return nil, xerror.Wrapf(xsql.ConvertError(err), "comment dao query by ids failed")
+	// 			}
+
+	// 			ret := xslice.MakeMap(dbResult, func(v *Comment) string {
+	// 				return fmtCommentCacheKey(v.Id)
+	// 			})
+
+	// 			return ret, nil
+	// 		},
+	// 		xcachev2.WithTTL(xtime.DayJitter(time.Minute*30)),
+	// 		xcachev2.WithSerializer(xcachev2.MsgpackSer),
+	// 	)
+
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+
+	// 	return xmap.Values(result), nil
+
+	dbResult := make([]*Comment, 0)
+	sql := fmt.Sprintf(sqlBatchSelAll, xslice.JoinInts(ids))
+	err := r.db.QueryRowsCtx(ctx, &dbResult, sql)
+	if err != nil {
+		return nil, xerror.Wrapf(xsql.ConvertError(err), "comment dao query by ids failed")
+	}
+
+	return dbResult, nil
 }
 
 func (r *CommentDao) Insert(ctx context.Context, model *Comment) (int64, error) {

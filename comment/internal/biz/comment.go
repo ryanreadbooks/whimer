@@ -213,7 +213,8 @@ func (b *CommentBiz) DelComment(ctx context.Context, oid, commentId int64) error
 	)
 
 	// 检查评论是否存在
-	existingComment, err := b.GetComment(ctx, commentId)
+	existingComment, err := b.GetComment(ctx, commentId,
+		DoNotPopulateExt(), DoNotPopulateImages())
 	if err != nil {
 		return xerror.Wrapf(err, "comment biz failed to get comment")
 	}
@@ -287,11 +288,12 @@ func (b *CommentBiz) DelComment(ctx context.Context, oid, commentId int64) error
 	concurrent.DoneIn(10*time.Second, func(ctx context.Context) {
 		infra.Dao().CommentDao.DecrCommentCount(ctx, existingComment.Oid)
 	})
+
 	return nil
 }
 
 // 检查评论是否存在
-func (b *CommentBiz) GetComment(ctx context.Context, commentId int64) (*model.CommentItem, error) {
+func (b *CommentBiz) GetComment(ctx context.Context, commentId int64, opts ...GetCommentOption) (*model.CommentItem, error) {
 	comment, err := infra.Dao().CommentDao.FindById(ctx, commentId)
 	if err != nil {
 		if !xsql.IsNoRecord(err) {
@@ -303,11 +305,46 @@ func (b *CommentBiz) GetComment(ctx context.Context, commentId int64) (*model.Co
 
 	item := model.NewCommentItemFromDao(comment)
 
-	if err = b.PopulateCommentImages(ctx, []*model.CommentItem{item}); err != nil {
-		return nil, xerror.Wrapf(err, "comment biz failed to populate images")
+	opt := makeGetCommentOption(opts...)
+	if opt.populateImages {
+		if err = b.PopulateCommentImages(ctx, []*model.CommentItem{item}); err != nil {
+			return nil, xerror.Wrapf(err, "comment biz failed to populate images")
+		}
+	}
+	if opt.populateExt {
+		if err = b.PopulateCommentExt(ctx, []*model.CommentItem{item}); err != nil {
+			return nil, xerror.Wrapf(err, "comment biz failed to populate ext")
+		}
 	}
 
 	return item, nil
+}
+
+func (b *CommentBiz) BatchGetComment(ctx context.Context, ids []int64, opts ...GetCommentOption) ([]*model.CommentItem, error) {
+	comments, err := infra.Dao().CommentDao.BatchFindById(ctx, ids)
+	if err != nil {
+		if !xsql.IsNoRecord(err) {
+			return nil, xerror.Wrapf(err, "comment biz failed to batch get").WithExtra("ids", ids).WithCtx(ctx)
+		}
+
+		return []*model.CommentItem{}, nil
+	}
+
+	items := model.NewCommentItemSliceFromDao(comments)
+
+	opt := makeGetCommentOption(opts...)
+	if opt.populateImages {
+		if err = b.PopulateCommentImages(ctx, items); err != nil {
+			return nil, xerror.Wrapf(err, "comment biz failed to populate images")
+		}
+	}
+	if opt.populateExt {
+		if err = b.PopulateCommentExt(ctx, items); err != nil {
+			return nil, xerror.Wrapf(err, "comment biz failed to populate ext")
+		}
+	}
+
+	return items, nil
 }
 
 // 检查是否可以删除评论, 比如用户权限判断
@@ -398,7 +435,9 @@ func (b *CommentBiz) GetRootComments(ctx context.Context, oid int64, cursor int6
 // 仅获取子评论
 // 获取对象oid中rootId评论下的子评论
 // 每次返回5条
-func (b *CommentBiz) GetSubComments(ctx context.Context, oid, rootId int64, want int, cursor int64) (*model.PageComments, error) {
+func (b *CommentBiz) GetSubComments(ctx context.Context, 
+	oid, rootId int64, want int, cursor int64) (*model.PageComments, error) {
+		
 	if want <= 0 {
 		want = 10
 	}

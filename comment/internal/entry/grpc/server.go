@@ -376,3 +376,15 @@ func (s *CommentServiceServer) UploadCommentImages(ctx context.Context, in *comm
 		UploadAddr:  auths.UploadAddr,
 	}, nil
 }
+
+// 批量检查评论是否存在
+func (s *CommentServiceServer) BatchCheckCommentExist(ctx context.Context, in *commentv1.BatchCheckCommentExistRequest) (
+	*commentv1.BatchCheckCommentExistResponse, error,
+) {
+	exists, err := s.Svc.CommentSrv.BatchCheckCommentExist(ctx, in.GetIds())
+	if err != nil {
+		return nil, err
+	}
+
+	return &commentv1.BatchCheckCommentExistResponse{Existence: exists}, nil
+}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
@@ -36,7 +37,7 @@ func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 		userBiz:    bizz.UserBiz,
 		searchBiz:  bizz.SearchBiz,
 		commentBiz: bizz.CommentBiz,
-		notifyBiz:  bizz.SysNotificationBiz,
+		notifyBiz:  bizz.SysNotifyBiz,
 	}
 }
 
@@ -148,12 +149,12 @@ func (h *Handler) PageGetNoteSubComments() http.HandlerFunc {
 			return
 		}
 
-		if err := h.checkHasNote(r.Context(), int64(req.Oid)); err != nil {
+		ctx := r.Context()
+		if err := h.checkHasNote(ctx, int64(req.Oid)); err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		ctx := r.Context()
 		res, err := h.commentBiz.PageGetNoteSubComments(ctx, req)
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -345,30 +346,34 @@ func (h *Handler) MentionUsers() http.HandlerFunc {
 
 		// TODO 拿最近联系人
 		eg.Go(func() error {
-			result.Groups[0] = &MentionUserRespItem{
-				Group:     MentionRecentContacts,
-				GroupDesc: MentionRecentContacts.Desc(),
-				Users:     []*usermodel.User{},
-			}
+			return recovery.Do(func() error {
+				result.Groups[0] = &MentionUserRespItem{
+					Group:     MentionRecentContacts,
+					GroupDesc: MentionRecentContacts.Desc(),
+					Users:     []*usermodel.User{},
+				}
 
-			return nil
+				return nil
+			})
 		})
 
 		// 我的关注
 		eg.Go(func() error {
-			res, err := h.userBiz.BrutalListFollowingsByName(ctx, uid, req.Search)
-			// 错误仅打日志 不返回错误
-			if err != nil {
-				xlog.Msg("list followings groups failed").Err(err).Errorx(ctx)
-			}
+			return recovery.Do(func() error {
+				res, err := h.userBiz.BrutalListFollowingsByName(ctx, uid, req.Search)
+				// 错误仅打日志 不返回错误
+				if err != nil {
+					xlog.Msg("list followings groups failed").Err(err).Errorx(ctx)
+				}
 
-			result.Groups[1] = &MentionUserRespItem{
-				Group:     MentionFollowings,
-				GroupDesc: MentionFollowings.Desc(),
-				Users:     res,
-			}
+				result.Groups[1] = &MentionUserRespItem{
+					Group:     MentionFollowings,
+					GroupDesc: MentionFollowings.Desc(),
+					Users:     res,
+				}
 
-			return nil
+				return nil
+			})
 		})
 
 		// TODO 其他人
