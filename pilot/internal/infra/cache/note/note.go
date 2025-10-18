@@ -1,4 +1,4 @@
-package cache
+package note
 
 import (
 	"context"
@@ -7,25 +7,24 @@ import (
 	"hash/fnv"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/misc/xstring"
 
-	"github.com/zeromicro/go-zero/core/stores/redis"
 	goredis "github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
 const defaultNumNoteInteractStatList uint32 = 6
 
 const (
 	// number of key
-	noteLikeCountStatSetKey     = "apix.note.stats.like_count.set"
-	noteCommentCountStatSetKey  = "apix.note.stats.comment_count.set"
-	noteLikeCountStatKeyTmpl    = "apix.note.stats.like_count.list.%d"
-	noteCommentCountStatKeyTmpl = "apix.note.stats.comment_count.list.%d"
+	noteLikeCountStatSetKey     = "pilot.note.stats.like_count.set"
+	noteCommentCountStatSetKey  = "pilot.note.stats.comment_count.set"
+	noteLikeCountStatKeyTmpl    = "pilot.note.stats.like_count.list.%d"
+	noteCommentCountStatKeyTmpl = "pilot.note.stats.comment_count.list.%d"
 )
 
 // Note cache stat representation states:
@@ -37,16 +36,19 @@ const (
 //	list.0: [{"nid": "xxx", "inc": 1}, {"nid": "xxx", "inc": 1}]
 //	list.1: [{"nid": "xxx", "inc": -1}, {"nid": "xxx", "inc": -1}]
 //	list.2: [{"nid": "xxx", "inc": 1}, {"nid": "xxx", "inc": -1}]
-type NoteCache struct {
+type Store struct {
+	rd              *redis.Redis
 	likeStatKeys    []string
 	commentStatKeys []string
 }
 
-func NewNoteCache(numOfList uint32) *NoteCache {
+func New(rd *redis.Redis, numOfList uint32) *Store {
 	if numOfList == 0 {
 		numOfList = defaultNumNoteInteractStatList
 	}
-	s := &NoteCache{}
+	s := &Store{
+		rd: rd,
+	}
 	for idx := range numOfList {
 		s.likeStatKeys = append(s.likeStatKeys, fmt.Sprintf(noteLikeCountStatKeyTmpl, idx))
 		s.commentStatKeys = append(s.commentStatKeys, fmt.Sprintf(noteCommentCountStatKeyTmpl, idx))
@@ -69,7 +71,7 @@ type NoteStatRepr struct {
 }
 
 // 数据先行写入redis
-func (b *NoteCache) Add(ctx context.Context,
+func (b *Store) Add(ctx context.Context,
 	statType NoteInteractStatType, stat NoteStatRepr) error {
 
 	hasher := fnv.New32a()
@@ -97,7 +99,7 @@ func (b *NoteCache) Add(ctx context.Context,
 		return xerror.ErrArgs.Msgf("unsupported note stat type: %s", statType)
 	}
 
-	err = infra.Cache().PipelinedCtx(ctx, func(p redis.Pipeliner) error {
+	err = b.rd.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
 		now := time.Now().UnixMicro() // 使用时间作为score模拟队列 实现FIFO
 		p.ZAdd(ctx, setKey, redis.Z{Score: float64(now), Member: listKey})
 		p.LPush(ctx, listKey, listValue)
@@ -111,17 +113,17 @@ func (b *NoteCache) Add(ctx context.Context,
 	return nil
 }
 
-func (b *NoteCache) ConsumeLikeCount(ctx context.Context, want int) ([]NoteStatRepr, error) {
+func (b *Store) ConsumeLikeCount(ctx context.Context, want int) ([]NoteStatRepr, error) {
 	return b.consumeByType(ctx, NoteLikeCountStat, int64(want))
 }
 
-func (b *NoteCache) ConsumeCommentCount(ctx context.Context, want int) ([]NoteStatRepr, error) {
+func (b *Store) ConsumeCommentCount(ctx context.Context, want int) ([]NoteStatRepr, error) {
 	return b.consumeByType(ctx, NoteCommentCountStat, int64(want))
 }
 
 // want：每次获取sorted set中的元素的个数
-func (b *NoteCache) consumeByType(ctx context.Context, statType NoteInteractStatType, want int64) ([]NoteStatRepr, error) {
-	pipe, err := infra.Cache().TxPipeline()
+func (b *Store) consumeByType(ctx context.Context, statType NoteInteractStatType, want int64) ([]NoteStatRepr, error) {
+	pipe, err := b.rd.TxPipeline()
 	if err != nil {
 		return nil, xsql.ConvertError(err)
 	}
@@ -153,13 +155,13 @@ func (b *NoteCache) consumeByType(ctx context.Context, statType NoteInteractStat
 	if err != nil {
 		return nil, xsql.ConvertError(err)
 	}
-	
+
 	defer func() {
 		if shouldCompensate {
 			concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
 				Name: "note_cache.consume.compensate",
 				Job: func(ctx context.Context) error {
-					if err := infra.Cache().PipelinedCtx(ctx, func(p redis.Pipeliner) error {
+					if err := b.rd.PipelinedCtx(ctx, func(p redis.Pipeliner) error {
 						for idx := range len(zRes) {
 							zRes[idx].Score = float64(time.Now().UnixMicro()) // 重置时间
 						}
@@ -185,7 +187,7 @@ func (b *NoteCache) consumeByType(ctx context.Context, statType NoteInteractStat
 	totalItems := make([]string, 0, 16)
 	// rpop all listKeys
 	for _, listKey := range listKeys {
-		listLen, err := infra.Cache().LlenCtx(ctx, listKey)
+		listLen, err := b.rd.LlenCtx(ctx, listKey)
 		if err != nil {
 			xlog.Msg("consume by type llen failed").
 				Extras("list_key", listKey).Err(err).Errorx(ctx)
@@ -194,7 +196,7 @@ func (b *NoteCache) consumeByType(ctx context.Context, statType NoteInteractStat
 		}
 
 		// rpop listLen elements from listKey list
-		listItems, err := infra.Cache().RpopCountCtx(ctx, listKey, listLen)
+		listItems, err := b.rd.RpopCountCtx(ctx, listKey, listLen)
 		if err != nil {
 			xlog.Msg("consume by type rpop failed").
 				Extras("list_key", listKey, "len", listLen).

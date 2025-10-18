@@ -6,7 +6,6 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
-	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
@@ -17,10 +16,9 @@ import (
 	bizsearch "github.com/ryanreadbooks/whimer/pilot/internal/biz/search"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
 	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/user"
-	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
-	"golang.org/x/sync/errgroup"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -108,6 +106,7 @@ func (h *Handler) PublishNoteComment() http.HandlerFunc {
 		h.syncCommentCountToSearcher(ctx, noteId, 1)
 		// 通知被@的用户
 		h.notifyWhenAtUsers(ctx, res.CommentId, req)
+		h.appendRecentContacts(ctx, req.AtUsers)
 
 		// TODO 通知被回复的用户
 
@@ -338,54 +337,21 @@ func (h *Handler) MentionUsers() http.HandlerFunc {
 			uid = metadata.Uid(ctx)
 		)
 
-		// 分组获取@用户
-		eg, ctx := errgroup.WithContext(ctx)
-
-		var result MentionUserResp
-		result.Groups = make([]*MentionUserRespItem, 3)
-
-		// TODO 拿最近联系人
-		eg.Go(func() error {
-			return recovery.Do(func() error {
-				result.Groups[0] = &MentionUserRespItem{
-					Group:     MentionRecentContacts,
-					GroupDesc: MentionRecentContacts.Desc(),
-					Users:     []*usermodel.User{},
-				}
-
-				return nil
-			})
-		})
-
-		// 我的关注
-		eg.Go(func() error {
-			return recovery.Do(func() error {
-				res, err := h.userBiz.BrutalListFollowingsByName(ctx, uid, req.Search)
-				// 错误仅打日志 不返回错误
-				if err != nil {
-					xlog.Msg("list followings groups failed").Err(err).Errorx(ctx)
-				}
-
-				result.Groups[1] = &MentionUserRespItem{
-					Group:     MentionFollowings,
-					GroupDesc: MentionFollowings.Desc(),
-					Users:     res,
-				}
-
-				return nil
-			})
-		})
-
-		// TODO 其他人
-		if len(req.Search) > 0 {
-
-		}
-
-		if err := eg.Wait(); err != nil {
+		result, err := h.userBiz.GetMentionUserCandidates(ctx, uid, req.Search)
+		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
 		xhttp.OkJson(w, &result)
 	}
+}
+
+// 异步写入最近联系人
+func (h *Handler) appendRecentContacts(ctx context.Context, atUsers model.AtUserList) {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	h.userBiz.AsyncAppendRecentContactsAtUser(ctx, uid, atUsers)
 }

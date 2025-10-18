@@ -113,6 +113,7 @@ func (h *Handler) creatorDeleteNoteFromSearcher(ctx context.Context, noteId int6
 func (h *Handler) afterNoteUpserted(ctx context.Context, note *notev1.NoteItem) {
 	h.creatorSyncNoteToSearcher(ctx, note.NoteId, note)
 	h.notifyWhenAtUsers(ctx, note)
+	h.appendRecentContacts(ctx, note)
 }
 
 // 发布笔记
@@ -343,4 +344,25 @@ func (h *Handler) notifyWhenAtUsers(ctx context.Context, note *notev1.NoteItem) 
 			return nil
 		},
 	})
+}
+
+// 异步写入最近联系人
+func (h *Handler) appendRecentContacts(ctx context.Context, note *notev1.NoteItem) {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	atUsers := model.AtUserList{}
+	for _, atUser := range note.GetAtUsers() {
+		if atUser.Uid == metadata.Uid(ctx) {
+			continue
+		}
+
+		atUsers = append(atUsers, model.AtUser{
+			Uid:      atUser.Uid,
+			Nickname: atUser.Nickname,
+		})
+	}
+
+	h.userBiz.AsyncAppendRecentContactsAtUser(ctx, uid, atUsers)
 }

@@ -2,7 +2,8 @@ package search
 
 import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/cache"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
+	notecache "github.com/ryanreadbooks/whimer/pilot/internal/infra/cache/note"
 )
 
 type Biz struct {
@@ -12,7 +13,7 @@ type Biz struct {
 func NewSearchBiz(c *config.Config) *Biz {
 	b := &Biz{
 		NoteStatSyncer: &NoteStatSyncer{
-			NoteCache: cache.NewNoteCache(c.JobConfig.NoteEventJob.NumOfList),
+			NoteCache: notecache.New(infra.Cache(), c.JobConfig.NoteEventJob.NumOfList),
 		},
 	}
 

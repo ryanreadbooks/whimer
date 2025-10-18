@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/cache"
+	notecache "github.com/ryanreadbooks/whimer/pilot/internal/infra/cache/note"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 
 	// "github.com/ryanreadbooks/whimer/misc/xlog"
@@ -12,20 +12,20 @@ import (
 )
 
 type NoteStatSyncer struct {
-	NoteCache *cache.NoteCache
+	NoteCache *notecache.Store
 }
 
 func (s *NoteStatSyncer) AddLikeCount(ctx context.Context, noteId string, increment int64) error {
-	return s.addStatCount(ctx, cache.NoteLikeCountStat, noteId, increment)
+	return s.addStatCount(ctx, notecache.NoteLikeCountStat, noteId, increment)
 }
 
 func (s *NoteStatSyncer) AddCommentCount(ctx context.Context, noteId string, increment int64) error {
-	return s.addStatCount(ctx, cache.NoteCommentCountStat, noteId, increment)
+	return s.addStatCount(ctx, notecache.NoteCommentCountStat, noteId, increment)
 }
 
-func (s *NoteStatSyncer) addStatCount(ctx context.Context, statType cache.NoteInteractStatType,
+func (s *NoteStatSyncer) addStatCount(ctx context.Context, statType notecache.NoteInteractStatType,
 	noteId string, increment int64) error {
-	err := s.NoteCache.Add(ctx, statType, cache.NoteStatRepr{
+	err := s.NoteCache.Add(ctx, statType, notecache.NoteStatRepr{
 		NoteId: noteId,
 		Inc:    increment,
 	})
@@ -85,16 +85,16 @@ func (s *NoteStatSyncer) PollCommentCount(ctx context.Context) error {
 	return nil
 }
 
-func (s *NoteStatSyncer) removeDupAndDoMap(stats []cache.NoteStatRepr) map[string]int64 {
+func (s *NoteStatSyncer) removeDupAndDoMap(stats []notecache.NoteStatRepr) map[string]int64 {
 	tmp := make(map[string]int64, len(stats))
 	for _, stat := range stats {
 		tmp[stat.NoteId] += stat.Inc
 	}
 
-	res := make([]cache.NoteStatRepr, 0, len(stats))
+	res := make([]notecache.NoteStatRepr, 0, len(stats))
 	for noteId, incr := range tmp {
 		if incr != 0 { // 0 means updatign to es is unnecessary
-			res = append(res, cache.NoteStatRepr{
+			res = append(res, notecache.NoteStatRepr{
 				NoteId: noteId,
 				Inc:    incr,
 			})

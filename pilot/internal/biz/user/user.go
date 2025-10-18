@@ -15,15 +15,22 @@ import (
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/cache/recentcontact"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
+
 	"golang.org/x/sync/errgroup"
 )
 
-type Biz struct{}
+type Biz struct {
+	recentContact *recentcontact.Store
+}
 
 func NewUserBiz(c *config.Config) *Biz {
-	return &Biz{}
+	return &Biz{
+		recentContact: recentcontact.New(infra.Cache()),
+	}
 }
 
 func (b *Biz) ListUsers(ctx context.Context, uids []int64) (map[string]*userv1.UserInfo, error) {
