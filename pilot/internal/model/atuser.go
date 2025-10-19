@@ -5,6 +5,20 @@ type AtUser struct {
 	Uid      int64  `json:"uid"`
 }
 
+func (a *AtUser) GetNickname() string {
+	if a != nil {
+		return a.Nickname
+	}
+	return ""
+}
+
+func (a *AtUser) GetUid() int64 {
+	if a != nil {
+		return a.Uid
+	}
+	return 0
+}
+
 type AtUserList []AtUser
 
 func (a AtUserList) Filter() AtUserList {
@@ -16,4 +30,9 @@ func (a AtUserList) Filter() AtUserList {
 	}
 
 	return filtered
+}
+
+type IAtUser interface {
+	GetNickname() string
+	GetUid() int64
 }

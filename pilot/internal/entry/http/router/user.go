@@ -1,9 +1,9 @@
 package router
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/middleware"
-	"github.com/ryanreadbooks/whimer/misc/xhttp"
 )
 
 // 用户信息相关路由
@@ -31,6 +31,9 @@ func regUserRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 						settingsGroup.Post("/relation/update", h.Relation.UpdateSettings())
 					}
 				}
+
+				// 查询可以@的人
+				v1AuthedGroup.Get("/at_users/candidate", h.User.AtUserCandidates())
 			}
 
 			// 拉取单个用户的信息

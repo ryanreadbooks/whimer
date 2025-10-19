@@ -324,29 +324,6 @@ func (h *Handler) UploadCommentImages() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) MentionUsers() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[MentionUserReq](httpx.ParseForm, r)
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		var (
-			ctx = r.Context()
-			uid = metadata.Uid(ctx)
-		)
-
-		result, err := h.userBiz.GetMentionUserCandidates(ctx, uid, req.Search)
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		xhttp.OkJson(w, &result)
-	}
-}
-
 // 异步写入最近联系人
 func (h *Handler) appendRecentContacts(ctx context.Context, atUsers model.AtUserList) {
 	var (

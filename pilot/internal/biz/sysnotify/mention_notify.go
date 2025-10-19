@@ -31,14 +31,17 @@ type NotifyAtUsersOnNoteReqContent struct {
 	NoteId    imodel.NoteId `json:"id"` // 笔记id
 }
 
+func mapperToMentionReceiver(user imodel.IAtUser) *model.MentionedRecvUser {
+	return &model.MentionedRecvUser{Nickname: user.GetNickname(), Uid: user.GetUid()}
+}
+
 // 消息内容 反序列化的时候用这个进行反序列化
 type notifyAtUserReqContent struct {
 	*NotifyAtUsersOnNoteReqContent    `json:"note_content,omitempty"`
 	*NotifyAtUsersOnCommentReqContent `json:"comment_content,omitempty"`
 
-	RecvUid      int64                 `json:"recv_uid"`
-	RecvNickname string                `json:"recv_nickname"`
-	Loc          model.MentionLocation `json:"loc"` // @人的位置
+	Receivers []*model.MentionedRecvUser `json:"receivers"`
+	Loc       model.MentionLocation      `json:"loc"` // @人的位置
 }
 
 // 同一份笔记@多个人通知
@@ -46,13 +49,16 @@ func (b *Biz) NotifyAtUsersOnNote(ctx context.Context, req *NotifyAtUsersOnNoteR
 	if len(req.TargetUsers) == 0 {
 		return nil
 	}
+	mRecvs := make([]*model.MentionedRecvUser, 0, len(req.TargetUsers))
+	for _, user := range req.TargetUsers {
+		mRecvs = append(mRecvs, mapperToMentionReceiver(user))
+	}
 
 	mentions := make([]*sysnotifyv1.MentionMsgContent, 0, len(req.TargetUsers))
 	for _, user := range req.TargetUsers {
 		contentData, _ := json.Marshal(&notifyAtUserReqContent{
 			NotifyAtUsersOnNoteReqContent: req.Content,
-			RecvUid:                       user.Uid,
-			RecvNickname:                  user.Nickname,
+			Receivers:                     mRecvs,
 			Loc:                           model.MentionOnNote,
 		})
 		mentions = append(mentions, &sysnotifyv1.MentionMsgContent{
@@ -104,11 +110,16 @@ func (b *Biz) NotifyAtUsersOnComment(ctx context.Context, req *NotifyAtUsersOnCo
 		return nil
 	}
 
+	mRecvs := make([]*model.MentionedRecvUser, 0, len(req.TargetUsers))
+	for _, user := range req.TargetUsers {
+		mRecvs = append(mRecvs, mapperToMentionReceiver(&user))
+	}
+
 	mentions := make([]*sysnotifyv1.MentionMsgContent, 0, len(req.TargetUsers))
 	for _, ated := range req.TargetUsers {
 		contentData, _ := json.Marshal(&notifyAtUserReqContent{
 			NotifyAtUsersOnCommentReqContent: req.Content,
-			RecvUid:                          ated.Uid,
+			Receivers:                        mRecvs,
 			Loc:                              model.MentionOnComment,
 		})
 		mentions = append(mentions, &sysnotifyv1.MentionMsgContent{
