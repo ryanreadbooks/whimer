@@ -28,15 +28,15 @@ const (
 //
 // 用于对接各端的被@的系统消息结构
 type MentionedMsg struct {
-	Id        string             `json:"id"`      // 消息uuidv7
-	SendAt    int64              `json:"send_at"` // 发送时间
-	Type      MentionLocation    `json:"type"`
-	Uid       int64              `json:"uid"`                  // 谁@的
-	RecvUser  *MentionedRecvUser `json:"recv_user"`            // 被@的
-	NoteId    model.NoteId       `json:"note_id,omitempty"`    // 从哪篇笔记@的
-	CommentId int64              `json:"comment_id,omitempty"` // 从哪条评论@的
-	Content   string             `json:"content"`              // 内容 笔记中的desc或者comment
-	Status    MentionedMsgStatus `json:"status"`
+	Id        string               `json:"id"`      // 消息uuidv7
+	SendAt    int64                `json:"send_at"` // 发送时间
+	Type      MentionLocation      `json:"type"`
+	Uid       int64                `json:"uid"`                  // 谁@的
+	RecvUsers []*MentionedRecvUser `json:"recv_users"`           // 被@的
+	NoteId    model.NoteId         `json:"note_id,omitempty"`    // 从哪篇笔记@的
+	CommentId int64                `json:"comment_id,omitempty"` // 从哪条评论@的
+	Content   string               `json:"content"`              // 内容 笔记中的desc或者comment
+	Status    MentionedMsgStatus   `json:"status"`
 }
 
 func (m *MentionedMsg) DoNotReveal() {

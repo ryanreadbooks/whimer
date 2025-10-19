@@ -34,7 +34,7 @@ func (b *Biz) GetMentionUserCandidates(ctx context.Context, uid int64, search st
 
 	// 我的关注
 	eg.Go(recovery.DoV2(func() error {
-		res, err := b.BrutalListFollowingsByName(ctx, uid, search)
+		myFollowings, err := b.BrutalListFollowingsByName(ctx, uid, search)
 		if err != nil {
 			xlog.Msg("list followings groups failed").Err(err).Errorx(ctx)
 		}
@@ -42,7 +42,7 @@ func (b *Biz) GetMentionUserCandidates(ctx context.Context, uid int64, search st
 		groups[1] = &model.MentionUserRespItem{
 			Group:     model.MentionFollowings,
 			GroupDesc: model.MentionFollowings.Desc(),
-			Users:     res,
+			Users:     myFollowings,
 		}
 
 		return nil
@@ -51,6 +51,11 @@ func (b *Biz) GetMentionUserCandidates(ctx context.Context, uid int64, search st
 	// TODO 其他人 try to use elastic search in the future
 	if len(search) > 0 {
 		eg.Go(recovery.DoV2(func() error {
+			groups[2] = &model.MentionUserRespItem{
+				Group:     model.MentionOthers,
+				GroupDesc: model.MentionOthers.Desc(),
+				Users:     []*model.User{},
+			}
 			return nil
 		}))
 	}

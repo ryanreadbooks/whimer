@@ -5,13 +5,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xhttp"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/user"
 	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	"github.com/ryanreadbooks/whimer/misc/xerror"
-	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	"github.com/ryanreadbooks/whimer/misc/xslice"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -162,5 +163,28 @@ func (h *UserHandler) GetAllSettings() http.HandlerFunc {
 		}
 
 		xhttp.OkJson(w, resp)
+	}
+}
+
+func (h *UserHandler) AtUserCandidates() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[MentionUserReq](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		var (
+			ctx = r.Context()
+			uid = metadata.Uid(ctx)
+		)
+
+		result, err := h.userBiz.GetMentionUserCandidates(ctx, uid, req.Search)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, &result)
 	}
 }

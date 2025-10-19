@@ -89,14 +89,11 @@ func (b *Biz) ListUserMentionMsg(ctx context.Context, uid int64, cursor string, 
 			}
 
 			mm := model.MentionedMsg{
-				Id:     msg.Id,
-				SendAt: mgid.UnixSec(),
-				Type:   loc,
-				Uid:    uid,
-				RecvUser: &model.MentionedRecvUser{
-					Uid:      v.RecvUid,
-					Nickname: v.RecvNickname,
-				},
+				Id:        msg.Id,
+				SendAt:    mgid.UnixSec(),
+				Type:      loc,
+				Uid:       uid,
+				RecvUsers: v.Receivers,
 				NoteId:    noteId,
 				CommentId: commentId,
 				Content:   content,
