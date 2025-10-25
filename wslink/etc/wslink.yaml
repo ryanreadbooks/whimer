@@ -6,6 +6,10 @@ http:
   log:
     level: debug
 
+log:
+  serviceName: wslink
+  stat: false
+
 grpc:
   mode: dev
   name: wslink-rpc
@@ -16,10 +20,10 @@ grpc:
     hosts: ${ENV_ETCD_HOSTS}
     key: whimer.wslink.rpc
   telemetry:
-    Name: wslink
-    Endpoint: ${ENV_JAEGER_ENDPOINT}
-    Sampler: 1.0
-    Batcher: jaeger
+    name: wslink
+    endpoint: ${ENV_JAEGER_ENDPOINT}
+    sampler: 1.0
+    batcher: jaeger
 
 ws_server:
   read_timeout: 300s

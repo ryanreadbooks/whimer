@@ -403,3 +403,17 @@ func (s *CommentServiceServer) GetComment(ctx context.Context, in *commentv1.Get
 
 	return &commentv1.GetCommentResponse{Item: item.AsPb()}, nil
 }
+
+func (s *CommentServiceServer) GetCommentUser(ctx context.Context, in *commentv1.GetCommentUserRequest) (
+	*commentv1.GetCommentUserResponse, error) {
+	if in.CommentId == 0 {
+		return nil, xerror.ErrArgs.Msg("comment id is zero")
+	}
+
+	uid, err := s.Svc.CommentSrv.GetCommentUser(ctx, in.CommentId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &commentv1.GetCommentUserResponse{Uid: uid}, nil
+}

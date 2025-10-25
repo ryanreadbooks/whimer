@@ -2,6 +2,7 @@ package comment
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
@@ -12,9 +13,10 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	bizcomment "github.com/ryanreadbooks/whimer/pilot/internal/biz/comment"
-	bizmodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/comment/model"
+	commentmodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/comment/model"
 	bizsearch "github.com/ryanreadbooks/whimer/pilot/internal/biz/search"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
+	sysnotifymodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify/model"
 	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/user"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
@@ -39,57 +41,10 @@ func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 	}
 }
 
-func (h *Handler) syncCommentCountToSearcher(ctx context.Context, noteId string, incr int64) {
-	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "comment.handler.synces",
-		Job: func(ctx context.Context) error {
-			err := h.searchBiz.NoteStatSyncer.AddCommentCount(ctx, noteId, incr)
-			if err != nil {
-				xlog.Msg("note stat add comment count failed").
-					Extras("note_id", noteId, "incr", incr).
-					Err(err).Errorx(ctx)
-			}
-
-			return err
-		},
-	})
-}
-
-func (h *Handler) notifyWhenAtUsers(ctx context.Context, commentId int64, req *bizmodel.PubReq) {
-	var (
-		uid = metadata.Uid(ctx)
-	)
-
-	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "comment.handler.notify_at_users",
-		Job: func(ctx context.Context) error {
-			err := h.notifyBiz.NotifyAtUsersOnComment(ctx, &bizsysnotify.NotifyAtUsersOnCommentReq{
-				Uid:         uid,
-				TargetUsers: req.AtUsers,
-				Content: &bizsysnotify.NotifyAtUsersOnCommentReqContent{
-					SourceUid: uid,
-					Comment:   req.Content,
-					NoteId:    req.Oid,
-					CommentId: commentId,
-					RootId:    req.RootId,
-					ParentId:  req.ParentId,
-				},
-			})
-			if err != nil {
-				xlog.Msg("notify when at users failed").
-					Extras("at_users", req.AtUsers, "oid", req.Oid).
-					Err(err).Errorx(ctx)
-			}
-
-			return nil
-		},
-	})
-}
-
 // 发表评论
 func (h *Handler) PublishNoteComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[bizmodel.PubReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[commentmodel.PubReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -106,9 +61,8 @@ func (h *Handler) PublishNoteComment() http.HandlerFunc {
 		h.syncCommentCountToSearcher(ctx, noteId, 1)
 		// 通知被@的用户
 		h.notifyWhenAtUsers(ctx, res.CommentId, req)
+		h.notifyReplyUser(ctx, res.CommentId, req)
 		h.appendRecentContacts(ctx, req.AtUsers)
-
-		// TODO 通知被回复的用户
 
 		httpx.OkJson(w, res)
 	}
@@ -117,7 +71,7 @@ func (h *Handler) PublishNoteComment() http.HandlerFunc {
 // 只获取主评论
 func (h *Handler) PageGetNoteRootComments() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[bizmodel.GetCommentsReq](httpx.Parse, r)
+		req, err := xhttp.ParseValidate[commentmodel.GetCommentsReq](httpx.Parse, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -142,7 +96,7 @@ func (h *Handler) PageGetNoteRootComments() http.HandlerFunc {
 // 只获取子评论
 func (h *Handler) PageGetNoteSubComments() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[bizmodel.GetSubCommentsReq](httpx.Parse, r)
+		req, err := xhttp.ParseValidate[commentmodel.GetSubCommentsReq](httpx.Parse, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -167,7 +121,7 @@ func (h *Handler) PageGetNoteSubComments() http.HandlerFunc {
 // 获取主评论信息（包含其下子评论）
 func (h *Handler) PageGetNoteComments() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[bizmodel.GetCommentsReq](httpx.Parse, r)
+		req, err := xhttp.ParseValidate[commentmodel.GetCommentsReq](httpx.Parse, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -191,7 +145,7 @@ func (h *Handler) PageGetNoteComments() http.HandlerFunc {
 
 func (h *Handler) DelNoteComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[bizmodel.DelReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[commentmodel.DelReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -206,9 +160,6 @@ func (h *Handler) DelNoteComment() http.HandlerFunc {
 
 		noteId := req.Oid.String()
 		h.syncCommentCountToSearcher(ctx, noteId, -1)
-		// 撤销被@的
-
-		// 撤销被回复的
 
 		httpx.OkJson(w, nil)
 	}
@@ -216,7 +167,7 @@ func (h *Handler) DelNoteComment() http.HandlerFunc {
 
 func (h *Handler) PinNoteComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[bizmodel.PinReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[commentmodel.PinReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -235,7 +186,7 @@ func (h *Handler) PinNoteComment() http.HandlerFunc {
 
 func (h *Handler) LikeNoteComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[bizmodel.ThumbUpReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[commentmodel.ThumbUpReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -254,7 +205,7 @@ func (h *Handler) LikeNoteComment() http.HandlerFunc {
 
 func (h *Handler) DislikeNoteComment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[bizmodel.ThumbDownReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[commentmodel.ThumbDownReq](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -273,7 +224,7 @@ func (h *Handler) DislikeNoteComment() http.HandlerFunc {
 
 func (h *Handler) GetNoteCommentLikeCount() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[bizmodel.GetLikeCountReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[commentmodel.GetLikeCountReq](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -307,7 +258,7 @@ func (h *Handler) checkHasNote(ctx context.Context, noteId int64) error {
 
 func (h *Handler) UploadCommentImages() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[bizmodel.UploadImagesReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[commentmodel.UploadImagesReq](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -331,4 +282,110 @@ func (h *Handler) appendRecentContacts(ctx context.Context, atUsers model.AtUser
 	)
 
 	h.userBiz.AsyncAppendRecentContactsAtUser(ctx, uid, atUsers)
+}
+
+func (h *Handler) syncCommentCountToSearcher(ctx context.Context, noteId string, incr int64) {
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "comment.handler.synces",
+		Job: func(ctx context.Context) error {
+			err := h.searchBiz.NoteStatSyncer.AddCommentCount(ctx, noteId, incr)
+			if err != nil {
+				xlog.Msg("note stat add comment count failed").
+					Extras("note_id", noteId, "incr", incr).
+					Err(err).Errorx(ctx)
+				return err
+			}
+
+			return err
+		},
+	})
+}
+
+func (h *Handler) notifyWhenAtUsers(ctx context.Context, commentId int64, req *commentmodel.PubReq) {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "comment.handler.notify_at_users",
+		Job: func(ctx context.Context) error {
+			err := h.notifyBiz.NotifyAtUsersOnComment(ctx, &bizsysnotify.NotifyAtUsersOnCommentReq{
+				Uid:         uid,
+				TargetUsers: req.AtUsers,
+				Content: &bizsysnotify.NotifyAtUsersOnCommentReqContent{
+					SourceUid: uid,
+					Comment:   req.Content,
+					NoteId:    req.Oid,
+					CommentId: commentId,
+					RootId:    req.RootId,
+					ParentId:  req.ParentId,
+				},
+			})
+			if err != nil {
+				xlog.Msg("notify when at users failed").
+					Extras("at_users", req.AtUsers, "oid", req.Oid).
+					Err(err).Errorx(ctx)
+				return err
+			}
+
+			return nil
+		},
+	})
+}
+
+func (h *Handler) notifyReplyUser(ctx context.Context, triggerComment int64, req *commentmodel.PubReq) {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	var (
+		loc           sysnotifymodel.ReplyLocation
+		targetComment int64
+	)
+
+	if req.PubOnOidDirectly() {
+		loc = sysnotifymodel.ReplyOnNote
+	} else {
+		loc = sysnotifymodel.ReplyOnComment
+		targetComment = req.ParentId
+	}
+
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "comment.handler.notify_reply_users",
+		Job: func(ctx context.Context) error {
+			cmtContent, err := h.commentBiz.GetCommentContent(ctx, triggerComment)
+			if err != nil {
+				xlog.Msg("notify reply to user failed whtn get comment content").
+					Extras("req", req, "trigger_comment", triggerComment).
+					Err(err).
+					Errorx(ctx)
+				return err
+			}
+
+			content, err := json.Marshal(cmtContent)
+			if err != nil {
+				return xerror.Wrapf(err, "json marshal content failed")
+			}
+
+			err = h.notifyBiz.NotifyUserReply(ctx, &bizsysnotify.NotifyUserReplyReq{
+				Loc:            loc,
+				TriggerComment: triggerComment,
+				TargetComment:  targetComment,
+				SrcUid:         uid,
+				RecvUid:        req.ReplyUid,
+				NoteId:         req.Oid,
+				Content:        content,
+			})
+			if err != nil {
+				xlog.Msg("notify reply to user failed when notifying").
+					Extras("req", req, "trigger_comment", triggerComment).
+					Err(err).
+					Errorx(ctx)
+				return err
+			}
+
+			return nil
+		},
+	})
+
 }

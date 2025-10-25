@@ -6,7 +6,7 @@ import (
 	pbmsg "github.com/ryanreadbooks/whimer/msger/api/msg"
 	systemv1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
 
-	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
 	"github.com/ryanreadbooks/whimer/msger/internal/srv"
 )
 
@@ -31,7 +31,37 @@ func (s *SystemNotificationServiceServer) NotifySystemNotice(ctx context.Context
 // 回复我的
 func (s *SystemNotificationServiceServer) NotifyReplyMsg(ctx context.Context, in *systemv1.NotifyReplyMsgRequest) (
 	*systemv1.NotifyReplyMsgResponse, error) {
-	return nil, nil
+	if len(in.GetContents()) == 0 {
+		return &systemv1.NotifyReplyMsgResponse{}, nil
+	}
+
+	// filter invalid contents
+	reqs := make([]*model.SystemNotifyReplyMsg, 0, len(in.Contents))
+	for _, c := range in.Contents {
+		if !isSysMsgContentValid(c) {
+			continue
+		}
+
+		reqs = append(reqs, &model.SystemNotifyReplyMsg{
+			Uid:     c.Uid,
+			Target:  c.TargetUid,
+			Content: c.Content,
+		})
+	}
+
+	msgIds, err := s.Svc.SystemChatSrv.NotifyReplySystemMsg(ctx, reqs)
+	if err != nil {
+		return nil, err
+	}
+
+	respMsgIds := make(map[int64]*pbmsg.StringList)
+	for recvUid, msgIds := range msgIds {
+		respMsgIds[recvUid] = &pbmsg.StringList{
+			Items: msgIds,
+		}
+	}
+
+	return &systemv1.NotifyReplyMsgResponse{MsgIds: respMsgIds}, nil
 }
 
 // @我的
@@ -44,7 +74,7 @@ func (s *SystemNotificationServiceServer) NotifyMentionMsg(ctx context.Context, 
 	// filter valid mentions
 	reqs := make([]*model.SystemNotifyMentionMsg, 0, len(in.Mentions))
 	for _, mentionReq := range in.Mentions {
-		if !isMentionValid(mentionReq) {
+		if !isSysMsgContentValid(mentionReq) {
 			continue
 		}
 
@@ -75,7 +105,39 @@ func (s *SystemNotificationServiceServer) NotifyMentionMsg(ctx context.Context, 
 // 收到的赞
 func (s *SystemNotificationServiceServer) NotifyLikesMsg(ctx context.Context, in *systemv1.NotifyLikesMsgRequest) (
 	*systemv1.NotifyLikesMsgResponse, error) {
-	return nil, nil
+	if len(in.Contents) == 0 {
+		return &systemv1.NotifyLikesMsgResponse{}, nil
+	}
+
+	// filter valid mentions
+	reqs := make([]*model.SystemNotifyLikesMsg, 0, len(in.Contents))
+	for _, req := range in.Contents {
+		if !isSysMsgContentValid(req) {
+			continue
+		}
+
+		reqs = append(reqs, &model.SystemNotifyLikesMsg{
+			Uid:     req.GetUid(),
+			Target:  req.GetTargetUid(),
+			Content: req.GetContent(),
+		})
+	}
+
+	msgIds, err := s.Svc.SystemChatSrv.NotifyLikesSystemMsg(ctx, reqs)
+	if err != nil {
+		return nil, err
+	}
+
+	respMsgIds := make(map[int64]*pbmsg.StringList)
+	for recvUid, msgIds := range msgIds {
+		respMsgIds[recvUid] = &pbmsg.StringList{
+			Items: msgIds,
+		}
+	}
+
+	return &systemv1.NotifyLikesMsgResponse{
+		MsgIds: respMsgIds,
+	}, nil
 }
 
 func handleSystemMsgCount(count int32) int32 {

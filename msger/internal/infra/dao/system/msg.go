@@ -3,7 +3,7 @@ package system
 import (
 	"github.com/ryanreadbooks/whimer/misc/uuid"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
 type MsgPO struct {

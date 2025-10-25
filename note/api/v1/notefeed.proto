@@ -80,6 +80,10 @@ message BatchCheckFeedNoteExistRequest { repeated int64 note_ids = 1; }
 
 message BatchCheckFeedNoteExistResponse { map<int64, bool> existence = 1; }
 
+message GetNoteAuthorRequest { int64 note_id = 1; }
+
+message GetNoteAuthorResponse { int64 author = 1; }
+
 // note相关非管理功能服务
 service NoteFeedService {
   // 随机获取笔记内容
@@ -87,6 +91,9 @@ service NoteFeedService {
 
   // 获取笔记
   rpc GetFeedNote(GetFeedNoteRequest) returns (GetFeedNoteResponse);
+
+  // 获取笔记作者
+  rpc GetNoteAuthor(GetNoteAuthorRequest) returns (GetNoteAuthorResponse);
 
   // 批量获取笔记
   rpc BatchGetFeedNotes(BatchGetFeedNotesRequest)

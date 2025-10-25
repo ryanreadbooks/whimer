@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -19,20 +20,22 @@ import (
 )
 
 type CommentDao struct {
-	db          *xsql.DB
-	cache       *CommentCache
-	cacheV2     *xcachev2.Cache[*Comment]
-	pinnedCache *xcache.Cache[*Comment] // 置顶评论缓存
-	countCache  *xcache.Cache[int64]    // 评论数量的缓存
+	db           *xsql.DB
+	cache        *CommentCache
+	cacheV2      *xcachev2.Cache[*Comment]
+	integerCache *xcachev2.Cache[int64]
+	pinnedCache  *xcache.Cache[*Comment] // 置顶评论缓存
+	countCache   *xcache.Cache[int64]    // 评论数量的缓存
 }
 
 func NewCommentDao(db *xsql.DB, rd *redis.Redis) *CommentDao {
 	return &CommentDao{
-		db:          db,
-		cache:       NewCommentCache(rd),
-		cacheV2:     xcachev2.New[*Comment](rd),
-		pinnedCache: xcache.New[*Comment](rd),
-		countCache:  xcache.New[int64](rd),
+		db:           db,
+		cache:        NewCommentCache(rd),
+		cacheV2:      xcachev2.New[*Comment](rd),
+		integerCache: xcachev2.New[int64](rd),
+		pinnedCache:  xcache.New[*Comment](rd),
+		countCache:   xcache.New[int64](rd),
 	}
 }
 
@@ -85,6 +88,7 @@ const (
 	sqlBatchCountSubs    = "SELECT root, COUNT(id) cnt FROM comment WHERE root!=0 AND root IN (%s) GROUP BY root"
 	sqlCountSubs         = "SELECT COUNT(*) FROM comment WHERE oid=? AND root=?"
 	sqlBatchSelAll       = "SELECT " + fields + " FROM comment WHERE id IN (%s)"
+	sqlSelUid            = "SELECT uid FROM comment WHERE id=?"
 )
 
 var (
@@ -610,4 +614,30 @@ func (r *CommentDao) FindByUidsOids(ctx context.Context, uidOids map[int64][]int
 	}
 
 	return batchRes, nil
+}
+
+func (r *CommentDao) GetUidById(ctx context.Context, id int64) (int64, error) {
+	key := fmt.Sprintf("comment:%d:uid", id)
+	uid, err := r.integerCache.GetOrFetch(ctx, key,
+		func(ctx context.Context) (int64, time.Duration, error) {
+			rand := xtime.WeekJitter(time.Minute * 20)
+			var uid int64
+			err := r.db.QueryRowCtx(ctx, &uid, sqlSelUid, id)
+			if err != nil {
+				err = xsql.ConvertError(err)
+				if errors.Is(err, xsql.ErrNoRecord) {
+					return 0, rand, nil // save pesudo data to cache
+				}
+
+				return 0, 0, err
+			}
+
+			return uid, rand, nil
+		})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return uid, err
 }

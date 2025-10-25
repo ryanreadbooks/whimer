@@ -20,6 +20,9 @@ func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
+	logx.MustSetup(config.Conf.Log)
+	defer logx.Close()
+	
 	infra.Init(&config.Conf)
 	if err := config.Conf.Init(); err != nil {
 		panic(fmt.Errorf("init config failed: %w", err))

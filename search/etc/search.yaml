@@ -8,10 +8,14 @@ grpc:
     hosts: ${ENV_ETCD_HOSTS}
     key: whimer.search.rpc
   telemetry:
-    Name: search
-    Endpoint: ${ENV_JAEGER_ENDPOINT}
-    Sampler: 1.0
-    Batcher: jaeger
+    name: search
+    endpoint: ${ENV_JAEGER_ENDPOINT}
+    sampler: 1.0
+    batcher: jaeger
+
+log:
+  serviceName: search
+  stat: false
 
 elasticsearch:
   addr: ${ENV_ES_ADDR}

@@ -9,7 +9,7 @@ import (
 	p2pv1 "github.com/ryanreadbooks/whimer/msger/api/p2p/v1"
 	bizp2p "github.com/ryanreadbooks/whimer/msger/internal/biz/p2p"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
-	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
 	"github.com/ryanreadbooks/whimer/msger/internal/srv"
 )
 

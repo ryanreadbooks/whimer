@@ -6,13 +6,17 @@ http:
   log:
     level: debug
   telemetry:
-    Name: pilot
-    Endpoint: ${ENV_JAEGER_ENDPOINT}
-    Sampler: 1.0
-    Batcher: jaeger
+    name: pilot
+    endpoint: ${ENV_JAEGER_ENDPOINT}
+    sampler: 1.0
+    batcher: jaeger
 
 redis:
   host: ${ENV_REDIS_HOST}
+
+log:
+  serviceName: pilot
+  stat: false
 
 backend:
   note:

@@ -11,11 +11,11 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
-	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
-	gm "github.com/ryanreadbooks/whimer/msger/internal/global/model"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra"
 	p2pdao "github.com/ryanreadbooks/whimer/msger/internal/infra/dao/p2p"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
+	gm "github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
 type ListMsgReq struct {

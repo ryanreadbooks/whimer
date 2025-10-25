@@ -5,10 +5,10 @@ import (
 
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	httpbackend "github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler"
+	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler"
 	httprouter "github.com/ryanreadbooks/whimer/pilot/internal/entry/http/router"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/messaging"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
 	"github.com/ryanreadbooks/whimer/pilot/internal/job"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -22,17 +22,17 @@ func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
-	httpbackend.Init(&config.Conf)
+	logx.MustSetup(config.Conf.Log)
+	defer logx.Close()
 
-	dao.Init(&config.Conf)
-	defer dao.Close()
+	infra.Init(&config.Conf)
+	defer infra.Close()
 
 	bizz := biz.New(&config.Conf)
-
 	messaging.Init(&config.Conf, bizz)
 	defer messaging.Close()
 
-	var handler = httpbackend.NewHandler(&config.Conf, bizz)
+	var handler = handler.NewHandler(&config.Conf, bizz)
 	apiserver := rest.MustNewServer(config.Conf.Http)
 	httprouter.RegisterX(apiserver, handler)
 

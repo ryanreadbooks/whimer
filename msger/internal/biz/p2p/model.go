@@ -2,8 +2,8 @@ package p2p
 
 import (
 	"github.com/ryanreadbooks/whimer/msger/api/msg"
-	gm "github.com/ryanreadbooks/whimer/msger/internal/global/model"
 	p2pdao "github.com/ryanreadbooks/whimer/msger/internal/infra/dao/p2p"
+	gm "github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
 type ChatMsg struct {

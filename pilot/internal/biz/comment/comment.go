@@ -12,10 +12,12 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/comment/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	globalmodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 )
 
 type Biz struct {
@@ -24,12 +26,46 @@ type Biz struct {
 func NewBiz() *Biz { return &Biz{} }
 
 func (b *Biz) PublishNoteComment(ctx context.Context, req *model.PubReq) (*model.PubRes, error) {
+	if err := b.checkPubReqValid(ctx, req); err != nil {
+		return nil, err
+	}
+
 	resp, err := dep.Commenter().AddComment(ctx, req.AsPb())
 	if err != nil {
 		return nil, xerror.Wrapf(err, "remote commenter add comment failed")
 	}
 
 	return &model.PubRes{CommentId: resp.CommentId}, nil
+}
+
+func (b *Biz) checkPubReqValid(ctx context.Context, req *model.PubReq) error {
+	if req.PubOnOidDirectly() {
+		// comment on note directly
+		resp, err := dep.NoteFeedServer().GetNoteAuthor(ctx, &notev1.GetNoteAuthorRequest{
+			NoteId: int64(req.Oid)})
+		if err != nil {
+			return xerror.Wrapf(err, "remote check note author when pub on note failed").
+				WithExtras("req", req).WithCtx(ctx)
+		}
+
+		if resp.Author != req.ReplyUid {
+			return xerror.Wrap(errors.ErrReplyUserDoesNotMatch)
+		}
+	} else {
+		// comment on comment, check parent comment
+		resp, err := dep.Commenter().GetCommentUser(ctx, &commentv1.GetCommentUserRequest{
+			CommentId: req.ParentId,
+		})
+		if err != nil {
+			return xerror.Wrapf(err, "remote check parent comment when pub on note failed").
+				WithExtras("req", req).WithCtx(ctx)
+		}
+		if resp.Uid != req.ReplyUid {
+			return xerror.Wrap(errors.ErrReplyUserDoesNotMatch)
+		}
+	}
+
+	return nil
 }
 
 func (b *Biz) PageGetNoteRootComments(ctx context.Context, req *model.GetCommentsReq) (*model.CommentRes, error) {
@@ -460,4 +496,30 @@ func extractUidsMap(replies []*commentv1.DetailedCommentItem) map[int64]struct{}
 	}
 
 	return uidsMap
+}
+
+func (b *Biz) GetCommentContent(ctx context.Context, id int64) (*globalmodel.CommentContent, error) {
+	resp, err := dep.Commenter().GetComment(ctx, &commentv1.GetCommentRequest{
+		CommentId: id,
+	})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "remote get comment by id failed").WithExtra("comment_id", id).WithCtx(ctx)
+	}
+
+	var (
+		content = resp.Item.Content
+	)
+
+	atUsers := make([]globalmodel.AtUser, 0, len(resp.Item.AtUsers))
+	for _, au := range resp.Item.AtUsers {
+		atUsers = append(atUsers, globalmodel.AtUser{
+			Uid:      au.Uid,
+			Nickname: au.Nickname,
+		})
+	}
+
+	return &globalmodel.CommentContent{
+		Text:    content,
+		AtUsers: atUsers,
+	}, nil
 }

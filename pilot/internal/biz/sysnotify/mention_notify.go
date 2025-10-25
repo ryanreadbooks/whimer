@@ -14,11 +14,6 @@ import (
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 )
 
-type Biz struct {
-}
-
-func NewBiz() *Biz { return &Biz{} }
-
 type NotifyAtUsersOnNoteReq struct {
 	Uid         int64                          `json:"uid"`
 	TargetUsers []*notev1.NoteAtUser           `json:"target_users"`
@@ -84,6 +79,7 @@ func (b *Biz) NotifyAtUsersOnNote(ctx context.Context, req *NotifyAtUsersOnNoteR
 	if err := push.BatchPushMentionNotification(ctx, recvUids); err != nil {
 		xlog.Msg("sysnotify biz push mention on note notification failed").
 			Err(err).Extras("recv_uids", recvUids).Errorx(ctx)
+		return xerror.Wrapf(err, "push mention notification failed").WithCtx(ctx)
 	}
 
 	return nil

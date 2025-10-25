@@ -9,7 +9,6 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/note"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/relation"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/user"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
 )
 
 type Handler struct {
@@ -21,10 +20,6 @@ type Handler struct {
 	Chat     *msg.Handler
 	User     *user.UserHandler
 	Feed     *feed.Handler
-}
-
-func Init(c *config.Config) {
-	infra.Init(c)
 }
 
 func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {

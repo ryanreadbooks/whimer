@@ -2,7 +2,7 @@ package model
 
 import (
 	v1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model"
+	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 )
 
 type MentionLocation string
@@ -17,11 +17,12 @@ type MentionedRecvUser struct {
 	Nickname string `json:"nickname"`
 }
 
-type MentionedMsgStatus string
+type MsgStatus string
 
 const (
-	MentionedMsgStatusNormal   = "normal"
-	MentionedMsgStatusNoReveal = "noreveal"
+	MsgStatusNormal   = "normal"
+	MsgStatusNoReveal = "noreveal"
+	MsgStatusRevoked  = "revoked"
 )
 
 // 系统消息 被@
@@ -33,10 +34,10 @@ type MentionedMsg struct {
 	Type      MentionLocation      `json:"type"`
 	Uid       int64                `json:"uid"`                  // 谁@的
 	RecvUsers []*MentionedRecvUser `json:"recv_users"`           // 被@的
-	NoteId    model.NoteId         `json:"note_id,omitempty"`    // 从哪篇笔记@的
+	NoteId    imodel.NoteId        `json:"note_id,omitempty"`    // 从哪篇笔记@的
 	CommentId int64                `json:"comment_id,omitempty"` // 从哪条评论@的
 	Content   string               `json:"content"`              // 内容 笔记中的desc或者comment
-	Status    MentionedMsgStatus   `json:"status"`
+	Status    MsgStatus            `json:"status"`
 }
 
 func (m *MentionedMsg) DoNotReveal() {
@@ -45,7 +46,7 @@ func (m *MentionedMsg) DoNotReveal() {
 	}
 
 	m.Content = ""
-	m.Status = MentionedMsgStatusNoReveal
+	m.Status = MsgStatusNoReveal
 	m.Id = ""
 	m.SendAt = 0
 	m.Type = ""

@@ -2,7 +2,7 @@ package p2p
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
 type MsgPO struct {

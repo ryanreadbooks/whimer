@@ -313,14 +313,16 @@ message BatchCheckCommentExistRequest { repeated int64 ids = 1; }
 
 message BatchCheckCommentExistResponse { map<int64, bool> existence = 1; }
 
-message GetCommentRequest {
-  int64 comment_id = 1;
-}
+message GetCommentRequest { int64 comment_id = 1; }
 
 message GetCommentResponse {
   // 返回的可能是主评论也可能是子评论取决于请求的commentId
   CommentItem item = 1;
 }
+
+message GetCommentUserRequest { int64 comment_id = 1; }
+
+message GetCommentUserResponse { int64 uid = 1; }
 
 service CommentService {
   // 发表评论
@@ -385,4 +387,7 @@ service CommentService {
 
   // 按照id获取评论
   rpc GetComment(GetCommentRequest) returns (GetCommentResponse);
+
+  // 获取评论作者
+  rpc GetCommentUser(GetCommentUserRequest) returns (GetCommentUserResponse);
 }

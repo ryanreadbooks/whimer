@@ -451,3 +451,12 @@ func (s *CommentSrv) GetCommentById(ctx context.Context, id int64) (*model.Comme
 
 	return item, nil
 }
+
+func (s *CommentSrv) GetCommentUser(ctx context.Context, id int64) (int64, error) {
+	uid, err := s.CommentBiz.GetCommentUser(ctx, id)
+	if err != nil {
+		return 0, xerror.Wrapf(err, "comment srv get comment user failed")
+	}
+
+	return uid, nil
+}

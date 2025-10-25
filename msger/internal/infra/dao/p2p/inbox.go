@@ -2,7 +2,7 @@ package p2p
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	gm "github.com/ryanreadbooks/whimer/msger/internal/global/model"
+	gm "github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
 // 用户收件箱

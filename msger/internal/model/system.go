@@ -89,8 +89,101 @@ func (s SystemMsgStatus) Read() bool {
 	return s == SystemMsgStatusRead
 }
 
+type ISystemMsg interface {
+	GetUid() int64
+	GetTargetUid() int64
+	GetContent() []byte
+}
+
 type SystemNotifyMentionMsg struct {
 	Uid     int64  `json:"uid"`     // @人的用户
 	Target  int64  `json:"target"`  // 被@的用户
 	Content []byte `json:"content"` // 被@的完整内容
+}
+
+func (m *SystemNotifyMentionMsg) GetUid() int64 {
+	return m.Uid
+}
+
+func (m *SystemNotifyMentionMsg) GetTargetUid() int64 {
+	return m.Target
+}
+
+func (m *SystemNotifyMentionMsg) GetContent() []byte {
+	return m.Content
+}
+
+func (m *SystemNotifyMentionMsg) AsSystemMsg() ISystemMsg {
+	return m
+}
+
+func MakeSystemNotifyMentionMsgAsSlice(msgs []*SystemNotifyMentionMsg) []ISystemMsg {
+	ms := make([]ISystemMsg, 0, len(msgs))
+	for _, m := range msgs {
+		ms = append(ms, m.AsSystemMsg())
+	}
+
+	return ms
+}
+
+type SystemNotifyReplyMsg struct {
+	Uid     int64  `json:"uid"`     // 回复人
+	Target  int64  `json:"target"`  // 被回复的
+	Content []byte `json:"content"` // 回复完整内容
+}
+
+func (m *SystemNotifyReplyMsg) GetUid() int64 {
+	return m.Uid
+}
+
+func (m *SystemNotifyReplyMsg) GetTargetUid() int64 {
+	return m.Target
+}
+
+func (m *SystemNotifyReplyMsg) GetContent() []byte {
+	return m.Content
+}
+
+func (m *SystemNotifyReplyMsg) AsSystemMsg() ISystemMsg {
+	return m
+}
+
+func MakeSystemNotifyReplyMsgAsSlice(msgs []*SystemNotifyReplyMsg) []ISystemMsg {
+	ms := make([]ISystemMsg, 0, len(msgs))
+	for _, m := range msgs {
+		ms = append(ms, m.AsSystemMsg())
+	}
+
+	return ms
+}
+
+type SystemNotifyLikesMsg struct {
+	Uid     int64  `json:"uid"`     // 回复人
+	Target  int64  `json:"target"`  // 被回复的
+	Content []byte `json:"content"` // 回复完整内容
+}
+
+func (m *SystemNotifyLikesMsg) GetUid() int64 {
+	return m.Uid
+}
+
+func (m *SystemNotifyLikesMsg) GetTargetUid() int64 {
+	return m.Target
+}
+
+func (m *SystemNotifyLikesMsg) GetContent() []byte {
+	return m.Content
+}
+
+func (m *SystemNotifyLikesMsg) AsSystemMsg() ISystemMsg {
+	return m
+}
+
+func MakeSystemNotifyLikesMsgAsSlice(msgs []*SystemNotifyLikesMsg) []ISystemMsg {
+	ms := make([]ISystemMsg, 0, len(msgs))
+	for _, m := range msgs {
+		ms = append(ms, m.AsSystemMsg())
+	}
+
+	return ms
 }

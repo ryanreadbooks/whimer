@@ -8,7 +8,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	slices "github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	gm "github.com/ryanreadbooks/whimer/msger/internal/global/model"
+	gm "github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
 type MsgDao struct {

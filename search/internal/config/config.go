@@ -3,6 +3,7 @@ package config
 import (
 	"time"
 
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
@@ -11,6 +12,7 @@ var Conf Config
 
 type Config struct {
 	Grpc zrpc.RpcServerConf `json:"grpc"`
+	Log  logx.LogConf       `json:"log"`
 
 	ElasticSearch ElasticSearch `json:"elasticsearch"`
 	Indices       struct {

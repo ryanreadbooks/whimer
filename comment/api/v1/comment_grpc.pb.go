@@ -41,6 +41,7 @@ const (
 	CommentService_UploadCommentImages_FullMethodName       = "/comment.api.v1.CommentService/UploadCommentImages"
 	CommentService_BatchCheckCommentExist_FullMethodName    = "/comment.api.v1.CommentService/BatchCheckCommentExist"
 	CommentService_GetComment_FullMethodName                = "/comment.api.v1.CommentService/GetComment"
+	CommentService_GetCommentUser_FullMethodName            = "/comment.api.v1.CommentService/GetCommentUser"
 )
 
 // CommentServiceClient is the client API for CommentService service.
@@ -90,6 +91,8 @@ type CommentServiceClient interface {
 	BatchCheckCommentExist(ctx context.Context, in *BatchCheckCommentExistRequest, opts ...grpc.CallOption) (*BatchCheckCommentExistResponse, error)
 	// 按照id获取评论
 	GetComment(ctx context.Context, in *GetCommentRequest, opts ...grpc.CallOption) (*GetCommentResponse, error)
+	// 获取评论作者
+	GetCommentUser(ctx context.Context, in *GetCommentUserRequest, opts ...grpc.CallOption) (*GetCommentUserResponse, error)
 }
 
 type commentServiceClient struct {
@@ -320,6 +323,16 @@ func (c *commentServiceClient) GetComment(ctx context.Context, in *GetCommentReq
 	return out, nil
 }
 
+func (c *commentServiceClient) GetCommentUser(ctx context.Context, in *GetCommentUserRequest, opts ...grpc.CallOption) (*GetCommentUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCommentUserResponse)
+	err := c.cc.Invoke(ctx, CommentService_GetCommentUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CommentServiceServer is the server API for CommentService service.
 // All implementations must embed UnimplementedCommentServiceServer
 // for forward compatibility.
@@ -367,6 +380,8 @@ type CommentServiceServer interface {
 	BatchCheckCommentExist(context.Context, *BatchCheckCommentExistRequest) (*BatchCheckCommentExistResponse, error)
 	// 按照id获取评论
 	GetComment(context.Context, *GetCommentRequest) (*GetCommentResponse, error)
+	// 获取评论作者
+	GetCommentUser(context.Context, *GetCommentUserRequest) (*GetCommentUserResponse, error)
 	mustEmbedUnimplementedCommentServiceServer()
 }
 
@@ -442,6 +457,9 @@ func (UnimplementedCommentServiceServer) BatchCheckCommentExist(context.Context,
 }
 func (UnimplementedCommentServiceServer) GetComment(context.Context, *GetCommentRequest) (*GetCommentResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetComment not implemented")
+}
+func (UnimplementedCommentServiceServer) GetCommentUser(context.Context, *GetCommentUserRequest) (*GetCommentUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCommentUser not implemented")
 }
 func (UnimplementedCommentServiceServer) mustEmbedUnimplementedCommentServiceServer() {}
 func (UnimplementedCommentServiceServer) testEmbeddedByValue()                        {}
@@ -860,6 +878,24 @@ func _CommentService_GetComment_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CommentService_GetCommentUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCommentUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CommentServiceServer).GetCommentUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CommentService_GetCommentUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CommentServiceServer).GetCommentUser(ctx, req.(*GetCommentUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CommentService_ServiceDesc is the grpc.ServiceDesc for CommentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -954,6 +990,10 @@ var CommentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetComment",
 			Handler:    _CommentService_GetComment_Handler,
+		},
+		{
+			MethodName: "GetCommentUser",
+			Handler:    _CommentService_GetCommentUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
