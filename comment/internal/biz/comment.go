@@ -292,7 +292,9 @@ func (b *CommentBiz) DelComment(ctx context.Context, oid, commentId int64) error
 	return nil
 }
 
-// 检查评论是否存在
+// 获取评论
+// 
+// 可选择是否填充额外信息 见[GetCommentOption]
 func (b *CommentBiz) GetComment(ctx context.Context, commentId int64, opts ...GetCommentOption) (*model.CommentItem, error) {
 	comment, err := infra.Dao().CommentDao.FindById(ctx, commentId)
 	if err != nil {

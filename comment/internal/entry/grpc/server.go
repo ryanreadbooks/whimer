@@ -388,3 +388,18 @@ func (s *CommentServiceServer) BatchCheckCommentExist(ctx context.Context, in *c
 
 	return &commentv1.BatchCheckCommentExistResponse{Existence: exists}, nil
 }
+
+// 按照id获取评论
+func (s *CommentServiceServer) GetComment(ctx context.Context, in *commentv1.GetCommentRequest) (
+	*commentv1.GetCommentResponse, error) {
+	if in.CommentId == 0 {
+		return nil, xerror.ErrArgs.Msg("comment id is zero")
+	}
+
+	item, err := s.Svc.CommentSrv.GetCommentById(ctx, in.CommentId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &commentv1.GetCommentResponse{Item: item.AsPb()}, nil
+}

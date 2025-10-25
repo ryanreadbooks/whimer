@@ -112,9 +112,10 @@ type PubRes struct {
 }
 
 type GetCommentsReq struct {
-	Oid    model.NoteId `form:"oid"`
-	Cursor int64        `form:"cursor,optional"`
-	SortBy int          `form:"sort_by,optional"`
+	Oid    model.NoteId `form:"oid"              json:"oid"`
+	Cursor int64        `form:"cursor,optional"  json:"cursor"`
+	SortBy int          `form:"sort_by,optional" json:"sort_by"`
+	SeekId int64        `form:"seek_id,optional" json:"seek_id"`
 }
 
 func (r *GetCommentsReq) AsPb() *commentv1.PageGetCommentRequest {
