@@ -164,7 +164,7 @@ func (h *Handler) SendMsg() http.HandlerFunc {
 		}
 
 		// TODO error handling
-		push.PushP2PMsgNotification(ctx, req.Receiver)
+		push.PushP2PCmdPullP2PAction(ctx, req.Receiver)
 
 		xhttp.OkJson(w, resp)
 	}

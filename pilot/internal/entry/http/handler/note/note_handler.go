@@ -172,6 +172,11 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 			},
 		})
 
+		if req.Action == imodel.LikeReqActionDo {
+			// 通知用户
+			h.asyncNotifyLikeNote(ctx, noteId)
+		}
+
 		xhttp.OkJson(w, nil)
 	}
 }
@@ -336,4 +341,29 @@ func (b *Handler) ListLikedNotes() http.HandlerFunc {
 
 		xhttp.OkJson(w, resp)
 	}
+}
+
+func (h *Handler) asyncNotifyLikeNote(ctx context.Context, noteId imodel.NoteId) {
+	var uid = metadata.Uid(ctx)
+
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name:       "note.handler.notify_like_note",
+		LogOnError: true,
+		Job: func(ctx context.Context) error {
+			author, err := h.feedBiz.GetNoteAuthor(ctx, int64(noteId))
+			if err != nil {
+				return xerror.Wrapf(err, "feed biz get note author failed").WithExtra("note_id", noteId).WithCtx(ctx)
+			}
+
+			err = h.notifyBiz.NotifyUserLikesOnNote(ctx, uid, author, &bizsysnotify.NotifyLikesOnNoteReq{
+				NoteId: noteId,
+			})
+			if err != nil {
+				return xerror.Wrapf(err, "notify likes on note failed").
+					WithExtras("note_id", noteId, "uid", uid, "recv", author).WithCtx(ctx)
+			}
+
+			return nil
+		},
+	})
 }

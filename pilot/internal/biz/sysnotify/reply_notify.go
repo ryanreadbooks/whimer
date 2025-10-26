@@ -14,13 +14,13 @@ import (
 )
 
 type NotifyUserReplyReq struct {
-	Loc            model.ReplyLocation `json:"loc"`
-	TargetComment  int64               `json:"target,omitempty"` // 被回复的评论
-	TriggerComment int64               `json:"trigger"`          // 用这条评论回复的
-	SrcUid         int64               `json:"src_uid"`
-	RecvUid        int64               `json:"recv_uid"`
-	NoteId         imodel.NoteId       `json:"note_id"`
-	Content        []byte              `json:"content"` // see model.CommentContent
+	Loc            model.NotifyMsgLocation `json:"loc"`
+	TargetComment  int64                   `json:"target,omitempty"` // 被回复的评论
+	TriggerComment int64                   `json:"trigger"`          // 用这条评论回复的
+	SrcUid         int64                   `json:"src_uid"`
+	RecvUid        int64                   `json:"recv_uid"`
+	NoteId         imodel.NoteId           `json:"note_id"`
+	Content        []byte                  `json:"content"` // see model.CommentContent
 }
 
 // 通知用户被回复了
@@ -48,7 +48,7 @@ func (b *Biz) NotifyUserReply(ctx context.Context, req *NotifyUserReplyReq) erro
 	msgIds := resp.GetMsgIds()[req.RecvUid]
 	if len(msgIds.Items) > 0 {
 		// 通知用户拉信息
-		err = push.PushSysReplyNotification(ctx, req.RecvUid)
+		err = push.PushSysCmdPullUnreadAction(ctx, req.RecvUid)
 		if err != nil {
 			xlog.Msg("push sys reply notification failed").Extras("recv_uid", req.RecvUid).Errorx(ctx)
 			return xerror.Wrapf(err, "push sys reply notification failed").WithCtx(ctx)

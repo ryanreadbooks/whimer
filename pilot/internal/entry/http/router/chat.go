@@ -38,6 +38,7 @@ func regChatRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 			v1Group.Post("/chat/read", h.Chat.ClearChatUnread())
 			v1Group.Get("/mentions", h.Chat.ListSysMsgMentions())
 			v1Group.Get("/replies", h.Chat.ListSysMsgReplies())
+			v1Group.Get("/likes", h.Chat.ListSysMsgLikes())
 		}
 	}
 

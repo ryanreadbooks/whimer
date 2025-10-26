@@ -36,7 +36,7 @@ type notifyAtUserReqContent struct {
 	*NotifyAtUsersOnCommentReqContent `json:"comment_content,omitempty"`
 
 	Receivers []*model.MentionedRecvUser `json:"receivers"`
-	Loc       model.MentionLocation      `json:"loc"` // @人的位置
+	Loc       model.NotifyMsgLocation    `json:"loc"` // @人的位置
 }
 
 // 同一份笔记@多个人通知
@@ -54,7 +54,7 @@ func (b *Biz) NotifyAtUsersOnNote(ctx context.Context, req *NotifyAtUsersOnNoteR
 		contentData, _ := json.Marshal(&notifyAtUserReqContent{
 			NotifyAtUsersOnNoteReqContent: req.Content,
 			Receivers:                     mRecvs,
-			Loc:                           model.MentionOnNote,
+			Loc:                           model.NotifyMsgOnNote,
 		})
 		mentions = append(mentions, &sysnotifyv1.MentionMsgContent{
 			Uid:       req.Uid,
@@ -76,7 +76,7 @@ func (b *Biz) NotifyAtUsersOnNote(ctx context.Context, req *NotifyAtUsersOnNoteR
 	for uid := range resp.GetMsgIds() {
 		recvUids = append(recvUids, uid)
 	}
-	if err := push.BatchPushMentionNotification(ctx, recvUids); err != nil {
+	if err := push.BatchPushSysCmdPullUnreadAction(ctx, recvUids); err != nil {
 		xlog.Msg("sysnotify biz push mention on note notification failed").
 			Err(err).Extras("recv_uids", recvUids).Errorx(ctx)
 		return xerror.Wrapf(err, "push mention notification failed").WithCtx(ctx)
@@ -116,7 +116,7 @@ func (b *Biz) NotifyAtUsersOnComment(ctx context.Context, req *NotifyAtUsersOnCo
 		contentData, _ := json.Marshal(&notifyAtUserReqContent{
 			NotifyAtUsersOnCommentReqContent: req.Content,
 			Receivers:                        mRecvs,
-			Loc:                              model.MentionOnComment,
+			Loc:                              model.NotifyMsgOnComment,
 		})
 		mentions = append(mentions, &sysnotifyv1.MentionMsgContent{
 			Content:   contentData,
@@ -138,7 +138,7 @@ func (b *Biz) NotifyAtUsersOnComment(ctx context.Context, req *NotifyAtUsersOnCo
 	for uid := range resp.GetMsgIds() {
 		recvUids = append(recvUids, uid)
 	}
-	if err := push.BatchPushMentionNotification(ctx, recvUids); err != nil {
+	if err := push.BatchPushSysCmdPullUnreadAction(ctx, recvUids); err != nil {
 		xlog.Msg("sysnotify biz push mention on note notification failed").
 			Err(err).Extras("recv_uids", recvUids).Errorx(ctx)
 	}
