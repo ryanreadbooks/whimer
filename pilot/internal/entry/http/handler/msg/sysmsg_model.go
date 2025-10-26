@@ -21,7 +21,7 @@ func (r *CursorAndCountReq) Validate() error {
 
 type SystemMsgForMention struct {
 	*sysnotifymodel.MentionedMsg
-	User *usermodel.User `json:"user"`
+	User *usermodel.User `json:"user"` // 谁@
 }
 
 type ListSysMsgMentionsResp struct {
@@ -44,4 +44,15 @@ func (r *SysChatReq) Validate() error {
 	}
 
 	return nil
+}
+
+type SystemMsgForReply struct {
+	*sysnotifymodel.ReplyMsg
+	User *usermodel.User `json:"user"` // 谁回复
+}
+
+type ListSysMsgRepliesResp struct {
+	ChatId  string               `json:"chat_id"`
+	Msgs    []*SystemMsgForReply `json:"msgs"`
+	HasNext bool                 `json:"has_next"`
 }

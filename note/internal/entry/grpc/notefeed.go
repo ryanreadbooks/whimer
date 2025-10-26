@@ -172,3 +172,13 @@ func (s *NoteFeedServiceServer) BatchCheckFeedNoteExist(ctx context.Context, in 
 		Existence: resp,
 	}, nil
 }
+
+func (s *NoteFeedServiceServer) GetNoteAuthor(ctx context.Context, in *notev1.GetNoteAuthorRequest) (
+	*notev1.GetNoteAuthorResponse, error) {
+	author, err := s.Srv.NoteFeedSrv.GetNoteAuthor(ctx, in.GetNoteId())
+	if err != nil {
+		return nil, err
+	}
+
+	return &notev1.GetNoteAuthorResponse{Author: author}, nil
+}

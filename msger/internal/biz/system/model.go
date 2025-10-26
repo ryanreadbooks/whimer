@@ -2,8 +2,8 @@ package system
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/uuid"
-	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
 	systemdao "github.com/ryanreadbooks/whimer/msger/internal/infra/dao/system"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
 type CreateSystemMsgReq struct {

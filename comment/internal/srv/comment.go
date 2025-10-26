@@ -442,3 +442,21 @@ func (s *CommentSrv) BatchCheckCommentExist(ctx context.Context, ids []int64) (m
 
 	return result, nil
 }
+
+func (s *CommentSrv) GetCommentById(ctx context.Context, id int64) (*model.CommentItem, error) {
+	item, err := s.CommentBiz.GetComment(ctx, id)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "comment srv get comment failed").WithCtx(ctx).WithExtra("comment_id", id)
+	}
+
+	return item, nil
+}
+
+func (s *CommentSrv) GetCommentUser(ctx context.Context, id int64) (int64, error) {
+	uid, err := s.CommentBiz.GetCommentUser(ctx, id)
+	if err != nil {
+		return 0, xerror.Wrapf(err, "comment srv get comment user failed")
+	}
+
+	return uid, nil
+}

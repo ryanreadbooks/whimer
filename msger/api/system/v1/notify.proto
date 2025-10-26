@@ -23,23 +23,40 @@ message NotifySystemNoticeRequest {}
 
 message NotifySystemNoticeResponse {}
 
-message NotifyReplyMsgRequest {}
+message ReplyMsgContent {
+  int64 uid = 1;        // 发起者
+  int64 target_uid = 2; // 被回复的人
+  bytes content = 3;    // 自定义内容
+}
 
-message NotifyReplyMsgResponse {}
+message NotifyReplyMsgRequest { repeated ReplyMsgContent contents = 1; }
+
+message NotifyReplyMsgResponse {
+  map<int64, msger.api.msg.StringList> msg_ids = 1;
+}
 
 message MentionMsgContent {
   int64 uid = 1;        // 发起者
   int64 target_uid = 2; // 被@的人
-  bytes content = 3;    // 内容
+  bytes content = 3;    // 自定义内容
 }
 
 message NotifyMentionMsgRequest { repeated MentionMsgContent mentions = 1; }
 
 message NotifyMentionMsgResponse {
   // uid -> msgIds
-  map<int64, msger.api.msg.StringList> msgIds = 1;
+  map<int64, msger.api.msg.StringList> msg_ids = 1;
 }
 
-message NotifyLikesMsgRequest {}
+message LikeMsgContent {
+  int64 uid = 1;        // 发起者
+  int64 target_uid = 2; // 被通知的
+  bytes content = 3;    // 自定义内容
+}
 
-message NotifyLikesMsgResponse {}
+message NotifyLikesMsgRequest { repeated LikeMsgContent contents = 1; }
+
+message NotifyLikesMsgResponse {
+  // uid -> msgIds
+  map<int64, msger.api.msg.StringList> msg_ids = 1;
+}

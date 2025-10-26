@@ -191,6 +191,7 @@ func (h *Handler) CreatorDeleteNote() http.HandlerFunc {
 		}
 
 		h.creatorDeleteNoteFromSearcher(ctx, int64(req.NoteId))
+		// 这里不用主动删除系统消息 在获取系统消息时延迟删除
 
 		httpx.OkJson(w, nil)
 	}

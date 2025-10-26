@@ -292,7 +292,9 @@ func (b *CommentBiz) DelComment(ctx context.Context, oid, commentId int64) error
 	return nil
 }
 
-// 检查评论是否存在
+// 获取评论
+//
+// 可选择是否填充额外信息 见[GetCommentOption]
 func (b *CommentBiz) GetComment(ctx context.Context, commentId int64, opts ...GetCommentOption) (*model.CommentItem, error) {
 	comment, err := infra.Dao().CommentDao.FindById(ctx, commentId)
 	if err != nil {
@@ -435,9 +437,9 @@ func (b *CommentBiz) GetRootComments(ctx context.Context, oid int64, cursor int6
 // 仅获取子评论
 // 获取对象oid中rootId评论下的子评论
 // 每次返回5条
-func (b *CommentBiz) GetSubComments(ctx context.Context, 
+func (b *CommentBiz) GetSubComments(ctx context.Context,
 	oid, rootId int64, want int, cursor int64) (*model.PageComments, error) {
-		
+
 	if want <= 0 {
 		want = 10
 	}
@@ -716,4 +718,14 @@ func populateCommentAtUsers(ctx context.Context, items []*model.CommentItem, ext
 
 		item.AtUsers = atUsers
 	}
+}
+
+func (b *CommentBiz) GetCommentUser(ctx context.Context, commentId int64) (int64, error) {
+	uid, err := infra.Dao().CommentDao.GetUidById(ctx, commentId)
+	if err != nil {
+		return 0, xerror.Wrapf(err, "dao get uid by id failed").
+			WithExtras("comment_id", commentId).WithCtx(ctx)
+	}
+
+	return uid, nil
 }

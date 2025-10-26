@@ -139,6 +139,10 @@ func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId int64) (*model.N
 	return res.Items[0], nil
 }
 
+func (s *NoteFeedSrv) GetNoteAuthor(ctx context.Context, noteId int64) (int64, error) {
+	return s.noteBiz.GetNoteOwner(ctx, noteId)
+}
+
 // 批量获取笔记详情 不包含private范围的笔记
 func (s *NoteFeedSrv) BatchGetNoteDetail(ctx context.Context, noteIds []int64) (map[int64]*model.Note, error) {
 	notes, err := s.noteBiz.BatchGetNote(ctx, noteIds)

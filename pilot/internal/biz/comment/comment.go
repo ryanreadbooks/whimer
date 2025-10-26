@@ -12,10 +12,12 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/comment/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	globalmodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 )
 
 type Biz struct {
@@ -24,12 +26,46 @@ type Biz struct {
 func NewBiz() *Biz { return &Biz{} }
 
 func (b *Biz) PublishNoteComment(ctx context.Context, req *model.PubReq) (*model.PubRes, error) {
+	if err := b.checkPubReqValid(ctx, req); err != nil {
+		return nil, err
+	}
+
 	resp, err := dep.Commenter().AddComment(ctx, req.AsPb())
 	if err != nil {
 		return nil, xerror.Wrapf(err, "remote commenter add comment failed")
 	}
 
 	return &model.PubRes{CommentId: resp.CommentId}, nil
+}
+
+func (b *Biz) checkPubReqValid(ctx context.Context, req *model.PubReq) error {
+	if req.PubOnOidDirectly() {
+		// comment on note directly
+		resp, err := dep.NoteFeedServer().GetNoteAuthor(ctx, &notev1.GetNoteAuthorRequest{
+			NoteId: int64(req.Oid)})
+		if err != nil {
+			return xerror.Wrapf(err, "remote check note author when pub on note failed").
+				WithExtras("req", req).WithCtx(ctx)
+		}
+
+		if resp.Author != req.ReplyUid {
+			return xerror.Wrap(errors.ErrReplyUserDoesNotMatch)
+		}
+	} else {
+		// comment on comment, check parent comment
+		resp, err := dep.Commenter().GetCommentUser(ctx, &commentv1.GetCommentUserRequest{
+			CommentId: req.ParentId,
+		})
+		if err != nil {
+			return xerror.Wrapf(err, "remote check parent comment when pub on note failed").
+				WithExtras("req", req).WithCtx(ctx)
+		}
+		if resp.Uid != req.ReplyUid {
+			return xerror.Wrap(errors.ErrReplyUserDoesNotMatch)
+		}
+	}
+
+	return nil
 }
 
 func (b *Biz) PageGetNoteRootComments(ctx context.Context, req *model.GetCommentsReq) (*model.CommentRes, error) {
@@ -80,11 +116,120 @@ func (b *Biz) PageGetNoteSubComments(ctx context.Context, req *model.GetSubComme
 	}, nil
 }
 
+func (b *Biz) getPinnedComment(ctx context.Context, req *model.GetCommentsReq) (*model.DetailedCommentItem, error) {
+	var (
+		comment *commentv1.DetailedCommentItem
+	)
+
+	resp, err := dep.Commenter().GetPinnedComment(ctx,
+		&commentv1.GetPinnedCommentRequest{Oid: int64(req.Oid)})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "remote get pinned comment failed").WithCtx(ctx)
+	}
+	comment = resp.GetItem()
+	if comment.GetRoot() == nil {
+		// 可能不存在置顶评论
+		return nil, nil
+	}
+
+	if comment != nil && comment.GetRoot() != nil {
+		userResp, err := dep.Userer().
+			BatchGetUser(ctx,
+				&userv1.BatchGetUserRequest{
+					Uids: xmap.Keys(extractUidsMap([]*commentv1.DetailedCommentItem{comment})),
+				},
+			)
+		if err != nil {
+			return nil, xerror.Wrapf(err, "remote batch get user failed").WithCtx(ctx)
+		}
+
+		return model.NewDetailedCommentItemFromPb(comment, userResp.Users), nil
+	}
+
+	return nil, nil // before careful
+}
+
+func (b *Biz) getSeekedComment(ctx context.Context, req *model.GetCommentsReq) (*model.DetailedCommentItem, error) {
+	var (
+		seekedComment *commentv1.DetailedCommentItem
+	)
+
+	resp, err := dep.Commenter().GetComment(ctx,
+		&commentv1.GetCommentRequest{
+			CommentId: req.SeekId,
+		})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "remote get seek comment failed").WithCtx(ctx)
+	}
+
+	seekCommentResp := resp.GetItem()
+	if seekCommentResp.Oid != int64(req.Oid) { // oid does not match
+		return nil, nil
+	}
+
+	seekedComment = &commentv1.DetailedCommentItem{}
+	if seekCommentResp.RootId == 0 && seekCommentResp.ParentId == 0 {
+		// seekComment is root, we need to fetch sub comments
+		seekSubComments, err := dep.Commenter().PageGetSubComment(ctx,
+			&commentv1.PageGetSubCommentRequest{
+				Oid:    seekCommentResp.Oid,
+				RootId: seekCommentResp.Id,
+				Cursor: 0,
+			})
+		if err != nil {
+			return nil, xerror.Wrapf(err, "remote get page sub comment failed").
+				WithExtras("oid", seekCommentResp.Oid, "root_id", seekCommentResp.RootId, "seek_id", req.SeekId).WithCtx(ctx)
+		}
+
+		seekedComment.Root = seekCommentResp
+		seekedComment.SubComments = &commentv1.DetailedSubComment{
+			Items:      seekSubComments.Comments,
+			HasNext:    seekSubComments.HasNext,
+			NextCursor: seekSubComments.NextCursor,
+		}
+	} else {
+		// seekComment is not root, we need to fetch root comment
+		seekRootComment, err := dep.Commenter().GetComment(ctx,
+			&commentv1.GetCommentRequest{
+				CommentId: seekCommentResp.RootId,
+			})
+		if err != nil {
+			return nil, xerror.Wrapf(err, "remote get comment failed").
+				WithExtras("oid", seekCommentResp.Oid, "root_id", seekCommentResp.RootId, "seek_id", req.SeekId).WithCtx(ctx)
+		}
+		seekedComment.Root = seekRootComment.Item
+		seekedComment.SubComments = &commentv1.DetailedSubComment{
+			Items:      []*commentv1.CommentItem{seekCommentResp},
+			NextCursor: 0,
+			HasNext:    true,
+		}
+	}
+
+	if seekedComment != nil && seekedComment.GetRoot() != nil {
+		// extra user
+		userResp, err := dep.Userer().
+			BatchGetUser(ctx,
+				&userv1.BatchGetUserRequest{
+					Uids: xmap.Keys(extractUidsMap([]*commentv1.DetailedCommentItem{seekedComment})),
+				},
+			)
+		if err != nil {
+			return nil, xerror.Wrapf(err, "remote batch get user failed").WithCtx(ctx)
+		}
+
+		return model.NewDetailedCommentItemFromPb(seekedComment, userResp.Users), nil
+	}
+
+	return nil, nil // be careful
+}
+
+// 获取主评论信息（包含其下子评论）
 func (b *Biz) PageGetNoteComments(ctx context.Context, req *model.GetCommentsReq) (*model.DetailedCommentRes, error) {
 	var (
-		pinnedReply     *commentv1.DetailedCommentItem
-		pinnedReplyUser map[string]*userv1.UserInfo = nil
-		wg              sync.WaitGroup
+		wg sync.WaitGroup
+
+		pinned *model.DetailedCommentItem // 笔记置顶评论
+		seeked *model.DetailedCommentItem // 特定需要的评论 如果存在会放在返回值开头
 	)
 
 	if req.Cursor == 0 {
@@ -92,29 +237,24 @@ func (b *Biz) PageGetNoteComments(ctx context.Context, req *model.GetCommentsReq
 		// 第一次请求时需要返回置顶评论
 		concurrent.SafeGo(func() {
 			defer wg.Done()
-			resp, err := dep.Commenter().GetPinnedComment(ctx, &commentv1.GetPinnedCommentRequest{Oid: int64(req.Oid)})
+			var err error
+			pinned, err = b.getPinnedComment(ctx, req)
 			if err != nil {
-				xlog.Msg("get pinned comment failed").Err(err).Errorx(ctx)
-				return
+				xlog.Msg("get pinned comment failed").Extras("req", req).Err(err).Errorx(ctx)
 			}
-			pinnedReply = resp.GetItem()
-			if pinnedReply.GetRoot() == nil {
-				// 可能不存在置顶评论
-				return
-			}
+		})
+	}
 
-			userResp, err := dep.Userer().
-				BatchGetUser(ctx,
-					&userv1.BatchGetUserRequest{
-						Uids: xmap.Keys(extractUidsMap([]*commentv1.DetailedCommentItem{pinnedReply})),
-					},
-				)
+	// check if need seek comment
+	if req.SeekId != 0 {
+		wg.Add(1)
+		concurrent.SafeGo(func() {
+			defer wg.Done()
+			var err error
+			seeked, err = b.getSeekedComment(ctx, req)
 			if err != nil {
-				xlog.Msg("get batch get user failed").Err(err).Errorx(ctx)
-				return
+				xlog.Msg("get seeked comment failed").Extras("req", req).Err(err).Errorx(ctx)
 			}
-			pinnedReplyUser = make(map[string]*userv1.UserInfo)
-			pinnedReplyUser = userResp.Users
 		})
 	}
 
@@ -145,21 +285,27 @@ func (b *Biz) PageGetNoteComments(ctx context.Context, req *model.GetCommentsReq
 		}
 	}
 
-	var pinned *model.DetailedCommentItem
 	wg.Wait()
-	if req.Cursor == 0 {
-		// 置顶
-		if pinnedReply != nil && pinnedReply.GetRoot() != nil { // 有些可能没有设置置顶评论
-			pinned = model.NewDetailedCommentItemFromPb(pinnedReply, pinnedReplyUser)
-		}
-	}
 
-	temps := make([]*model.DetailedCommentItem, 0, len(comments)+1)
+	temps := make([]*model.DetailedCommentItem, 0, len(comments)+2)
 	temps = append(temps, comments...)
 	if pinned != nil {
 		temps = append(temps, pinned)
 	}
+	if req.SeekId != 0 && seeked != nil {
+		temps = append(temps, seeked)
+	}
+
 	attachDetailCommentItemInteract(ctx, temps)
+
+	// prepend
+	if req.SeekId != 0 && seeked != nil {
+		newComments := make([]*model.DetailedCommentItem, 0, len(comments)+1)
+		newComments = append(newComments, seeked)
+		newComments = append(newComments, comments...)
+		comments = xslice.UniqF(newComments, func(v *model.DetailedCommentItem) int64 { return v.Root.Id })
+	}
+
 	return &model.DetailedCommentRes{
 		Comments:   comments,
 		PinComment: pinned,
@@ -350,4 +496,30 @@ func extractUidsMap(replies []*commentv1.DetailedCommentItem) map[int64]struct{}
 	}
 
 	return uidsMap
+}
+
+func (b *Biz) GetCommentContent(ctx context.Context, id int64) (*globalmodel.CommentContent, error) {
+	resp, err := dep.Commenter().GetComment(ctx, &commentv1.GetCommentRequest{
+		CommentId: id,
+	})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "remote get comment by id failed").WithExtra("comment_id", id).WithCtx(ctx)
+	}
+
+	var (
+		content = resp.Item.Content
+	)
+
+	atUsers := make([]globalmodel.AtUser, 0, len(resp.Item.AtUsers))
+	for _, au := range resp.Item.AtUsers {
+		atUsers = append(atUsers, globalmodel.AtUser{
+			Uid:      au.Uid,
+			Nickname: au.Nickname,
+		})
+	}
+
+	return &globalmodel.CommentContent{
+		Text:    content,
+		AtUsers: atUsers,
+	}, nil
 }

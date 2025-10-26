@@ -21,6 +21,9 @@ func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
+	logx.MustSetup(config.Conf.Log)
+	defer logx.Close()
+	
 	if err := config.Conf.Init(); err != nil {
 		panic(fmt.Errorf("panic: config init: %w", err))
 	}

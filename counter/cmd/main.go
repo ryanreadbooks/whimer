@@ -20,6 +20,8 @@ func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
+	logx.MustSetup(config.Conf.Log)
+	defer logx.Close()
 	infra.Init(&config.Conf)
 	svc := srv.NewService(&config.Conf)
 	server := grpc.Init(config.Conf.Grpc, svc)

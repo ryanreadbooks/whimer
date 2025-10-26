@@ -7,7 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	systemv1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
 	bizsyschat "github.com/ryanreadbooks/whimer/msger/internal/biz/system"
-	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
 	"github.com/ryanreadbooks/whimer/msger/internal/srv"
 )
 
@@ -120,69 +120,12 @@ func (s *SystemChatServiceServer) ListSystemLikesMsg(ctx context.Context, in *sy
 	}, nil
 }
 
-// 将系统消息转换为响应格式
-func convertSystemMsgsToResponse(msgs []*bizsyschat.SystemMsg) []*systemv1.SystemMsg {
-	respMsgs := make([]*systemv1.SystemMsg, 0, len(msgs))
-	for _, msg := range msgs {
-		respMsgs = append(respMsgs, &systemv1.SystemMsg{
-			Id:           msg.Id.String(),
-			SystemChatId: msg.SystemChatId.String(),
-			TriggerUid:   msg.TriggerUid,
-			RecvUid:      msg.RecvUid,
-			Status:       systemv1.SystemMsgStatus(msg.Status),
-			MsgType:      msg.MsgType,
-			Content:      msg.Content,
-			Mtime:        msg.Mtime,
-		})
-	}
-
-	return respMsgs
-}
-
-func convertChatIdToString(chatId uuid.UUID) string {
-	if chatId.IsZero() {
-		return ""
-	}
-
-	return chatId.String()
-}
-
-func isMentionValid(mention *systemv1.MentionMsgContent) bool {
-	if mention.GetUid() == 0 || mention.GetTargetUid() == 0 || len(mention.GetContent()) == 0 {
-		return false
-	}
-
-	// 排除自己@自己
-	if mention.GetUid() == mention.GetTargetUid() {
-		return false
-	}
-
-	return true
-}
-
 // 清除未读
 func (s *SystemChatServiceServer) ClearChatUnread(ctx context.Context, in *systemv1.ClearChatUnreadRequest) (
 	*systemv1.ClearChatUnreadResponse, error) {
 	err := s.Svc.SystemChatSrv.ClearChatUnread(ctx, in.Uid, in.ChatId)
 
 	return &systemv1.ClearChatUnreadResponse{}, err
-}
-
-func bizUnreadToPbUnread(u *bizsyschat.ChatUnread) *systemv1.ChatUnread {
-	return &systemv1.ChatUnread{
-		ChatId:      convertChatIdToString(u.ChatId),
-		ChatType:    u.ChatType.Tag().String(),
-		UnreadCount: u.UnreadCount,
-	}
-}
-
-func bizUnreadsToPbUnreads(us []*bizsyschat.ChatUnread) []*systemv1.ChatUnread {
-	resp := make([]*systemv1.ChatUnread, 0, len(us))
-	for _, u := range us {
-		resp = append(resp, bizUnreadToPbUnread(u))
-	}
-
-	return resp
 }
 
 // 获取单个chat的未读数
@@ -237,4 +180,61 @@ func (s *SystemChatServiceServer) DeleteMsg(ctx context.Context, in *systemv1.De
 	}
 
 	return &systemv1.DeleteMsgResponse{}, nil
+}
+
+// 将系统消息转换为响应格式
+func convertSystemMsgsToResponse(msgs []*bizsyschat.SystemMsg) []*systemv1.SystemMsg {
+	respMsgs := make([]*systemv1.SystemMsg, 0, len(msgs))
+	for _, msg := range msgs {
+		respMsgs = append(respMsgs, &systemv1.SystemMsg{
+			Id:           msg.Id.String(),
+			SystemChatId: msg.SystemChatId.String(),
+			TriggerUid:   msg.TriggerUid,
+			RecvUid:      msg.RecvUid,
+			Status:       systemv1.SystemMsgStatus(msg.Status),
+			MsgType:      msg.MsgType,
+			Content:      msg.Content,
+			Mtime:        msg.Mtime,
+		})
+	}
+
+	return respMsgs
+}
+
+func convertChatIdToString(chatId uuid.UUID) string {
+	if chatId.IsZero() {
+		return ""
+	}
+
+	return chatId.String()
+}
+
+// 统一MentionedMsg ReplyMsg LikeMsg的校验
+func isSysMsgContentValid[T model.ISystemMsg](reply T) bool {
+	if reply.GetUid() == 0 || reply.GetTargetUid() == 0 || len(reply.GetContent()) == 0 {
+		return false
+	}
+
+	if reply.GetUid() == reply.GetTargetUid() {
+		return false
+	}
+
+	return true
+}
+
+func bizUnreadToPbUnread(u *bizsyschat.ChatUnread) *systemv1.ChatUnread {
+	return &systemv1.ChatUnread{
+		ChatId:      convertChatIdToString(u.ChatId),
+		ChatType:    u.ChatType.Tag().String(),
+		UnreadCount: u.UnreadCount,
+	}
+}
+
+func bizUnreadsToPbUnreads(us []*bizsyschat.ChatUnread) []*systemv1.ChatUnread {
+	resp := make([]*systemv1.ChatUnread, 0, len(us))
+	for _, u := range us {
+		resp = append(resp, bizUnreadToPbUnread(u))
+	}
+
+	return resp
 }

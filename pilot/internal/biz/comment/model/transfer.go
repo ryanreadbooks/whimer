@@ -27,6 +27,10 @@ type PubReq struct {
 	AtUsers model.AtUserList `json:"at_users,omitempty,optional"` // at_users 被@的用户列表
 }
 
+func (r *PubReq) PubOnOidDirectly() bool {
+	return r.RootId == 0 && r.ParentId == 0
+}
+
 func (r *PubReq) Validate() error {
 	if r.Oid == 0 {
 		return errors.ErrNoteNotFound
@@ -115,6 +119,7 @@ type GetCommentsReq struct {
 	Oid    model.NoteId `form:"oid"`
 	Cursor int64        `form:"cursor,optional"`
 	SortBy int          `form:"sort_by,optional"`
+	SeekId int64        `form:"seek_id,optional"`
 }
 
 func (r *GetCommentsReq) AsPb() *commentv1.PageGetCommentRequest {

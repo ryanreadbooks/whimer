@@ -8,10 +8,14 @@ http:
   log:
     level: debug
   telemetry:
-    Name: passport
-    Endpoint: ${ENV_JAEGER_ENDPOINT}
-    Sampler: 1.0
-    Batcher: jaeger
+    name: passport
+    endpoint: ${ENV_JAEGER_ENDPOINT}
+    sampler: 1.0
+    batcher: jaeger
+
+log:
+  serviceName: passport
+  stat: false
 
 grpc:
   mode: dev
@@ -23,10 +27,10 @@ grpc:
     hosts: ${ENV_ETCD_HOSTS}
     key: whimer.passport.rpc
   telemetry:
-    Name: passport
-    Endpoint: ${ENV_JAEGER_ENDPOINT}
-    Sampler: 1.0
-    Batcher: jaeger
+    name: passport
+    endpoint: ${ENV_JAEGER_ENDPOINT}
+    sampler: 1.0
+    batcher: jaeger
 
 mysql:
   user: ${ENV_DB_USER}

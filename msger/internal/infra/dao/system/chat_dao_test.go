@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/uuid"
-	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

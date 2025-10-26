@@ -21,19 +21,19 @@ var configFile = flag.String("f", "etc/wslink.yaml", "the config file")
 func main() {
 	flag.Parse()
 
-	var c config.Config
-	conf.MustLoad(*configFile, &c, conf.UseEnv())
-	config.Conf = c
+	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
 	config.Init()
+	logx.MustSetup(config.Conf.Log)
+	defer logx.Close()
 
-	infra.Init(&c)
-	serv := srv.New(&c)
+	infra.Init(&config.Conf)
+	serv := srv.New(&config.Conf)
 
-	apiServer := rest.MustNewServer(c.Http)
-	wsServer := ws.New(&c, apiServer, serv)
-	grpcServer := grpc.Init(c.Grpc, serv)
+	apiServer := rest.MustNewServer(config.Conf.Http)
+	wsServer := ws.New(&config.Conf, apiServer, serv)
+	grpcServer := grpc.Init(config.Conf.Grpc, serv)
 
-	proc.SetTimeToForceQuit(time.Duration(c.System.Shutdown.WaitTime) * time.Second)
+	proc.SetTimeToForceQuit(time.Duration(config.Conf.System.Shutdown.WaitTime) * time.Second)
 
 	group := service.NewServiceGroup()
 	group.Add(apiServer)

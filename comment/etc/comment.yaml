@@ -8,10 +8,14 @@ grpc:
     hosts: ${ENV_ETCD_HOSTS}
     key: whimer.comment.rpc
   telemetry:
-    Name: comment
-    Endpoint: ${ENV_JAEGER_ENDPOINT}
-    Sampler: 1.0
-    Batcher: jaeger
+    name: comment
+    endpoint: ${ENV_JAEGER_ENDPOINT}
+    sampler: 1.0
+    batcher: jaeger
+
+log:
+  serviceName: comment
+  stat: false
 
 mysql:
   user: ${ENV_DB_USER}

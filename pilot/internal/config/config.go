@@ -5,6 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/rest"
 )
@@ -17,6 +18,7 @@ var (
 type Config struct {
 	Http  rest.RestConf   `json:"http"`
 	Redis redis.RedisConf `json:"redis"`
+	Log   logx.LogConf    `json:"log"`
 
 	Backend struct {
 		Note     xconf.Discovery `json:"note"`

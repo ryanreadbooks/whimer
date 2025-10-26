@@ -9,9 +9,9 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
-	"github.com/ryanreadbooks/whimer/msger/internal/global/model"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra"
 	systemdao "github.com/ryanreadbooks/whimer/msger/internal/infra/dao/system"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
 type ChatBiz struct{}
