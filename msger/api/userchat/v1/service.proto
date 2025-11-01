@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package msger.api.userchat.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/msger/api/userchat/v1";
+
+import "msg/msg.proto";
+import "userchat/v1/chat.proto";
+
+// 用户会话相关
+service UserChatService {
+  // 在会话中发送消息
+  rpc SendMsgToChat(SendMsgToChatRequest) returns (SendMsgToChatResponse);
+}
+
+message SendMsgToChatRequest {
+  int64 sender = 1;
+  string chat_id = 2;
+  
+}
+
+message SendMsgToChatResponse {
+  string msg_id = 1;
+}

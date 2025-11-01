@@ -2,7 +2,14 @@ package chat
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/uuid"
+	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/msger/internal/model"
+)
+
+const chatPOTableName = "chat"
+
+var (
+	chatPOFields = xsql.GetFieldSlice(&ChatPO{})
 )
 
 type ChatPO struct {
@@ -14,4 +21,21 @@ type ChatPO struct {
 	Mtime     int64            `db:"mtime"`
 	LastMsgId uuid.UUID        `db:"last_msg_id"`
 	Settings  int64            `db:"settings"`
+}
+
+func (ChatPO) TableName() string {
+	return chatPOTableName
+}
+
+func (c *ChatPO) Values() []any {
+	return []any{
+		c.Id,
+		c.Type,
+		c.Name,
+		c.Status,
+		c.Creator,
+		c.Mtime,
+		c.LastMsgId,
+		c.Settings,
+	}
 }

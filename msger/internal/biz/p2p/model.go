@@ -1,9 +1,8 @@
 package p2p
 
 import (
-	"github.com/ryanreadbooks/whimer/msger/api/msg"
 	p2pdao "github.com/ryanreadbooks/whimer/msger/internal/infra/dao/p2p"
-	gm "github.com/ryanreadbooks/whimer/msger/internal/model"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
 type ChatMsg struct {
@@ -11,14 +10,14 @@ type ChatMsg struct {
 	Sender   int64
 	Receiver int64
 	ChatId   int64
-	Type     gm.MsgType
-	Status   gm.MsgStatus
+	Type     model.MsgType
+	Status   model.MsgStatus
 	Content  string
 	Seq      int64
 }
 
 func (m *ChatMsg) IsRevoked() bool {
-	return m.Status == gm.MsgStatusRevoked
+	return m.Status == model.MsgStatusRevoked
 }
 
 func MakeChatMsgFromPO(po *p2pdao.MsgPO, recv int64) *ChatMsg {
@@ -32,15 +31,15 @@ func MakeChatMsgFromPO(po *p2pdao.MsgPO, recv int64) *ChatMsg {
 		Sender:   po.SenderId,
 		Receiver: recv,
 		ChatId:   po.ChatId,
-		Type:     gm.MsgType(po.MsgType),
-		Status:   gm.MsgStatus(po.Status),
+		Type:     model.MsgType(po.MsgType),
+		Status:   model.MsgStatus(po.Status),
 		Seq:      po.Seq,
 		Content:  po.Content,
 	}
 
-	if cm.Status == gm.MsgStatusRevoked {
+	if cm.Status == model.MsgStatusRevoked {
 		cm.Content = "" // 已撤回
-		cm.Type = msg.MsgType_MSG_TYPE_UNSPECIFIED
+		cm.Type = model.MsgTypeUnknown
 	}
 
 	return cm
@@ -50,7 +49,7 @@ type CreateMsgReq struct {
 	ChatId   int64
 	Sender   int64
 	Receiver int64
-	MsgType  gm.MsgType
+	MsgType  model.MsgType
 	Content  string
 }
 

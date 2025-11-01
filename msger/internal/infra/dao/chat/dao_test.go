@@ -1,7 +1,6 @@
-package system
+package chat
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -10,9 +9,10 @@ import (
 )
 
 var (
-	testSystemChatDao *ChatDao
-	testSystemMsgDao  *SystemMsgDao
-	textctx           = context.TODO()
+	testChatDao          *ChatDao
+	testMsgDao           *MsgDao
+	testChatMemberP2PDao *ChatMemberP2PDao
+	testChatInboxDao     *ChatInboxDao
 )
 
 func TestMain(m *testing.M) {
@@ -24,9 +24,9 @@ func TestMain(m *testing.M) {
 	))
 
 	d := xsql.New(db)
-	testSystemChatDao = NewChatDao(d)
-	testSystemMsgDao = NewSystemMsgDao(d)
+	testChatDao = NewChatDao(d)
+	testMsgDao = NewMsgDao(d)
+	testChatMemberP2PDao = NewChatMemberP2PDao(d)
+	testChatInboxDao = NewChatInboxDao(d)
 	m.Run()
-
-	// deleteForTest()
 }

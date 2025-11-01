@@ -12,22 +12,22 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
-type SystemChatDao struct {
+type ChatDao struct {
 	db *xsql.DB
 }
 
-func NewSystemChatDao(db *xsql.DB) *SystemChatDao {
-	return &SystemChatDao{
+func NewChatDao(db *xsql.DB) *ChatDao {
+	return &ChatDao{
 		db: db,
 	}
 }
 
-func (d *SystemChatDao) DB() *xsql.DB {
+func (d *ChatDao) DB() *xsql.DB {
 	return d.db
 }
 
 // 创建系统会话
-func (d *SystemChatDao) Create(ctx context.Context, chat *ChatPO) error {
+func (d *ChatDao) Create(ctx context.Context, chat *ChatPO) error {
 	if chat.Mtime == 0 {
 		chat.Mtime = time.Now().UnixMicro()
 	}
@@ -44,7 +44,7 @@ func (d *SystemChatDao) Create(ctx context.Context, chat *ChatPO) error {
 	return xsql.ConvertError(err)
 }
 
-func (d *SystemChatDao) UpdateMsgs(ctx context.Context, chatId,
+func (d *ChatDao) UpdateMsgs(ctx context.Context, chatId,
 	lastMsgId, lastReadMsgId uuid.UUID, unread int64) error {
 
 	now := time.Now().UnixNano()
@@ -54,14 +54,14 @@ func (d *SystemChatDao) UpdateMsgs(ctx context.Context, chatId,
 }
 
 // 获取系统会话
-func (d *SystemChatDao) GetById(ctx context.Context, id uuid.UUID) (*ChatPO, error) {
+func (d *ChatDao) GetById(ctx context.Context, id uuid.UUID) (*ChatPO, error) {
 	var sql = fmt.Sprintf("SELECT %s FROM system_chat WHERE id=?", systemChatFields)
 	var chat ChatPO
 	err := d.db.QueryRowCtx(ctx, &chat, sql, id)
 	return &chat, xsql.ConvertError(err)
 }
 
-func (d *SystemChatDao) GetByIdForUpdate(ctx context.Context, id uuid.UUID) (*ChatPO, error) {
+func (d *ChatDao) GetByIdForUpdate(ctx context.Context, id uuid.UUID) (*ChatPO, error) {
 	var sql = fmt.Sprintf("SELECT %s FROM system_chat WHERE id=? FOR UPDATE", systemChatFields)
 	var chat ChatPO
 	err := d.db.QueryRowCtx(ctx, &chat, sql, id)
@@ -69,7 +69,7 @@ func (d *SystemChatDao) GetByIdForUpdate(ctx context.Context, id uuid.UUID) (*Ch
 }
 
 // 批量获取
-func (d *SystemChatDao) BatchGetById(ctx context.Context, chatIds []uuid.UUID) ([]*ChatPO, error) {
+func (d *ChatDao) BatchGetById(ctx context.Context, chatIds []uuid.UUID) ([]*ChatPO, error) {
 	if len(chatIds) == 0 {
 		return nil, nil
 	}
@@ -82,14 +82,14 @@ func (d *SystemChatDao) BatchGetById(ctx context.Context, chatIds []uuid.UUID) (
 }
 
 // 获取用户的系统会话
-func (d *SystemChatDao) GetByUidAndType(ctx context.Context, uid int64, chatType model.SystemChatType) (*ChatPO, error) {
+func (d *ChatDao) GetByUidAndType(ctx context.Context, uid int64, chatType model.SystemChatType) (*ChatPO, error) {
 	sql := fmt.Sprintf("SELECT %s FROM system_chat WHERE uid=? AND type=? LIMIT 1", systemChatFields)
 	var chat ChatPO
 	err := d.db.QueryRowCtx(ctx, &chat, sql, uid, chatType)
 	return &chat, xsql.ConvertError(err)
 }
 
-func (d *SystemChatDao) GetByUidAndTypeForUpdate(ctx context.Context, uid int64, chatType model.SystemChatType) (*ChatPO, error) {
+func (d *ChatDao) GetByUidAndTypeForUpdate(ctx context.Context, uid int64, chatType model.SystemChatType) (*ChatPO, error) {
 	sql := fmt.Sprintf("SELECT %s FROM system_chat WHERE uid=? AND type=? LIMIT 1 FOR UPDATE", systemChatFields)
 	var chat ChatPO
 	err := d.db.QueryRowCtx(ctx, &chat, sql, uid, chatType)
@@ -97,7 +97,7 @@ func (d *SystemChatDao) GetByUidAndTypeForUpdate(ctx context.Context, uid int64,
 }
 
 // 获取用户的所有系统会话
-func (d *SystemChatDao) ListByUid(ctx context.Context, uid int64) ([]*ChatPO, error) {
+func (d *ChatDao) ListByUid(ctx context.Context, uid int64) ([]*ChatPO, error) {
 	sql := fmt.Sprintf("SELECT %s FROM system_chat WHERE uid=? ORDER BY `type` DESC", systemChatFields)
 	var chats []*ChatPO
 	err := d.db.QueryRowsCtx(ctx, &chats, sql, uid)
@@ -105,7 +105,7 @@ func (d *SystemChatDao) ListByUid(ctx context.Context, uid int64) ([]*ChatPO, er
 }
 
 // 更新系统会话的最后消息 并设置是否增加未读消息数
-func (d *SystemChatDao) UpdateLastMsg(ctx context.Context, chatId, lastMsgId uuid.UUID, incrUnread bool) error {
+func (d *ChatDao) UpdateLastMsg(ctx context.Context, chatId, lastMsgId uuid.UUID, incrUnread bool) error {
 	mtime := time.Now().UnixMicro()
 	var sql string
 	var args []any
@@ -123,14 +123,14 @@ func (d *SystemChatDao) UpdateLastMsg(ctx context.Context, chatId, lastMsgId uui
 }
 
 // 更新未读消息数
-func (d *SystemChatDao) UpdateUnreadCount(ctx context.Context, chatId uuid.UUID, unreadCount int64) error {
+func (d *ChatDao) UpdateUnreadCount(ctx context.Context, chatId uuid.UUID, unreadCount int64) error {
 	sql := "UPDATE system_chat SET unread_count=?, mtime=? WHERE id=?"
 	_, err := d.db.ExecCtx(ctx, sql, unreadCount, time.Now().UnixMicro(), chatId)
 	return xsql.ConvertError(err)
 }
 
 // 清空未读消息数 并设置最后读取消息id
-func (d *SystemChatDao) ClearUnread(ctx context.Context, chatId uuid.UUID, lastReadMsgId uuid.UUID) error {
+func (d *ChatDao) ClearUnread(ctx context.Context, chatId uuid.UUID, lastReadMsgId uuid.UUID) error {
 	sql := "UPDATE system_chat SET unread_count=0, last_read_msg_id=?, mtime=? WHERE id=?"
 	now := time.Now().UnixMicro()
 	_, err := d.db.ExecCtx(ctx, sql, lastReadMsgId, now, chatId)
@@ -138,13 +138,13 @@ func (d *SystemChatDao) ClearUnread(ctx context.Context, chatId uuid.UUID, lastR
 }
 
 // 删除系统会话
-func (d *SystemChatDao) Delete(ctx context.Context, chatId uuid.UUID) error {
+func (d *ChatDao) Delete(ctx context.Context, chatId uuid.UUID) error {
 	sql := "DELETE FROM system_chat WHERE id=?"
 	_, err := d.db.ExecCtx(ctx, sql, chatId)
 	return xsql.ConvertError(err)
 }
 
-func (d *SystemChatDao) GetUnreadCountById(ctx context.Context, chatId uuid.UUID) (int64, error) {
+func (d *ChatDao) GetUnreadCountById(ctx context.Context, chatId uuid.UUID) (int64, error) {
 	const sql = "SELECT unread_count FROM system_chat WHERE id=?"
 	var unreadCount int64
 	err := d.db.QueryRowCtx(ctx, &unreadCount, sql, chatId)

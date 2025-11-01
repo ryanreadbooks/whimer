@@ -36,7 +36,7 @@ func (u UUID) Duplicate() UUID {
 
 func (u UUID) Time() time.Time {
 	t := u.UUID.Time()
-	sec, nesc := t.UnixTime() // unix time with second ang nanosec
+	sec, nesc := t.UnixTime() // unix time with second and nanosec
 	return time.Unix(sec, nesc)
 }
 

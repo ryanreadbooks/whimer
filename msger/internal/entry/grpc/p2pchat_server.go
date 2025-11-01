@@ -28,7 +28,7 @@ func NewP2PChatServiceServer(svc *srv.Service) *P2PChatServiceServer {
 func (s *P2PChatServiceServer) CreateChat(ctx context.Context, in *p2pv1.CreateChatRequest) (
 	*p2pv1.CreateChatResponse, error) {
 	if in.Initiator == 0 || in.Target == 0 {
-		return nil, global.ErrP2PChatUserEmpty
+		return nil, global.ErrChatUserEmpty
 	}
 
 	chatId, err := s.Svc.P2PChatSrv.CreateChat(ctx, in.Initiator, in.Target)
@@ -47,13 +47,13 @@ func validateMsgType(t pbmsg.MsgType) bool {
 
 func validateSendMsgRequest(in *p2pv1.SendMsgRequest) error {
 	if in.Sender == 0 {
-		return global.ErrP2PChatSenderEmpty
+		return global.ErrChatSenderEmpty
 	}
 	if in.Receiver == 0 {
-		return global.ErrP2PChatReceiverEmpty
+		return global.ErrChatReceiverEmpty
 	}
 	if in.ChatId <= 0 {
-		return global.ErrP2PChatNotExist
+		return global.ErrChatNotExist
 	}
 	if in.Msg == nil {
 		return global.ErrChatMsgNil
@@ -85,11 +85,16 @@ func (s *P2PChatServiceServer) SendMsg(ctx context.Context, in *p2pv1.SendMsgReq
 		return nil, err
 	}
 
+	msgType, err := model.MsgTypeFromPb(in.Msg.Type)
+	if err != nil {
+		return nil, err
+	}
+
 	respMsg, err := s.Svc.P2PChatSrv.SendMsg(ctx, &bizp2p.CreateMsgReq{
 		ChatId:   in.ChatId,
 		Sender:   in.Sender,
 		Receiver: in.Receiver,
-		MsgType:  in.Msg.Type,
+		MsgType:  msgType,
 		Content:  in.Msg.Data,
 	})
 	if err != nil {
@@ -184,7 +189,7 @@ func (s *P2PChatServiceServer) RevokeMsg(ctx context.Context, in *p2pv1.RevokeMs
 func (s *P2PChatServiceServer) ListChat(ctx context.Context, in *p2pv1.ListChatRequest) (
 	*p2pv1.ListChatResponse, error) {
 	if in.UserId == 0 {
-		return nil, global.ErrP2PChatUserEmpty
+		return nil, global.ErrChatUserEmpty
 	}
 	if in.Count > 50 {
 		in.Count = 50
@@ -211,7 +216,7 @@ func (s *P2PChatServiceServer) ListChat(ctx context.Context, in *p2pv1.ListChatR
 
 func (s *P2PChatServiceServer) GetChat(ctx context.Context, in *p2pv1.GetChatRequest) (*p2pv1.GetChatResponse, error) {
 	if in.ChatId == 0 {
-		return nil, global.ErrP2PChatNotExist
+		return nil, global.ErrChatNotExist
 	}
 
 	chat, err := s.Svc.P2PChatSrv.GetChat(ctx, in.UserId, in.ChatId)

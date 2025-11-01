@@ -110,7 +110,7 @@ func (b *ChatBiz) GetChatIdByUsers(ctx context.Context, userA, userB int64) (int
 	chat, err := infra.Dao().P2PChatDao.GetByUsers(ctx, userA, userB)
 	if err != nil {
 		if errors.Is(err, xsql.ErrNoRecord) {
-			return 0, xerror.Wrap(global.ErrP2PChatNotExist)
+			return 0, xerror.Wrap(global.ErrChatNotExist)
 		}
 
 		return 0, xerror.Wrapf(err, "p2p biz failed to get chat").
@@ -127,7 +127,7 @@ func (b *ChatBiz) CreateMsg(ctx context.Context, req *CreateMsgReq) (*ChatMsg, e
 	chats, err := infra.Dao().P2PChatDao.GetByChatIdUserId(ctx, req.ChatId, req.Sender)
 	if err != nil {
 		if errors.Is(err, xsql.ErrNoRecord) {
-			return nil, xerror.Wrap(global.ErrP2PChatNotExist)
+			return nil, xerror.Wrap(global.ErrChatNotExist)
 		}
 
 		return nil, xerror.Wrapf(err, "p2p biz failed to get chat").WithExtra("req", req).WithCtx(ctx)
@@ -241,7 +241,7 @@ func (b *ChatBiz) getChatPO(ctx context.Context, userId, chatId int64) (*p2pdao.
 	c, err := infra.Dao().P2PChatDao.GetByChatIdUserId(ctx, chatId, userId)
 	if err != nil {
 		if errors.Is(err, xsql.ErrNoRecord) {
-			return nil, global.ErrP2PChatNotExist
+			return nil, global.ErrChatNotExist
 		}
 		return nil, xerror.Wrapf(err, "chat dao failed to get chat").
 			WithExtras("user_id", userId, "chat_id", chatId).WithCtx(ctx)

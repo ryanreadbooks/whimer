@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package msger.api.userchat.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/msger/api/userchat/v1";
+
+import "msg/msg.proto";
+
+// 会话
+message Chat {
+
+}
+

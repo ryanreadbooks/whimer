@@ -14,12 +14,12 @@ import (
 type SystemChatServiceServer struct {
 	systemv1.UnimplementedChatServiceServer
 
-	Svc *srv.Service
+	Service *srv.Service
 }
 
-func NewSystemChatServiceServer(svc *srv.Service) *SystemChatServiceServer {
+func NewSystemChatServiceServer(srv *srv.Service) *SystemChatServiceServer {
 	return &SystemChatServiceServer{
-		Svc: svc,
+		Service: srv,
 	}
 }
 
@@ -34,7 +34,7 @@ func (s *SystemChatServiceServer) ListSystemNotifyMsg(ctx context.Context, in *s
 	// 处理 count 参数
 	count := handleSystemMsgCount(in.GetCount())
 
-	resp, err := s.Svc.SystemChatSrv.ListSystemMsg(ctx, in.GetRecvUid(),
+	resp, err := s.Service.SystemChatSrv.ListSystemMsg(ctx, in.GetRecvUid(),
 		model.SystemNotifyNoticeChat, in.GetCursor(), count)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func (s *SystemChatServiceServer) ListSystemReplyMsg(ctx context.Context, in *sy
 	// 处理 count 参数
 	count := handleSystemMsgCount(in.GetCount())
 
-	resp, err := s.Svc.SystemChatSrv.ListSystemMsg(ctx, in.GetRecvUid(),
+	resp, err := s.Service.SystemChatSrv.ListSystemMsg(ctx, in.GetRecvUid(),
 		model.SystemNotifyReplyChat, in.GetCursor(), count)
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func (s *SystemChatServiceServer) ListSystemMentionMsg(ctx context.Context, in *
 	// 处理 count 参数
 	count := handleSystemMsgCount(in.GetCount())
 
-	resp, err := s.Svc.SystemChatSrv.ListSystemMsg(ctx, in.GetRecvUid(),
+	resp, err := s.Service.SystemChatSrv.ListSystemMsg(ctx, in.GetRecvUid(),
 		model.SystemNotifyMentionedChat, in.GetCursor(), count)
 	if err != nil {
 		return nil, err
@@ -107,7 +107,7 @@ func (s *SystemChatServiceServer) ListSystemLikesMsg(ctx context.Context, in *sy
 	count := handleSystemMsgCount(in.GetCount())
 
 	// 调用 srv 层方法，传入点赞类型
-	resp, err := s.Svc.SystemChatSrv.ListSystemMsg(ctx, in.GetRecvUid(),
+	resp, err := s.Service.SystemChatSrv.ListSystemMsg(ctx, in.GetRecvUid(),
 		model.SystemNotifyLikesChat, in.GetCursor(), count)
 	if err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func (s *SystemChatServiceServer) ListSystemLikesMsg(ctx context.Context, in *sy
 // 清除未读
 func (s *SystemChatServiceServer) ClearChatUnread(ctx context.Context, in *systemv1.ClearChatUnreadRequest) (
 	*systemv1.ClearChatUnreadResponse, error) {
-	err := s.Svc.SystemChatSrv.ClearChatUnread(ctx, in.Uid, in.ChatId)
+	err := s.Service.SystemChatSrv.ClearChatUnread(ctx, in.Uid, in.ChatId)
 
 	return &systemv1.ClearChatUnreadResponse{}, err
 }
@@ -131,7 +131,7 @@ func (s *SystemChatServiceServer) ClearChatUnread(ctx context.Context, in *syste
 // 获取单个chat的未读数
 func (s *SystemChatServiceServer) GetChatUnread(ctx context.Context, in *systemv1.GetChatUnreadRequest) (
 	*systemv1.GetChatUnreadResponse, error) {
-	unread, err := s.Svc.SystemChatSrv.GetChatUnreadCount(ctx, in.Uid, in.ChatId)
+	unread, err := s.Service.SystemChatSrv.GetChatUnreadCount(ctx, in.Uid, in.ChatId)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (s *SystemChatServiceServer) GetAllChatsUnread(ctx context.Context, in *sys
 		return &resp, nil
 	}
 
-	unreads, err := s.Svc.SystemChatSrv.GetUserChatsUnreadCount(ctx, in.Uid)
+	unreads, err := s.Service.SystemChatSrv.GetUserChatsUnreadCount(ctx, in.Uid)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func (s *SystemChatServiceServer) GetAllChatsUnread(ctx context.Context, in *sys
 func (s *SystemChatServiceServer) DeleteMsg(ctx context.Context, in *systemv1.DeleteMsgRequest) (
 	*systemv1.DeleteMsgResponse, error) {
 
-	err := s.Svc.SystemChatSrv.DeleteSystemMsg(ctx, in.Uid, in.MsgId)
+	err := s.Service.SystemChatSrv.DeleteSystemMsg(ctx, in.Uid, in.MsgId)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func convertSystemMsgsToResponse(msgs []*bizsyschat.SystemMsg) []*systemv1.Syste
 			TriggerUid:   msg.TriggerUid,
 			RecvUid:      msg.RecvUid,
 			Status:       systemv1.SystemMsgStatus(msg.Status),
-			MsgType:      msg.MsgType,
+			MsgType:      model.MsgTypeToPb(msg.MsgType),
 			Content:      msg.Content,
 			Mtime:        msg.Mtime,
 		})

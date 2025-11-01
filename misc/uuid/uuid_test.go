@@ -43,3 +43,27 @@ func TestUUid(t *testing.T) {
 
 	t.Log(EmptyUUID().String())
 }
+
+func TestMonotonic(t *testing.T) {
+	u1 := NewUUID() // smaller
+	u2 := NewUUID() // greater
+	t.Log(u1)
+	t.Log(u2)
+	t.Log(u2.Compare(u1))
+
+	uuids := make([]UUID, 0, 1000) // asc order
+	for range 1000 {
+		uuids = append(uuids, NewUUID())
+	}
+
+	// check uuids is asc order
+	for i := 0; i < 999; i++ {
+		if i % 50 == 0 {
+			// print timestamp
+			t.Logf("%d: %d",i,uuids[i].Time().UnixMilli())
+		}
+		if uuids[i].Compare(uuids[i+1]) >= 0 {
+			t.Errorf("uuid[%d] >= uuid[%d], want less than", i, i+1)
+		}
+	}
+}

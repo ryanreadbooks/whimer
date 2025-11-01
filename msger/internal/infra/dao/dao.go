@@ -3,6 +3,7 @@ package dao
 import (
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/msger/internal/config"
+	"github.com/ryanreadbooks/whimer/msger/internal/infra/dao/chat"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra/dao/p2p"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra/dao/system"
 
@@ -15,9 +16,16 @@ type Dao struct {
 	P2PChatDao  *p2p.ChatDao
 	P2PMsgDao   *p2p.MsgDao
 	P2PInboxDao *p2p.InboxDao
-	
-	SystemChatDao *system.SystemChatDao
+
+	SystemChatDao *system.ChatDao
 	SystemMsgDao  *system.SystemMsgDao
+
+	ChatDao          *chat.ChatDao
+	MsgDao           *chat.MsgDao
+	ChatMsgDao       *chat.ChatMsgDao
+	MsgExtDao        *chat.MsgExtDao
+	ChatMemberP2PDao *chat.ChatMemberP2PDao
+	ChatInboxDao     *chat.ChatInboxDao
 }
 
 func MustNew(c *config.Config) *Dao {
@@ -43,8 +51,16 @@ func MustNew(c *config.Config) *Dao {
 		P2PChatDao:  p2p.NewChatDao(db),
 		P2PMsgDao:   p2p.NewMsgDao(db),
 		P2PInboxDao: p2p.NewInboxDao(db),
-		SystemChatDao: system.NewSystemChatDao(db),
+
+		SystemChatDao: system.NewChatDao(db),
 		SystemMsgDao:  system.NewSystemMsgDao(db),
+
+		ChatDao:          chat.NewChatDao(db),
+		MsgDao:           chat.NewMsgDao(db),
+		ChatMsgDao:       chat.NewChatMsgDao(db),
+		MsgExtDao:        chat.NewMsgExtDao(db),
+		ChatMemberP2PDao: chat.NewChatMemberP2PDao(db),
+		ChatInboxDao:     chat.NewChatInboxDao(db),
 	}
 }
 

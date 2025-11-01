@@ -9,11 +9,11 @@ type ChatIdUserIdGetter interface {
 
 func checkChatIdUserId(g ChatIdUserIdGetter) error {
 	if g.GetChatId() <= 0 {
-		return global.ErrP2PChatNotExist
+		return global.ErrChatNotExist
 	}
 
 	if g.GetUserId() == 0 {
-		return global.ErrP2PChatUserEmpty
+		return global.ErrChatUserEmpty
 	}
 
 	return nil
@@ -26,7 +26,7 @@ type ChatIdMsgIdGetter interface {
 
 func checkChatIdMsgId(g ChatIdMsgIdGetter) error {
 	if g.GetChatId() <= 0 {
-		return global.ErrP2PChatNotExist
+		return global.ErrChatNotExist
 	}
 
 	if g.GetMsgId() == 0 {
