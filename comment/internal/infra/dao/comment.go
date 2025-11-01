@@ -1,5 +1,7 @@
 package dao
 
+import "github.com/ryanreadbooks/whimer/comment/internal/model"
+
 const (
 	AlreadyPinned = 1
 	NotPinned     = 0
@@ -7,22 +9,22 @@ const (
 
 // comment表
 type Comment struct {
-	Id       int64  `json:"id"      db:"id"`
-	Oid      int64  `json:"oid"     db:"oid"`
-	Type     int8   `json:"type"    db:"type"` // 见model.CommentType
-	Content  string `json:"content" db:"content"`
-	Uid      int64  `json:"uid"     db:"uid"`
-	RootId   int64  `json:"root"    db:"root"`
-	ParentId int64  `json:"parent"  db:"parent"`
-	ReplyUid int64  `json:"ruid"    db:"ruid"`
-	State    int8   `json:"state"   db:"state"`
-	Like     int    `json:"like"    db:"like"`
-	Dislike  int    `json:"dislike" db:"dislike"`
-	Report   int    `json:"repot"   db:"report"`
-	IsPin    int8   `json:"pin"     db:"pin"`
-	Ip       []byte `json:"ip"      db:"ip"`
-	Ctime    int64  `json:"ctime"   db:"ctime"`
-	Mtime    int64  `json:"mtime"   db:"mtime"`
+	Id       int64             `json:"id"      db:"id"`
+	Oid      int64             `json:"oid"     db:"oid"`
+	Type     model.CommentType `json:"type"    db:"type"` // 见model.CommentType
+	Content  string            `json:"content" db:"content"`
+	Uid      int64             `json:"uid"     db:"uid"`
+	RootId   int64             `json:"root"    db:"root"`
+	ParentId int64             `json:"parent"  db:"parent"`
+	ReplyUid int64             `json:"ruid"    db:"ruid"`
+	State    int8              `json:"state"   db:"state"`
+	Like     int               `json:"like"    db:"like"`
+	Dislike  int               `json:"dislike" db:"dislike"`
+	Report   int               `json:"repot"   db:"report"`
+	IsPin    int8              `json:"pin"     db:"pin"`
+	Ip       []byte            `json:"ip"      db:"ip"`
+	Ctime    int64             `json:"ctime"   db:"ctime"`
+	Mtime    int64             `json:"mtime"   db:"mtime"`
 }
 
 type RootParent struct {

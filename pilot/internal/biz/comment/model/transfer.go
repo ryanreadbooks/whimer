@@ -47,11 +47,11 @@ func (r *PubReq) Validate() error {
 	}
 
 	switch r.CommentType {
-	case int32(commentv1.CommentType_Text):
+	case int32(commentv1.CommentType_TEXT):
 		if contentLen <= 0 {
 			return xerror.ErrArgs.Msg("评论内容为空")
 		}
-	case int32(commentv1.CommentType_ImageText):
+	case int32(commentv1.CommentType_IMAGE_TEXT):
 		if len(r.Images) == 0 {
 			return xerror.ErrArgs.Msg("无评论图片")
 		}
@@ -196,8 +196,8 @@ func (r *PinReq) Validate() error {
 type ThumbAction uint8
 
 const (
-	ThumbActionUndo ThumbAction = ThumbAction(commentv1.CommentAction_REPLY_ACTION_UNDO) // 取消 0
-	ThumbActionDo   ThumbAction = ThumbAction(commentv1.CommentAction_REPLY_ACTION_DO)   // 执行 1
+	ThumbActionUndo ThumbAction = ThumbAction(commentv1.CommentAction_COMMENT_ACTION_UNDO) // 取消 0
+	ThumbActionDo   ThumbAction = ThumbAction(commentv1.CommentAction_COMMENT_ACTION_DO)   // 执行 1
 )
 
 type thumbActionChecker struct{}

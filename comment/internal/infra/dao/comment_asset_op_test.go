@@ -2,8 +2,10 @@ package dao
 
 import (
 	"encoding/json"
+	"strconv"
 	"testing"
 
+	"github.com/ryanreadbooks/whimer/comment/internal/model"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -46,4 +48,49 @@ func TestAssetDao(t *testing.T) {
 			So(len(gots), ShouldEqual, 0)
 		}
 	})
+}
+
+func TestAssetCache(t *testing.T) {
+	a := CommentAsset{
+		Id:        100,
+		CommentId: 100,
+		Type:      model.CommentAssetCustomEmoji,
+		StoreKey:  "abc",
+		Metadata:  json.RawMessage{},
+		Ctime:     100,
+	}
+
+	err := testCache.Hmset("test_asset_dao_key_1", map[string]string{
+		"id":         strconv.FormatInt(a.Id, 10),
+		"comment_id": strconv.FormatInt(a.CommentId, 10),
+		"type":       strconv.FormatInt(int64(a.Type), 10),
+		"store_key":  a.StoreKey,
+		"metadata":   string(a.Metadata),
+		"ctime":      strconv.FormatInt(a.Ctime, 10),
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pipe, err := testCache.TxPipeline()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res := pipe.HGetAll(testCtx, "test_asset_dao_key_1")
+	_, err = pipe.Exec(testCtx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// scan
+	var got CommentAsset
+	err = res.Scan(&got)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("%+v\n", got)
+
 }

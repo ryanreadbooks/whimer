@@ -5,15 +5,15 @@ package note.api.v1;
 option go_package = "github.com/ryanreadbooks/whimer/note/api/v1";
 
 enum NotePrivacy {
-  NotePrivacy_Unspec = 0;
-  NotePrivacy_Public = 1;
-  NotePrivacy_Private = 2;
+  NOTE_PRIVACY_UNSPECIFIED = 0;
+  PUBLIC = 1;
+  PRIVATE = 2;
 }
 
 enum NoteAssetType {
-  NoteAssetType_Unspec = 0;
-  NoteAssetType_Image = 1;
-  NoteAssetType_Video = 2;
+  NOTE_ASSET_TYPE_UNSPECIFIED = 0;
+  IMAGE = 1;
+  VIDEO = 2;
 }
 
 message NoteTag {

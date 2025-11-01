@@ -25,8 +25,12 @@ func NewCommentServiceServer(ctx *srv.Service) *CommentServiceServer {
 
 // 发布评论
 func (s *CommentServiceServer) AddComment(ctx context.Context, in *commentv1.AddCommentRequest) (*commentv1.AddCommentResponse, error) {
+	commentType, err := model.CommentTypeFromPb(in.GetType())
+	if err != nil {
+		return nil, err
+	}
 	req := &model.AddCommentReq{
-		Type:     model.CommentType(in.GetType()),
+		Type:     commentType,
 		Oid:      in.GetOid(),
 		RootId:   in.GetRootId(),
 		ParentId: in.GetParentId(),
@@ -72,8 +76,8 @@ func (s *CommentServiceServer) LikeAction(ctx context.Context, in *commentv1.Lik
 		return nil, global.ErrInvalidCommentId
 	}
 
-	if in.Action != commentv1.CommentAction_REPLY_ACTION_DO &&
-		in.Action != commentv1.CommentAction_REPLY_ACTION_UNDO {
+	if in.Action != commentv1.CommentAction_COMMENT_ACTION_DO &&
+		in.Action != commentv1.CommentAction_COMMENT_ACTION_UNDO {
 		return nil, global.ErrUnsupportedAction
 	}
 
@@ -90,8 +94,8 @@ func (s *CommentServiceServer) DislikeAction(ctx context.Context, in *commentv1.
 		return nil, global.ErrInvalidCommentId
 	}
 
-	if in.Action != commentv1.CommentAction_REPLY_ACTION_DO &&
-		in.Action != commentv1.CommentAction_REPLY_ACTION_UNDO {
+	if in.Action != commentv1.CommentAction_COMMENT_ACTION_DO &&
+		in.Action != commentv1.CommentAction_COMMENT_ACTION_UNDO {
 		return nil, global.ErrUnsupportedAction
 	}
 
@@ -112,8 +116,8 @@ func (s *CommentServiceServer) ReportComment(ctx context.Context,
 // 置顶
 func (s *CommentServiceServer) PinComment(ctx context.Context,
 	in *commentv1.PinCommentRequest) (*commentv1.PinCommentResponse, error) {
-	if in.Action != commentv1.CommentAction_REPLY_ACTION_DO &&
-		in.Action != commentv1.CommentAction_REPLY_ACTION_UNDO {
+	if in.Action != commentv1.CommentAction_COMMENT_ACTION_DO &&
+		in.Action != commentv1.CommentAction_COMMENT_ACTION_UNDO {
 		return nil, global.ErrUnsupportedAction
 	}
 

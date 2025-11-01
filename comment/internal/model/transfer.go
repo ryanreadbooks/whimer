@@ -42,10 +42,10 @@ func (r *AddCommentReq) Validate() error {
 	cLen := utf8.RuneCountInString(r.Content)
 	switch r.Type {
 	case CommentText:
-		if cLen < minContentLen {
+		if cLen < MinContentLen {
 			return global.ErrContentTooShort
 		}
-		if cLen > maxContentLen {
+		if cLen > MaxContentLen {
 			return global.ErrContentTooLong
 		}
 	case CommentImageText:

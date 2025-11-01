@@ -7,7 +7,6 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/uuid"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	"github.com/ryanreadbooks/whimer/msger/api/msg"
 	"github.com/ryanreadbooks/whimer/msger/internal/biz"
 	bizsyschat "github.com/ryanreadbooks/whimer/msger/internal/biz/system"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
@@ -73,7 +72,7 @@ func (s *SystemChatSrv) notifySystemMsg(ctx context.Context,
 			TriggerUid: req.GetUid(),
 			RecvUid:    req.GetTargetUid(),
 			ChatType:   chatType,
-			MsgType:    msg.MsgType_MSG_TYPE_TEXT,
+			MsgType:    model.MsgText,
 			Content:    req.GetContent(), // MentionMsgContent
 		})
 	}

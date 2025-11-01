@@ -78,7 +78,7 @@ func (b *ChatBiz) CreateMsg(ctx context.Context, req *CreateSystemMsgReq) (*Syst
 		Mtime:        now,
 	}
 
-	err = infra.Dao().DB().Transact(ctx, func(tctx context.Context) error {
+	err = infra.DaoTransact(ctx, func(tctx context.Context) error {
 		// 创建消息
 		err := infra.Dao().SystemMsgDao.Create(tctx, msgPo)
 		if err != nil {

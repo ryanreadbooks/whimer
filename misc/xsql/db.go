@@ -46,12 +46,17 @@ func (d *DB) Conn() sqlx.SqlConn {
 }
 
 func (d *DB) Transact(ctx context.Context, fn func(ctx context.Context) error) error {
-	err := d.sc.TransactCtx(ctx, func(ctx context.Context, s sqlx.Session) error {
-		ctx = context.WithValue(ctx, beginTxKey{}, s)
-		return fn(ctx)
-	})
+	_, already := ctx.Value(beginTxKey{}).(sqlx.Session)
+	if !already {
+		err := d.sc.TransactCtx(ctx, func(ctx context.Context, s sqlx.Session) error {
+			ctx = context.WithValue(ctx, beginTxKey{}, s)
+			return fn(ctx)
+		})
 
-	return err
+		return err
+	}
+
+	return fn(ctx)
 }
 
 func (d *DB) Exec(query string, args ...any) (sql.Result, error) {

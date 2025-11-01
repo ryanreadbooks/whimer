@@ -35,11 +35,11 @@ var (
 // search related variables
 var (
 	// 排序规则
-	NoteFilterSortRule = searchv1.NoteFilterType_filter_sort_rule.String()
+	NoteFilterSortRule = searchv1.NoteFilterType_SORT_RULE.String()
 	// 笔记类型筛选规则
-	NoteFilterNoteType = searchv1.NoteFilterType_filter_note_type.String()
+	NoteFilterNoteType = searchv1.NoteFilterType_NOTE_TYPE.String()
 	// 笔记发布时间筛选规则
-	NoteFilterPubTime = searchv1.NoteFilterType_filter_note_pubtime.String()
+	NoteFilterPubTime = searchv1.NoteFilterType_NOTE_PUBTIME.String()
 )
 
 const (

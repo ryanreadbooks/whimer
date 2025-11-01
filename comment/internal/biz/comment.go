@@ -87,7 +87,7 @@ func (b *CommentBiz) AddComment(ctx context.Context, req *model.AddCommentReq) (
 	now := time.Now().Unix()
 	newComment := dao.Comment{
 		Oid:      oid,
-		Type:     int8(req.Type),
+		Type:     req.Type,
 		Content:  req.Content,
 		Uid:      uid,
 		RootId:   rootId,
@@ -177,7 +177,7 @@ func (b *CommentBiz) findByIdForUpdate(ctx context.Context, commentId int64) (*m
 		return nil, xerror.Wrap(global.ErrCommentNotFound)
 	}
 
-	return model.NewCommentItemFromDao(c), nil
+	return NewCommentItemFromDao(c), nil
 }
 
 // 检查是否能够发布子评论
@@ -305,7 +305,7 @@ func (b *CommentBiz) GetComment(ctx context.Context, commentId int64, opts ...Ge
 		return nil, xerror.Wrap(global.ErrCommentNotFound)
 	}
 
-	item := model.NewCommentItemFromDao(comment)
+	item := NewCommentItemFromDao(comment)
 
 	opt := makeGetCommentOption(opts...)
 	if opt.populateImages {
@@ -332,7 +332,7 @@ func (b *CommentBiz) BatchGetComment(ctx context.Context, ids []int64, opts ...G
 		return []*model.CommentItem{}, nil
 	}
 
-	items := model.NewCommentItemSliceFromDao(comments)
+	items := NewCommentItemSliceFromDao(comments)
 
 	opt := makeGetCommentOption(opts...)
 	if opt.populateImages {
@@ -403,7 +403,7 @@ func (b *CommentBiz) GetRootComments(ctx context.Context, oid int64, cursor int6
 	items := make([]*model.CommentItem, 0, dataLen)
 	rootIds := make([]int64, 0, dataLen)
 	for _, item := range data {
-		items = append(items, model.NewCommentItemFromDao(item))
+		items = append(items, NewCommentItemFromDao(item))
 		rootIds = append(rootIds, item.Id)
 	}
 
@@ -461,7 +461,7 @@ func (b *CommentBiz) GetSubComments(ctx context.Context,
 
 	items := make([]*model.CommentItem, 0, dataLen)
 	for _, item := range data {
-		items = append(items, model.NewCommentItemFromDao(item))
+		items = append(items, NewCommentItemFromDao(item))
 	}
 
 	if err := b.PopulateCommentImages(ctx, items); err != nil {
@@ -497,7 +497,7 @@ func (b *CommentBiz) GetSubCommentsByPage(ctx context.Context, oid, rootId int64
 	}
 	items := make([]*model.CommentItem, 0, len(data))
 	for _, item := range data {
-		items = append(items, model.NewCommentItemFromDao(item))
+		items = append(items, NewCommentItemFromDao(item))
 	}
 
 	if err := b.PopulateCommentImages(ctx, items); err != nil {
@@ -595,7 +595,7 @@ func (b *CommentBiz) GetPinnedComment(ctx context.Context, oid int64) (*model.Co
 		return nil, xerror.Wrapf(err, "comment biz get pinned failed").WithExtra("oid", oid).WithCtx(ctx)
 	}
 
-	item := model.NewCommentItemFromDao(pinned)
+	item := NewCommentItemFromDao(pinned)
 	if err := b.PopulateCommentImages(ctx, []*model.CommentItem{item}); err != nil {
 		return nil, xerror.Wrapf(err, "comment biz failed to populate images").
 			WithExtras("rootId", item.RootId, "oid", oid).WithCtx(ctx)
@@ -642,7 +642,7 @@ func (b *CommentBiz) PopulateCommentImages(ctx context.Context, items []*model.C
 
 	commentIds := make([]int64, 0, len(items))
 	for _, r := range items {
-		if r.Type != int8(model.CommentText) {
+		if r.Type != model.CommentText {
 			commentIds = append(commentIds, r.Id)
 		}
 	}
@@ -661,7 +661,7 @@ func (b *CommentBiz) PopulateCommentImages(ctx context.Context, items []*model.C
 
 	// 填充图片资源
 	for _, item := range items {
-		if item.Type != int8(model.CommentText) {
+		if item.Type != model.CommentText {
 			if assets, ok := assetsMap[item.Id]; ok {
 				item.Images = makePbCommentImage(assets)
 			}

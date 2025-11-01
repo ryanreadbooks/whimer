@@ -15,11 +15,10 @@ service SearchService {
 }
 
 enum NoteFilterType {
-  filter_sort_rule = 0; // 排序规则
-  filter_note_type = 1; // 类型过滤规则: 笔记类型：图文/视频等
-  filter_note_pubtime = 2; // 发布时间过滤规则: 笔记发布时间
+  SORT_RULE = 0;    // 排序规则
+  NOTE_TYPE = 1;    // 类型过滤规则: 笔记类型：图文/视频等
+  NOTE_PUBTIME = 2; // 发布时间过滤规则: 笔记发布时间
 }
-
 
 // 笔记筛选过滤器
 message NoteFilter {

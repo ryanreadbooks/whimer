@@ -7,14 +7,14 @@ package comment.api.v1;
 option go_package = "github.com/ryanreadbooks/whimer/comment/api/v1";
 
 enum CommentAction {
-  REPLY_ACTION_UNDO = 0;
-  REPLY_ACTION_DO = 1;
+  COMMENT_ACTION_UNDO = 0;
+  COMMENT_ACTION_DO = 1;
 }
 
 enum CommentType {
-  Text = 0;        // 纯文本
-  ImageText = 1;   // 图文
-  CustomEmoji = 2; // 自定义表情
+  TEXT = 0;         // 纯文本(默认)
+  IMAGE_TEXT = 1;   // 图文
+  CUSTOM_EMOJI = 2; // 自定义表情
 }
 
 message CommentAtUser {
