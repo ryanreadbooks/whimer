@@ -1,6 +1,8 @@
 package userchat
 
 import (
+	"slices"
+
 	"github.com/ryanreadbooks/whimer/misc/uuid"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra/dao/chat"
 	"github.com/ryanreadbooks/whimer/msger/internal/model"
@@ -16,6 +18,12 @@ type Chat struct {
 	Mtime     int64
 	LastMsgId uuid.UUID // 最后一条消息ID
 	Settings  int64     // 会话设置 单聊不生效
+
+	Members []int64 // 会话成员 需要额外填充
+}
+
+func (c *Chat) IsUserInChat(uid int64) bool {
+	return c != nil && slices.Contains(c.Members, uid)
 }
 
 func (c *Chat) IsStatusNormal() bool {

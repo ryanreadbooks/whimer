@@ -117,3 +117,20 @@ func (d *MsgDao) UpdateStatus(ctx context.Context, id uuid.UUID, status model.Ms
 
 	return xsql.ConvertError(err)
 }
+
+func (d *MsgDao) SetExt(ctx context.Context, id uuid.UUID, hasExt bool, mtime int64) error {
+	ext := 0
+	if hasExt {
+		ext = 1
+	}
+
+	ub := sqlbuilder.NewUpdateBuilder()
+	ub.Update(msgPOTableName)
+	ub.Set(ub.EQ("ext", ext), ub.EQ("mtime", mtime))
+	ub.Where(ub.EQ("id", id))
+
+	sql, args := ub.Build()
+	_, err := d.db.ExecCtx(ctx, sql, args...)
+
+	return xsql.ConvertError(err)
+}

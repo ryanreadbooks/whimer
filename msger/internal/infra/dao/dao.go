@@ -4,7 +4,6 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/msger/internal/config"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra/dao/chat"
-	"github.com/ryanreadbooks/whimer/msger/internal/infra/dao/p2p"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra/dao/system"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -12,10 +11,6 @@ import (
 
 type Dao struct {
 	db *xsql.DB
-
-	P2PChatDao  *p2p.ChatDao
-	P2PMsgDao   *p2p.MsgDao
-	P2PInboxDao *p2p.InboxDao
 
 	SystemChatDao *system.ChatDao
 	SystemMsgDao  *system.SystemMsgDao
@@ -47,10 +42,7 @@ func MustNew(c *config.Config) *Dao {
 
 	db := xsql.New(conn)
 	return &Dao{
-		db:          db,
-		P2PChatDao:  p2p.NewChatDao(db),
-		P2PMsgDao:   p2p.NewMsgDao(db),
-		P2PInboxDao: p2p.NewInboxDao(db),
+		db: db,
 
 		SystemChatDao: system.NewChatDao(db),
 		SystemMsgDao:  system.NewSystemMsgDao(db),

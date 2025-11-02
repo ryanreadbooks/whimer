@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/ryanreadbooks/whimer/misc/uuid"
@@ -92,4 +93,20 @@ func (d *MsgExtDao) BatchGetByIds(ctx context.Context, msgIds []uuid.UUID) (map[
 	}
 
 	return msgMap, nil
+}
+
+func (d *MsgExtDao) SetRecall(ctx context.Context, id uuid.UUID, recall json.RawMessage) error {
+	ub := sqlbuilder.NewUpdateBuilder()
+	ub.Update(msgExtPOTableName)
+	ub.Set(ub.EQ("recall", recall))
+	ub.Where(ub.EQ("msg_id", id))
+
+	sql, args := ub.Build()
+
+	_, err := d.db.ExecCtx(ctx, sql, args...)
+	if err != nil {
+		return xsql.ConvertError(err)
+	}
+
+	return nil
 }

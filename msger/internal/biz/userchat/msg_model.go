@@ -8,6 +8,11 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
+const (
+	hasNoMsgExt int8 = 0
+	hasMsgExt   int8 = 1
+)
+
 // 消息定义
 type Msg struct {
 	Id      uuid.UUID
@@ -22,6 +27,14 @@ type Msg struct {
 	Ext *MsgExt // 消息扩展
 }
 
+func (m *Msg) IsStatusRecalled() bool {
+	return m != nil && m.Status == model.MsgStatusRecall
+}
+
+func (m *Msg) IsStatusNormal() bool {
+	return m != nil && m.Status == model.MsgStatusNormal
+}
+
 func makeMsgFromPO(po *chat.MsgPO) *Msg {
 	return &Msg{
 		Id:      po.Id,
@@ -30,18 +43,35 @@ func makeMsgFromPO(po *chat.MsgPO) *Msg {
 		Sender:  po.Sender,
 		Mtime:   po.Mtime,
 		Content: po.Content,
-		HasExt:  po.Ext > 0,
+		HasExt:  po.Ext == hasMsgExt,
 		Cid:     po.Cid,
 	}
 }
 
 type MsgExt struct {
-	ImageKeys []string
+	Images []*MsgImage
+	Recall *MsgRecall
+}
+
+type MsgImage struct {
+	Key    string `json:"key"`
+	Height uint32 `json:"height"`
+	Width  uint32 `json:"width"`
+	Mime   string `json:"mime"` // image format
+}
+
+type MsgRecall struct {
+	Uid  int64 `json:"uid"`  // 撤回消息人
+	Time int64 `json:"time"` // 撤回时间
 }
 
 func makeMsgExtFromPO(po *chat.MsgExtPO) (*MsgExt, error) {
 	var ext MsgExt
-	if err := json.Unmarshal(po.ImageKeys, &ext.ImageKeys); err != nil {
+	if err := json.Unmarshal(po.Images, &ext.Images); err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(po.Recall, &ext.Recall); err != nil {
 		return nil, err
 	}
 

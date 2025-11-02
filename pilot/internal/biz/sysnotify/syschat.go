@@ -107,7 +107,7 @@ func (b *Biz) ListUserMentionMsg(ctx context.Context, uid int64, cursor string, 
 			mm.Content = content
 			mm.Status = model.MsgStatusNormal
 		} else {
-			mm.Status = model.MsgStatusRevoked
+			mm.Status = model.MsgStatusRecalled
 		}
 		mentionMsgs = append(mentionMsgs, &mm)
 	}
@@ -187,7 +187,7 @@ func (b *Biz) ListUserReplyMsg(ctx context.Context, uid int64, cursor string, co
 				}
 			}
 		} else {
-			rm.Status = model.MsgStatusRevoked
+			rm.Status = model.MsgStatusRecalled
 		}
 
 		replyMsgs = append(replyMsgs, &rm)

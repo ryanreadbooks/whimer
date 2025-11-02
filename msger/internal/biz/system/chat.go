@@ -281,13 +281,13 @@ func (b *ChatBiz) RevokeMsg(ctx context.Context, msgId uuid.UUID) error {
 
 	// 检查是否已撤回
 	if msgPo.Status == model.SystemMsgStatusRevoked {
-		return xerror.Wrapf(global.ErrMsgAlreadyRevoked,
-			"the message has been revoked").WithExtra("msg_id", msgId)
+		return xerror.Wrapf(global.ErrMsgAlreadyRecalled,
+			"the message has been recalled").WithExtra("msg_id", msgId)
 	}
 
 	// 检查是否超时
-	if msgPo.Mtime+model.MaxRevokeTime.Microseconds() < time.Now().UnixMicro() {
-		return xerror.Wrapf(global.ErrMsgRevokedTimeReached,
+	if msgPo.Mtime+model.MaxRecallTime.Microseconds() < time.Now().UnixMicro() {
+		return xerror.Wrapf(global.ErrRecallTimeReached,
 			"exceeded the maximum revocation time").WithExtra("msg_id", msgId)
 	}
 
@@ -329,7 +329,7 @@ func (b *ChatBiz) DeleteMsg(ctx context.Context, chatId, msgId uuid.UUID, recvUi
 
 		// 检查是否是该用户的消息
 		if msgPo.RecvUid != recvUid {
-			return xerror.Wrapf(global.ErrCantRevokeMsg, "not the owner of the message")
+			return xerror.Wrapf(global.ErrCantRecallMsg, "not the owner of the message")
 		}
 
 		err = infra.Dao().SystemMsgDao.DeleteByChatIdMsgIdRecvUid(ctx, chatId, msgId, recvUid)

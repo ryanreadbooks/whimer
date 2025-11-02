@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	UserChatService_CreateP2PChat_FullMethodName = "/msger.api.userchat.v1.UserChatService/CreateP2PChat"
 	UserChatService_SendMsgToChat_FullMethodName = "/msger.api.userchat.v1.UserChatService/SendMsgToChat"
 )
 
@@ -28,6 +29,8 @@ const (
 //
 // 用户会话相关
 type UserChatServiceClient interface {
+	// 发起单聊
+	CreateP2PChat(ctx context.Context, in *CreateP2PChatRequest, opts ...grpc.CallOption) (*CreateP2PChatResponse, error)
 	// 在会话中发送消息
 	SendMsgToChat(ctx context.Context, in *SendMsgToChatRequest, opts ...grpc.CallOption) (*SendMsgToChatResponse, error)
 }
@@ -38,6 +41,16 @@ type userChatServiceClient struct {
 
 func NewUserChatServiceClient(cc grpc.ClientConnInterface) UserChatServiceClient {
 	return &userChatServiceClient{cc}
+}
+
+func (c *userChatServiceClient) CreateP2PChat(ctx context.Context, in *CreateP2PChatRequest, opts ...grpc.CallOption) (*CreateP2PChatResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateP2PChatResponse)
+	err := c.cc.Invoke(ctx, UserChatService_CreateP2PChat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *userChatServiceClient) SendMsgToChat(ctx context.Context, in *SendMsgToChatRequest, opts ...grpc.CallOption) (*SendMsgToChatResponse, error) {
@@ -56,6 +69,8 @@ func (c *userChatServiceClient) SendMsgToChat(ctx context.Context, in *SendMsgTo
 //
 // 用户会话相关
 type UserChatServiceServer interface {
+	// 发起单聊
+	CreateP2PChat(context.Context, *CreateP2PChatRequest) (*CreateP2PChatResponse, error)
 	// 在会话中发送消息
 	SendMsgToChat(context.Context, *SendMsgToChatRequest) (*SendMsgToChatResponse, error)
 	mustEmbedUnimplementedUserChatServiceServer()
@@ -68,6 +83,9 @@ type UserChatServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedUserChatServiceServer struct{}
 
+func (UnimplementedUserChatServiceServer) CreateP2PChat(context.Context, *CreateP2PChatRequest) (*CreateP2PChatResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateP2PChat not implemented")
+}
 func (UnimplementedUserChatServiceServer) SendMsgToChat(context.Context, *SendMsgToChatRequest) (*SendMsgToChatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendMsgToChat not implemented")
 }
@@ -90,6 +108,24 @@ func RegisterUserChatServiceServer(s grpc.ServiceRegistrar, srv UserChatServiceS
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&UserChatService_ServiceDesc, srv)
+}
+
+func _UserChatService_CreateP2PChat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateP2PChatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserChatServiceServer).CreateP2PChat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserChatService_CreateP2PChat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserChatServiceServer).CreateP2PChat(ctx, req.(*CreateP2PChatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _UserChatService_SendMsgToChat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -117,6 +153,10 @@ var UserChatService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "msger.api.userchat.v1.UserChatService",
 	HandlerType: (*UserChatServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateP2PChat",
+			Handler:    _UserChatService_CreateP2PChat_Handler,
+		},
 		{
 			MethodName: "SendMsgToChat",
 			Handler:    _UserChatService_SendMsgToChat_Handler,

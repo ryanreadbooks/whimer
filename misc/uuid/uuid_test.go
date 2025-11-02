@@ -58,12 +58,27 @@ func TestMonotonic(t *testing.T) {
 
 	// check uuids is asc order
 	for i := 0; i < 999; i++ {
-		if i % 50 == 0 {
+		if i%50 == 0 {
 			// print timestamp
-			t.Logf("%d: %d",i,uuids[i].Time().UnixMilli())
+			t.Logf("%d: %d", i, uuids[i].Time().UnixMilli())
 		}
 		if uuids[i].Compare(uuids[i+1]) >= 0 {
 			t.Errorf("uuid[%d] >= uuid[%d], want less than", i, i+1)
 		}
 	}
+}
+
+func TestUUIDString(t *testing.T) {
+	id := NewUUID()
+	parsed, err := ParseString(id.String())
+	if err != nil {
+		t.Errorf("ParseString(%s) failed, err: %v", id.String(), err)
+	}
+	// id should equal to parsed
+	if id.Compare(parsed) != 0 {
+		t.Errorf("id != parsed, want true")
+	}
+	t.Log(id.String())
+	t.Log(parsed.String())
+	t.Log(parsed.UUID.String())
 }

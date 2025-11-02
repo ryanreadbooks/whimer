@@ -6,19 +6,35 @@ option go_package = "github.com/ryanreadbooks/whimer/msger/api/userchat/v1";
 
 import "msg/msg.proto";
 import "userchat/v1/chat.proto";
+import "buf/validate/validate.proto";
 
 // 用户会话相关
 service UserChatService {
+  // 发起单聊
+  rpc CreateP2PChat(CreateP2PChatRequest) returns (CreateP2PChatResponse);
   // 在会话中发送消息
   rpc SendMsgToChat(SendMsgToChatRequest) returns (SendMsgToChatResponse);
 }
 
-message SendMsgToChatRequest {
-  int64 sender = 1;
-  string chat_id = 2;
-  
+message CreateP2PChatRequest {
+  int64 uid = 1 [ (buf.validate.field).int64.gt = 0 ];
+  int64 target = 2 [ (buf.validate.field).int64.gt = 0 ];
 }
 
-message SendMsgToChatResponse {
-  string msg_id = 1;
+message CreateP2PChatResponse { string chat_id = 1; }
+
+message MsgReq {
+  string cid = 1 [ (buf.validate.field).string.len = 32 ];
+  msger.api.msg.MsgType type = 2
+      [ (buf.validate.field).enum.defined_only = true ];
+  bytes content = 3 [ (buf.validate.field).bytes.min_len = 1 ];
+  msger.api.msg.MsgExt ext = 4;
 }
+
+message SendMsgToChatRequest {
+  int64 sender = 1 [ (buf.validate.field).int64.gt = 0 ];
+  string chat_id = 2 [ (buf.validate.field).string.min_len = 1 ];
+  MsgReq msg = 3;
+}
+
+message SendMsgToChatResponse { string msg_id = 1; }

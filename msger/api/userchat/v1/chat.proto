@@ -6,8 +6,25 @@ option go_package = "github.com/ryanreadbooks/whimer/msger/api/userchat/v1";
 
 import "msg/msg.proto";
 
-// 会话
-message Chat {
-
+enum ChatType {
+  CHAT_TYPE_UNSPECIFIED = 0;
+  P2P = 1;
+  GROUP = 2;
 }
 
+enum ChatStatus {
+  CHAT_STATUS_UNSPECIFIED = 0;
+  NORMAL = 1;
+}
+
+// 会话
+message Chat {
+  string id = 1;
+  ChatType type = 2;
+  string name = 3;
+  ChatStatus status = 4;
+  int64 creator = 5;
+  int64 mtime = 6;
+  string last_msg_id = 7;
+  int64 settings = 8;
+}

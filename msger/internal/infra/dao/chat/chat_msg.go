@@ -35,3 +35,8 @@ func (p *ChatMsgPO) Values() []any {
 		p.Pos,
 	}
 }
+
+type ChatMsgPO_MsgIdPos struct {
+	MsgId uuid.UUID `db:"msg_id"`
+	Pos   int64     `db:"pos"`
+}

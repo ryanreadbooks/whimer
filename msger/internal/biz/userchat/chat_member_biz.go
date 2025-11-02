@@ -9,6 +9,7 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra/dao/chat"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
 type ChatMemberBiz struct {
@@ -63,4 +64,23 @@ func (b *ChatMemberBiz) GetP2PChatUsers(ctx context.Context, chatId uuid.UUID) (
 	}
 
 	return []int64{members.UidA, members.UidB}, nil
+}
+
+func (b *ChatMemberBiz) AttachChatMembers(ctx context.Context, chat *Chat) error {
+	if chat == nil {
+		return nil
+	}
+
+	switch chat.Type {
+	case model.P2PChat:
+		members, err := b.GetP2PChatUsers(ctx, chat.Id)
+		if err != nil {
+			return xerror.Wrapf(err, "get p2p chat users err").WithCtx(ctx)
+		}
+		chat.Members = members
+	case model.GroupChat:
+		// TODO
+	}
+
+	return nil
 }

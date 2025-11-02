@@ -5,6 +5,7 @@ import (
 
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/ryanreadbooks/whimer/misc/uuid"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
 
@@ -59,4 +60,41 @@ func (d *ChatMsgDao) ListByPos(ctx context.Context,
 	}
 
 	return msgs, nil
+}
+
+func (d *ChatMsgDao) BatchGetPos(ctx context.Context,
+	chatId uuid.UUID, msgIds []uuid.UUID) (map[uuid.UUID]int64, error) {
+	if len(msgIds) == 0 {
+		return map[uuid.UUID]int64{}, nil
+	}
+
+	var pos []*ChatMsgPO_MsgIdPos = make([]*ChatMsgPO_MsgIdPos, 0, len(msgIds))
+	err := xslice.BatchExec(msgIds, 100, func(start, end int) error {
+		targetMsgIds := msgIds[start:end]
+		sb := sqlbuilder.NewSelectBuilder()
+		sb.Select("msg_id", "pos").
+			From(chatMsgPOTableName).
+			Where(sb.EQ("chat_id", chatId), sb.In("msg_id", xslice.Any(targetMsgIds)...))
+
+		sql, args := sb.Build()
+
+		var tmpPos []*ChatMsgPO_MsgIdPos
+		err := d.db.QueryRowsCtx(ctx, &tmpPos, sql, args...)
+		if err != nil {
+			return xsql.ConvertError(err)
+		}
+
+		pos = append(pos, tmpPos...)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[uuid.UUID]int64, len(pos))
+	for _, p := range pos {
+		result[p.MsgId] = p.Pos
+	}
+
+	return result, nil
 }

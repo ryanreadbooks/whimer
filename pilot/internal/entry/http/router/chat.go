@@ -12,21 +12,8 @@ func regChatRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 	{
 		v1Group := whisperGroup.Group("/v1")
 		{
-			chatGroup := v1Group.Group("/chat")
-			{
-				chatGroup.Get("", h.Chat.GetChat())            // 获取会话
-				chatGroup.Post("/create", h.Chat.CreateChat()) // 发起会话
-				chatGroup.Post("/delete", h.Chat.DeleteChat()) // 删除会话
-				chatGroup.Get("/list", h.Chat.ListChats())     // 拉取消息列表
-			}
-
-			msgGroup := v1Group.Group("/message")
-			{
-				msgGroup.Get("/list", h.Chat.ListMsgs())     // 拉消息
-				msgGroup.Post("/send", h.Chat.SendMsg())     // 发消息
-				msgGroup.Post("/revoke", h.Chat.RevokeMsg()) // 撤回消息
-				msgGroup.Post("/delete", h.Chat.DeleteMsg()) // 删除消息
-			}
+			// TODO 
+			_ = v1Group 
 		}
 	}
 

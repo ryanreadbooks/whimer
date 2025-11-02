@@ -1,8 +1,8 @@
 package model
 
 import (
-	"github.com/ryanreadbooks/whimer/misc/xerror"
 	pbmsg "github.com/ryanreadbooks/whimer/msger/api/msg"
+	"github.com/ryanreadbooks/whimer/msger/internal/global"
 )
 
 // 定义消息的类型
@@ -28,7 +28,7 @@ func MsgTypeFromPb(t pbmsg.MsgType) (MsgType, error) {
 	case pbmsg.MsgType_MSG_TYPE_VIDEO:
 		return MsgVideo, nil
 	default:
-		return 0, xerror.ErrArgs.Msg("unsupported msg type")
+		return 0, global.ErrArgs.Msg("unsupported msg type")
 	}
 }
 
@@ -36,8 +36,8 @@ func MsgTypeFromPb(t pbmsg.MsgType) (MsgType, error) {
 type MsgStatus int8
 
 const (
-	MsgStatusNormal  MsgStatus = 1 // 正常
-	MsgStatusRevoked MsgStatus = 2 // 撤回
+	MsgStatusNormal MsgStatus = 1 // 正常
+	MsgStatusRecall MsgStatus = 2 // 撤回
 )
 
 func MsgStatusToPb(s MsgStatus) pbmsg.MsgStatus {

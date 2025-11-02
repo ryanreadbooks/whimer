@@ -22,7 +22,7 @@ type MsgStatus string
 const (
 	MsgStatusNormal   = "normal"
 	MsgStatusNoReveal = "noreveal"
-	MsgStatusRevoked  = "revoked"
+	MsgStatusRecalled = "recalled"
 )
 
 // 系统消息 被@

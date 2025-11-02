@@ -8,8 +8,8 @@ import (
 )
 
 type Service struct {
-	P2PChatSrv *P2PChatSrv
 	SystemChatSrv *SystemChatSrv
+	UserChatSrv   *UserChatSrv
 }
 
 // 初始化一个service
@@ -20,8 +20,8 @@ func NewService(c *config.Config) *Service {
 	dep.Init(c)
 	biz := biz.New()
 
-	s.P2PChatSrv = NewP2PChatSrv(biz)
 	s.SystemChatSrv = NewSystemChatSrv(biz)
+	s.UserChatSrv = NewUserChatSrv(biz)
 
 	return s
 }

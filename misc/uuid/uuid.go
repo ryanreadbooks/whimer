@@ -2,18 +2,19 @@ package uuid
 
 import (
 	"database/sql/driver"
+	"encoding/hex"
 	"time"
 
-	"github.com/google/uuid"
+	googleuuid "github.com/google/uuid"
 )
 
 var (
-	zeroUUID = UUID{uuid.Nil}
-	maxUUID  = UUID{uuid.Max}
+	zeroUUID = UUID{googleuuid.Nil}
+	maxUUID  = UUID{googleuuid.Max}
 )
 
 type UUID struct {
-	uuid.UUID
+	googleuuid.UUID
 }
 
 func EmptyUUID() UUID {
@@ -49,7 +50,7 @@ func (u UUID) UnixMill() int64 {
 }
 
 func ParseString(s string) (UUID, error) {
-	u, err := uuid.Parse(s)
+	u, err := googleuuid.Parse(s)
 	if err != nil {
 		return EmptyUUID(), err
 	}
@@ -57,7 +58,7 @@ func ParseString(s string) (UUID, error) {
 }
 
 func NewUUID() UUID {
-	return UUID{uuid.Must(uuid.NewV7())}
+	return UUID{googleuuid.Must(googleuuid.NewV7())}
 }
 
 // compare u to o, return -1 if u < o, 0 if u == o, 1 if u > o
@@ -94,4 +95,19 @@ func (u UUID) IsZero() bool {
 
 func (u UUID) IsMax() bool {
 	return u.EqualsTo(maxUUID)
+}
+
+// 返回长度32的uuid字符串表示
+func (u UUID) String() string {
+	var buf [32]byte
+	encodeHex(buf[:], u.UUID)
+	return string(buf[:])
+}
+
+func encodeHex(dst []byte, uuid googleuuid.UUID) {
+	hex.Encode(dst, uuid[:4])
+	hex.Encode(dst[8:12], uuid[4:6])
+	hex.Encode(dst[12:16], uuid[6:8])
+	hex.Encode(dst[16:20], uuid[8:10])
+	hex.Encode(dst[20:], uuid[10:])
 }
