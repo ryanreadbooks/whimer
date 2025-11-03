@@ -20,7 +20,7 @@ type Msg struct {
 	Status  model.MsgStatus
 	Sender  int64
 	Mtime   int64
-	Content []byte
+	Content []byte // 见msg_content_model
 	HasExt  bool
 	Cid     string // 客户端侧id
 

@@ -238,16 +238,27 @@ func (s *UserChatSrv) RecallMsg(ctx context.Context, operator int64, chatId, msg
 		reads, err := s.BatchCheckUsersInBoxMsgRead(ctx, chatId, msgId, targetChat.Members)
 		if err != nil {
 			// 消息已经撤回 未读数为更新失败不影响流程
-			xlog.Msgf("batch check users inbox msg read error", msgId).
+			xlog.Msgf("batch check users inbox msg read error").
 				Extras("chat_id", chatId, "msg_id", msgId).Err(err).Errorx(ctx)
 			return nil
 		}
-
-		for _, member := range targetChat.Members {
-			// TODO
-			_ = member
+		uidA, uidB := targetChat.Members[0], targetChat.Members[1]
+		uidARead := reads[uidA]
+		uidBRead := reads[uidB]
+		updateUids := []int64{}
+		if !uidARead {
+			updateUids = append(updateUids, uidA)
 		}
-		_ = reads
+		if !uidBRead {
+			updateUids = append(updateUids, uidB)
+		}
+
+		err = s.chatInboxBiz.BatchDecrUnreadCount(ctx, updateUids, chatId)
+		if err != nil {
+			xlog.Msgf("batch decr unread count failed").
+				Extras("chat_id", chatId, "msg_id", msgId, "uids", updateUids).Err(err).Errorx(ctx)
+			// 更新失败不影响
+		}
 	}
 	// TODO 此处人数太多的群聊可以先不处理 可能成本较大
 

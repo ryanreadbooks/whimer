@@ -190,3 +190,33 @@ func (d *ChatInboxDao) SetLastReadMsgId(ctx context.Context, uid int64, chatId u
 
 	return nil
 }
+
+func (d *ChatInboxDao) DecrUnreadCount(ctx context.Context, uid int64, chatId uuid.UUID, mtime int64) error {
+	ub := sqlbuilder.NewUpdateBuilder()
+	ub.Update(chatInboxPOTableName)
+	ub.Set("unread_count = GREATEST(unread_count - 1, 0)",
+		ub.EQ("mtime", mtime),
+	)
+	ub.Where(ub.EQ("uid", uid), ub.EQ("chat_id", chatId))
+	sql, args := ub.Build()
+
+	_, err := d.db.ExecCtx(ctx, sql, args...)
+	if err != nil {
+		return xsql.ConvertError(err)
+	}
+
+	return nil
+}
+
+func (d *ChatInboxDao) BatchDecrUnreadCount(ctx context.Context, uids []int64, chatId uuid.UUID, mtime int64) error {
+	ub := sqlbuilder.NewUpdateBuilder()
+	ub.Set("unread_count = GREATEST(unread_count - 1, 0)",
+		ub.EQ("mtime", mtime),
+	)
+	ub.Where(ub.In("uid", xslice.Any(uids)...), ub.EQ("chat_id", chatId))
+	sql, args := ub.Build()
+
+	_, err := d.db.ExecCtx(ctx, sql, args...)
+
+	return xsql.ConvertError(err)
+}

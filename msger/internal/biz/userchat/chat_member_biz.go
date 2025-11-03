@@ -78,6 +78,9 @@ func (b *ChatMemberBiz) AttachChatMembers(ctx context.Context, chat *Chat) error
 			return xerror.Wrapf(err, "get p2p chat users err").WithCtx(ctx)
 		}
 		chat.Members = members
+		if len(chat.Members) != 2 {
+			return xerror.Wrap(global.ErrInternal.Msg("p2p chat members is not of length 2"))
+		}
 	case model.GroupChat:
 		// TODO
 	}

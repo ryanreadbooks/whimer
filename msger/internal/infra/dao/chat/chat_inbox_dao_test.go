@@ -60,3 +60,23 @@ func TestChatInboxDao_SetLastReadMsgId(t *testing.T) {
 		So(got.UnreadCount, ShouldEqual, 0)
 	})
 }
+
+func TestChatInboxDao_DecrUnreadCount(t *testing.T) {
+	Convey("TestChatInboxDao_SetLastReadMsgId", t, func() {
+		uid := rand.Int63n(100000)
+		chatId := uuid.NewUUID()
+		err := testChatInboxDao.Create(t.Context(), &ChatInboxPO{
+			Uid:           uid,
+			ChatId:        chatId,
+			Mtime:         time.Now().Unix(),
+			Ctime:         time.Now().Unix(),
+			LastMsgId:     uuid.NewUUID(),
+			LastReadMsgId: uuid.MaxUUID(),
+			UnreadCount:   10,
+		})
+		So(err, ShouldBeNil)
+
+		err = testChatInboxDao.DecrUnreadCount(t.Context(), uid, chatId, time.Now().Unix())
+		So(err, ShouldBeNil)
+	})
+}

@@ -136,3 +136,31 @@ func (b *ChatInboxBiz) SetLastReadMsgIdToLatest(ctx context.Context, chatId uuid
 
 	return nil
 }
+
+// 未读数-1
+func (b *ChatInboxBiz) DecrUnreadCount(ctx context.Context, uid int64, chatId uuid.UUID) error {
+	err := infra.Dao().ChatInboxDao.DecrUnreadCount(ctx, uid, chatId, getAccurateTime())
+	if err != nil {
+		return xerror.Wrapf(err, "chat inbox dao decr unread_count failed").
+			WithExtras("chat_id", chatId).
+			WithCtx(ctx)
+	}
+
+	return nil
+}
+
+// 批量未读数-1
+func (b *ChatInboxBiz) BatchDecrUnreadCount(ctx context.Context, uids []int64, chatId uuid.UUID) error {
+	if len(uids) == 0 {
+		return nil
+	}
+
+	err := infra.Dao().ChatInboxDao.BatchDecrUnreadCount(ctx, uids, chatId, getAccurateTime())
+	if err != nil {
+		return xerror.Wrapf(err, "chat inbox dao batch decr unread_count failed").
+			WithExtras("chat_id", chatId).
+			WithCtx(ctx)
+	}
+
+	return nil
+}
