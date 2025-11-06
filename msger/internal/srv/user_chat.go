@@ -111,10 +111,14 @@ func (s *UserChatSrv) InitP2PChat(ctx context.Context, initer, target int64) (uu
 //  2. 消息绑定会话
 //  3. 更新会话最后一条消息
 //  4. 更新所有user的收件箱, 所有user的收件箱的插入新信件(更新lastMsgId)
-func (s *UserChatSrv) SendMsg(ctx context.Context,
-	sender int64, chatId uuid.UUID, msgReq *SendMsgReq) (uuid.UUID, error) {
-
+func (s *UserChatSrv) SendMsg(ctx context.Context, sender int64, chatId uuid.UUID, msgReq *SendMsgReq) (uuid.UUID, error) {
 	noMsgId := uuid.EmptyUUID()
+
+	// 填充content
+	err := msgReq.FillContent()
+	if err != nil {
+		return noMsgId, err
+	}
 
 	targetChat, err := s.chatBiz.GetChat(ctx, chatId)
 	if err != nil {
@@ -277,8 +281,8 @@ func (s *UserChatSrv) updateUserInboxes(ctx context.Context, chat *userchat.Chat
 	return nil
 }
 
-func (s *UserChatSrv) sendP2PMsg(ctx context.Context,
-	sender int64, chat *userchat.Chat, msgReq *SendMsgReq, members []int64) (*userchat.Msg, error) {
+func (s *UserChatSrv) sendP2PMsg(ctx context.Context, sender int64,
+	chat *userchat.Chat, msgReq *SendMsgReq, members []int64) (*userchat.Msg, error) {
 
 	posKey := fmt.Sprintf("msger.userchat.chatmsg.pos:%s", chat.Id)
 	res, err := dep.Idgen().GetId(ctx, posKey, 50)
@@ -293,7 +297,7 @@ func (s *UserChatSrv) sendP2PMsg(ctx context.Context,
 
 	err = infra.DaoTransact(ctx, func(ctx context.Context) error {
 		// create msg
-		newMsg, err = s.createMsg(ctx, sender, chat.Id, msgReq)
+		newMsg, err = s.createMsg(ctx, sender, msgReq)
 		if err != nil {
 			return xerror.Wrapf(err, "create msg failed").WithCtx(ctx)
 		}
@@ -327,13 +331,12 @@ func (s *UserChatSrv) sendGroupMsg(ctx context.Context,
 
 // sender创建一条消息
 func (s *UserChatSrv) createMsg(ctx context.Context,
-	sender int64, chatId uuid.UUID, msgReq *SendMsgReq) (*userchat.Msg, error) {
+	sender int64, msgReq *SendMsgReq) (*userchat.Msg, error) {
 
 	newMsg, err := s.msgBiz.CreateMsg(ctx, sender, &userchat.CreateMsgReq{
 		Type:    msgReq.Type,
-		Content: msgReq.Content,
+		Content: msgReq.content,
 		Cid:     msgReq.Cid,
-		Ext:     nil, // TODO implement me when supporting msg ext
 	})
 	if err != nil {
 		return nil, xerror.Wrapf(err, "msg biz create msg failed").WithCtx(ctx)
@@ -362,9 +365,7 @@ func (s *UserChatSrv) isAllowedToSendMsg(ctx context.Context, sender int64, chat
 	return nil
 }
 
-func (s *UserChatSrv) isAllowedToRecallMsg(ctx context.Context,
-	operator int64, chat *userchat.Chat, msg *userchat.Msg) error {
-
+func (s *UserChatSrv) isAllowedToRecallMsg(ctx context.Context, operator int64, chat *userchat.Chat, msg *userchat.Msg) error {
 	// check msg time
 	msgSendAt := msg.Id.Time()
 	now := time.Now()

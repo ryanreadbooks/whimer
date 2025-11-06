@@ -30,16 +30,19 @@ message Msg {
   MsgStatus status = 3;
   int64 sender = 4;
   int64 mtime = 5;
-  bytes content = 6;
-  string cid = 7;
-  MsgExt ext = 8;
+  string cid = 6;
+  MsgExt ext = 7;
+  MsgContentText text = 8;   // type = text时有效
+  MsgContentImage image = 9; // type = image时有效
 }
 
-message MsgExt { repeated MsgImage images = 1; }
+message MsgContentText { string content = 1; }
 
-message MsgImage {
+message MsgExt {}
+
+message MsgContentImage {
   string key = 1 [ (buf.validate.field).string.min_len = 1 ];
   uint32 height = 2 [ (buf.validate.field).uint32.gt = 0 ];
   uint32 width = 3 [ (buf.validate.field).uint32.gt = 0 ];
-  string mime = 4;
+  string format = 4; // mime type for image
 }

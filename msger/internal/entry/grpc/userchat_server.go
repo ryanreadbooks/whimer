@@ -22,7 +22,7 @@ func NewUserChatServiceServer(svc *srv.Service) *UserChatServiceServer {
 	}
 }
 
-func checkSendMsgToChatReq(in *pbuserchat.SendMsgToChatRequest) (u uuid.UUID, err error) {
+func checkSendMsgToChatReq(msgType model.MsgType, in *pbuserchat.SendMsgToChatRequest) (u uuid.UUID, err error) {
 	if in.Sender == 0 {
 		err = global.ErrArgs.Msg("invalid sender")
 		return
@@ -44,9 +44,27 @@ func checkSendMsgToChatReq(in *pbuserchat.SendMsgToChatRequest) (u uuid.UUID, er
 		return
 	}
 
-	if len(in.Msg.GetContent()) == 0 {
-		err = global.ErrArgs.Msg("empty msg content")
-		return
+	msgContent := in.Msg.GetContent()
+	switch msgType {
+	case model.MsgText:
+		text, ok := msgContent.(*pbuserchat.MsgReq_Text)
+		if !ok || text == nil {
+			err = global.ErrUnsupportedMsgType
+			return
+		}
+		if len(text.Text.GetContent()) == 0 {
+			err = global.ErrArgs.Msg("content is empty for text msg")
+			return
+		}
+	case model.MsgImage:
+		image, ok := msgContent.(*pbuserchat.MsgReq_Image)
+		if !ok || image == nil {
+			err = global.ErrUnsupportedMsgType
+			return
+		}
+		if err = model.CheckImageFormat(image.Image.Format); err != nil {
+			return
+		}
 	}
 
 	return chatId, nil
@@ -70,20 +88,22 @@ func (s *UserChatServiceServer) CreateP2PChat(ctx context.Context,
 // 在会话中发送消息
 func (s *UserChatServiceServer) SendMsgToChat(ctx context.Context,
 	in *pbuserchat.SendMsgToChatRequest) (*pbuserchat.SendMsgToChatResponse, error) {
-	chatId, err := checkSendMsgToChatReq(in)
-	if err != nil {
-		return nil, err
-	}
 
 	msgType, err := model.MsgTypeFromPb(in.GetMsg().GetType())
 	if err != nil {
 		return nil, err
 	}
 
+	chatId, err := checkSendMsgToChatReq(msgType, in)
+	if err != nil {
+		return nil, err
+	}
+
 	msgId, err := s.Srv.UserChatSrv.SendMsg(ctx, in.Sender, chatId, &srv.SendMsgReq{
-		Type:    msgType,
-		Content: in.Msg.Content,
-		Cid:     in.Msg.Cid,
+		Type:  msgType,
+		Text:  ToBizMsgContentText(in.Msg.Content.(*pbuserchat.MsgReq_Text)),
+		Image: ToBizMsgContentImage(in.Msg.Content.(*pbuserchat.MsgReq_Image)),
+		Cid:   in.Msg.Cid,
 	})
 	if err != nil {
 		return nil, err

@@ -26,7 +26,6 @@ type CreateMsgReq struct {
 	Type    model.MsgType `json:"type"`
 	Content []byte        `json:"-"`
 	Cid     string        `json:"cid"`
-	Ext     *MsgExt       `json:"ext,omitempty"`
 }
 
 // 获取消息
@@ -67,18 +66,12 @@ func (b *MsgBiz) GetMsg(ctx context.Context, msgId uuid.UUID) (*Msg, error) {
 
 // 创建一条消息
 func (b *MsgBiz) CreateMsg(ctx context.Context, sender int64, req *CreateMsgReq) (*Msg, error) {
-	var extFlag int8 = hasNoMsgExt
-	if req.Ext != nil {
-		extFlag = hasMsgExt
-	}
-
 	msgPo := &chatdao.MsgPO{
 		Type:    req.Type,
 		Status:  model.MsgStatusNormal,
 		Sender:  sender,
 		Content: req.Content, // TODO 需要加密
 		Cid:     req.Cid,
-		Ext:     extFlag,
 	}
 
 	err := xretry.OnError(func() error {
@@ -95,28 +88,6 @@ func (b *MsgBiz) CreateMsg(ctx context.Context, sender int64, req *CreateMsgReq)
 			WithExtras("req", req).WithCtx(ctx)
 	}
 
-	if extFlag > 0 {
-		// 插入ext
-		extPo := &chatdao.MsgExtPO{
-			MsgId:  msgPo.Id,
-			Images: makeJsonRawMessage(),
-		}
-
-		if req.Ext.Images != nil {
-			extJson, err := json.Marshal(req.Ext.Images)
-			if err != nil {
-				return nil, xerror.Wrapf(err, "msg ext json marshal failed").WithCtx(ctx)
-			}
-
-			extPo.Images = extJson
-		}
-
-		err := infra.Dao().MsgExtDao.Create(ctx, extPo)
-		if err != nil {
-			return nil, xerror.Wrapf(err, "msg ext dao create failed").WithCtx(ctx)
-		}
-	}
-
 	return &Msg{
 		Id:     msgPo.Id,
 		Type:   msgPo.Type,
@@ -125,7 +96,6 @@ func (b *MsgBiz) CreateMsg(ctx context.Context, sender int64, req *CreateMsgReq)
 		Mtime:  msgPo.Mtime,
 		HasExt: msgPo.Ext == hasMsgExt,
 		Cid:    msgPo.Cid,
-		Ext:    req.Ext,
 	}, nil
 }
 
@@ -202,7 +172,7 @@ func (b *MsgBiz) recallMsg(ctx context.Context, uid int64, msg *Msg) error {
 	return nil
 }
 
-func (b *MsgBiz) BatchGetMsgPos(ctx context.Context, 
+func (b *MsgBiz) BatchGetMsgPos(ctx context.Context,
 	chatId uuid.UUID, msgIds []uuid.UUID) (map[uuid.UUID]int64, error) {
 
 	msgPos, err := infra.Dao().ChatMsgDao.BatchGetPos(ctx, chatId, msgIds)

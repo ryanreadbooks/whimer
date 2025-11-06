@@ -15,6 +15,19 @@ const (
 	MsgVideo       MsgType = 20 // 视频
 )
 
+func (t MsgType) String() string {
+	switch t {
+	case MsgText:
+		return "text"
+	case MsgImage:
+		return "image"
+	case MsgVideo:
+		return "video"
+	}
+
+	return "unknown"
+}
+
 func MsgTypeToPb(t MsgType) pbmsg.MsgType {
 	return pbmsg.MsgType(t)
 }

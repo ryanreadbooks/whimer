@@ -49,15 +49,7 @@ func makeMsgFromPO(po *chat.MsgPO) *Msg {
 }
 
 type MsgExt struct {
-	Images []*MsgImage
 	Recall *MsgRecall
-}
-
-type MsgImage struct {
-	Key    string `json:"key"`
-	Height uint32 `json:"height"`
-	Width  uint32 `json:"width"`
-	Mime   string `json:"mime"` // image format
 }
 
 type MsgRecall struct {
@@ -67,10 +59,6 @@ type MsgRecall struct {
 
 func makeMsgExtFromPO(po *chat.MsgExtPO) (*MsgExt, error) {
 	var ext MsgExt
-	if err := json.Unmarshal(po.Images, &ext.Images); err != nil {
-		return nil, err
-	}
-
 	if err := json.Unmarshal(po.Recall, &ext.Recall); err != nil {
 		return nil, err
 	}
