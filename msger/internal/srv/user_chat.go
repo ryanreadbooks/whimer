@@ -264,7 +264,7 @@ func (s *UserChatSrv) RecallMsg(ctx context.Context, operator int64, chatId, msg
 			// 更新失败不影响
 		}
 	}
-	// TODO 此处人数太多的群聊可以先不处理 可能成本较大
+	// TODO 此处人数太多的群聊可以先不处理 或者放消息队列异步处理
 
 	return nil
 }

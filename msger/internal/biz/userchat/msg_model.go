@@ -20,7 +20,7 @@ type Msg struct {
 	Status  model.MsgStatus
 	Sender  int64
 	Mtime   int64
-	Content []byte // 见msg_content_model
+	Content MsgContent
 	HasExt  bool
 	Cid     string // 客户端侧id
 
@@ -35,17 +35,22 @@ func (m *Msg) IsStatusNormal() bool {
 	return m != nil && m.Status == model.MsgStatusNormal
 }
 
-func makeMsgFromPO(po *chat.MsgPO) *Msg {
+func makeMsgFromPO(po *chat.MsgPO) (*Msg, error) {
+	ct, _, err := ParseMsgContent(po.Content)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Msg{
 		Id:      po.Id,
 		Type:    po.Type,
 		Status:  po.Status,
 		Sender:  po.Sender,
 		Mtime:   po.Mtime,
-		Content: po.Content,
+		Content: ct,
 		HasExt:  po.Ext == hasMsgExt,
 		Cid:     po.Cid,
-	}
+	}, nil
 }
 
 type MsgExt struct {

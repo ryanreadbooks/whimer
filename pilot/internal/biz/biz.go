@@ -7,6 +7,7 @@ import (
 	bizsearch "github.com/ryanreadbooks/whimer/pilot/internal/biz/search"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
 	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/user"
+	bizwhisper "github.com/ryanreadbooks/whimer/pilot/internal/biz/whisper"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 )
 
@@ -17,6 +18,7 @@ type Biz struct {
 	CommentBiz   *bizcomment.Biz
 	RelationBiz  *bizrelation.Biz
 	SysNotifyBiz *bizsysnotify.Biz
+	WhisperBiz   *bizwhisper.Biz
 }
 
 func New(c *config.Config) *Biz {
@@ -27,5 +29,6 @@ func New(c *config.Config) *Biz {
 		CommentBiz:   bizcomment.NewBiz(),
 		RelationBiz:  bizrelation.NewBiz(),
 		SysNotifyBiz: bizsysnotify.NewBiz(),
+		WhisperBiz:   bizwhisper.NewBiz(),
 	}
 }

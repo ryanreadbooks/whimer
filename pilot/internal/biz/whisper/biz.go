@@ -1,4 +1,4 @@
-package sysnotify
+package whisper
 
 type Biz struct {}
 

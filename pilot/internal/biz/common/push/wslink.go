@@ -36,8 +36,8 @@ func BatchPushSysReplyNotification(ctx context.Context, recvUids []int64) error 
 	return batchPushSysMsg(ctx, recvUids)
 }
 
-func PushP2PMsgNotification(ctx context.Context, recvUid int64) error {
-	data := pushcmd.NewCmdAction(pushcmd.CmdP2PMsgNotify, pushcmd.ActionPullP2P).Bytes()
+func PushWhisperMsgNotification(ctx context.Context, recvUid int64) error {
+	data := pushcmd.NewCmdAction(pushcmd.CmdWhisperMsgNotify, pushcmd.ActionPullP2P).Bytes()
 	_, err := dep.WebsocketPusher().Broadcast(ctx, &pushv1.BroadcastRequest{
 		Targets: []int64{recvUid},
 		Data:    data,

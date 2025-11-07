@@ -6,7 +6,7 @@ import (
 )
 
 func getAccurateTime() int64 {
-	return time.Now().UnixNano()
+	return time.Now().UnixMicro()
 }
 
 func getNormalTime() int64 {

@@ -10,8 +10,7 @@ import (
 )
 
 type GetTotalUnreadCountResp struct {
-	System     *sysmsgmodel.ChatsUnreadCount `json:"system"`
-	PeerUnread int64                         `json:"peer_unread"`
+	System *sysmsgmodel.ChatsUnreadCount `json:"system"`
 }
 
 func (h *Handler) GetTotalUnreadCount() http.HandlerFunc {

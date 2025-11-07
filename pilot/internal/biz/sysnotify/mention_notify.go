@@ -26,7 +26,7 @@ type NotifyAtUsersOnNoteReqContent struct {
 	NoteId    imodel.NoteId `json:"id"` // 笔记id
 }
 
-func mapperToMentionReceiver(user imodel.IAtUser) *model.MentionedRecvUser {
+func mapToMentionReceiver(user imodel.IAtUser) *model.MentionedRecvUser {
 	return &model.MentionedRecvUser{Nickname: user.GetNickname(), Uid: user.GetUid()}
 }
 
@@ -46,7 +46,7 @@ func (b *Biz) NotifyAtUsersOnNote(ctx context.Context, req *NotifyAtUsersOnNoteR
 	}
 	mRecvs := make([]*model.MentionedRecvUser, 0, len(req.TargetUsers))
 	for _, user := range req.TargetUsers {
-		mRecvs = append(mRecvs, mapperToMentionReceiver(user))
+		mRecvs = append(mRecvs, mapToMentionReceiver(user))
 	}
 
 	mentions := make([]*sysnotifyv1.MentionMsgContent, 0, len(req.TargetUsers))
@@ -108,7 +108,7 @@ func (b *Biz) NotifyAtUsersOnComment(ctx context.Context, req *NotifyAtUsersOnCo
 
 	mRecvs := make([]*model.MentionedRecvUser, 0, len(req.TargetUsers))
 	for _, user := range req.TargetUsers {
-		mRecvs = append(mRecvs, mapperToMentionReceiver(&user))
+		mRecvs = append(mRecvs, mapToMentionReceiver(&user))
 	}
 
 	mentions := make([]*sysnotifyv1.MentionMsgContent, 0, len(req.TargetUsers))

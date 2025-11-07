@@ -41,7 +41,13 @@ func (b *MsgBiz) GetMsg(ctx context.Context, msgId uuid.UUID) (*Msg, error) {
 			WithCtx(ctx)
 	}
 
-	msg := makeMsgFromPO(msgPo)
+	// TODO content 解密
+
+	msg, err := makeMsgFromPO(msgPo)
+	if err != nil {
+		return nil, err
+	}
+
 	if msg.HasExt {
 		// select ext
 		msgExt, err := infra.Dao().MsgExtDao.GetById(ctx, msgId)
@@ -58,8 +64,6 @@ func (b *MsgBiz) GetMsg(ctx context.Context, msgId uuid.UUID) (*Msg, error) {
 				WithCtx(ctx)
 		}
 	}
-
-	// TODO msg.Content需要解密
 
 	return msg, nil
 }
@@ -127,7 +131,10 @@ func (b *MsgBiz) RecallMsgById(ctx context.Context, uid int64, msgId uuid.UUID) 
 		return xerror.Wrapf(err, "msg dao get by id failed").WithCtx(ctx).WithExtras("msg_id", msgId)
 	}
 
-	msg := makeMsgFromPO(msgPo)
+	msg, err := makeMsgFromPO(msgPo)
+	if err != nil {
+		return err
+	}
 
 	return b.recallMsg(ctx, uid, msg)
 }
