@@ -141,6 +141,12 @@ func Filter[V any, T ~[]V](t T, filter func(idx int, v V) bool) T {
 	return dest
 }
 
+// filter zero values in slice
+func FilterZero[V comparable, T ~[]V](t T) T {
+	var z V
+	return Filter(t, func(_ int, v V) bool { return v == z })
+}
+
 func Any[T any](t []T) []any {
 	a := make([]any, 0, len(t))
 	for _, item := range t {

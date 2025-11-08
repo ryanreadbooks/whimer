@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/zeromicro/go-zero/core/logx"
 	"go.opentelemetry.io/otel"
 	otelattribute "go.opentelemetry.io/otel/attribute"
@@ -34,8 +35,9 @@ const (
 )
 
 type SafeGo2Opt struct {
-	Name string
-	Job  func(ctx context.Context) error
+	Name       string
+	Job        func(ctx context.Context) error
+	LogOnError bool
 }
 
 func spanCtxWithoutCancel(parent context.Context, spanName, jobName string) (context.Context, oteltrace.Span) {
@@ -86,6 +88,10 @@ func SafeGo2(ctx context.Context, opt SafeGo2Opt) {
 		}()
 
 		err := opt.Job(newCtx)
+		if err != nil && opt.LogOnError {
+			xlog.Msgf("concurrent job %s error", opt.Name).Err(err).Errorx(ctx)
+		}
+
 		setSpanStatus(span, err)
 	}()
 }

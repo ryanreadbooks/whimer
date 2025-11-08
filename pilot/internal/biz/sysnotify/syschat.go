@@ -35,6 +35,12 @@ type ListUserReplyMsgResp struct {
 	HasNext bool
 }
 
+type ListUserLikesMsgResp struct {
+	Msgs    []*model.LikesMsg
+	ChatId  string
+	HasNext bool
+}
+
 // 获取用户uid的被@消息
 func (b *Biz) ListUserMentionMsg(ctx context.Context, uid int64, cursor string, count int32) (*ListUserMentionMsgResp, error) {
 	result := &ListUserMentionMsgResp{}
@@ -79,7 +85,7 @@ func (b *Biz) ListUserMentionMsg(ctx context.Context, uid int64, cursor string, 
 			}
 
 			var (
-				loc       model.MentionLocation
+				loc       model.NotifyMsgLocation
 				sourceUid int64
 				noteId    imodel.NoteId = 0
 				content   string
@@ -87,12 +93,12 @@ func (b *Biz) ListUserMentionMsg(ctx context.Context, uid int64, cursor string, 
 			)
 
 			if v.NotifyAtUsersOnNoteReqContent != nil {
-				loc = model.MentionOnNote
+				loc = model.NotifyMsgOnNote
 				sourceUid = v.NotifyAtUsersOnNoteReqContent.SourceUid
 				noteId = v.NotifyAtUsersOnNoteReqContent.NoteId
 				content = v.NotifyAtUsersOnNoteReqContent.NoteDesc
 			} else if v.NotifyAtUsersOnCommentReqContent != nil {
-				loc = model.MentionOnComment
+				loc = model.NotifyMsgOnComment
 				sourceUid = v.NotifyAtUsersOnCommentReqContent.SourceUid
 				content = v.NotifyAtUsersOnCommentReqContent.Comment
 				commentId = v.NotifyAtUsersOnCommentReqContent.CommentId
@@ -112,7 +118,7 @@ func (b *Biz) ListUserMentionMsg(ctx context.Context, uid int64, cursor string, 
 		mentionMsgs = append(mentionMsgs, &mm)
 	}
 
-	if err := b.lazyCheckMentionSource(ctx, mentionMsgs); err != nil {
+	if err := b.lazyCheckMsgSourceTemplate(ctx, getLazyCheckedMsgForMentionedMsgs(mentionMsgs)); err != nil {
 		return nil, xerror.Wrapf(err, "sysmsg biz lazy check mention source failed")
 	}
 
@@ -193,7 +199,7 @@ func (b *Biz) ListUserReplyMsg(ctx context.Context, uid int64, cursor string, co
 		replyMsgs = append(replyMsgs, &rm)
 	}
 
-	if err := b.lazyCheckReplySource(ctx, replyMsgs); err != nil {
+	if err := b.lazyCheckMsgSourceTemplate(ctx, getLazyCheckedMsgForReplyMsgs(replyMsgs)); err != nil {
 		return nil, xerror.Wrapf(err, "sysmsg biz check reply source failed").WithCtx(ctx)
 	}
 
@@ -202,6 +208,189 @@ func (b *Biz) ListUserReplyMsg(ctx context.Context, uid int64, cursor string, co
 		ChatId:  resp.ChatId,
 		HasNext: resp.HasMore,
 	}, nil
+}
+
+// 获取用户收到的赞消息
+func (b *Biz) ListUserLikeMsg(ctx context.Context, uid int64, cursor string) (*ListUserLikesMsgResp, error) {
+	resp, err := dep.SystemChatter().ListSystemLikesMsg(ctx, &systemv1.ListSystemLikesMsgRequest{
+		RecvUid: uid,
+		Cursor:  cursor,
+		Count:   20,
+	})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "system chatter list likes msg failed").
+			WithExtras("uid", uid, "cursor", cursor).WithCtx(ctx)
+	}
+
+	mLen := len(resp.GetMessages())
+	resultMsgs := make([]*model.LikesMsg, 0, mLen)
+	noteLikings := make(map[int64][]int64, mLen)
+	commentLikings := make(map[int64][]int64, mLen)
+
+	for _, msg := range resp.GetMessages() {
+		mgid, err := uuid.ParseString(msg.Id)
+		if err != nil {
+			xlog.Msg("parse likes msg id failed, it should be successful").
+				Err(err).
+				Extras("msgid", msg.Id).
+				Errorx(ctx)
+			continue
+		}
+
+		lm := model.LikesMsg{
+			Id:      msg.Id,
+			SendAt:  mgid.UnixSec(),
+			RecvUid: msg.GetRecvUid(),
+		}
+
+		if msg.Status != sysnotifyv1.SystemMsgStatus_MsgStatus_Revoked {
+			var content notifyLikesContent
+			err = json.Unmarshal(msg.Content, &content)
+			if err != nil {
+				xlog.Msg("notify biz json unmarshal likes content failed").Err(err).Errorx(ctx)
+				continue
+			}
+
+			switch content.Loc {
+			case model.NotifyMsgOnNote:
+				lm.NoteId = content.NotifyLikesOnNoteReq.NoteId
+				noteLikings[content.Uid] = append(noteLikings[content.Uid], int64(lm.NoteId))
+			case model.NotifyMsgOnComment:
+				lm.NoteId = content.NotifyLikesOnCommentReq.NoteId
+				lm.CommentId = content.NotifyLikesOnCommentReq.CommentId
+				commentLikings[content.Uid] = append(commentLikings[content.Uid], lm.CommentId)
+			}
+			lm.Type = content.Loc
+			lm.Uid = content.Uid
+			lm.Status = model.MsgStatusNormal
+		} else {
+			lm.Status = model.MsgStatusRecalled
+		}
+
+		resultMsgs = append(resultMsgs, &lm)
+	}
+
+	// 检查uid的点赞是否仍生效
+	extraPendingMsgIds, err := b.findLikeMsgExtraLazyMsgIds(ctx, resultMsgs, noteLikings, commentLikings)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "sysmsg biz find like msg extra msgids failed").WithCtx(ctx)
+	}
+
+	if err := b.lazyCheckMsgSourceTemplate(ctx,
+		getLazyCheckedMsgForLikesMsgs(resultMsgs),
+		extraPendingMsgIds...); err != nil {
+		return nil, xerror.Wrapf(err, "sysmsg biz check likes source failed").WithCtx(ctx)
+	}
+
+	return &ListUserLikesMsgResp{
+		Msgs:    resultMsgs,
+		ChatId:  resp.ChatId,
+		HasNext: resp.HasMore,
+	}, nil
+}
+
+func (b *Biz) findLikeMsgExtraLazyMsgIds(ctx context.Context,
+	msgs []*model.LikesMsg, noteLikings, commentLikings map[int64][]int64) ([]string, error) {
+
+	var (
+		uidCurNoteLikeStatus    map[int64]*notev1.LikeStatusList
+		uidCurCommentLikeStatus map[int64]*commentv1.BatchCheckUserLikeCommentResponse_CommentLikedList
+	)
+
+	// 检查uid的点赞是否仍生效
+	eg, ctx2 := errgroup.WithContext(ctx)
+	if len(noteLikings) > 0 {
+		eg.Go(recovery.DoV2(func() error {
+			mappings := make(map[int64]*notev1.NoteIdList)
+			for uid, noteIds := range noteLikings {
+				mappings[uid] = &notev1.NoteIdList{NoteIds: noteIds}
+			}
+			resp, err := dep.NoteInteractServer().BatchCheckUserLikeStatus(ctx2,
+				&notev1.BatchCheckUserLikeStatusRequest{
+					Mappings: mappings,
+				})
+			if err != nil {
+				return xerror.Wrapf(err, "remote note interactor failed to batch check like status").WithCtx(ctx2)
+			}
+
+			uidCurNoteLikeStatus = resp.GetResults()
+			return nil
+		}))
+	}
+
+	if len(commentLikings) > 0 {
+		eg.Go(recovery.DoV2(func() error {
+			mappings := make(map[int64]*commentv1.BatchCheckUserLikeCommentRequest_CommentIdList)
+			for uid, commentIds := range commentLikings {
+				mappings[uid] = &commentv1.BatchCheckUserLikeCommentRequest_CommentIdList{Ids: commentIds}
+			}
+			resp, err := dep.Commenter().BatchCheckUserLikeComment(ctx2,
+				&commentv1.BatchCheckUserLikeCommentRequest{
+					Mappings: mappings,
+				})
+			if err != nil {
+				return xerror.Wrapf(err, "remote commenter batch check like status failed").WithCtx(ctx2)
+			}
+
+			uidCurCommentLikeStatus = resp.GetResults()
+
+			return nil
+		}))
+	}
+	err := eg.Wait()
+	if err != nil {
+		return nil, xerror.Wrapf(err, "sysmsg biz check source failed").WithCtx(ctx2)
+	}
+
+	extraPendingMsgIds := make([]string, 0, len(msgs))
+	if len(uidCurNoteLikeStatus) > 0 || len(uidCurCommentLikeStatus) > 0 {
+		noteStatus := make(map[int64]map[int64]bool) // uid -> {{note_id -> liked}}
+		for uid, status := range uidCurNoteLikeStatus {
+			_, ok := noteStatus[uid]
+			if !ok {
+				noteStatus[uid] = make(map[int64]bool)
+			}
+
+			for _, item := range status.GetList() {
+				noteStatus[uid][item.GetNoteId()] = item.GetLiked()
+			}
+		}
+
+		commentStatus := make(map[int64]map[int64]bool) // uid -> {{comment_id -> liked}}
+		for uid, status := range uidCurCommentLikeStatus {
+			_, ok := commentStatus[uid]
+			if !ok {
+				commentStatus[uid] = make(map[int64]bool)
+			}
+
+			for _, item := range status.GetList() {
+				commentStatus[uid][item.GetCommentId()] = item.GetLiked()
+			}
+		}
+
+		for _, msg := range msgs {
+			uid := msg.Uid
+			flag := false
+			switch msg.Type {
+			case model.NotifyMsgOnNote:
+				noteId := msg.NoteId
+				if liked, ok := noteStatus[uid][int64(noteId)]; !ok || !liked {
+					flag = true
+				}
+			case model.NotifyMsgOnComment:
+				commentId := msg.CommentId
+				if liked, ok := commentStatus[uid][commentId]; !ok || !liked {
+					flag = true
+				}
+			}
+
+			if flag {
+				extraPendingMsgIds = append(extraPendingMsgIds, msg.Id)
+				msg.DoNotReveal()
+			}
+		}
+	}
+	return extraPendingMsgIds, nil
 }
 
 // 清除系统会话已读
@@ -240,8 +429,8 @@ func (b *Biz) GetChatUnread(ctx context.Context, uid int64) (*model.ChatsUnreadC
 	return result, nil
 }
 
-// 检查原始数据是否还存在 不存在需要屏蔽掉对应消息
-func (b *Biz) lazyCheckMentionSource(ctx context.Context, msgs []*model.MentionedMsg) error {
+// 模板方法: 检查原始信息是否存在 不存在时需要屏蔽消息
+func (b *Biz) lazyCheckMsgSourceTemplate(ctx context.Context, msgs []lazyCheckedMsg, extraMsgIds ...string) error {
 	var (
 		uid        = metadata.Uid(ctx)
 		numMsgs    = len(msgs)
@@ -250,127 +439,32 @@ func (b *Biz) lazyCheckMentionSource(ctx context.Context, msgs []*model.Mentione
 	)
 
 	for _, msg := range msgs {
-		noteId := int64(msg.NoteId)
-		switch msg.Type {
-		case model.MentionOnComment:
-			noteIds = append(noteIds, noteId)
-			commentIds = append(commentIds, msg.CommentId)
-		case model.MentionOnNote:
+		if noteId := msg.getNoteId(); noteId != 0 {
 			noteIds = append(noteIds, noteId)
 		}
+		if ids := msg.getCommentIds(); len(ids) > 0 {
+			commentIds = append(commentIds, ids...)
+		}
 	}
+
+	noteIds = xslice.FilterZero(xslice.Uniq(noteIds))
+	commentIds = xslice.FilterZero(xslice.Uniq(commentIds))
 
 	noteExistence, commentExistence, err := b.checkSourcesExistence(ctx, noteIds, commentIds)
 	if err != nil {
 		return xerror.Wrapf(err, "sysmsg check source failed").WithCtx(ctx)
 	}
 
-	pendingMsgIds := make([]string, 0, numMsgs)
-
-	// noteExistence
+	pendingMsgIds := make([]string, 0, numMsgs+len(extraMsgIds))
 	for _, msg := range msgs {
-		noteId := int64(msg.NoteId)
-		switch msg.Type {
-		case model.MentionOnComment:
-			noteOk, _ := noteExistence[noteId]
-			commentOk, _ := commentExistence[msg.CommentId]
-			if !noteOk || !commentOk {
-				msg.DoNotReveal()
-				pendingMsgIds = append(pendingMsgIds, msg.Id)
-			}
-		case model.MentionOnNote:
-			noteOk, _ := noteExistence[noteId]
-			if !noteOk {
-				msg.DoNotReveal()
-				pendingMsgIds = append(pendingMsgIds, msg.Id)
-			}
+		if msg.shouldRuleOut(noteExistence, commentExistence) {
+			pendingMsgIds = append(pendingMsgIds, msg.getMsgId())
 		}
 	}
 
-	xlog.Msgf("sysmsg check pending mention msgids length = %d", len(pendingMsgIds)).Debugx(ctx)
-
-	// batch delete system msgs for the same uid (by kafka)
-	if len(pendingMsgIds) > 0 {
-		deletions := make([]*sysmsgkfkdao.DeletionEvent, 0, len(pendingMsgIds))
-		for _, msgId := range pendingMsgIds {
-			deletions = append(deletions, &sysmsgkfkdao.DeletionEvent{
-				Uid:   uid,
-				MsgId: msgId,
-			})
-		}
-
-		if err := kafka.Dao().SysMsgEventProducer.AsyncPutDeletion(ctx, deletions); err != nil {
-			xlog.Msg("sysmsg biz async put deletion failed").Err(err).Extras("args", deletions).Errorx(ctx)
-		}
-	}
-
-	return nil
-}
-
-// 检查原始信息是否存在 不存在需要屏蔽消息
-func (b *Biz) lazyCheckReplySource(ctx context.Context, msgs []*model.ReplyMsg) error {
-	var (
-		uid        = metadata.Uid(ctx)
-		numMsgs    = len(msgs)
-		noteIds    = make([]int64, 0, numMsgs)
-		commentIds = make([]int64, 0, numMsgs)
-	)
-	for _, msg := range msgs {
-		switch msg.Type {
-		case model.ReplyOnNote:
-			noteIds = append(noteIds, int64(msg.NoteId))
-		case model.ReplyOnComment:
-			noteIds = append(noteIds, int64(msg.NoteId))
-			commentIds = append(commentIds, msg.TargetComment)
-			commentIds = append(commentIds, msg.TriggerComment)
-		}
-	}
-
-	noteIds = xslice.Uniq(noteIds)
-	commentIds = xslice.Uniq(commentIds)
-	noteExistence, commentExistence, err := b.checkSourcesExistence(ctx, noteIds, commentIds)
-	if err != nil {
-		return xerror.Wrapf(err, "sysmsg biz check source failed").WithCtx(ctx)
-	}
-
-	pendingMsgIds := make([]string, 0, numMsgs)
-
-	// noteExistence
-	for _, msg := range msgs {
-		noteId := int64(msg.NoteId)
-		switch msg.Type {
-		case model.ReplyOnComment:
-			noteOk, _ := noteExistence[noteId]
-			commentOk, _ := commentExistence[msg.TriggerComment]
-			commentOk2 := commentExistence[msg.TargetComment]
-			if !noteOk || !commentOk || !commentOk2 {
-				msg.DoNotReveal()
-				pendingMsgIds = append(pendingMsgIds, msg.Id)
-			}
-		case model.ReplyOnNote:
-			noteOk, _ := noteExistence[noteId]
-			if !noteOk {
-				msg.DoNotReveal()
-				pendingMsgIds = append(pendingMsgIds, msg.Id)
-			}
-		}
-	}
-
-	xlog.Msgf("sysmsg check pending reply msgids length = %d", len(pendingMsgIds)).Debugx(ctx)
-
-	// batch delete system msgs for the same uid (by kafka)
-	if len(pendingMsgIds) > 0 {
-		deletions := make([]*sysmsgkfkdao.DeletionEvent, 0, len(pendingMsgIds))
-		for _, msgId := range pendingMsgIds {
-			deletions = append(deletions, &sysmsgkfkdao.DeletionEvent{
-				Uid:   uid,
-				MsgId: msgId,
-			})
-		}
-
-		if err := kafka.Dao().SysMsgEventProducer.AsyncPutDeletion(ctx, deletions); err != nil {
-			xlog.Msg("sysmsg biz async put deletion failed").Err(err).Extras("args", deletions).Errorx(ctx)
-		}
+	if len(pendingMsgIds) > 0 || len(extraMsgIds) > 0 {
+		newMsgIds := append(pendingMsgIds, extraMsgIds...)
+		b.asyncBatchDeleteMsgs(ctx, uid, newMsgIds)
 	}
 
 	return nil
@@ -438,4 +532,22 @@ func (b *Biz) DeleteSysMsg(ctx context.Context, uid int64, msgId string) error {
 	}
 
 	return nil
+}
+
+// async delete msgs by kafka
+func (b *Biz) asyncBatchDeleteMsgs(ctx context.Context, uid int64, msgIds []string) {
+	if len(msgIds) > 0 {
+		xlog.Msgf("sysmsg check pending msgids length = %d", len(msgIds)).Debugx(ctx)
+		deletions := make([]*sysmsgkfkdao.DeletionEvent, 0, len(msgIds))
+		for _, msgId := range msgIds {
+			deletions = append(deletions, &sysmsgkfkdao.DeletionEvent{
+				Uid:   uid,
+				MsgId: msgId,
+			})
+		}
+
+		if err := kafka.Dao().SysMsgEventProducer.AsyncPutDeletion(ctx, deletions); err != nil {
+			xlog.Msg("sysmsg biz async put deletion failed").Err(err).Extras("args", deletions).Errorx(ctx)
+		}
+	}
 }

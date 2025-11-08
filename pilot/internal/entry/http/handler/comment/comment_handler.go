@@ -61,7 +61,7 @@ func (h *Handler) PublishNoteComment() http.HandlerFunc {
 		h.syncCommentCountToSearcher(ctx, noteId, 1)
 		// 通知被@的用户
 		h.notifyWhenAtUsers(ctx, res.CommentId, req)
-		h.notifyReplyUser(ctx, res.CommentId, req)
+		h.asyncNotifyReplyUser(ctx, res.CommentId, req)
 		h.appendRecentContacts(ctx, req.AtUsers)
 
 		httpx.OkJson(w, res)
@@ -199,6 +199,11 @@ func (h *Handler) LikeNoteComment() http.HandlerFunc {
 			return
 		}
 
+		if req.Action == commentmodel.ThumbActionDo {
+			// 通知用户
+			h.asyncNotifyLikeComment(ctx, req.CommentId)
+		}
+
 		httpx.OkJson(w, nil)
 	}
 }
@@ -333,20 +338,17 @@ func (h *Handler) notifyWhenAtUsers(ctx context.Context, commentId int64, req *c
 	})
 }
 
-func (h *Handler) notifyReplyUser(ctx context.Context, triggerComment int64, req *commentmodel.PubReq) {
+func (h *Handler) asyncNotifyReplyUser(ctx context.Context, triggerComment int64, req *commentmodel.PubReq) {
 	var (
-		uid = metadata.Uid(ctx)
-	)
-
-	var (
-		loc           sysnotifymodel.ReplyLocation
+		uid           = metadata.Uid(ctx)
+		loc           sysnotifymodel.NotifyMsgLocation
 		targetComment int64
 	)
 
 	if req.PubOnOidDirectly() {
-		loc = sysnotifymodel.ReplyOnNote
+		loc = sysnotifymodel.NotifyMsgOnNote
 	} else {
-		loc = sysnotifymodel.ReplyOnComment
+		loc = sysnotifymodel.NotifyMsgOnComment
 		targetComment = req.ParentId
 	}
 
@@ -387,5 +389,35 @@ func (h *Handler) notifyReplyUser(ctx context.Context, triggerComment int64, req
 			return nil
 		},
 	})
+}
 
+func (h *Handler) asyncNotifyLikeComment(ctx context.Context, commentId int64) {
+	var uid = metadata.Uid(ctx)
+
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name:       "comment.handler.notify_likes",
+		LogOnError: true,
+		Job: func(ctx context.Context) error {
+			item, err := h.commentBiz.GetComment(ctx, commentId)
+			if err != nil {
+				return xerror.Wrapf(err, "comment biz get comment failed").WithExtras("comment_id", commentId).WithCtx(ctx)
+			}
+
+			recvUid := item.Uid // 作者
+			if recvUid == 0 {
+				return nil
+			}
+
+			err = h.notifyBiz.NotifyUserLikesOnComment(ctx, uid, recvUid, &bizsysnotify.NotifyLikesOnCommentReq{
+				NoteId:    item.Oid,
+				CommentId: commentId,
+			})
+			if err != nil {
+				return xerror.Wrapf(err, "notify likes on comment").
+					WithExtras("comment_id", commentId, "uid", uid, "recv", recvUid).WithCtx(ctx)
+			}
+
+			return nil
+		},
+	})
 }
