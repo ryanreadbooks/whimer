@@ -6,72 +6,72 @@ option go_package = "github.com/ryanreadbooks/whimer/note/api/v1";
 
 enum NotePrivacy {
   NOTE_PRIVACY_UNSPECIFIED = 0;
-  PUBLIC = 1;
-  PRIVATE = 2;
+  PUBLIC                   = 1;
+  PRIVATE                  = 2;
 }
 
 enum NoteAssetType {
   NOTE_ASSET_TYPE_UNSPECIFIED = 0;
-  IMAGE = 1;
-  VIDEO = 2;
+  IMAGE                       = 1;
+  VIDEO                       = 2;
 }
 
 message NoteTag {
-  int64 id = 1;
-  string name = 2;
-  int64 ctime = 3;
+  int64  id    = 1;
+  string name  = 2;
+  int64  ctime = 3;
 }
 
 message NoteAtUser {
   string nickname = 1;
-  int64 uid = 2;
+  int64  uid      = 2;
 }
 
 // 笔记全量信息
 message NoteItem {
-  int64 note_id = 1;
-  string title = 2;
-  string desc = 3;
-  int32 privacy = 4;
-  int64 create_at = 5;
-  int64 update_at = 6;
-  repeated NoteImage images = 7;
-  int64 likes = 8;            // 点赞数量
-  int64 replies = 9;          //评论数量
-  repeated NoteTag tags = 10; // 笔记的标签
-  int64 owner = 11;
-  string ip = 12;
-  repeated NoteAtUser at_users = 13; // @人
+  int64               note_id   = 1;
+  string              title     = 2;
+  string              desc      = 3;
+  int32               privacy   = 4;
+  int64               create_at = 5;
+  int64               update_at = 6;
+  repeated NoteImage  images    = 7;
+  int64               likes     = 8;   // 点赞数量
+  int64               replies   = 9;   //评论数量
+  repeated NoteTag    tags      = 10;  // 笔记的标签
+  int64               owner     = 11;
+  string              ip        = 12;
+  repeated NoteAtUser at_users  = 13;  // @人
 }
 
 message NoteImageMeta {
-  uint32 width = 1;
+  uint32 width  = 1;
   uint32 height = 2;
   string format = 3;
 }
 
 message NoteImage {
-  string url = 1;
-  int32 type = 2;
-  string url_prv = 3;
-  NoteImageMeta meta = 4;
+  string        url     = 1;
+  int32         type    = 2;
+  string        url_prv = 3;
+  NoteImageMeta meta    = 4;
 }
 
 // 笔记信息的概览（一般用于首页，其它非创作者获取笔记的场景）
 message FeedNoteItem {
-  int64 note_id = 1;
-  string title = 2;
-  string desc = 3;
-  int64 created_at = 4;
-  repeated NoteImage images = 5;
-  int64 likes = 6;   // 点赞数量
-  int64 author = 7;  // 笔记作者
-  int64 replies = 8; // 点赞数
-  int64 updated_at = 9;
-  string ip = 10;
+  int64              note_id    = 1;
+  string             title      = 2;
+  string             desc       = 3;
+  int64              created_at = 4;
+  repeated NoteImage images     = 5;
+  int64              likes      = 6;  // 点赞数量
+  int64              author     = 7;  // 笔记作者
+  int64              replies    = 8;  // 点赞数
+  int64              updated_at = 9;
+  string             ip         = 10;
 }
 
 message FeedNoteItemExt {
-  repeated NoteTag tags = 1;
+  repeated NoteTag    tags     = 1;
   repeated NoteAtUser at_users = 2;
 }

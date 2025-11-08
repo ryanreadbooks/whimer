@@ -7,6 +7,18 @@ import "google/protobuf/descriptor.proto";
 
 option go_package = "github.com/ryanreadbooks/whimer/apiextension/protobuf/options";
 
+message WhimerMethodOption {
+  bool skip_metadata_uid_check = 1;
+}
+
+message WhimerServiceOption {
+  bool skip_metadata_uid_check = 1;
+}
+
 extend google.protobuf.MethodOptions {
-  bool ignore_uid = 50000;
+  optional WhimerMethodOption method = 50000;
+}
+
+extend google.protobuf.ServiceOptions {
+  optional WhimerServiceOption service = 50001;
 }

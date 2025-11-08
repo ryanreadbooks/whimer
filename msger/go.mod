@@ -14,7 +14,6 @@ require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.2-20240717164558-a6c49f84cc0f.2
 	github.com/huandu/go-sqlbuilder v1.38.1
 	github.com/ryanreadbooks/folium v0.1.3
-	github.com/ryanreadbooks/whimer/apiextension v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/wslink v0.0.0-00010101000000-000000000000
@@ -88,6 +87,7 @@ require (
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/redis/go-redis/v9 v9.11.0 // indirect
+	github.com/ryanreadbooks/whimer/apiextension v0.0.0-00010101000000-000000000000 // indirect
 	github.com/segmentio/kafka-go v0.4.47 // indirect
 	github.com/smarty/assertions v1.15.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect

@@ -1,10 +1,11 @@
 module github.com/ryanreadbooks/whimer/search
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/elastic/go-elasticsearch/v8 v8.19.0
 	github.com/panjf2000/ants/v2 v2.11.3
+	github.com/ryanreadbooks/whimer/apiextension v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/segmentio/kafka-go v0.4.49
 	github.com/vmihailenco/msgpack/v5 v5.4.1
@@ -12,7 +13,7 @@ require (
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/trace v1.37.0
 	google.golang.org/grpc v1.75.0
-	google.golang.org/protobuf v1.36.8
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
@@ -90,8 +91,8 @@ require (
 	golang.org/x/term v0.34.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250826171959-ef028d996bc1 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250826171959-ef028d996bc1 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20251103181224-f26f9409b101 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
@@ -107,3 +108,5 @@ require (
 )
 
 replace github.com/ryanreadbooks/whimer/misc => ../misc
+
+replace github.com/ryanreadbooks/whimer/apiextension => ../apiextension

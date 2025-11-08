@@ -47,7 +47,7 @@ func (d *ChatDao) Create(ctx context.Context, chat *ChatPO) error {
 func (d *ChatDao) UpdateMsgs(ctx context.Context, chatId,
 	lastMsgId, lastReadMsgId uuid.UUID, unread int64) error {
 
-	now := time.Now().UnixNano()
+	now := time.Now().UnixMicro()
 	sql := "UPDATE system_chat SET last_msg_id=?, last_read_msg_id=?, unread_count=?, mtime=? WHERE id=?"
 	_, err := d.db.ExecCtx(ctx, sql, lastMsgId, lastReadMsgId, unread, now, chatId)
 	return xsql.ConvertError(err)

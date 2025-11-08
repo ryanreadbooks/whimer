@@ -8,11 +8,11 @@ import "v1/note.proto";
 option go_package = "github.com/ryanreadbooks/whimer/note/api/v1";
 
 message LikeNoteRequest {
-  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ]; // 笔记id
-  int64 uid = 2; // 执行点赞的用户id
+  int64 note_id = 1 [(buf.validate.field).int64.gt = 0];  // 笔记id
+  int64 uid     = 2;                                      // 执行点赞的用户id
   enum Operation {
-    OPERATION_UNDO_LIKE = 0; // 取消点赞
-    OPERATION_DO_LIKE = 1;   // 点赞
+    OPERATION_UNDO_LIKE = 0;  // 取消点赞
+    OPERATION_DO_LIKE   = 1;  // 点赞
   }
   Operation operation = 3;
 }
@@ -20,52 +20,48 @@ message LikeNoteRequest {
 message LikeNoteResponse {}
 
 message GetNoteLikesRequest {
-  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ]; //笔记id
+  int64 note_id = 1 [(buf.validate.field).int64.gt = 0];  //笔记id
 }
 
 message GetNoteLikesResponse {
   int64 note_id = 1;
-  int64 likes = 2; // 点赞数量
+  int64 likes   = 2;  // 点赞数量
 }
 
 // 检查用户是否点赞过某篇笔记
 message CheckUserLikeStatusRequest {
-  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ]; //笔记id
-  int64 uid = 2;                                           // 用户id
+  int64 note_id = 1 [(buf.validate.field).int64.gt = 0];  //笔记id
+  int64 uid     = 2;                                      // 用户id
 }
 
 message CheckUserLikeStatusResponse {
-  bool liked = 1; // 是否点赞
+  bool liked = 1;  // 是否点赞
 }
 
 // 用户和笔记的交互信息
 message NoteInteraction {
-  bool liked = 1;     // 用户是否点赞
-  bool commented = 2; // 用户是否评论
+  bool liked     = 1;  // 用户是否点赞
+  bool commented = 2;  // 用户是否评论
 }
 
 message NoteIdList {
-  repeated int64 note_ids = 1 [
-    (buf.validate.field).repeated .min_items = 1,
-    (buf.validate.field).repeated .max_items = 50
-  ];
+  repeated int64 note_ids = 1
+      [(buf.validate.field).repeated .min_items = 1, (buf.validate.field).repeated .max_items = 50];
 }
 
 message BatchCheckUserLikeStatusRequest {
-
   // uid -> [noteId, noteId2, ...]
-  map<int64, NoteIdList> mappings = 1 [
-    (buf.validate.field).map.min_pairs = 1,
-    (buf.validate.field).map.max_pairs = 50
-  ];
+  map<int64, NoteIdList> mappings = 1 [(buf.validate.field).map.min_pairs = 1, (buf.validate.field).map.max_pairs = 50];
 }
 
 message LikeStatus {
   int64 note_id = 1;
-  bool liked = 2;
+  bool  liked   = 2;
 }
 
-message LikeStatusList { repeated LikeStatus list = 1; }
+message LikeStatusList {
+  repeated LikeStatus list = 1;
+}
 
 message BatchCheckUserLikeStatusResponse {
   // uid -> {{}, {}, ...}
@@ -73,22 +69,24 @@ message BatchCheckUserLikeStatusResponse {
 }
 
 message GetNoteInteractionRequest {
-  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ]; //笔记id
-  int64 uid = 2;                                           // 用户id
+  int64 note_id = 1 [(buf.validate.field).int64.gt = 0];  //笔记id
+  int64 uid     = 2;                                      // 用户id
 }
 
-message GetNoteInteractionResponse { NoteInteraction interaction = 1; }
+message GetNoteInteractionResponse {
+  NoteInteraction interaction = 1;
+}
 
 message PageListUserLikedNoteRequest {
-  int64 uid = 1;
+  int64  uid    = 1;
   string cursor = 2;
-  int32 count = 3;
+  int32  count  = 3;
 }
 
 message PageListUserLikedNoteResponse {
-  repeated FeedNoteItem items = 1;
-  bool has_next = 2;
-  string next_cursor = 3;
+  repeated FeedNoteItem items       = 1;
+  bool                  has_next    = 2;
+  string                next_cursor = 3;
 }
 
 // 与笔记交互逻辑相关服务，比如点赞、收藏等
@@ -98,16 +96,12 @@ service NoteInteractService {
   // 获取笔记点赞数量
   rpc GetNoteLikes(GetNoteLikesRequest) returns (GetNoteLikesResponse);
   // 检查某个用户是否点赞过某篇笔记
-  rpc CheckUserLikeStatus(CheckUserLikeStatusRequest)
-      returns (CheckUserLikeStatusResponse);
+  rpc CheckUserLikeStatus(CheckUserLikeStatusRequest) returns (CheckUserLikeStatusResponse);
   // 批量检查用户是否点赞过多篇笔记
-  rpc BatchCheckUserLikeStatus(BatchCheckUserLikeStatusRequest)
-      returns (BatchCheckUserLikeStatusResponse);
+  rpc BatchCheckUserLikeStatus(BatchCheckUserLikeStatusRequest) returns (BatchCheckUserLikeStatusResponse);
   // 获取笔记的交互信息
-  rpc GetNoteInteraction(GetNoteInteractionRequest)
-      returns (GetNoteInteractionResponse);
+  rpc GetNoteInteraction(GetNoteInteractionRequest) returns (GetNoteInteractionResponse);
 
   // 获取用户点赞过的笔记
-  rpc PageListUserLikedNote(PageListUserLikedNoteRequest)
-      returns (PageListUserLikedNoteResponse);
+  rpc PageListUserLikedNote(PageListUserLikedNoteRequest) returns (PageListUserLikedNoteResponse);
 }

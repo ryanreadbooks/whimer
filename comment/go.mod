@@ -1,11 +1,12 @@
 module github.com/ryanreadbooks/whimer/comment
 
-go 1.24.0
+go 1.25.0
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.2-20240717164558-a6c49f84cc0f.2
 	github.com/redis/go-redis/v9 v9.11.0
 	github.com/ryanreadbooks/folium v0.1.3
+	github.com/ryanreadbooks/whimer/apiextension v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/counter v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/note v0.0.0-00010101000000-000000000000
@@ -14,7 +15,7 @@ require (
 	github.com/zeromicro/go-zero v1.8.5
 	golang.org/x/sync v0.17.0
 	google.golang.org/grpc v1.75.0
-	google.golang.org/protobuf v1.36.8
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
@@ -117,8 +118,8 @@ require (
 	golang.org/x/term v0.36.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250826171959-ef028d996bc1 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250826171959-ef028d996bc1 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20251103181224-f26f9409b101 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -141,3 +142,5 @@ replace github.com/ryanreadbooks/whimer/passport => ../passport
 replace github.com/ryanreadbooks/whimer/note => ../note
 
 replace github.com/ryanreadbooks/whimer/counter => ../counter
+
+replace github.com/ryanreadbooks/whimer/apiextension => ../apiextension

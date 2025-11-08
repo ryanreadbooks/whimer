@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package apiextension.testproto;
+
+import "protobuf/options/option.proto";
+
+option go_package = "github.com/ryanreadbooks/whimer/apiextension/test/testproto";
+
+service ExtensionTestService {
+  option (apiextension.protobuf.options.service).skip_metadata_uid_check = true;
+
+  rpc GetTest(GetTestRequest) returns (GetTestResponse) {
+    option (apiextension.protobuf.options.method).skip_metadata_uid_check = true;
+  };
+
+  rpc MustGet(MustGetRequest) returns (MustGetResponse);
+}
+
+message MustGetRequest {}
+
+message MustGetResponse {}
+
+message GetTestRequest {}
+
+message GetTestResponse {}
