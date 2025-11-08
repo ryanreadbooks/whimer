@@ -98,16 +98,24 @@ func (s *UserChatServiceServer) SendMsgToChat(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-
-	msgId, err := s.Srv.UserChatSrv.SendMsg(ctx, in.Sender, chatId, &srv.SendMsgReq{
-		Type:  msgType,
-		Text:  ToBizMsgContentText(in.Msg.Content.(*pbuserchat.MsgReq_Text)),
-		Image: ToBizMsgContentImage(in.Msg.Content.(*pbuserchat.MsgReq_Image)),
-		Cid:   in.Msg.Cid,
-	})
+	req := &srv.SendMsgReq{
+		Type: msgType,
+		Cid:  in.Msg.Cid,
+	}
+	assignSendMsgReqContent(msgType, req, in)
+	msgId, err := s.Srv.UserChatSrv.SendMsg(ctx, in.Sender, chatId, req)
 	if err != nil {
 		return nil, err
 	}
 
 	return &pbuserchat.SendMsgToChatResponse{MsgId: msgId.String()}, nil
+}
+
+func assignSendMsgReqContent(msgType model.MsgType, req *srv.SendMsgReq, pbIn *pbuserchat.SendMsgToChatRequest) {
+	switch msgType {
+	case model.MsgText:
+		req.Text = ToBizMsgContentText(pbIn.Msg.Content.(*pbuserchat.MsgReq_Text))
+	case model.MsgImage:
+		req.Image = ToBizMsgContentImage(pbIn.Msg.Content.(*pbuserchat.MsgReq_Image))
+	}
 }

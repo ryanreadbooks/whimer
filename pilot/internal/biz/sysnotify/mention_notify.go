@@ -8,7 +8,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	sysnotifyv1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz/common/push"
+	"github.com/ryanreadbooks/whimer/pilot/internal/biz/common/pushcenter"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
@@ -76,7 +76,7 @@ func (b *Biz) NotifyAtUsersOnNote(ctx context.Context, req *NotifyAtUsersOnNoteR
 	for uid := range resp.GetMsgIds() {
 		recvUids = append(recvUids, uid)
 	}
-	if err := push.BatchPushMentionNotification(ctx, recvUids); err != nil {
+	if err := pushcenter.BatchNotifySystemMsg(ctx, recvUids); err != nil {
 		xlog.Msg("sysnotify biz push mention on note notification failed").
 			Err(err).Extras("recv_uids", recvUids).Errorx(ctx)
 		return xerror.Wrapf(err, "push mention notification failed").WithCtx(ctx)
@@ -138,7 +138,7 @@ func (b *Biz) NotifyAtUsersOnComment(ctx context.Context, req *NotifyAtUsersOnCo
 	for uid := range resp.GetMsgIds() {
 		recvUids = append(recvUids, uid)
 	}
-	if err := push.BatchPushMentionNotification(ctx, recvUids); err != nil {
+	if err := pushcenter.BatchNotifySystemMsg(ctx, recvUids); err != nil {
 		xlog.Msg("sysnotify biz push mention on note notification failed").
 			Err(err).Extras("recv_uids", recvUids).Errorx(ctx)
 	}

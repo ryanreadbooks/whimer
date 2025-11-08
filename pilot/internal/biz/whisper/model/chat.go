@@ -1,6 +1,6 @@
-package whisper
+package model
 
-import v1 "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
+import userchatv1 "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
 
 type ChatType string
 
@@ -9,11 +9,11 @@ const (
 	GroupChat ChatType = "group"
 )
 
-func ChatTypeFromPb(t v1.ChatType) ChatType {
+func ChatTypeFromPb(t userchatv1.ChatType) ChatType {
 	switch t {
-	case v1.ChatType_P2P:
+	case userchatv1.ChatType_P2P:
 		return P2PChat
-	case v1.ChatType_GROUP:
+	case userchatv1.ChatType_GROUP:
 		return GroupChat
 	}
 

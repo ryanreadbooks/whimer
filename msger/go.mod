@@ -1,6 +1,6 @@
 module github.com/ryanreadbooks/whimer/msger
 
-go 1.24.0
+go 1.25.0
 
 replace github.com/ryanreadbooks/whimer/misc => ../misc
 
@@ -8,19 +8,21 @@ replace github.com/ryanreadbooks/whimer/passport => ../passport
 
 replace github.com/ryanreadbooks/whimer/wslink => ../wslink
 
+replace github.com/ryanreadbooks/whimer/apiextension => ../apiextension
+
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.2-20240717164558-a6c49f84cc0f.2
 	github.com/huandu/go-sqlbuilder v1.38.1
 	github.com/ryanreadbooks/folium v0.1.3
+	github.com/ryanreadbooks/whimer/apiextension v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/wslink v0.0.0-00010101000000-000000000000
 	github.com/smartystreets/goconvey v1.8.1
-	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/zeromicro/go-zero v1.8.3
 	golang.org/x/sync v0.17.0
-	google.golang.org/grpc v1.65.0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/grpc v1.71.0
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
@@ -58,7 +60,7 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/cel-go v0.21.0 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
@@ -92,21 +94,21 @@ require (
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
-	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/zeromicro/go-queue v1.2.2 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.15 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.15 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.15 // indirect
-	go.opentelemetry.io/otel v1.28.0 // indirect
+	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
+	go.opentelemetry.io/otel v1.34.0 // indirect
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/zipkin v1.28.0 // indirect
-	go.opentelemetry.io/otel/metric v1.28.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.28.0 // indirect
-	go.opentelemetry.io/otel/trace v1.28.0 // indirect
+	go.opentelemetry.io/otel/metric v1.34.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.34.0 // indirect
+	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
@@ -121,8 +123,8 @@ require (
 	golang.org/x/term v0.36.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/time v0.10.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240711142825-46eb208f015d // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240711142825-46eb208f015d // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20251103181224-f26f9409b101 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

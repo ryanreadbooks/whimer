@@ -2,13 +2,13 @@ package msg
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	whisper "github.com/ryanreadbooks/whimer/pilot/internal/biz/whisper/model"
+	whispermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/whisper/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 )
 
 type CreateWhisperChatReq struct {
-	Target int64            `json:"target"`
-	Type   whisper.ChatType `json:"type"`
+	Target int64                 `json:"target"`
+	Type   whispermodel.ChatType `json:"type"`
 }
 
 func (r *CreateWhisperChatReq) Validate() error {
@@ -20,7 +20,7 @@ func (r *CreateWhisperChatReq) Validate() error {
 		return errors.ErrUserNotFound
 	}
 
-	if ok := whisper.IsValidChatType(string(r.Type)); !ok {
+	if ok := whispermodel.IsValidChatType(string(r.Type)); !ok {
 		return errors.ErrUnsupportedChatType
 	}
 
@@ -31,9 +31,22 @@ type CreateWhisperChatResp struct {
 	ChatId string `json:"chat_id"`
 }
 
-type SendWhisperChatReq struct{}
+type SendWhisperChatMsgReq struct {
+	ChatId  string                   `json:"chat_id"`
+	Type    whispermodel.MsgType     `json:"type"`
+	Cid     string                   `json:"cid"`
+	Content *whispermodel.MsgContent `json:"content"`
+}
 
-func (r *SendWhisperChatReq) Validate() error {
+func (r *SendWhisperChatMsgReq) Validate() error {
+	if r == nil {
+		return xerror.ErrNilArg
+	}
 
+	// 详细校验在biz中进行
 	return nil
+}
+
+type SendWhisperChatMsgResp struct {
+	MsgId string `json:"msg_id"`
 }

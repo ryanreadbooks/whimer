@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package apiextension.protobuf.options;
+
+import "google/api/annotations.proto";
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/ryanreadbooks/whimer/apiextension/protobuf/options";
+
+extend google.protobuf.MethodOptions {
+  bool ignore_uid = 50000;
+}

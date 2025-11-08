@@ -96,7 +96,7 @@ var (
 	ErrSessInvalidated         = xerror.ErrPermission.ErrCode(ErrPassportSessInvalidatedCode).Msg("登录过期, 请重新登录")
 	ErrCheckOut                = xerror.ErrPermission.ErrCode(ErrPassportCheckOutCode).Msg("退出登录失败，请稍后重试")
 	ErrSessPlatformNotMatched  = xerror.ErrPermission.ErrCode(ErrPassportSessPlatformNotMatchedCode).Msg("未在此设备上登录")
-	ErrUserNotFound            = xerror.ErrPermission.ErrCode(ErrPassportUserNotFoundCode).Msg("没有找到你的信息")
+	ErrUserNotFound            = xerror.ErrPermission.ErrCode(ErrPassportUserNotFoundCode).Msg("用户不存在")
 	ErrInvalidUid              = xerror.ErrInvalidArgs.ErrCode(ErrPassportInvalidUidCode).Msg("uid格式不对")
 	ErrNicknameTooShort        = xerror.ErrInvalidArgs.ErrCode(ErrPassportNicknameTooShortCode).Msg("昵称不能为空")
 	ErrNickNameTooLong         = xerror.ErrInvalidArgs.ErrCode(ErrPassportNickNameTooLongCode).Msg("你的昵称太长啦")

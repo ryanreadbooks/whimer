@@ -7,6 +7,7 @@ option go_package = "github.com/ryanreadbooks/whimer/msger/api/userchat/v1";
 import "msg/msg.proto";
 import "userchat/v1/chat.proto";
 import "buf/validate/validate.proto";
+import "protobuf/options/option.proto";
 
 // 用户会话相关
 service UserChatService {
@@ -27,11 +28,10 @@ message MsgReq {
   string cid = 1 [ (buf.validate.field).string.len = 32 ];
   msger.api.msg.MsgType type = 2
       [ (buf.validate.field).enum.defined_only = true ];
-  msger.api.msg.MsgExt ext = 3;
   oneof content {
     option (buf.validate.oneof).required = true;
-    msger.api.msg.MsgContentText text = 4;
-    msger.api.msg.MsgContentImage image = 5;
+    msger.api.msg.MsgContentText text = 3;
+    msger.api.msg.MsgContentImage image = 4;
   }
 }
 
