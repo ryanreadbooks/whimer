@@ -1,6 +1,6 @@
 module github.com/ryanreadbooks/whimer/passport
 
-go 1.25.0
+go 1.24.0
 
 require (
 	github.com/gabriel-vasile/mimetype v1.4.3
