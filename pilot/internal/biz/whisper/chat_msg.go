@@ -6,9 +6,12 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	pbmsg "github.com/ryanreadbooks/whimer/msger/api/msg"
 	userchatv1 "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+	"github.com/ryanreadbooks/whimer/pilot/internal/biz/common/pushcenter"
 	whispermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/whisper/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 )
@@ -63,7 +66,23 @@ func (b *Biz) SendChatMsg(ctx context.Context, chatId, cid string, msg *whisperm
 		return "", xerror.Wrapf(err, "remove send msg to chat failed").WithCtx(ctx)
 	}
 
-	// TODO 消息推送
+	membersResp, err := dep.UserChatter().GetChatMembers(ctx,
+		&userchatv1.GetChatMembersRequest{
+			ChatId: chatId,
+		})
+	if err != nil {
+		xlog.Msg("remote get chat members failed").Extras("chat_id", chatId).Errorx(ctx)
+	} else {
+		members := xslice.Filter(membersResp.GetMembers(), func(_ int, v int64) bool { return v == uid })
+		if len(members) == 0 {
+			xlog.Msgf("chat members of chat %s is empty", chatId).Errorx(ctx)
+		} else {
+			// 消息推送
+			if err := pushcenter.BatchNotifyWhisperMsg(ctx, members); err != nil {
+				xlog.Msg("push notify whisper msg failed").Extras("chat_id", chatId, "members", members).Errorx(ctx)
+			}
+		}
+	}
 
 	return resp.MsgId, nil
 }

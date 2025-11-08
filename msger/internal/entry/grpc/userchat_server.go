@@ -119,3 +119,15 @@ func assignSendMsgReqContent(msgType model.MsgType, req *srv.SendMsgReq, pbIn *p
 		req.Image = ToBizMsgContentImage(pbIn.Msg.Content.(*pbuserchat.MsgReq_Image))
 	}
 }
+
+func (s *UserChatServiceServer) GetChatMembers(ctx context.Context, in *pbuserchat.GetChatMembersRequest) (
+	*pbuserchat.GetChatMembersResponse, error) {
+	chatId, err := uuid.ParseString(in.ChatId)
+	if err != nil {
+		return nil, global.ErrArgs.Msg("invalid chatid")
+	}
+
+	s.Srv.UserChatSrv.GetChatMembers(ctx, chatId)
+
+	return &pbuserchat.GetChatMembersResponse{}, nil
+}

@@ -9,9 +9,13 @@ import (
 )
 
 func NotifyWhisperMsg(ctx context.Context, recvUid int64) error {
+	return BatchNotifyWhisperMsg(ctx, []int64{recvUid})
+}
+
+func BatchNotifyWhisperMsg(ctx context.Context, recvUids []int64) error {
 	data := pushcmd.NewCmdAction(pushcmd.CmdWhisperMsgNotify, pushcmd.ActionPullWhisper).Bytes()
 	_, err := dep.WebsocketPusher().Broadcast(ctx, &pushv1.BroadcastRequest{
-		Targets: []int64{recvUid},
+		Targets: recvUids,
 		Data:    data,
 	})
 

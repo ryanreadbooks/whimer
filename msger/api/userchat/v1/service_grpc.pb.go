@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserChatService_CreateP2PChat_FullMethodName = "/msger.api.userchat.v1.UserChatService/CreateP2PChat"
-	UserChatService_SendMsgToChat_FullMethodName = "/msger.api.userchat.v1.UserChatService/SendMsgToChat"
+	UserChatService_CreateP2PChat_FullMethodName  = "/msger.api.userchat.v1.UserChatService/CreateP2PChat"
+	UserChatService_SendMsgToChat_FullMethodName  = "/msger.api.userchat.v1.UserChatService/SendMsgToChat"
+	UserChatService_GetChatMembers_FullMethodName = "/msger.api.userchat.v1.UserChatService/GetChatMembers"
 )
 
 // UserChatServiceClient is the client API for UserChatService service.
@@ -33,6 +34,8 @@ type UserChatServiceClient interface {
 	CreateP2PChat(ctx context.Context, in *CreateP2PChatRequest, opts ...grpc.CallOption) (*CreateP2PChatResponse, error)
 	// 在会话中发送消息
 	SendMsgToChat(ctx context.Context, in *SendMsgToChatRequest, opts ...grpc.CallOption) (*SendMsgToChatResponse, error)
+	// 获取会话成员
+	GetChatMembers(ctx context.Context, in *GetChatMembersRequest, opts ...grpc.CallOption) (*GetChatMembersResponse, error)
 }
 
 type userChatServiceClient struct {
@@ -63,6 +66,16 @@ func (c *userChatServiceClient) SendMsgToChat(ctx context.Context, in *SendMsgTo
 	return out, nil
 }
 
+func (c *userChatServiceClient) GetChatMembers(ctx context.Context, in *GetChatMembersRequest, opts ...grpc.CallOption) (*GetChatMembersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetChatMembersResponse)
+	err := c.cc.Invoke(ctx, UserChatService_GetChatMembers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserChatServiceServer is the server API for UserChatService service.
 // All implementations must embed UnimplementedUserChatServiceServer
 // for forward compatibility.
@@ -73,6 +86,8 @@ type UserChatServiceServer interface {
 	CreateP2PChat(context.Context, *CreateP2PChatRequest) (*CreateP2PChatResponse, error)
 	// 在会话中发送消息
 	SendMsgToChat(context.Context, *SendMsgToChatRequest) (*SendMsgToChatResponse, error)
+	// 获取会话成员
+	GetChatMembers(context.Context, *GetChatMembersRequest) (*GetChatMembersResponse, error)
 	mustEmbedUnimplementedUserChatServiceServer()
 }
 
@@ -88,6 +103,9 @@ func (UnimplementedUserChatServiceServer) CreateP2PChat(context.Context, *Create
 }
 func (UnimplementedUserChatServiceServer) SendMsgToChat(context.Context, *SendMsgToChatRequest) (*SendMsgToChatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendMsgToChat not implemented")
+}
+func (UnimplementedUserChatServiceServer) GetChatMembers(context.Context, *GetChatMembersRequest) (*GetChatMembersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetChatMembers not implemented")
 }
 func (UnimplementedUserChatServiceServer) mustEmbedUnimplementedUserChatServiceServer() {}
 func (UnimplementedUserChatServiceServer) testEmbeddedByValue()                         {}
@@ -146,6 +164,24 @@ func _UserChatService_SendMsgToChat_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserChatService_GetChatMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetChatMembersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserChatServiceServer).GetChatMembers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserChatService_GetChatMembers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserChatServiceServer).GetChatMembers(ctx, req.(*GetChatMembersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserChatService_ServiceDesc is the grpc.ServiceDesc for UserChatService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -160,6 +196,10 @@ var UserChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendMsgToChat",
 			Handler:    _UserChatService_SendMsgToChat_Handler,
+		},
+		{
+			MethodName: "GetChatMembers",
+			Handler:    _UserChatService_GetChatMembers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
