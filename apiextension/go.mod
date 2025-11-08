@@ -1,6 +1,6 @@
 module github.com/ryanreadbooks/whimer/apiextension
 
-go 1.25.0
+go 1.24.0
 
 require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20251103181224-f26f9409b101
