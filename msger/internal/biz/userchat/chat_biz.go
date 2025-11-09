@@ -70,6 +70,24 @@ func (b *ChatBiz) GetChat(ctx context.Context, chatId uuid.UUID) (*Chat, error) 
 	return makeChatFromPO(po), nil
 }
 
+func (b *ChatBiz) BatchGetChat(ctx context.Context, chatIds []uuid.UUID) (map[uuid.UUID]*Chat, error) {
+	if len(chatIds) == 0 {
+		return make(map[uuid.UUID]*Chat), nil
+	}
+
+	chatPoes, err := infra.Dao().ChatDao.BatchGetById(ctx, chatIds)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "chat dao batch get failed").WithCtx(ctx)
+	}
+
+	result := make(map[uuid.UUID]*Chat, len(chatPoes))
+	for _, chat := range chatPoes {
+		result[chat.Id] = makeChatFromPO(chat)
+	}
+
+	return result, nil
+}
+
 // 消息发送时更新会话
 func (b *ChatBiz) UpdateChatLastMsg(ctx context.Context, chatId, msgId uuid.UUID) error {
 	err := infra.Dao().ChatDao.UpdateLastMsgId(ctx, chatId, msgId, getAccurateTime())

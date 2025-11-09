@@ -1,4 +1,4 @@
-package srv
+package userchat
 
 import (
 	"context"
@@ -23,4 +23,10 @@ func (s *UserChatSrv) GetChatMembers(ctx context.Context, chatId uuid.UUID) ([]i
 	}
 
 	return nil, global.ErrChatNotExist
+}
+
+// 批量获取会话成员
+func (s *UserChatSrv) BatchGetChatMembers(ctx context.Context,
+	chatIds []uuid.UUID) (map[uuid.UUID][]int64, error) {
+	return s.chatMemberBiz.BatchGetChatUsers(ctx, chatIds)
 }

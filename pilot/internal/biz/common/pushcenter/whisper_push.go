@@ -13,6 +13,10 @@ func NotifyWhisperMsg(ctx context.Context, recvUid int64) error {
 }
 
 func BatchNotifyWhisperMsg(ctx context.Context, recvUids []int64) error {
+	if len(recvUids) == 0 {
+		return nil
+	}
+	
 	data := pushcmd.NewCmdAction(pushcmd.CmdWhisperMsgNotify, pushcmd.ActionPullWhisper).Bytes()
 	_, err := dep.WebsocketPusher().Broadcast(ctx, &pushv1.BroadcastRequest{
 		Targets: recvUids,

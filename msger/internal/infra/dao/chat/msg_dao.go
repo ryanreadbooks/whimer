@@ -73,15 +73,11 @@ func (d *MsgDao) BatchGetByIds(ctx context.Context, ids []uuid.UUID) (map[uuid.U
 
 	err := xslice.BatchExec(ids, 200, func(start, end int) error {
 		targets := ids[start:end]
-		idArgs := make([]any, 0, len(targets))
-		for _, id := range targets {
-			idArgs = append(idArgs, id)
-		}
 
 		rb := sqlbuilder.NewSelectBuilder()
 		rb.Select(msgPOFields...)
 		rb.From(msgPOTableName)
-		rb.Where(rb.In("id", idArgs...))
+		rb.Where(rb.In("id", xslice.Any(targets)...))
 
 		sql, args := rb.Build()
 		var tmpMsgs []MsgPO

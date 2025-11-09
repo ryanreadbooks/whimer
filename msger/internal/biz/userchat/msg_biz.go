@@ -68,6 +68,49 @@ func (b *MsgBiz) GetMsg(ctx context.Context, msgId uuid.UUID) (*Msg, error) {
 	return msg, nil
 }
 
+func (b *MsgBiz) BatchGetMsg(ctx context.Context, msgIds []uuid.UUID) (map[uuid.UUID]*Msg, error) {
+	if len(msgIds) == 0 {
+		return make(map[uuid.UUID]*Msg), nil
+	}
+
+	msgPoes, err := infra.Dao().MsgDao.BatchGetByIds(ctx, msgIds)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "msg dao batch get failed").WithCtx(ctx)
+	}
+
+	// TODO content解密
+	result := make(map[uuid.UUID]*Msg, len(msgPoes))
+	hasExtIds := make([]uuid.UUID, 0, len(msgPoes))
+	for _, chat := range msgPoes {
+		msg, err := makeMsgFromPO(chat)
+		if err != nil {
+			continue
+		}
+
+		if msg.HasExt {
+			hasExtIds = append(hasExtIds, msg.Id)
+		}
+
+		result[msg.Id] = msg
+	}
+
+	// fill exts
+	extPoes, err := infra.Dao().MsgExtDao.BatchGetByIds(ctx, hasExtIds)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "msg ext dao batch get failed").WithCtx(ctx)
+	}
+
+	for _, msg := range result {
+		if msg.HasExt {
+			if extPo, ok := extPoes[msg.Id]; ok {
+				msg.Ext, _ = makeMsgExtFromPO(extPo)
+			}
+		}
+	}
+
+	return result, nil
+}
+
 // 创建一条消息
 func (b *MsgBiz) CreateMsg(ctx context.Context, sender int64, req *CreateMsgReq) (*Msg, error) {
 	msgPo := &chatdao.MsgPO{

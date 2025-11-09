@@ -2,6 +2,8 @@ package userchat
 
 import (
 	"context"
+	"math"
+	"strconv"
 	"sync"
 
 	"github.com/ryanreadbooks/whimer/misc/uuid"
@@ -12,6 +14,7 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra"
 	chatdao "github.com/ryanreadbooks/whimer/msger/internal/infra/dao/chat"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
 type ChatInboxBiz struct {
@@ -122,6 +125,8 @@ func (b *ChatInboxBiz) BatchUpdateInboxLastMsgId(ctx context.Context,
 		xlog.Msg("chat inbox dao batch update last_msg_id has error").Err(err).Errorx(ctx)
 	}
 
+	// TODO 有些状态是deleted的需要处理？
+
 	return nil
 }
 
@@ -163,4 +168,75 @@ func (b *ChatInboxBiz) BatchDecrUnreadCount(ctx context.Context, uids []int64, c
 	}
 
 	return nil
+}
+
+// is_pinned:mtime
+func (*ChatInboxBiz) parseListCursor(cursor string) (state model.ChatInboxPinState, mtime int64) {
+	state = model.ChatInboxPinned
+	mtime = math.MaxInt64
+	if cursor == "" {
+		return
+	}
+
+	parts := xslice.SplitInts[int64](cursor, ":")
+	if len(parts) != 2 {
+		return
+	}
+
+	s := parts[0]
+	if s != int64(model.ChatInboxPinned) && s != int64(model.ChatInboxUnPinned) {
+		return
+	}
+
+	state = model.ChatInboxPinState(s)
+	mtime = parts[1]
+
+	return
+}
+
+// is_pinned:mtime
+func (*ChatInboxBiz) formatListCursor(s model.ChatInboxPinState, mtime int64) string {
+	return strconv.Itoa(int(s)) + ":" + strconv.FormatInt(mtime, 10)
+}
+
+func (b *ChatInboxBiz) ListByUid(ctx context.Context, uid int64,
+	cursor string, count int32) ([]*ChatInbox, *model.PageListResult[string], error) {
+
+	// parse cursor
+	cursorState, cursorMtime := b.parseListCursor(cursor)
+	newCount := count + 1
+	var (
+		daoResp    []*chatdao.ChatInboxPO
+		err        error
+		pageResult = model.PageListResult[string]{}
+	)
+
+	switch cursorState {
+	case model.ChatInboxPinned:
+		daoResp, err = infra.Dao().ChatInboxDao.PageListWithPinned(ctx, uid, cursorMtime, newCount)
+	case model.ChatInboxUnPinned:
+		daoResp, err = infra.Dao().ChatInboxDao.PageListWithUnPinned(ctx, uid, cursorMtime, newCount)
+	default:
+		return nil, &pageResult, global.ErrArgs.Msg("invalid cursor")
+	}
+	if err != nil {
+		return nil, &pageResult, xerror.Wrapf(err, "page list failed").WithCtx(ctx)
+	}
+
+	var result []*chatdao.ChatInboxPO = daoResp
+	if len(result) >= int(newCount) {
+		pageResult.HasNext = true
+		// nextCursor
+		result = result[:len(daoResp)-1]
+		last := result[len(result)-1]
+		pageResult.NextCursor = b.formatListCursor(last.IsPinned, last.Mtime)
+	}
+
+	// convert
+	inboxes := make([]*ChatInbox, 0, len(result))
+	for _, r := range result {
+		inboxes = append(inboxes, makeChatInboxFromPO(r))
+	}
+
+	return inboxes, &pageResult, nil
 }

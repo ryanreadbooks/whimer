@@ -18,6 +18,16 @@ service UserChatService {
 
   // 获取会话成员
   rpc GetChatMembers(GetChatMembersRequest) returns (GetChatMembersResponse);
+
+  // 批量获取会话成员
+  rpc BatchGetChatMembers(BatchGetChatMembersRequest) returns (BatchGetChatMembersResponse);
+
+  // 获取最近会话列表
+  rpc ListRecentChats(ListRecentChatsRequest) returns (ListRecentChatsResponse);
+}
+
+message Int64List {
+  repeated int64 ints = 1;
 }
 
 message CreateP2PChatRequest {
@@ -55,4 +65,24 @@ message GetChatMembersRequest {
 
 message GetChatMembersResponse {
   repeated int64 members = 1;
+}
+
+message BatchGetChatMembersRequest {
+  repeated string chat_ids = 1;
+}
+
+message BatchGetChatMembersResponse {
+  map<string, Int64List> members_map = 2;
+}
+
+message ListRecentChatsRequest {
+  int64  uid    = 1 [(buf.validate.field).int64.gt = 0];
+  string cursor = 2;
+  int32  count  = 3 [(buf.validate.field).int32.lte = 50];
+}
+
+message ListRecentChatsResponse {
+  repeated RecentChat recent_chats = 1;
+  bool                has_next     = 2;
+  string              next_cursor  = 3;
 }

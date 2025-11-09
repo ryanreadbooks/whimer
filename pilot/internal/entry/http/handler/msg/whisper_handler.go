@@ -50,7 +50,7 @@ func (h *Handler) SendWhisperChatMsg() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		msgReq := &whispermodel.Msg{
+		msgReq := &whispermodel.MsgReq{
 			Type:    req.Type,
 			Cid:     req.Cid,
 			Content: req.Content,
@@ -69,5 +69,32 @@ func (h *Handler) SendWhisperChatMsg() http.HandlerFunc {
 		}
 
 		xhttp.OkJson(w, &SendWhisperChatMsgResp{MsgId: msgId})
+	}
+}
+
+func (h *Handler) ListWhisperRecentChats() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[ListWhisperRecentChatsReq](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		var (
+			ctx = r.Context()
+			uid = metadata.Uid(ctx)
+		)
+
+		recentChats, pageResult, err := h.whisperBiz.ListRecentChats(ctx, uid, req.Cursor, req.Count)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, &ListWhisperRecentChatsResp{
+			Items:      recentChats,
+			HasNext:    pageResult.HasNext,
+			NextCursor: pageResult.NextCursor,
+		})
 	}
 }

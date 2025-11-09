@@ -30,6 +30,6 @@ func makeChatInboxFromPO(p *chatdao.ChatInboxPO) *ChatInbox {
 		Ctime:         p.Ctime,
 		Mtime:         p.Mtime,
 		Status:        p.Status,
-		IsPinned:      p.IsPinned == 1,
+		IsPinned:      p.IsPinned == model.ChatInboxPinned,
 	}
 }

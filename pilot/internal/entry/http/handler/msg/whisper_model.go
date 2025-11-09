@@ -50,3 +50,14 @@ func (r *SendWhisperChatMsgReq) Validate() error {
 type SendWhisperChatMsgResp struct {
 	MsgId string `json:"msg_id"`
 }
+
+type ListWhisperRecentChatsReq struct {
+	Cursor string `form:"cursor,optional"`
+	Count  int32  `form:"count,default=30"`
+}
+
+type ListWhisperRecentChatsResp struct {
+	Items      []*whispermodel.RecentChat `json:"items"`
+	HasNext    bool                       `json:"has_next"`
+	NextCursor string                     `json:"next_cursor"`
+}

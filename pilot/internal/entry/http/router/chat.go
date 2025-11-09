@@ -14,6 +14,7 @@ func regChatRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 		{
 			v1Group.Post("/chat/create", h.Chat.CreateWhisperChat())
 			v1Group.Post("/chat/msg/create", h.Chat.SendWhisperChatMsg())
+			v1Group.Get("/recent/chats", h.Chat.ListWhisperRecentChats())
 		}
 	}
 

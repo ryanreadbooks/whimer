@@ -75,3 +75,10 @@ const (
 	MaxTextLength = 500
 	MaxRecallTime = time.Second * 5
 )
+
+type ChatInboxPinState int8
+
+const (
+	ChatInboxUnPinned ChatInboxPinState = 0
+	ChatInboxPinned   ChatInboxPinState = 1
+)

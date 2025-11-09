@@ -11,6 +11,10 @@ import (
 // 推送相关功能封装
 
 func batchPushSysMsg(ctx context.Context, recvUids []int64) error {
+	if len(recvUids) == 0 {
+		return nil
+	}
+
 	data := pushcmd.NewCmdAction(pushcmd.CmdSysMsgNotify, pushcmd.ActionPullUnreads).Bytes()
 	_, err := dep.WebsocketPusher().Broadcast(ctx, &pushv1.BroadcastRequest{
 		Targets: recvUids,
@@ -27,4 +31,3 @@ func NotifySystemMsg(ctx context.Context, recvUid int64) error {
 func BatchNotifySystemMsg(ctx context.Context, recvUids []int64) error {
 	return batchPushSysMsg(ctx, recvUids)
 }
-

@@ -220,3 +220,64 @@ func (d *ChatInboxDao) BatchDecrUnreadCount(ctx context.Context, uids []int64, c
 
 	return xsql.ConvertError(err)
 }
+
+// cursor is mtime and ignore pinned
+func (d *ChatInboxDao) PageList(ctx context.Context, uid, cursor int64, count int32) ([]*ChatInboxPO, error) {
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select(chatInboxPOFields...).
+		From(chatInboxPOTableName).
+		Where(
+			sb.EQ("uid", uid),
+			sb.LessThan("mtime", cursor),
+			sb.EQ("status", model.ChatInboxStatusNormal),
+		).
+		OrderByDesc("mtime").
+		Limit(int(count))
+
+	sql, args := sb.Build()
+
+	var rows []*ChatInboxPO
+	err := d.db.QueryRowsCtx(ctx, &rows, sql, args...)
+	return rows, xsql.ConvertError(err)
+}
+
+func (d *ChatInboxDao) PageListWithPinned(ctx context.Context,
+	uid, cursor int64, count int32) ([]*ChatInboxPO, error) {
+
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select(chatInboxPOFields...).
+		From(chatInboxPOTableName).
+		Where(
+			sb.EQ("uid", uid),
+			sb.LessThan(
+				sqlbuilder.TupleNames("is_pinned", "mtime"),
+				sqlbuilder.Tuple(model.ChatInboxPinned, cursor)), // (is_pinned,mtime)<(?,?)
+			sb.EQ("status", model.ChatInboxStatusNormal),
+		)
+	sb.OrderByDesc("is_pinned").OrderByDesc("mtime").Limit(int(count))
+	sql, args := sb.Build()
+
+	var rows []*ChatInboxPO
+	err := d.db.QueryRowsCtx(ctx, &rows, sql, args...)
+	return rows, xsql.ConvertError(err)
+}
+
+func (d *ChatInboxDao) PageListWithUnPinned(ctx context.Context,
+	uid, cursor int64, count int32) ([]*ChatInboxPO, error) {
+
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select(chatInboxPOFields...).
+		From(chatInboxPOTableName).
+		Where(
+			sb.EQ("uid", uid),
+			sb.EQ("is_pinned", model.ChatInboxUnPinned),
+			sb.LessThan("mtime", cursor),
+			sb.EQ("status", model.ChatInboxStatusNormal),
+		)
+	sb.OrderByDesc("mtime").Limit(int(count))
+	sql, args := sb.Build()
+
+	var rows []*ChatInboxPO
+	err := d.db.QueryRowsCtx(ctx, &rows, sql, args...)
+	return rows, xsql.ConvertError(err)
+}

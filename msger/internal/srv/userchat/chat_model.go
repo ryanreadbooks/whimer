@@ -1,4 +1,4 @@
-package srv
+package userchat
 
 import (
 	"github.com/ryanreadbooks/whimer/msger/internal/biz/userchat"
@@ -7,10 +7,10 @@ import (
 )
 
 type SendMsgReq struct {
-	Type    model.MsgType
-	Text    *userchat.MsgContentText
-	Image   *userchat.MsgContentImage
-	Cid     string
+	Type  model.MsgType
+	Text  *userchat.MsgContentText
+	Image *userchat.MsgContentImage
+	Cid   string
 
 	content []byte // need to be filled explicitly
 }
@@ -30,7 +30,7 @@ func (c *SendMsgReq) FillContent() error {
 		return global.ErrUnsupportedMsgType
 	}
 
-	content, err := ic.Content()
+	content, err := ic.Bytes()
 	if err != nil {
 		return err
 	}

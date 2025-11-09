@@ -8,6 +8,7 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
 	"github.com/ryanreadbooks/whimer/msger/internal/model"
 	"github.com/ryanreadbooks/whimer/msger/internal/srv"
+	"github.com/ryanreadbooks/whimer/msger/internal/srv/userchat"
 )
 
 type UserChatServiceServer struct {
@@ -98,7 +99,7 @@ func (s *UserChatServiceServer) SendMsgToChat(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	req := &srv.SendMsgReq{
+	req := &userchat.SendMsgReq{
 		Type: msgType,
 		Cid:  in.Msg.Cid,
 	}
@@ -111,7 +112,7 @@ func (s *UserChatServiceServer) SendMsgToChat(ctx context.Context,
 	return &pbuserchat.SendMsgToChatResponse{MsgId: msgId.String()}, nil
 }
 
-func assignSendMsgReqContent(msgType model.MsgType, req *srv.SendMsgReq, pbIn *pbuserchat.SendMsgToChatRequest) {
+func assignSendMsgReqContent(msgType model.MsgType, req *userchat.SendMsgReq, pbIn *pbuserchat.SendMsgToChatRequest) {
 	switch msgType {
 	case model.MsgText:
 		req.Text = ToBizMsgContentText(pbIn.Msg.Content.(*pbuserchat.MsgReq_Text))
@@ -127,7 +128,55 @@ func (s *UserChatServiceServer) GetChatMembers(ctx context.Context, in *pbuserch
 		return nil, global.ErrArgs.Msg("invalid chatid")
 	}
 
-	s.Srv.UserChatSrv.GetChatMembers(ctx, chatId)
+	members, err := s.Srv.UserChatSrv.GetChatMembers(ctx, chatId)
+	if err != nil {
+		return nil, err
+	}
 
-	return &pbuserchat.GetChatMembersResponse{}, nil
+	return &pbuserchat.GetChatMembersResponse{Members: members}, nil
+}
+
+func (s *UserChatServiceServer) BatchGetChatMembers(ctx context.Context, in *pbuserchat.BatchGetChatMembersRequest) (
+	*pbuserchat.BatchGetChatMembersResponse, error) {
+	chatIds := make([]uuid.UUID, 0, len(in.GetChatIds()))
+	for _, chatId := range in.GetChatIds() {
+		id, err := uuid.ParseString(chatId)
+		if err != nil {
+			return nil, global.ErrArgs.Msg("invalid chatid")
+		}
+
+		chatIds = append(chatIds, id)
+	}
+
+	resp, err := s.Srv.UserChatSrv.BatchGetChatMembers(ctx, chatIds)
+	if err != nil {
+		return nil, err
+	}
+
+	membersMap := make(map[string]*pbuserchat.Int64List)
+	for chatId, members := range resp {
+		membersMap[chatId.String()] = &pbuserchat.Int64List{Ints: members}
+	}
+
+	return &pbuserchat.BatchGetChatMembersResponse{MembersMap: membersMap}, nil
+}
+
+func (s *UserChatServiceServer) ListRecentChats(ctx context.Context, in *pbuserchat.ListRecentChatsRequest) (
+	*pbuserchat.ListRecentChatsResponse, error) {
+
+	resp, next, err := s.Srv.UserChatSrv.ListRecentChats(ctx, in.Uid, in.Cursor, in.Count)
+	if err != nil {
+		return nil, err
+	}
+
+	recents := make([]*pbuserchat.RecentChat, 0, len(resp))
+	for _, r := range resp {
+		recents = append(recents, ToPbRecentChat(r))
+	}
+
+	return &pbuserchat.ListRecentChatsResponse{
+		HasNext:     next.HasNext,
+		NextCursor:  next.NextCursor,
+		RecentChats: recents,
+	}, nil
 }

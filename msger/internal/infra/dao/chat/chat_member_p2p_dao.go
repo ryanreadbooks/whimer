@@ -5,6 +5,7 @@ import (
 
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/ryanreadbooks/whimer/misc/uuid"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
 
@@ -43,6 +44,33 @@ func (d *ChatMemberP2PDao) GetByChatId(ctx context.Context, chatId uuid.UUID) (*
 	var member ChatMemberP2PPO
 	err := d.db.QueryRowCtx(ctx, &member, sql, args...)
 	return &member, xsql.ConvertError(err)
+}
+
+func (d *ChatMemberP2PDao) BatchGetByChatId(ctx context.Context, chatIds []uuid.UUID) ([]*ChatMemberP2PPO, error) {
+	var results []*ChatMemberP2PPO
+	err := xslice.BatchExec(chatIds, 100, func(start, end int) error {
+		targets := chatIds[start:end]
+		sb := sqlbuilder.NewSelectBuilder()
+
+		sb.Select(chatMemberP2PPoFields...)
+		sb.From(chatMemberP2PPOTableName)
+		sb.Where(sb.In("chat_id", xslice.Any(targets)...))
+		sql, args := sb.Build()
+
+		var members []*ChatMemberP2PPO
+		err := d.db.QueryRowsCtx(ctx, &members, sql, args...)
+		if err != nil {
+			return xsql.ConvertError(err)
+		}
+
+		results = append(results, members...)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 func (d *ChatMemberP2PDao) GetByUids(ctx context.Context, uidA, uidB int64) (*ChatMemberP2PPO, error) {

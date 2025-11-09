@@ -12,7 +12,7 @@ var (
 )
 
 type MsgContent interface {
-	Content() ([]byte, error)
+	Bytes() ([]byte, error)
 	MsgType() model.MsgType
 	Preview() string
 	Parse([]byte) (MsgContent, error)
@@ -45,7 +45,7 @@ type MsgContentText struct {
 	Text string `json:"t"`
 }
 
-func (c *MsgContentText) Content() ([]byte, error) {
+func (c *MsgContentText) Bytes() ([]byte, error) {
 	return json.Marshal(c)
 }
 
@@ -75,7 +75,7 @@ type MsgContentImage struct {
 	Height uint32 `json:"h"`
 }
 
-func (c *MsgContentImage) Content() ([]byte, error) {
+func (c *MsgContentImage) Bytes() ([]byte, error) {
 	return json.Marshal(c)
 }
 

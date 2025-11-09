@@ -1,5 +1,8 @@
 package whisper
 
-type Biz struct {}
+type Biz struct {
+}
 
-func NewBiz() *Biz { return &Biz{} }
+func NewBiz() *Biz {
+	return &Biz{}
+}

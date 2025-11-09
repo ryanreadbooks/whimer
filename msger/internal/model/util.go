@@ -10,3 +10,8 @@ func CheckImageFormat(format string) error {
 		return global.ErrArgs.Msg("unsupported image format")
 	}
 }
+
+type PageListResult[T comparable] struct {
+	NextCursor T
+	HasNext    bool
+}

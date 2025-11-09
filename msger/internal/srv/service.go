@@ -5,11 +5,13 @@ import (
 	"github.com/ryanreadbooks/whimer/msger/internal/config"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra"
 	"github.com/ryanreadbooks/whimer/msger/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/msger/internal/srv/systemchat"
+	"github.com/ryanreadbooks/whimer/msger/internal/srv/userchat"
 )
 
 type Service struct {
-	SystemChatSrv *SystemChatSrv
-	UserChatSrv   *UserChatSrv
+	SystemChatSrv *systemchat.SystemChatSrv
+	UserChatSrv   *userchat.UserChatSrv
 }
 
 // 初始化一个service
@@ -20,8 +22,8 @@ func NewService(c *config.Config) *Service {
 	dep.Init(c)
 	biz := biz.New()
 
-	s.SystemChatSrv = NewSystemChatSrv(biz)
-	s.UserChatSrv = NewUserChatSrv(biz)
+	s.SystemChatSrv = systemchat.NewSystemChatSrv(biz)
+	s.UserChatSrv = userchat.NewUserChatSrv(biz)
 
 	return s
 }

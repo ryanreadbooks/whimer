@@ -22,10 +22,11 @@ type Biz struct {
 }
 
 func New(c *config.Config) *Biz {
+	userBiz := bizuser.NewUserBiz(c)
 	return &Biz{
+		UserBiz:      userBiz,
 		FeedBiz:      bizfeed.NewFeedBiz(),
 		SearchBiz:    bizsearch.NewSearchBiz(c),
-		UserBiz:      bizuser.NewUserBiz(c),
 		CommentBiz:   bizcomment.NewBiz(),
 		RelationBiz:  bizrelation.NewBiz(),
 		SysNotifyBiz: bizsysnotify.NewBiz(),

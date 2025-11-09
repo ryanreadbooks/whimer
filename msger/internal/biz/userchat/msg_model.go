@@ -62,8 +62,28 @@ type MsgRecall struct {
 	Time int64 `json:"time"` // 撤回时间
 }
 
+func (r *MsgRecall) GetUid() int64 {
+	if r != nil {
+		return r.Uid
+	}
+
+	return 0
+}
+
+func (r *MsgRecall) GetTime() int64 {
+	if r != nil {
+		return r.Time
+	}
+
+	return 0
+}
+
 func makeMsgExtFromPO(po *chat.MsgExtPO) (*MsgExt, error) {
 	var ext MsgExt
+	if po == nil {
+		return &ext, nil
+	}
+
 	if err := json.Unmarshal(po.Recall, &ext.Recall); err != nil {
 		return nil, err
 	}

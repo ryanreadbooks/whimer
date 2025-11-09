@@ -33,6 +33,7 @@ func IsValidChatType(s string) bool {
 }
 
 type Chat struct {
+	Id    string   `json:"id"`
 	Name  string   `json:"name,omitempty"`
 	Type  ChatType `json:"type"`
 	Ctime int64    `json:"ctime"`

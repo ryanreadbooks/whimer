@@ -39,3 +39,8 @@ func (c *ChatPO) Values() []any {
 		c.Settings,
 	}
 }
+
+type ChatIdAndTypePO struct {
+	Id   uuid.UUID      `db:"id"`
+	Type model.ChatType `db:"type"`
+}

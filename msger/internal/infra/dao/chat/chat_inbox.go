@@ -18,16 +18,16 @@ var (
 //
 // 收件箱记录了uid在chatId中的消息摘要记录, 不记录收件箱中每条消息具体情况
 type ChatInboxPO struct {
-	Uid           int64                 `db:"uid"`
-	ChatId        uuid.UUID             `db:"chat_id"`
-	LastMsgId     uuid.UUID             `db:"last_msg_id"`      // 最先一条消息
-	LastReadMsgId uuid.UUID             `db:"last_read_msg_id"` // 最新一条已读消息
-	LastReadTime  int64                 `db:"last_read_time"`   // 最后一条已读消息读取时间
-	UnreadCount   int64                 `db:"unread_count"`     // 未读数
-	Ctime         int64                 `db:"ctime"`
-	Mtime         int64                 `db:"mtime"`
-	Status        model.ChatInboxStatus `db:"status"`
-	IsPinned      int8                  `db:"is_pinned"` // 是否置顶
+	Uid           int64                   `db:"uid"`
+	ChatId        uuid.UUID               `db:"chat_id"`
+	LastMsgId     uuid.UUID               `db:"last_msg_id"`      // 最先一条消息
+	LastReadMsgId uuid.UUID               `db:"last_read_msg_id"` // 最新一条已读消息
+	LastReadTime  int64                   `db:"last_read_time"`   // 最后一条已读消息读取时间
+	UnreadCount   int64                   `db:"unread_count"`     // 未读数
+	Ctime         int64                   `db:"ctime"`
+	Mtime         int64                   `db:"mtime"`
+	Status        model.ChatInboxStatus   `db:"status"`
+	IsPinned      model.ChatInboxPinState `db:"is_pinned"` // 是否置顶
 }
 
 func (ChatInboxPO) TableName() string {

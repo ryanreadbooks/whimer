@@ -2,44 +2,25 @@ package model
 
 import (
 	"context"
-	"unicode/utf8"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	pbmsg "github.com/ryanreadbooks/whimer/msger/api/msg"
 	userchatv1 "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
+	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 )
 
-type MsgType int32
-
-const (
-	MsgText  MsgType = MsgType(pbmsg.MsgType_MSG_TYPE_TEXT)
-	MsgImage MsgType = MsgType(pbmsg.MsgType_MSG_TYPE_IMAGE)
-)
-
-var (
-	validMsgTypeMap = map[MsgType]struct{}{
-		MsgText:  {},
-		MsgImage: {},
-	}
-)
-
-func IsValidMsgType(t MsgType) bool {
-	_, ok := validMsgTypeMap[t]
-	return ok
-}
-
-type Msg struct {
+type MsgReq struct {
 	Type    MsgType     `json:"type"`
 	Cid     string      `json:"cid"`
 	Content *MsgContent `json:"content"`
 }
 
-func (m *Msg) SetContentType() {
+func (m *MsgReq) SetContentType() {
 	m.Content.contentType = m.Type
 }
 
-func (m *Msg) Validate(_ context.Context) error {
+func (m *MsgReq) Validate(_ context.Context) error {
 	if m == nil {
 		return xerror.ErrNilArg
 	}
@@ -57,7 +38,7 @@ func (m *Msg) Validate(_ context.Context) error {
 }
 
 // assign msg content as pb format for pbMsg
-func AssignPbMsgContent(msg *Msg, pbMsg *userchatv1.MsgReq) error {
+func AssignPbMsgReqContent(msg *MsgReq, pbMsg *userchatv1.MsgReq) error {
 	switch msg.Type {
 	case MsgText:
 		pbMsg.Content = msg.Content.Text.AsReqPb()
@@ -67,46 +48,53 @@ func AssignPbMsgContent(msg *Msg, pbMsg *userchatv1.MsgReq) error {
 	return errors.ErrUnsupportedMsgType
 }
 
-type MsgContent struct {
-	contentType MsgType `json:"-"` // see [Msg.SetContentType]
+// Msg model definition
 
-	Text *MsgTextContent `json:"text,omitempty"`
+type Msg struct {
+	Id        string          `json:"id"`
+	Cid       string          `json:"cid"`
+	Type      MsgType         `json:"type"`
+	Status    MsgStatus       `json:"status"`
+	Mtime     int64           `json:"mtime"`
+	SenderUid int64           `json:"sender_uid"`
+	Sender    *usermodel.User `json:"sender,omitempty"`
+	Content   *MsgContent     `json:"content"`
+	// TODO Ext
 }
 
-func (c *MsgContent) Validate() error {
-	if c == nil {
-		return errors.ErrInvalidMsgContent
+func MsgFromPb(pbm *pbmsg.Msg) *Msg {
+	if pbm == nil {
+		return &Msg{Type: MsgTypeUnspecified}
 	}
 
-	switch c.contentType {
+	msg := &Msg{
+		Id:        pbm.Id,
+		Type:      MsgType(pbm.Type),
+		Cid:       pbm.Cid,
+		Status:    MsgStatus(pbm.Status),
+		Mtime:     pbm.Mtime,
+		SenderUid: pbm.Sender,
+	}
+
+	// assign content
+	msg.Content = &MsgContent{contentType: msg.Type}
+	msg.FillMsgContent(pbm)
+
+	return msg
+}
+
+func (m *Msg) SetSender(u *usermodel.User) {
+	m.Sender = u
+}
+
+func (m *Msg) FillMsgContent(pb *pbmsg.Msg) {
+	// TODO 处理status = recalled
+	switch m.Content.contentType {
 	case MsgText:
-		return c.Text.Validate()
+		m.Content.Text = &MsgTextContent{
+			Content: pb.Text.Content,
+			Preview: pb.Text.Preview,
+		}
+	case MsgImage:
 	}
-
-	return errors.ErrUnsupportedMsgType
-}
-
-type MsgTextContent struct {
-	Content string `json:"content"`
-}
-
-func (t *MsgTextContent) AsReqPb() *userchatv1.MsgReq_Text {
-	return &userchatv1.MsgReq_Text{
-		Text: &pbmsg.MsgContentText{
-			Content: t.Content,
-		},
-	}
-}
-
-func (t *MsgTextContent) Validate() error {
-	if t == nil {
-		return errors.ErrInvalidMsgContent
-	}
-
-	l := utf8.RuneCountInString(t.Content)
-	if l > MaxTextContentLength {
-		return xerror.ErrArgs.Msg("消息超长")
-	}
-
-	return nil
 }

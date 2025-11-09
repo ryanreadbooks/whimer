@@ -66,6 +66,37 @@ func (b *ChatMemberBiz) GetP2PChatUsers(ctx context.Context, chatId uuid.UUID) (
 	return []int64{members.UidA, members.UidB}, nil
 }
 
+func (b *ChatMemberBiz) BatchGetChatUsers(ctx context.Context, chatIds []uuid.UUID) (map[uuid.UUID][]int64, error) {
+	p2pChats := make([]uuid.UUID, 0, len(chatIds))
+	groupChats := make([]uuid.UUID, 0, len(chatIds))
+
+	chats, err := infra.Dao().ChatDao.BatchGetById(ctx, chatIds)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "chat dao batch get failed").WithCtx(ctx)
+	}
+
+	for _, chat := range chats {
+		switch chat.Type {
+		case model.P2PChat:
+			p2pChats = append(p2pChats, chat.Id)
+		case model.GroupChat:
+			groupChats = append(groupChats, chat.Id)
+		}
+	}
+
+	p2pResults, err := infra.Dao().ChatMemberP2PDao.BatchGetByChatId(ctx, p2pChats)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "chat member p2p dao batch get failed").WithCtx(ctx)
+	}
+
+	members := make(map[uuid.UUID][]int64, len(p2pChats)+len(groupChats))
+	for _, p2p := range p2pResults {
+		members[p2p.ChatId] = append(members[p2p.ChatId], []int64{p2p.UidA, p2p.UidB}...)
+	}
+
+	return members, nil
+}
+
 func (b *ChatMemberBiz) AttachChatMembers(ctx context.Context, chat *Chat) error {
 	if chat == nil {
 		return nil
