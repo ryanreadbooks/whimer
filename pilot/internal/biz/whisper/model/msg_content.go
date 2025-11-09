@@ -30,7 +30,7 @@ func (c *MsgContent) Validate() error {
 
 type MsgTextContent struct {
 	Content string `json:"content"`
-	Preview string `json:"preview"`
+	Preview string `json:"preview,optional"`
 }
 
 func (t *MsgTextContent) AsReqPb() *userchatv1.MsgReq_Text {
@@ -59,5 +59,5 @@ type MsgImageContent struct {
 	Height  uint32 `json:"height"`
 	Width   uint32 `json:"width"`
 	Format  string `json:"format"`
-	Preview string `json:"preview"` // 预览文本
+	Preview string `json:"preview,optional"` // 预览文本
 }

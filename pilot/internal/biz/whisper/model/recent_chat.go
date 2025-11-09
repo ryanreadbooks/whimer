@@ -3,7 +3,7 @@ package model
 import usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
 
 type RecentChat struct {
-	Uid         int64           `json:"uid"`
+	Uid         int64           `json:"-"`
 	ChatId      string          `json:"chat_id"`
 	ChatType    ChatType        `json:"chat_type"`
 	ChatName    string          `json:"chat_name,omitempty"`

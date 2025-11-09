@@ -51,14 +51,14 @@ func AssignPbMsgReqContent(msg *MsgReq, pbMsg *userchatv1.MsgReq) error {
 // Msg model definition
 
 type Msg struct {
-	Id        string          `json:"id"`
-	Cid       string          `json:"cid"`
-	Type      MsgType         `json:"type"`
-	Status    MsgStatus       `json:"status"`
-	Mtime     int64           `json:"mtime"`
-	SenderUid int64           `json:"sender_uid"`
+	Id        string          `json:"id,omitempty"`
+	Cid       string          `json:"cid,omitempty"`
+	Type      MsgType         `json:"type,omitempty"`
+	Status    MsgStatus       `json:"status,omitempty"`
+	Mtime     int64           `json:"mtime,omitempty"`
+	SenderUid int64           `json:"sender_uid,omitempty"`
 	Sender    *usermodel.User `json:"sender,omitempty"`
-	Content   *MsgContent     `json:"content"`
+	Content   *MsgContent     `json:"content,omitempty"`
 	// TODO Ext
 }
 
@@ -77,8 +77,10 @@ func MsgFromPb(pbm *pbmsg.Msg) *Msg {
 	}
 
 	// assign content
-	msg.Content = &MsgContent{contentType: msg.Type}
-	msg.FillMsgContent(pbm)
+	if msg.Id != "" {
+		msg.Content = &MsgContent{contentType: msg.Type}
+		msg.FillMsgContent(pbm)
+	}
 
 	return msg
 }

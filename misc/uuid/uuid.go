@@ -99,9 +99,12 @@ func (u UUID) IsMax() bool {
 
 // 返回长度32的uuid字符串表示
 func (u UUID) String() string {
-	var buf [32]byte
-	encodeHex(buf[:], u.UUID)
-	return string(buf[:])
+	if !u.IsZero() {
+		var buf [32]byte
+		encodeHex(buf[:], u.UUID)
+		return string(buf[:])
+	}
+	return ""
 }
 
 func encodeHex(dst []byte, uuid googleuuid.UUID) {
