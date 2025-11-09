@@ -59,7 +59,7 @@ type Msg struct {
 	SenderUid int64           `json:"sender_uid,omitempty"`
 	Sender    *usermodel.User `json:"sender,omitempty"`
 	Content   *MsgContent     `json:"content,omitempty"`
-	// TODO Ext
+	Ext       *MsgExt         `json:"ext,omitempty"`
 }
 
 func MsgFromPb(pbm *pbmsg.Msg) *Msg {
@@ -74,10 +74,11 @@ func MsgFromPb(pbm *pbmsg.Msg) *Msg {
 		Status:    MsgStatus(pbm.Status),
 		Mtime:     pbm.Mtime,
 		SenderUid: pbm.Sender,
+		Ext:       MsgExtFromPb(pbm.GetExt()),
 	}
 
 	// assign content
-	if msg.Id != "" {
+	if msg.Id != "" && msg.Status != MsgStatusRecall {
 		msg.Content = &MsgContent{contentType: msg.Type}
 		msg.FillMsgContent(pbm)
 	}
@@ -90,7 +91,6 @@ func (m *Msg) SetSender(u *usermodel.User) {
 }
 
 func (m *Msg) FillMsgContent(pb *pbmsg.Msg) {
-	// TODO 处理status = recalled
 	switch m.Content.contentType {
 	case MsgText:
 		m.Content.Text = &MsgTextContent{
@@ -99,4 +99,29 @@ func (m *Msg) FillMsgContent(pb *pbmsg.Msg) {
 		}
 	case MsgImage:
 	}
+}
+
+type MsgExt struct {
+	Recall *MsgExtRecall
+}
+
+type MsgExtRecall struct {
+	RecallUid int64 `json:"recall_uid"`
+	RecallAt  int64 `json:"recall_at"`
+}
+
+func MsgExtFromPb(pbext *pbmsg.MsgExt) *MsgExt {
+	if pbext == nil {
+		return nil
+	}
+
+	ext := &MsgExt{}
+	if pbext.Recall != nil {
+		ext.Recall = &MsgExtRecall{
+			RecallUid: pbext.Recall.GetUid(),
+			RecallAt:  pbext.Recall.GetTime(),
+		}
+	}
+
+	return ext
 }
