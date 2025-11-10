@@ -5,7 +5,7 @@ package msger.api.userchat.v1;
 option go_package = "github.com/ryanreadbooks/whimer/msger/api/userchat/v1";
 
 import "msg/msg.proto";
-import "userchat/v1/chat.proto";
+import "userchat/v1/chat_msg.proto";
 import "buf/validate/validate.proto";
 
 // 用户会话相关

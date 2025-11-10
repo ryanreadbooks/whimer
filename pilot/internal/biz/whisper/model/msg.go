@@ -49,7 +49,6 @@ func AssignPbMsgReqContent(msg *MsgReq, pbMsg *userchatv1.MsgReq) error {
 }
 
 // Msg model definition
-
 type Msg struct {
 	Id        string          `json:"id,omitempty"`
 	Cid       string          `json:"cid,omitempty"`
@@ -59,28 +58,30 @@ type Msg struct {
 	SenderUid int64           `json:"sender_uid,omitempty"`
 	Sender    *usermodel.User `json:"sender,omitempty"`
 	Content   *MsgContent     `json:"content,omitempty"`
+	Pos       int64           `json:"pos"`
 	Ext       *MsgExt         `json:"ext,omitempty"`
 }
 
-func MsgFromPb(pbm *pbmsg.Msg) *Msg {
-	if pbm == nil {
+func MsgFromChatMsgPb(cmsg *userchatv1.ChatMsg) *Msg {
+	if cmsg == nil {
 		return &Msg{Type: MsgTypeUnspecified}
 	}
 
 	msg := &Msg{
-		Id:        pbm.Id,
-		Type:      MsgType(pbm.Type),
-		Cid:       pbm.Cid,
-		Status:    MsgStatus(pbm.Status),
-		Mtime:     pbm.Mtime,
-		SenderUid: pbm.Sender,
-		Ext:       MsgExtFromPb(pbm.GetExt()),
+		Id:        cmsg.GetMsg().GetId(),
+		Type:      MsgType(cmsg.GetMsg().GetType()),
+		Cid:       cmsg.GetMsg().GetCid(),
+		Status:    MsgStatus(cmsg.GetMsg().GetStatus()),
+		Mtime:     cmsg.GetMsg().GetMtime(),
+		SenderUid: cmsg.GetMsg().GetSender(),
+		Pos:       cmsg.GetPos(),
+		Ext:       MsgExtFromPb(cmsg.GetMsg().GetExt()),
 	}
 
 	// assign content
 	if msg.Id != "" && msg.Status != MsgStatusRecall {
 		msg.Content = &MsgContent{contentType: msg.Type}
-		msg.FillMsgContent(pbm)
+		msg.FillMsgContent(cmsg.GetMsg())
 	}
 
 	return msg
@@ -94,15 +95,15 @@ func (m *Msg) FillMsgContent(pb *pbmsg.Msg) {
 	switch m.Content.contentType {
 	case MsgText:
 		m.Content.Text = &MsgTextContent{
-			Content: pb.Text.Content,
-			Preview: pb.Text.Preview,
+			Content: pb.GetText().GetContent(),
+			Preview: pb.GetText().GetPreview(),
 		}
 	case MsgImage:
 	}
 }
 
 type MsgExt struct {
-	Recall *MsgExtRecall
+	Recall *MsgExtRecall `json:"recall,omitempty"`
 }
 
 type MsgExtRecall struct {

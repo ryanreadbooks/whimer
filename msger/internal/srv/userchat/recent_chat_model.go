@@ -2,7 +2,6 @@ package userchat
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/uuid"
-	biz "github.com/ryanreadbooks/whimer/msger/internal/biz/userchat"
 	"github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
@@ -13,7 +12,7 @@ type RecentChat struct {
 	ChatName      string
 	ChatStatus    model.ChatStatus
 	ChatCreator   int64
-	LastMsg       *biz.Msg
+	LastMsg       *ChatMsg
 	LastReadMsgId uuid.UUID
 	LastReadTime  int64
 	UnreadCount   int64

@@ -2,6 +2,7 @@ package userchat
 
 import (
 	"context"
+	"sync"
 
 	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/uuid"
@@ -39,32 +40,33 @@ func (s *UserChatSrv) ListRecentChats(ctx context.Context, uid int64,
 		msgs  map[uuid.UUID]*bizuserchat.Msg
 	)
 
-	eg, ctx := errgroup.WithContext(ctx)
-
+	eg, ctx2 := errgroup.WithContext(ctx)
 	eg.Go(recovery.DoV2(func() error {
 		var err error
-		chats, err = s.chatBiz.BatchGetChat(ctx, chatIds)
+		chats, err = s.chatBiz.BatchGetChat(ctx2, chatIds)
 		if err != nil {
-			return xerror.Wrapf(err, "chat biz batch get chat failed").WithExtras(logAttrs...).WithCtx(ctx)
+			return xerror.Wrapf(err, "chat biz batch get chat failed").WithExtras(logAttrs...).WithCtx(ctx2)
 		}
 		return nil
 	}))
 
 	eg.Go(recovery.DoV2(func() error {
 		var err error
-		msgs, err = s.msgBiz.BatchGetMsg(ctx, lastMsgIds)
+		msgs, err = s.msgBiz.BatchGetMsg(ctx2, lastMsgIds)
 		if err != nil {
-			return xerror.Wrapf(err, "msg biz batch get msg failed").WithExtras(logAttrs...).WithCtx(ctx)
+			return xerror.Wrapf(err, "msg biz batch get msg failed").WithExtras(logAttrs...).WithCtx(ctx2)
 		}
 		return nil
 	}))
-	err = eg.Wait()
+	err = eg.Wait() // wait会cancel ctx 所以用一个新变量ctx2
 	if err != nil {
 		return nil, pageResult, err
 	}
 
 	// organize
 	recentChats := make([]*RecentChat, 0, len(inboxes))
+	chatIdsMsgIds := make(map[uuid.UUID][]uuid.UUID, len(recentChats))
+
 	for _, inbox := range inboxes {
 		inboxChat, ok := chats[inbox.ChatId]
 		if !ok {
@@ -77,6 +79,11 @@ func (s *UserChatSrv) ListRecentChats(ctx context.Context, uid int64,
 			inboxLastMsg = &bizuserchat.Msg{}
 		}
 
+		inboxLastChatMsg := makeChatMsgFromMsg(inboxLastMsg)
+		inboxLastChatMsg.ChatId = inbox.ChatId
+
+		chatIdsMsgIds[inbox.ChatId] = append(chatIdsMsgIds[inbox.ChatId], inbox.LastMsgId)
+
 		recentChats = append(recentChats, &RecentChat{
 			Uid:           inbox.Uid,
 			ChatId:        inbox.ChatId,
@@ -84,7 +91,7 @@ func (s *UserChatSrv) ListRecentChats(ctx context.Context, uid int64,
 			ChatName:      inboxChat.Name,
 			ChatStatus:    inboxChat.Status,
 			ChatCreator:   inboxChat.Creator,
-			LastMsg:       inboxLastMsg,
+			LastMsg:       inboxLastChatMsg,
 			LastReadMsgId: inbox.LastReadMsgId,
 			LastReadTime:  inbox.LastReadTime,
 			UnreadCount:   inbox.UnreadCount,
@@ -92,6 +99,42 @@ func (s *UserChatSrv) ListRecentChats(ctx context.Context, uid int64,
 			Mtime:         inbox.Mtime,
 			IsPinned:      inbox.IsPinned,
 		})
+	}
+
+	// 绑定pos
+	eg, ctx3 := errgroup.WithContext(ctx)
+	var (
+		chatIdMsgIdPosMapping = make(map[uuid.UUID]map[uuid.UUID]int64)
+		tmpMu                 sync.Mutex
+	)
+
+	for chatId, msgIds := range chatIdsMsgIds {
+		eg.Go(recovery.DoV2(func() error {
+			msgPoses, err := s.msgBiz.BatchGetMsgPos(ctx3, chatId, msgIds)
+			if err != nil {
+				return xerror.Wrapf(err, "msg biz batch get msg pos failed").
+					WithExtras("chat_id", chatId, "msg_ids", msgIds).WithCtx(ctx3)
+			}
+
+			tmpMu.Lock()
+			chatIdMsgIdPosMapping[chatId] = msgPoses
+			tmpMu.Unlock()
+
+			return nil
+		}))
+	}
+
+	if err := eg.Wait(); err != nil {
+		return nil, pageResult, err
+	}
+
+	for _, recentChat := range recentChats {
+		msgIdPoses, ok := chatIdMsgIdPosMapping[recentChat.ChatId]
+		if ok {
+			if pos, ok := msgIdPoses[recentChat.LastMsg.Id]; ok {
+				recentChat.LastMsg.Pos = pos
+			}
+		}
 	}
 
 	return recentChats, pageResult, nil

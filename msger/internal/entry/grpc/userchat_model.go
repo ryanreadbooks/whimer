@@ -5,6 +5,7 @@ import (
 	pbuserchat "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
 	bizuserchat "github.com/ryanreadbooks/whimer/msger/internal/biz/userchat"
 	"github.com/ryanreadbooks/whimer/msger/internal/model"
+	"github.com/ryanreadbooks/whimer/msger/internal/srv/userchat"
 	userchatsrv "github.com/ryanreadbooks/whimer/msger/internal/srv/userchat"
 )
 
@@ -61,6 +62,16 @@ func ToPbMsg(msg *bizuserchat.Msg) *pbmsg.Msg {
 	return pb
 }
 
+func ToPbChatMsg(cmsg *userchat.ChatMsg) *pbuserchat.ChatMsg {
+	pb := &pbuserchat.ChatMsg{
+		Msg:    ToPbMsg(cmsg.Msg),
+		ChatId: cmsg.ChatId.String(),
+		Pos:    cmsg.Pos,
+	}
+
+	return pb
+}
+
 func ToBizMsgContentText(t *pbuserchat.MsgReq_Text) *bizuserchat.MsgContentText {
 	return &bizuserchat.MsgContentText{
 		Text: t.Text.GetContent(),
@@ -99,7 +110,7 @@ func ToPbRecentChat(rc *userchatsrv.RecentChat) *pbuserchat.RecentChat {
 		ChatName:      rc.ChatName,
 		ChatStatus:    model.ChatStatusToPb(rc.ChatStatus),
 		ChatCreator:   rc.ChatCreator,
-		LastMsg:       ToPbMsg(rc.LastMsg),
+		LastMsg:       ToPbChatMsg(rc.LastMsg),
 		LastReadMsgId: rc.LastReadMsgId.String(),
 		LastReadTime:  rc.LastReadTime,
 		UnreadCount:   rc.UnreadCount,

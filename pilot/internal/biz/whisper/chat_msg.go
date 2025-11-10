@@ -149,7 +149,7 @@ func (b *Biz) ListRecentChats(ctx context.Context, uid int64,
 			UnreadCount: pbRecentChat.UnreadCount,
 			Mtime:       pbRecentChat.Mtime,
 			IsPinned:    pbRecentChat.IsPinned,
-			LastMsg:     whispermodel.MsgFromPb(pbRecentChat.GetLastMsg()),
+			LastMsg:     whispermodel.MsgFromChatMsgPb(pbRecentChat.GetLastMsg()),
 		}
 		// 替换p2p chat的name
 		if recentChat.ChatType == whispermodel.P2PChat {
