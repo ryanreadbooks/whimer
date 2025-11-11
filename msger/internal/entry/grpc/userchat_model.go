@@ -72,6 +72,14 @@ func ToPbChatMsg(cmsg *userchat.ChatMsg) *pbuserchat.ChatMsg {
 	return pb
 }
 
+func ToPbChatMsgs(cmsgs []*userchat.ChatMsg) []*pbuserchat.ChatMsg {
+	pbmsgs := make([]*pbuserchat.ChatMsg, 0, len(cmsgs))
+	for _, m := range cmsgs {
+		pbmsgs = append(pbmsgs, ToPbChatMsg(m))
+	}
+	return pbmsgs
+}
+
 func ToBizMsgContentText(t *pbuserchat.MsgReq_Text) *bizuserchat.MsgContentText {
 	return &bizuserchat.MsgContentText{
 		Text: t.Text.GetContent(),

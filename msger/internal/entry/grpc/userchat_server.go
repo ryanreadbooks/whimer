@@ -112,12 +112,12 @@ func (s *UserChatServiceServer) SendMsgToChat(ctx context.Context,
 	return &pbuserchat.SendMsgToChatResponse{MsgId: msgId.String()}, nil
 }
 
-func assignSendMsgReqContent(msgType model.MsgType, req *userchat.SendMsgReq, pbIn *pbuserchat.SendMsgToChatRequest) {
+func assignSendMsgReqContent(msgType model.MsgType, req *userchat.SendMsgReq, pbReq *pbuserchat.SendMsgToChatRequest) {
 	switch msgType {
 	case model.MsgText:
-		req.Text = ToBizMsgContentText(pbIn.Msg.Content.(*pbuserchat.MsgReq_Text))
+		req.Text = ToBizMsgContentText(pbReq.Msg.Content.(*pbuserchat.MsgReq_Text))
 	case model.MsgImage:
-		req.Image = ToBizMsgContentImage(pbIn.Msg.Content.(*pbuserchat.MsgReq_Image))
+		req.Image = ToBizMsgContentImage(pbReq.Msg.Content.(*pbuserchat.MsgReq_Image))
 	}
 }
 
@@ -178,5 +178,27 @@ func (s *UserChatServiceServer) ListRecentChats(ctx context.Context, in *pbuserc
 		HasNext:     next.HasNext,
 		NextCursor:  next.NextCursor,
 		RecentChats: recents,
+	}, nil
+}
+
+func (s *UserChatServiceServer) ListChatMsgs(ctx context.Context, in *pbuserchat.ListChatMsgsRequest) (
+	*pbuserchat.ListChatMsgsResponse, error) {
+
+	chatId, err := uuid.ParseString(in.GetChatId())
+	if err != nil {
+		return nil, global.ErrArgs.Msg("invalid chatid")
+	}
+
+	if in.GetPos() < 0 {
+		return nil, global.ErrArgs.Msg("invalid pos")
+	}
+
+	chatMsgs, err := s.Srv.UserChatSrv.ListChatMsgs(ctx, chatId, in.GetUid(), in.GetPos(), in.GetCount())
+	if err != nil {
+		return nil, err
+	}
+
+	return &pbuserchat.ListChatMsgsResponse{
+		ChatMsgs: ToPbChatMsgs(chatMsgs),
 	}, nil
 }

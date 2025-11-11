@@ -2,6 +2,7 @@ package userchat
 
 import (
 	"context"
+	"slices"
 
 	"github.com/ryanreadbooks/whimer/misc/uuid"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -89,6 +90,8 @@ func (b *ChatMemberBiz) BatchGetChatUsers(ctx context.Context, chatIds []uuid.UU
 		return nil, xerror.Wrapf(err, "chat member p2p dao batch get failed").WithCtx(ctx)
 	}
 
+	// group results
+
 	members := make(map[uuid.UUID][]int64, len(p2pChats)+len(groupChats))
 	for _, p2p := range p2pResults {
 		members[p2p.ChatId] = append(members[p2p.ChatId], []int64{p2p.UidA, p2p.UidB}...)
@@ -117,4 +120,17 @@ func (b *ChatMemberBiz) AttachChatMembers(ctx context.Context, chat *Chat) error
 	}
 
 	return nil
+}
+
+func (b *ChatMemberBiz) IsUserInChat(ctx context.Context, chatId uuid.UUID, uid int64) (bool, error) {
+	members, err := b.BatchGetChatUsers(ctx, []uuid.UUID{chatId})
+	if err != nil {
+		return false, xerror.Wrapf(err, "batch get chat users failed").WithCtx(ctx)
+	}
+	if !slices.Contains(members[chatId], uid) {
+		// uid not in chat
+		return false, nil
+	}
+
+	return true, nil
 }

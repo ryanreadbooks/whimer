@@ -232,3 +232,18 @@ func (b *MsgBiz) BatchGetMsgPos(ctx context.Context,
 
 	return msgPos, nil
 }
+
+func (b *MsgBiz) ListChatPos(ctx context.Context, chatId uuid.UUID, pos int64, count int32) ([]*ChatPos, error) {
+	items, err := infra.Dao().ChatMsgDao.ListByPos(ctx, chatId, pos, count, true)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "chat msg dao list by pos failed").
+			WithCtx(ctx).WithExtras("chat_id", chatId, "pos", pos, "count", count)
+	}
+
+	result := make([]*ChatPos, 0, len(items))
+	for _, r := range items {
+		result = append(result, makeChatPosFromPO(r))
+	}
+
+	return result, nil
+}

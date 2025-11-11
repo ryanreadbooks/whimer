@@ -61,3 +61,22 @@ type MsgImageContent struct {
 	Format  string `json:"format"`
 	Preview string `json:"preview,optional"` // 预览文本
 }
+
+func (i *MsgImageContent) Validate() error {
+	if i == nil {
+		return errors.ErrInvalidMsgContent
+	}
+
+	return nil
+}
+
+func (i *MsgImageContent) AsReqPb() *userchatv1.MsgReq_Image {
+	return &userchatv1.MsgReq_Image{
+		Image: &pbmsg.MsgContentImage{
+			Key:    i.Key,
+			Height: i.Height,
+			Width:  i.Width,
+			Format: i.Format,
+		},
+	}
+}

@@ -14,8 +14,8 @@ import (
 )
 
 // 列出最近会话列表
-func (s *UserChatSrv) ListRecentChats(ctx context.Context, uid int64,
-	cursor string, count int32) ([]*RecentChat, *model.PageListResult[string], error) {
+func (s *UserChatSrv) ListRecentChats(ctx context.Context, uid int64, cursor string, count int32) (
+	[]*RecentChat, *model.PageListResult[string], error) {
 
 	logAttrs := []any{"uid", uid, "cursor", cursor}
 
@@ -65,7 +65,7 @@ func (s *UserChatSrv) ListRecentChats(ctx context.Context, uid int64,
 
 	// organize
 	recentChats := make([]*RecentChat, 0, len(inboxes))
-	chatIdsMsgIds := make(map[uuid.UUID][]uuid.UUID, len(recentChats))
+	chatMsgs := make([]*ChatMsg, 0, len(recentChats))
 
 	for _, inbox := range inboxes {
 		inboxChat, ok := chats[inbox.ChatId]
@@ -80,9 +80,8 @@ func (s *UserChatSrv) ListRecentChats(ctx context.Context, uid int64,
 		}
 
 		inboxLastChatMsg := makeChatMsgFromMsg(inboxLastMsg)
+		chatMsgs = append(chatMsgs, inboxLastChatMsg)
 		inboxLastChatMsg.ChatId = inbox.ChatId
-
-		chatIdsMsgIds[inbox.ChatId] = append(chatIdsMsgIds[inbox.ChatId], inbox.LastMsgId)
 
 		recentChats = append(recentChats, &RecentChat{
 			Uid:           inbox.Uid,
@@ -102,40 +101,53 @@ func (s *UserChatSrv) ListRecentChats(ctx context.Context, uid int64,
 	}
 
 	// 绑定pos
-	eg, ctx3 := errgroup.WithContext(ctx)
+	err = s.bindChatMsgPos(ctx, chatMsgs)
+	if err != nil {
+		return nil, pageResult, xerror.Wrapf(err, "bind chat msg pos failed").WithCtx(ctx)
+	}
+
+	return recentChats, pageResult, nil
+}
+
+// chatIdsMsgIds: chatId -> []msgIds
+func (s *UserChatSrv) bindChatMsgPos(ctx context.Context, chatMsgs []*ChatMsg) error {
+	chatIdsMsgIds := make(map[uuid.UUID][]uuid.UUID)
+	for _, chatMsg := range chatMsgs {
+		chatIdsMsgIds[chatMsg.ChatId] = append(chatIdsMsgIds[chatMsg.ChatId], chatMsg.Id)
+	}
+
 	var (
+		mu                    sync.Mutex
 		chatIdMsgIdPosMapping = make(map[uuid.UUID]map[uuid.UUID]int64)
-		tmpMu                 sync.Mutex
 	)
 
+	eg, ctx := errgroup.WithContext(ctx)
 	for chatId, msgIds := range chatIdsMsgIds {
 		eg.Go(recovery.DoV2(func() error {
-			msgPoses, err := s.msgBiz.BatchGetMsgPos(ctx3, chatId, msgIds)
+			msgPoses, err := s.msgBiz.BatchGetMsgPos(ctx, chatId, msgIds)
 			if err != nil {
 				return xerror.Wrapf(err, "msg biz batch get msg pos failed").
-					WithExtras("chat_id", chatId, "msg_ids", msgIds).WithCtx(ctx3)
+					WithExtras("chat_id", chatId, "msg_ids", msgIds).WithCtx(ctx)
 			}
 
-			tmpMu.Lock()
+			mu.Lock()
 			chatIdMsgIdPosMapping[chatId] = msgPoses
-			tmpMu.Unlock()
+			mu.Unlock()
 
 			return nil
 		}))
 	}
-
 	if err := eg.Wait(); err != nil {
-		return nil, pageResult, err
+		return err
 	}
 
-	for _, recentChat := range recentChats {
-		msgIdPoses, ok := chatIdMsgIdPosMapping[recentChat.ChatId]
-		if ok {
-			if pos, ok := msgIdPoses[recentChat.LastMsg.Id]; ok {
-				recentChat.LastMsg.Pos = pos
+	for _, chatMsg := range chatMsgs {
+		if posMapping, ok := chatIdMsgIdPosMapping[chatMsg.ChatId]; ok {
+			if pos, ok := posMapping[chatMsg.Id]; ok {
+				chatMsg.Pos = pos
 			}
 		}
 	}
 
-	return recentChats, pageResult, nil
+	return nil
 }

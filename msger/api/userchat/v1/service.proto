@@ -24,6 +24,9 @@ service UserChatService {
 
   // 获取最近会话列表
   rpc ListRecentChats(ListRecentChatsRequest) returns (ListRecentChatsResponse);
+
+  // 获取消息列表
+  rpc ListChatMsgs(ListChatMsgsRequest) returns (ListChatMsgsResponse);
 }
 
 message Int64List {
@@ -85,4 +88,15 @@ message ListRecentChatsResponse {
   repeated RecentChat recent_chats = 1;
   bool                has_next     = 2;
   string              next_cursor  = 3;
+}
+
+message ListChatMsgsRequest {
+  string chat_id = 1 [(buf.validate.field).string.min_len = 1];
+  int64  uid     = 2 [(buf.validate.field).int64.gt = 0];
+  int64  pos     = 3 [(buf.validate.field).int64.gte = 0];
+  int32  count   = 4 [(buf.validate.field).int32.lte = 50];
+}
+
+message ListChatMsgsResponse {
+  repeated ChatMsg chat_msgs = 1;
 }

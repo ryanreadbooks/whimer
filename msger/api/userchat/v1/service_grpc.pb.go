@@ -24,6 +24,7 @@ const (
 	UserChatService_GetChatMembers_FullMethodName      = "/msger.api.userchat.v1.UserChatService/GetChatMembers"
 	UserChatService_BatchGetChatMembers_FullMethodName = "/msger.api.userchat.v1.UserChatService/BatchGetChatMembers"
 	UserChatService_ListRecentChats_FullMethodName     = "/msger.api.userchat.v1.UserChatService/ListRecentChats"
+	UserChatService_ListChatMsgs_FullMethodName        = "/msger.api.userchat.v1.UserChatService/ListChatMsgs"
 )
 
 // UserChatServiceClient is the client API for UserChatService service.
@@ -42,6 +43,8 @@ type UserChatServiceClient interface {
 	BatchGetChatMembers(ctx context.Context, in *BatchGetChatMembersRequest, opts ...grpc.CallOption) (*BatchGetChatMembersResponse, error)
 	// 获取最近会话列表
 	ListRecentChats(ctx context.Context, in *ListRecentChatsRequest, opts ...grpc.CallOption) (*ListRecentChatsResponse, error)
+	// 获取消息列表
+	ListChatMsgs(ctx context.Context, in *ListChatMsgsRequest, opts ...grpc.CallOption) (*ListChatMsgsResponse, error)
 }
 
 type userChatServiceClient struct {
@@ -102,6 +105,16 @@ func (c *userChatServiceClient) ListRecentChats(ctx context.Context, in *ListRec
 	return out, nil
 }
 
+func (c *userChatServiceClient) ListChatMsgs(ctx context.Context, in *ListChatMsgsRequest, opts ...grpc.CallOption) (*ListChatMsgsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListChatMsgsResponse)
+	err := c.cc.Invoke(ctx, UserChatService_ListChatMsgs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserChatServiceServer is the server API for UserChatService service.
 // All implementations must embed UnimplementedUserChatServiceServer
 // for forward compatibility.
@@ -118,6 +131,8 @@ type UserChatServiceServer interface {
 	BatchGetChatMembers(context.Context, *BatchGetChatMembersRequest) (*BatchGetChatMembersResponse, error)
 	// 获取最近会话列表
 	ListRecentChats(context.Context, *ListRecentChatsRequest) (*ListRecentChatsResponse, error)
+	// 获取消息列表
+	ListChatMsgs(context.Context, *ListChatMsgsRequest) (*ListChatMsgsResponse, error)
 	mustEmbedUnimplementedUserChatServiceServer()
 }
 
@@ -142,6 +157,9 @@ func (UnimplementedUserChatServiceServer) BatchGetChatMembers(context.Context, *
 }
 func (UnimplementedUserChatServiceServer) ListRecentChats(context.Context, *ListRecentChatsRequest) (*ListRecentChatsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListRecentChats not implemented")
+}
+func (UnimplementedUserChatServiceServer) ListChatMsgs(context.Context, *ListChatMsgsRequest) (*ListChatMsgsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListChatMsgs not implemented")
 }
 func (UnimplementedUserChatServiceServer) mustEmbedUnimplementedUserChatServiceServer() {}
 func (UnimplementedUserChatServiceServer) testEmbeddedByValue()                         {}
@@ -254,6 +272,24 @@ func _UserChatService_ListRecentChats_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserChatService_ListChatMsgs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListChatMsgsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserChatServiceServer).ListChatMsgs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserChatService_ListChatMsgs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserChatServiceServer).ListChatMsgs(ctx, req.(*ListChatMsgsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserChatService_ServiceDesc is the grpc.ServiceDesc for UserChatService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -280,6 +316,10 @@ var UserChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListRecentChats",
 			Handler:    _UserChatService_ListRecentChats_Handler,
+		},
+		{
+			MethodName: "ListChatMsgs",
+			Handler:    _UserChatService_ListChatMsgs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
