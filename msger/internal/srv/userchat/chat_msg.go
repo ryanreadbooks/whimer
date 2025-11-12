@@ -17,10 +17,10 @@ func (s *UserChatSrv) ListChatMsgs(ctx context.Context, chatId uuid.UUID, uid, p
 
 	var logAttrs = []any{"chat_id", chatId}
 
-	_, err := s.chatBiz.GetChat(ctx, chatId)
-	if err != nil {
-		return nil, xerror.Wrapf(err, "chat biz get chat failed").WithExtras(logAttrs...).WithCtx(ctx)
-	}
+	// _, err := s.chatBiz.GetChat(ctx, chatId)
+	// if err != nil {
+	// 	return nil, xerror.Wrapf(err, "chat biz get chat failed").WithExtras(logAttrs...).WithCtx(ctx)
+	// }
 
 	uidInChat, err := s.chatMemberBiz.IsUserInChat(ctx, chatId, uid)
 	if err != nil {

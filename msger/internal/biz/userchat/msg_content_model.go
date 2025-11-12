@@ -1,6 +1,7 @@
 package userchat
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -19,15 +20,17 @@ type MsgContent interface {
 }
 
 // 解析出msgcontent
-func ParseMsgContent(b []byte) (MsgContent, model.MsgType, error) {
-	for t, candidate := range msgContentPool {
+func ParseMsgContent(typ model.MsgType, b []byte) (MsgContent, error) {
+	// 解析byte成为msgContent
+	candidate, ok := msgContentPool[typ]
+	if ok {
 		ret, err := candidate.Parse(b)
 		if err == nil {
-			return ret, t, nil
+			return ret, nil
 		}
 	}
 
-	return nil, model.MsgTypeUnknown, ErrUnsupportedMsgContent
+	return nil, ErrUnsupportedMsgContent
 }
 
 var (
@@ -59,7 +62,7 @@ func (c *MsgContentText) Preview() string {
 
 func (c *MsgContentText) Parse(b []byte) (MsgContent, error) {
 	var cc MsgContentText
-	err := json.Unmarshal(b, &cc)
+	err := disallowUnknownFieldsJsonUnmarshal(b, &cc)
 	if err != nil {
 		return nil, err
 	}
@@ -89,10 +92,17 @@ func (c *MsgContentImage) Preview() string {
 
 func (c *MsgContentImage) Parse(b []byte) (MsgContent, error) {
 	var cc MsgContentImage
-	err := json.Unmarshal(b, &cc)
+	err := disallowUnknownFieldsJsonUnmarshal(b, &cc)
 	if err != nil {
 		return nil, err
 	}
 
 	return &cc, nil
+}
+
+func disallowUnknownFieldsJsonUnmarshal(b []byte, a any) error {
+	dec := json.NewDecoder(bytes.NewBuffer(b))
+	dec.DisallowUnknownFields()
+
+	return dec.Decode(a)
 }

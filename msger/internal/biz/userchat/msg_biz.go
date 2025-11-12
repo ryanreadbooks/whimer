@@ -11,6 +11,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/uuid"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xretry"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
@@ -81,9 +82,10 @@ func (b *MsgBiz) BatchGetMsg(ctx context.Context, msgIds []uuid.UUID) (map[uuid.
 	// TODO content解密
 	result := make(map[uuid.UUID]*Msg, len(msgPoes))
 	hasExtIds := make([]uuid.UUID, 0, len(msgPoes))
-	for _, chat := range msgPoes {
-		msg, err := makeMsgFromPO(chat)
+	for _, msgPo := range msgPoes {
+		msg, err := makeMsgFromPO(msgPo)
 		if err != nil {
+			xlog.Msgf("make msg from po failed").Err(err).Extras("msg_id", msgPo.Id).Errorx(ctx)
 			continue
 		}
 
@@ -103,7 +105,11 @@ func (b *MsgBiz) BatchGetMsg(ctx context.Context, msgIds []uuid.UUID) (map[uuid.
 	for _, msg := range result {
 		if msg.HasExt {
 			if extPo, ok := extPoes[msg.Id]; ok {
-				msg.Ext, _ = makeMsgExtFromPO(extPo)
+				var tmpErr error
+				msg.Ext, tmpErr = makeMsgExtFromPO(extPo)
+				if tmpErr != nil {
+					xlog.Msgf("make msg ext from po failed").Err(err).Extras("msg_id", extPo.MsgId).Errorx(ctx)
+				}
 			}
 		}
 	}

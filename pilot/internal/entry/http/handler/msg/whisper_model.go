@@ -61,3 +61,9 @@ type ListWhisperRecentChatsResp struct {
 	HasNext    bool                       `json:"has_next"`
 	NextCursor string                     `json:"next_cursor"`
 }
+
+type ListWhisperChatMsgsReq struct {
+	ChatId string `form:"chat_id"`
+	Pos    int64  `form:"pos,optional"`
+	Count  int32  `form:"count,default=50"`
+}

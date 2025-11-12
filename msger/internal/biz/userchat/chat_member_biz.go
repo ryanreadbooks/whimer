@@ -123,11 +123,17 @@ func (b *ChatMemberBiz) AttachChatMembers(ctx context.Context, chat *Chat) error
 }
 
 func (b *ChatMemberBiz) IsUserInChat(ctx context.Context, chatId uuid.UUID, uid int64) (bool, error) {
-	members, err := b.BatchGetChatUsers(ctx, []uuid.UUID{chatId})
+	chatMembers, err := b.BatchGetChatUsers(ctx, []uuid.UUID{chatId})
 	if err != nil {
 		return false, xerror.Wrapf(err, "batch get chat users failed").WithCtx(ctx)
 	}
-	if !slices.Contains(members[chatId], uid) {
+
+	members, ok := chatMembers[chatId]
+	if !ok {
+		return false, xerror.Wrap(global.ErrChatNotExist)
+	}
+
+	if !slices.Contains(members, uid) {
 		// uid not in chat
 		return false, nil
 	}

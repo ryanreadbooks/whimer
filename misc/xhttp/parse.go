@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 type Validator interface {
@@ -27,4 +28,12 @@ func ParseValidate[T any](parser ParserFunc, r *http.Request) (out *T, err error
 	}
 
 	return t, nil
+}
+
+func ParseValidateForm[T any](r *http.Request) (out *T, err error) {
+	return ParseValidate[T](httpx.ParseForm, r)
+}
+
+func ParseValidateJsonBody[T any](r *http.Request) (out *T, err error) {
+	return ParseValidate[T](httpx.ParseJsonBody, r)
 }

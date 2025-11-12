@@ -5,14 +5,15 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	whispermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/whisper/model"
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 // 创建会话
 func (h *Handler) CreateWhisperChat() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[CreateWhisperChatReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidateJsonBody[CreateWhisperChatReq](r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -43,7 +44,7 @@ func (h *Handler) CreateWhisperChat() http.HandlerFunc {
 // 发消息
 func (h *Handler) SendWhisperChatMsg() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[SendWhisperChatMsgReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidateJsonBody[SendWhisperChatMsgReq](r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -74,7 +75,7 @@ func (h *Handler) SendWhisperChatMsg() http.HandlerFunc {
 
 func (h *Handler) ListWhisperRecentChats() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[ListWhisperRecentChatsReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidateForm[ListWhisperRecentChatsReq](r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -96,5 +97,45 @@ func (h *Handler) ListWhisperRecentChats() http.HandlerFunc {
 			HasNext:    pageResult.HasNext,
 			NextCursor: pageResult.NextCursor,
 		})
+	}
+}
+
+func (h *Handler) ListWhisperChatMsgs() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidateForm[ListWhisperChatMsgsReq](r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		var (
+			ctx = r.Context()
+			uid = metadata.Uid(ctx)
+		)
+
+		msgs, err := h.whisperBiz.ListChatMsgs(ctx, uid, req.ChatId, req.Pos, req.Count)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		// collect uids
+		senderUids := xslice.Extract(msgs, func(t *whispermodel.Msg) int64 {
+			return t.SenderUid
+		})
+		senderUids = xslice.Uniq(senderUids)
+
+		userInfos, err := h.userBiz.ListUsersV2(ctx, senderUids)
+		if err != nil {
+			xlog.Msgf("user biz list users failed").Err(err).Errorx(ctx)
+		} else {
+			for _, msg := range msgs {
+				if user, ok := userInfos[msg.SenderUid]; ok {
+					msg.Sender = user
+				}
+			}
+		}
+
+		xhttp.OkJson(w, msgs)
 	}
 }

@@ -155,3 +155,12 @@ func Any[T any](t []T) []any {
 
 	return a
 }
+
+func Extract[V any, P any](t []V, extractor func(t V) P) []P {
+	var pt  = make([]P, 0, len(t))
+	for _, v := range t {
+		pt = append(pt, extractor(v))
+	}
+
+	return pt
+}

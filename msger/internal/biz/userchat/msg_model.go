@@ -36,7 +36,7 @@ func (m *Msg) IsStatusNormal() bool {
 }
 
 func makeMsgFromPO(po *chat.MsgPO) (*Msg, error) {
-	ct, _, err := ParseMsgContent(po.Content)
+	msgct, err := ParseMsgContent(po.Type, po.Content)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func makeMsgFromPO(po *chat.MsgPO) (*Msg, error) {
 		Status:  po.Status,
 		Sender:  po.Sender,
 		Mtime:   po.Mtime,
-		Content: ct,
+		Content: msgct,
 		HasExt:  po.Ext == hasMsgExt,
 		Cid:     po.Cid,
 	}, nil

@@ -5,7 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	pbmsg "github.com/ryanreadbooks/whimer/msger/api/msg"
-	userchatv1 "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
+	pbuserchatv1 "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
 	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 )
@@ -38,7 +38,7 @@ func (m *MsgReq) Validate(_ context.Context) error {
 }
 
 // assign msg content as pb format for pbMsg
-func AssignPbMsgReqContent(msg *MsgReq, pbMsg *userchatv1.MsgReq) error {
+func AssignPbMsgReqContent(msg *MsgReq, pbMsg *pbuserchatv1.MsgReq) error {
 	switch msg.Type {
 	case MsgText:
 		pbMsg.Content = msg.Content.Text.AsReqPb()
@@ -62,26 +62,28 @@ type Msg struct {
 	Ext       *MsgExt         `json:"ext,omitempty"`
 }
 
-func MsgFromChatMsgPb(cmsg *userchatv1.ChatMsg) *Msg {
-	if cmsg == nil {
+func MsgFromChatMsgPb(pbChatMsg *pbuserchatv1.ChatMsg) *Msg {
+	if pbChatMsg == nil {
 		return &Msg{Type: MsgTypeUnspecified}
 	}
 
+	pbMsg := pbChatMsg.GetMsg()
+
 	msg := &Msg{
-		Id:        cmsg.GetMsg().GetId(),
-		Type:      MsgType(cmsg.GetMsg().GetType()),
-		Cid:       cmsg.GetMsg().GetCid(),
-		Status:    MsgStatus(cmsg.GetMsg().GetStatus()),
-		Mtime:     cmsg.GetMsg().GetMtime(),
-		SenderUid: cmsg.GetMsg().GetSender(),
-		Pos:       cmsg.GetPos(),
-		Ext:       MsgExtFromPb(cmsg.GetMsg().GetExt()),
+		Id:        pbMsg.GetId(),
+		Type:      MsgType(pbMsg.GetType()),
+		Cid:       pbMsg.GetCid(),
+		Status:    MsgStatus(pbChatMsg.GetMsg().GetStatus()),
+		Mtime:     pbMsg.GetMtime(),
+		SenderUid: pbMsg.GetSender(),
+		Pos:       pbChatMsg.GetPos(),
+		Ext:       MsgExtFromPb(pbMsg.GetExt()),
 	}
 
 	// assign content
 	if msg.Id != "" && msg.Status != MsgStatusRecall {
 		msg.Content = &MsgContent{contentType: msg.Type}
-		msg.FillMsgContent(cmsg.GetMsg())
+		msg.FillMsgContent(pbMsg)
 	}
 
 	return msg

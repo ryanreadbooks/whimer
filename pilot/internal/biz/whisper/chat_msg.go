@@ -85,6 +85,7 @@ func (b *Biz) SendChatMsg(ctx context.Context, chatId, cid string, msg *whisperm
 	return resp.MsgId, nil
 }
 
+// 列出用户最近会话列表
 func (b *Biz) ListRecentChats(ctx context.Context, uid int64,
 	cursor string, cnt int32) ([]*whispermodel.RecentChat, *globalmodel.ListResult[string], error) {
 	resp, err := dep.UserChatter().ListRecentChats(ctx,
@@ -165,4 +166,25 @@ func (b *Biz) ListRecentChats(ctx context.Context, uid int64,
 		NextCursor: resp.NextCursor,
 		HasNext:    resp.HasNext,
 	}, nil
+}
+
+func (b *Biz) ListChatMsgs(ctx context.Context, uid int64, chatId string,
+	pos int64, cnt int32) ([]*whispermodel.Msg, error) {
+
+	resp, err := dep.UserChatter().ListChatMsgs(ctx, &userchatv1.ListChatMsgsRequest{
+		ChatId: chatId,
+		Uid:    uid,
+		Pos:    pos,
+		Count:  cnt,
+	})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "remote list chat msgs failed").WithCtx(ctx)
+	}
+
+	msgs := make([]*whispermodel.Msg, 0, len(resp.GetChatMsgs()))
+	for _, m := range resp.GetChatMsgs() {
+		msgs = append(msgs, whispermodel.MsgFromChatMsgPb(m))
+	}
+
+	return msgs, nil
 }
