@@ -362,3 +362,14 @@ func (b *Biz) ListNotesByUser(ctx context.Context, uid int64, cursor int64, coun
 		&model.PageResult{NextCursor: resp.NextCursor, HasNext: resp.HasNext},
 		nil
 }
+
+func (b *Biz) GetNoteAuthor(ctx context.Context, noteId int64) (int64, error) {
+	resp, err := dep.NoteFeedServer().GetNoteAuthor(ctx, &notev1.GetNoteAuthorRequest{
+		NoteId: noteId,
+	})
+	if err != nil {
+		return 0, xerror.Wrapf(err, "remote feed server get author failed").WithCtx(ctx).WithExtras("note_id", noteId)
+	}
+
+	return resp.GetAuthor(), nil
+}

@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package msger.api.userchat.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/msger/api/userchat/v1";
+
+import "msg/msg.proto";
+
+enum ChatType {
+  CHAT_TYPE_UNSPECIFIED = 0;
+  P2P                   = 1;
+  GROUP                 = 2;
+}
+
+enum ChatStatus {
+  CHAT_STATUS_UNSPECIFIED = 0;
+  NORMAL                  = 1;
+}
+
+// 会话
+message Chat {
+  string     id          = 1;
+  ChatType   type        = 2;
+  string     name        = 3;
+  ChatStatus status      = 4;
+  int64      creator     = 5;
+  int64      mtime       = 6;
+  string     last_msg_id = 7;
+  int64      settings    = 8;
+}
+
+// 最近会话
+message RecentChat {
+  int64      uid              = 1;
+  string     chat_id          = 2;
+  ChatType   chat_type        = 3;
+  string     chat_name        = 4;
+  ChatStatus chat_status      = 5;
+  int64      chat_creator     = 6;
+  ChatMsg    last_msg         = 7;
+  string     last_read_msg_id = 8;
+  int64      last_read_time   = 9;
+  int64      unread_count     = 10;
+  int64      ctime            = 11;
+  int64      mtime            = 12;
+  bool       is_pinned        = 13;
+}
+
+// ChatMsg
+message ChatMsg {
+  msger.api.msg.Msg msg     = 1;
+  string            chat_id = 2;
+  int64             pos     = 3;
+}

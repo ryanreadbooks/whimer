@@ -3,7 +3,6 @@ package grpc
 import (
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
-	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor/checker"
 	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 	"github.com/ryanreadbooks/whimer/search/internal/srv"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -18,16 +17,7 @@ func Init(c zrpc.RpcServerConf, svc *srv.Service) *zrpc.RpcServer {
 		xgrpc.EnableReflectionIfNecessary(c, s)
 	})
 
-	interceptor.InstallUnaryServerInterceptors(grpcServer,
-		interceptor.WithUnaryChecker(
-			checker.UidExistenceWithOpt(
-				checker.WithServicesIgnore(
-					searchv1.SearchService_ServiceDesc.ServiceName,
-					searchv1.DocumentService_ServiceDesc.ServiceName,
-				),
-			),
-		),
-	)
+	interceptor.InstallUnaryServerInterceptors(grpcServer)
 
 	return grpcServer
 }

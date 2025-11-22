@@ -1,0 +1,14 @@
+# .clang-format
+Language: Proto
+BasedOnStyle: google
+
+ColumnLimit: 120
+IndentWidth: 2
+AlignTrailingComments: true
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AllowShortFunctionsOnASingleLine: Inline
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: false
+  AfterStruct: true

@@ -17,6 +17,7 @@ var (
 	testCommentAssetDao *CommentAssetDao
 	testCommentExtDao   *CommentExtDao
 	testCtx             = context.TODO()
+	testCache           *redis.Redis
 )
 
 func TestMain(m *testing.M) {
@@ -27,14 +28,14 @@ func TestMain(m *testing.M) {
 		os.Getenv("ENV_DB_NAME"),
 	))
 
-	cache := redis.MustNewRedis(redis.RedisConf{
+	testCache = redis.MustNewRedis(redis.RedisConf{
 		Host: "127.0.0.1:7542",
 		Type: "node",
 	})
 
-	testCommentDao = NewCommentDao(xsql.New(db), cache)
-	testCommentAssetDao = NewCommentAssetDao(xsql.New(db), cache)
-	testCommentExtDao = NewCommentExtDao(xsql.New(db), cache)
+	testCommentDao = NewCommentDao(xsql.New(db), testCache)
+	testCommentAssetDao = NewCommentAssetDao(xsql.New(db), testCache)
+	testCommentExtDao = NewCommentExtDao(xsql.New(db), testCache)
 	m.Run()
 }
 

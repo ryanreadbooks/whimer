@@ -3,156 +3,170 @@ syntax = "proto3";
 package counter.api.v1;
 
 import "buf/validate/validate.proto";
+import "protobuf/options/option.proto";
 
 option go_package = "github.com/ryanreadbooks/whimer/counter/api/v1";
 
 enum SortRule {
   SORT_RULE_UNSPECIFIED = 0;
-  SORT_RULE_ASC = 1;
-  SORT_RULE_DESC = 2;
+  SORT_RULE_ASC         = 1;
+  SORT_RULE_DESC        = 2;
 }
 
 enum RecordAct {
   RECORD_ACT_UNSPECIFIED = 0;
-  RECORD_ACT_ADD = 1;
-  RECORD_ACT_UNADD = 2;
+  RECORD_ACT_ADD         = 1;
+  RECORD_ACT_UNADD       = 2;
 }
 
 message Record {
-  int32 biz_code = 1;
-  int64 uid = 2;
-  int64 oid = 3;
-  RecordAct act = 4;
-  int64 ctime = 5;
-  int64 mtime = 6;
+  int32     biz_code = 1;
+  int64     uid      = 2;
+  int64     oid      = 3;
+  RecordAct act      = 4;
+  int64     ctime    = 5;
+  int64     mtime    = 6;
 }
 
-message RecordList { repeated Record list = 1; }
+message RecordList {
+  repeated Record list = 1;
+}
 
 message AddRecordRequest {
-  int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
-  int64 uid = 2;
-  int64 oid = 3 [ (buf.validate.field).int64.gt = 0 ];
+  int32 biz_code = 1 [(buf.validate.field).int32.gt = 0];
+  int64 uid      = 2;
+  int64 oid      = 3 [(buf.validate.field).int64.gt = 0];
 }
 
 message AddRecordResponse {}
 
 message CancelRecordRequest {
-  int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
-  int64 uid = 2;
-  int64 oid = 3 [ (buf.validate.field).int64.gt = 0 ];
+  int32 biz_code = 1 [(buf.validate.field).int32.gt = 0];
+  int64 uid      = 2;
+  int64 oid      = 3 [(buf.validate.field).int64.gt = 0];
 }
 
 message CancelRecordResponse {}
 
 message DelRecordRequest {
-  int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
-  int64 uid = 2;
-  int64 oid = 3 [ (buf.validate.field).int64.gt = 0 ];
+  int32 biz_code = 1 [(buf.validate.field).int32.gt = 0];
+  int64 uid      = 2;
+  int64 oid      = 3 [(buf.validate.field).int64.gt = 0];
 }
 
 message DelRecordResponse {}
 
 message GetRecordRequest {
-  int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
-  int64 uid = 2;
-  int64 oid = 3 [ (buf.validate.field).int64.gt = 0 ];
+  int32 biz_code = 1 [(buf.validate.field).int32.gt = 0];
+  int64 uid      = 2;
+  int64 oid      = 3 [(buf.validate.field).int64.gt = 0];
 }
 
-message GetRecordResponse { Record record = 1; }
+message GetRecordResponse {
+  Record record = 1;
+}
 
 message GetSummaryRequest {
-  int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
-  int64 oid = 2 [ (buf.validate.field).int64.gt = 0 ];
+  int32 biz_code = 1 [(buf.validate.field).int32.gt = 0];
+  int64 oid      = 2 [(buf.validate.field).int64.gt = 0];
 }
 
 message GetSummaryResponse {
   int32 biz_code = 1;
-  int64 oid = 2;
-  int64 count = 3;
+  int64 oid      = 2;
+  int64 count    = 3;
 }
 
-message BatchGetSummaryRequest { repeated GetSummaryRequest requests = 1; }
+message BatchGetSummaryRequest {
+  repeated GetSummaryRequest requests = 1;
+}
 
-message BatchGetSummaryResponse { repeated GetSummaryResponse responses = 1; }
+message BatchGetSummaryResponse {
+  repeated GetSummaryResponse responses = 1;
+}
 
 message ObjectList {
-  repeated int64 oids = 1 [ (buf.validate.field).repeated .min_items = 1 ];
+  repeated int64 oids = 1 [(buf.validate.field).repeated .min_items = 1];
 }
 
 message BatchGetRecordRequest {
-  int32 biz_code = 1;
-  map<int64, ObjectList> params = 2 [
-    (buf.validate.field).map.min_pairs = 1,
-    (buf.validate.field).map.max_pairs = 50
-  ];
+  int32                  biz_code = 1;
+  map<int64, ObjectList> params   = 2 [(buf.validate.field).map.min_pairs = 1, (buf.validate.field).map.max_pairs = 50];
 }
 
-message BatchGetRecordResponse { map<int64, RecordList> results = 1; }
+message BatchGetRecordResponse {
+  map<int64, RecordList> results = 1;
+}
 
 message PageGetUserRecordRequest {
-  int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
-  int64 uid = 2;
-  string cursor = 3;
-  int32 count = 4;
+  int32    biz_code  = 1 [(buf.validate.field).int32.gt = 0];
+  int64    uid       = 2;
+  string   cursor    = 3;
+  int32    count     = 4;
   SortRule sort_rule = 5;
 }
 
 message PageGetUserRecordResponse {
-  string next_cursor = 1;
-  bool has_next = 2;
-  repeated Record items = 3;
+  string          next_cursor = 1;
+  bool            has_next    = 2;
+  repeated Record items       = 3;
 }
 
 message CheckHasActDoRequest {
-  int32 biz_code = 1 [ (buf.validate.field).int32.gt = 0 ];
-  int64 uid = 2;
-  int64 oid = 3 [ (buf.validate.field).int64.gt = 0 ];
+  int32 biz_code = 1 [(buf.validate.field).int32.gt = 0];
+  int64 uid      = 2;
+  int64 oid      = 3 [(buf.validate.field).int64.gt = 0];
 }
 
-message CheckHasActDoResponse { bool do = 1; }
+message CheckHasActDoResponse {
+  bool do = 1;
+}
 
 message BatchCheckHasActDoDoRequest {
-  int32 biz_code = 1;
-  map<int64, ObjectList> params = 2 [
-    (buf.validate.field).map.min_pairs = 1,
-    (buf.validate.field).map.max_pairs = 50
-  ];
+  int32                  biz_code = 1;
+  map<int64, ObjectList> params   = 2 [(buf.validate.field).map.min_pairs = 1, (buf.validate.field).map.max_pairs = 50];
 }
 
 message BatchCheckHasActDoResponse {
   message Item {
-    bool do = 1;
+    bool do   = 1;
     int64 oid = 2;
   }
 
-  message ItemList {
-    repeated Item list = 1;
-  }
+  message ItemList { repeated Item list = 1; }
 
   map<int64, ItemList> results = 1;
 }
 
 service CounterService {
   // 添加一条计数记录
-  rpc AddRecord(AddRecordRequest) returns (AddRecordResponse);
+  rpc AddRecord(AddRecordRequest) returns (AddRecordResponse) {
+    option (apiextension.protobuf.options.method).skip_metadata_uid_check = true;
+  };
+
   // 取消计数记录
-  rpc CancelRecord(CancelRecordRequest) returns (CancelRecordResponse);
+  rpc CancelRecord(CancelRecordRequest) returns (CancelRecordResponse) {
+    option (apiextension.protobuf.options.method).skip_metadata_uid_check = true;
+  };
+
   // 获取一条计数记录
   rpc GetRecord(GetRecordRequest) returns (GetRecordResponse);
+
   // 批量获取计数记录
   rpc BatchGetRecord(BatchGetRecordRequest) returns (BatchGetRecordResponse);
+
   // 获取oid计数总数
   rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
+
   // 批量获取oid计数总数
   rpc BatchGetSummary(BatchGetSummaryRequest) returns (BatchGetSummaryResponse);
+
   // 分页获取用户的计数(ActDo)记录
-  rpc PageGetUserRecord(PageGetUserRecordRequest)
-      returns (PageGetUserRecordResponse);
+  rpc PageGetUserRecord(PageGetUserRecordRequest) returns (PageGetUserRecordResponse);
 
   // 获取一条(ActDo)计数记录
   rpc CheckHasActDo(CheckHasActDoRequest) returns (CheckHasActDoResponse);
+
   // 批量获取(ActDo)计数记录
-  rpc BatchCheckHasActDo(BatchCheckHasActDoDoRequest)
-      returns (BatchCheckHasActDoResponse);
+  rpc BatchCheckHasActDo(BatchCheckHasActDoDoRequest) returns (BatchCheckHasActDoResponse);
 }

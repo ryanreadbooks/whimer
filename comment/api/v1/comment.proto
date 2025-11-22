@@ -1,71 +1,72 @@
 syntax = "proto3";
 
 import "buf/validate/validate.proto";
+import "protobuf/options/option.proto";
 
 package comment.api.v1;
 
 option go_package = "github.com/ryanreadbooks/whimer/comment/api/v1";
 
 enum CommentAction {
-  REPLY_ACTION_UNDO = 0;
-  REPLY_ACTION_DO = 1;
+  COMMENT_ACTION_UNDO = 0;
+  COMMENT_ACTION_DO   = 1;
 }
 
 enum CommentType {
-  Text = 0;        // 纯文本
-  ImageText = 1;   // 图文
-  CustomEmoji = 2; // 自定义表情
+  TEXT         = 0;  // 纯文本(默认)
+  IMAGE_TEXT   = 1;  // 图文
+  CUSTOM_EMOJI = 2;  // 自定义表情
 }
 
 message CommentAtUser {
   string nickname = 1;
-  int64 uid = 2;
+  int64  uid      = 2;
 }
 
 // 发布评论
 message AddCommentRequest {
-  CommentType type = 1;                // 评论类型 0-纯文本 1-图文
-  int64 oid = 2;                       // 被评论对象id
-  string content = 3;                  // 评论内容
-  int64 root_id = 4;                   // 根评论id
-  int64 parent_id = 5;                 // 被回复的评论id
-  int64 reply_uid = 6;                 // 被回复的用户id
-  repeated CommentReqImage images = 7; // 图片评论资源
-  repeated CommentAtUser at_users = 8; // @用户列表
+  CommentType              type      = 1;  // 评论类型 0-纯文本 1-图文
+  int64                    oid       = 2;  // 被评论对象id
+  string                   content   = 3;  // 评论内容
+  int64                    root_id   = 4;  // 根评论id
+  int64                    parent_id = 5;  // 被回复的评论id
+  int64                    reply_uid = 6;  // 被回复的用户id
+  repeated CommentReqImage images    = 7;  // 图片评论资源
+  repeated CommentAtUser   at_users  = 8;  // @用户列表
 }
 
 // 图片评论
 message CommentReqImage {
   string store_key = 1;
-  uint32 width = 2;
-  uint32 height = 3;
-  string format = 4;
+  uint32 width     = 2;
+  uint32 height    = 3;
+  string format    = 4;
 }
 
 message AddCommentResponse {
-  int64 comment_id = 1; // 评论id
+  int64 comment_id = 1;  // 评论id
 }
 
 // 删除评论
 message DelCommentRequest {
-  int64 comment_id = 1 [ (buf.validate.field).int64.gt = 0 ]; // 评论id
-  int64 oid = 2 [ (buf.validate.field).int64.gt = 0 ];        // 评论对象id
+  int64 comment_id = 1 [(buf.validate.field).int64.gt = 0];  // 评论id
+  int64 oid        = 2 [(buf.validate.field).int64.gt = 0];  // 评论对象id
 }
 
 message DelCommentResponse {}
 
 // 点赞/取消点赞
 message LikeActionRequest {
-  int64 comment_id = 1 [ (buf.validate.field).int64.gt = 0 ]; // 评论id
-  CommentAction action = 2; // 取消点赞还是点赞
+  int64         comment_id = 1 [(buf.validate.field).int64.gt = 0];  // 评论id
+  CommentAction action     = 2;                                      // 取消点赞还是点赞
 }
 
 message LikeActionResponse {}
 
 // 点踩/取消点踩
 message DislikeActionRequest {
-  int64 comment_id = 1 [ (buf.validate.field).int64.gt = 0 ]; // 评论id
-  CommentAction action = 2; // 取消点踩还是点踩
+  int64         comment_id = 1 [(buf.validate.field).int64.gt = 0];  // 评论id
+  CommentAction action     = 2;                                      // 取消点踩还是点踩
 }
 
 message DislikeActionResponse {}
@@ -77,204 +78,207 @@ message ReportCommentResponse {}
 
 // 置顶
 message PinCommentRequest {
-  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ]; // 被评论对象id
-  int64 comment_id = 2 [ (buf.validate.field).int64.gt = 0 ]; // 评论id
-  CommentAction action = 3;
+  int64         oid        = 1 [(buf.validate.field).int64.gt = 0];  // 被评论对象id
+  int64         comment_id = 2 [(buf.validate.field).int64.gt = 0];  // 评论id
+  CommentAction action     = 3;
 }
 
 message PinCommentResponse {}
 
 enum SortType {
-  ByTime = 0;  // 按照发布时间排序
-  ByTrend = 1; // 按照热度排序
+  ByTime  = 0;  // 按照发布时间排序
+  ByTrend = 1;  // 按照热度排序
 }
 
 // 获取评论
 message PageGetCommentRequest {
-  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ];
-  int64 cursor = 2;     // 起始游标
-  SortType sort_by = 3; // 排序方式
+  int64    oid     = 1 [(buf.validate.field).int64.gt = 0];
+  int64    cursor  = 2;  // 起始游标
+  SortType sort_by = 3;  // 排序方式
 }
 
 // 评论实体
 message CommentItem {
-  int64 id = 1;                          // 评论id
-  int64 oid = 2;                         // 被评论对象id
-  CommentType type = 3;                  // 评论类型
-  string content = 4;                    // 评论内容
-  int64 uid = 5;                         // 评论发表用户uid
-  int64 root_id = 6;                     // 根评论id
-  int64 parent_id = 7;                   // 父评论id
-  int64 ruid = 8;                        // 被回复的用户id
-  int64 like_count = 9;                  // 点赞数
-  int64 hate_count = 10;                 // 点踩数
-  int64 ctime = 11;                      // 发布时间
-  int64 mtime = 12;                      // 修改时间
-  string ip = 13;                        // 发布时ip地址
-  bool is_pin = 14;                      // 是否为置顶评论
-  int64 subs_count = 15;                 // 子评论数
-  repeated CommentItemImage images = 16; // 评论图片资源
-  repeated CommentAtUser at_users = 17;  // @用户列表
+  int64                     id         = 1;   // 评论id
+  int64                     oid        = 2;   // 被评论对象id
+  CommentType               type       = 3;   // 评论类型
+  string                    content    = 4;   // 评论内容
+  int64                     uid        = 5;   // 评论发表用户uid
+  int64                     root_id    = 6;   // 根评论id
+  int64                     parent_id  = 7;   // 父评论id
+  int64                     ruid       = 8;   // 被回复的用户id
+  int64                     like_count = 9;   // 点赞数
+  int64                     hate_count = 10;  // 点踩数
+  int64                     ctime      = 11;  // 发布时间
+  int64                     mtime      = 12;  // 修改时间
+  string                    ip         = 13;  // 发布时ip地址
+  bool                      is_pin     = 14;  // 是否为置顶评论
+  int64                     subs_count = 15;  // 子评论数
+  repeated CommentItemImage images     = 16;  // 评论图片资源
+  repeated CommentAtUser    at_users   = 17;  // @用户列表
 }
 
 message CommentItemImageMeta {
-  uint32 width = 1;
+  uint32 width  = 1;
   uint32 height = 2;
   string format = 3;
-  string type = 4;
+  string type   = 4;
 }
 
 message CommentItemImage {
-  string url = 1;
+  string               url  = 1;
   CommentItemImageMeta meta = 2;
 }
 
 message PageGetCommentResponse {
-  repeated CommentItem comments = 1; // 评论数据
-  int64 next_cursor = 2;             // 分页获取下一次请求的游标
-  bool has_next = 3;                 // 是否还有数据
+  repeated CommentItem comments    = 1;  // 评论数据
+  int64                next_cursor = 2;  // 分页获取下一次请求的游标
+  bool                 has_next    = 3;  // 是否还有数据
 }
 
 // 获取子评论
 message PageGetSubCommentRequest {
-  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ];     // 被评论对象id
-  int64 root_id = 2 [ (buf.validate.field).int64.gt = 0 ]; // 主评论id
-  int64 cursor = 3;                                        // 起始游标
+  int64 oid     = 1 [(buf.validate.field).int64.gt = 0];  // 被评论对象id
+  int64 root_id = 2 [(buf.validate.field).int64.gt = 0];  // 主评论id
+  int64 cursor  = 3;                                      // 起始游标
 }
 
 message PageGetSubCommentResponse {
-  repeated CommentItem comments = 1;
-  int64 next_cursor = 2;
-  bool has_next = 3;
+  repeated CommentItem comments    = 1;
+  int64                next_cursor = 2;
+  bool                 has_next    = 3;
 }
 
 message PageGetSubCommentV2Request {
-  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ];     // 被评论对象id
-  int64 root_id = 2 [ (buf.validate.field).int64.gt = 0 ]; // 主评论id
-  int32 page = 3;
-  int32 count = 4;
+  int64 oid     = 1 [(buf.validate.field).int64.gt = 0];  // 被评论对象id
+  int64 root_id = 2 [(buf.validate.field).int64.gt = 0];  // 主评论id
+  int32 page    = 3;
+  int32 count   = 4;
 }
 
 message PageGetSubCommentV2Response {
   repeated CommentItem comments = 1;
-  int64 total = 2;
+  int64                total    = 2;
 }
 
 // 代表主评论的子评论信息
 message DetailedSubComment {
-  repeated CommentItem items = 1; // 子评论的信息
-  int64 next_cursor = 2;
-  bool has_next = 3;
+  repeated CommentItem items       = 1;  // 子评论的信息
+  int64                next_cursor = 2;
+  bool                 has_next    = 3;
 }
 
 // 详细的主评论的详细信息，会包含子评论
 message DetailedCommentItem {
-  CommentItem root = 1;                // 主评论本身的信息
-  DetailedSubComment sub_comments = 2; // 子评论的信息
+  CommentItem        root         = 1;  // 主评论本身的信息
+  DetailedSubComment sub_comments = 2;  // 子评论的信息
 }
 
 message PageGetDetailedCommentRequest {
-  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ];
-  int64 cursor = 2;     // 起始游标
-  SortType sort_by = 3; // 排序方式
+  int64    oid     = 1 [(buf.validate.field).int64.gt = 0];
+  int64    cursor  = 2;  // 起始游标
+  SortType sort_by = 3;  // 排序方式
 }
 
 message PageGetDetailedCommentResponse {
-  repeated DetailedCommentItem comments = 1; // 主评论
-  int64 next_cursor = 2;
-  bool has_next = 3;
+  repeated DetailedCommentItem comments    = 1;  // 主评论
+  int64                        next_cursor = 2;
+  bool                         has_next    = 3;
 }
 
 message PageGetDetailedCommentV2Request {
-  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ];
-  int64 cursor = 2;     // 起始游标
-  SortType sort_by = 3; // 排序方式
+  int64    oid     = 1 [(buf.validate.field).int64.gt = 0];
+  int64    cursor  = 2;  // 起始游标
+  SortType sort_by = 3;  // 排序方式
 }
 
 // 代表主评论的子评论信息
 message DetailedSubCommentV2 {
-  repeated CommentItem items = 1; // 子评论的信息
-  int64 total = 2;                // 子评论总数量
+  repeated CommentItem items = 1;  // 子评论的信息
+  int64                total = 2;  // 子评论总数量
 }
 
 // 详细的主评论的详细信息，会包含子评论
 message DetailedCommentItemV2 {
-  CommentItem root = 1;                  // 主评论本身的信息
-  DetailedSubCommentV2 sub_comments = 2; // 子评论的信息
+  CommentItem          root         = 1;  // 主评论本身的信息
+  DetailedSubCommentV2 sub_comments = 2;  // 子评论的信息
 }
 
 message PageGetDetailedCommentV2Response {
-  repeated DetailedCommentItemV2 root_comments = 1; // 主评论
-  int64 next_cursor = 2;
-  bool has_next = 3;
+  repeated DetailedCommentItemV2 root_comments = 1;  // 主评论
+  int64                          next_cursor   = 2;
+  bool                           has_next      = 3;
 }
 
 // 获取置顶评论
 message GetPinnedCommentRequest {
-  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ]; // 被评论对象id
+  int64 oid = 1 [(buf.validate.field).int64.gt = 0];  // 被评论对象id
 }
 
 message GetPinnedCommentResponse {
-  DetailedCommentItem item = 1; // 置顶评论信息
+  DetailedCommentItem item = 1;  // 置顶评论信息
 }
 
 // 获取被评论对象的评论数量
 message CountCommentRequest {
-  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ]; // 被评论对象id
+  int64 oid = 1 [(buf.validate.field).int64.gt = 0];  // 被评论对象id
 }
 
 message CountCommentResponse {
-  int64 count = 1; // 评论数量
+  int64 count = 1;  // 评论数量
 }
 
-message BatchCountCommentRequest { repeated int64 oids = 1; }
+message BatchCountCommentRequest {
+  repeated int64 oids = 1;
+}
 
-message BatchCountCommentResponse { map<int64, int64> numbers = 1; }
+message BatchCountCommentResponse {
+  map<int64, int64> numbers = 1;
+}
 
 message GetCommentLikeCountRequest {
-  int64 comment_id = 1 [ (buf.validate.field).int64.gt = 0 ]; // 评论id
+  int64 comment_id = 1 [(buf.validate.field).int64.gt = 0];  // 评论id
 }
 
 message GetCommentLikeCountResponse {
   int64 comment_id = 1;
-  int64 count = 2; // 点赞数量
+  int64 count      = 2;  // 点赞数量
 }
 
 message GetCommentDislikeCountRequest {
-  int64 comment_id = 1 [ (buf.validate.field).int64.gt = 0 ]; // 评论id
+  int64 comment_id = 1 [(buf.validate.field).int64.gt = 0];  // 评论id
 }
 
 message GetCommentDislikeCountResponse {
   int64 comment_id = 1;
-  int64 count = 2; // 点赞数量
+  int64 count      = 2;  // 点赞数量
 }
 
 message CheckUserOnObjectRequest {
-  int64 oid = 1 [ (buf.validate.field).int64.gt = 0 ]; // 被评论对象id
-  int64 uid = 2;                                       // 用户id
+  int64 oid = 1 [(buf.validate.field).int64.gt = 0];  // 被评论对象id
+  int64 uid = 2;                                      // 用户id
 }
 
-message CheckUserOnObjectResponse { OidCommented result = 1; }
+message CheckUserOnObjectResponse {
+  OidCommented result = 1;
+}
 
 message BatchCheckUserOnObjectRequest {
   message Objects {
-    repeated int64 oids = 1 [
-      (buf.validate.field).repeated .min_items = 1,
-      (buf.validate.field).repeated .max_items = 50
-    ];
+    repeated int64 oids = 1
+        [(buf.validate.field).repeated .min_items = 1, (buf.validate.field).repeated .max_items = 50];
   }
-  map<int64, Objects> mappings = 1 [
-    (buf.validate.field).map.min_pairs = 1,
-    (buf.validate.field).map.max_pairs = 50
-  ];
+  map<int64, Objects> mappings = 1 [(buf.validate.field).map.min_pairs = 1, (buf.validate.field).map.max_pairs = 50];
 }
 
 message OidCommented {
-  int64 oid = 1;
-  bool commented = 2;
+  int64 oid       = 1;
+  bool  commented = 2;
 }
 
-message OidCommentedList { repeated OidCommented list = 1; }
+message OidCommentedList {
+  repeated OidCommented list = 1;
+}
 
 message BatchCheckUserOnObjectResponse {
   map<int64, OidCommentedList> results = 1;
@@ -289,101 +293,135 @@ message BatchCheckUserLikeCommentRequest {
 
 message CommentLiked {
   int64 comment_id = 1;
-  bool liked = 2;
+  bool  liked      = 2;
 }
 
 message BatchCheckUserLikeCommentResponse {
   // results => {uid: [{comment_id, liked}, {comment_id, liked}, ...,
   // {comment_id, liked}]}
-  message CommentLikedList { repeated CommentLiked list = 1; }
+  message                      CommentLikedList { repeated CommentLiked list = 1; }
   map<int64, CommentLikedList> results = 1;
 }
 
-message UploadCommentImagesRequest { int32 requested_count = 1; }
-
-message UploadCommentImagesResponse {
-  repeated string store_keys = 1;
-  int64 current_time = 2;
-  int64 expire_time = 3;
-  string upload_addr = 4;
-  string token = 5;
+message UploadCommentImagesRequest {
+  int32 requested_count = 1;
 }
 
-message BatchCheckCommentExistRequest { repeated int64 ids = 1; }
+message UploadCommentImagesResponse {
+  repeated string store_keys   = 1;
+  int64           current_time = 2;
+  int64           expire_time  = 3;
+  string          upload_addr  = 4;
+  string          token        = 5;
+}
 
-message BatchCheckCommentExistResponse { map<int64, bool> existence = 1; }
+message BatchCheckCommentExistRequest {
+  repeated int64 ids = 1;
+}
 
-message GetCommentRequest { int64 comment_id = 1; }
+message BatchCheckCommentExistResponse {
+  map<int64, bool> existence = 1;
+}
+
+message GetCommentRequest {
+  int64 comment_id = 1;
+}
 
 message GetCommentResponse {
   // 返回的可能是主评论也可能是子评论取决于请求的commentId
   CommentItem item = 1;
 }
 
-message GetCommentUserRequest { int64 comment_id = 1; }
+message GetCommentUserRequest {
+  int64 comment_id = 1;
+}
 
-message GetCommentUserResponse { int64 uid = 1; }
+message GetCommentUserResponse {
+  int64 uid = 1;
+}
 
 service CommentService {
   // 发表评论
   rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
+
   // 删除评论
   rpc DelComment(DelCommentRequest) returns (DelCommentResponse);
+
   // 赞
   rpc LikeAction(LikeActionRequest) returns (LikeActionResponse);
+
   // 踩
   rpc DislikeAction(DislikeActionRequest) returns (DislikeActionResponse);
+
   // 举报
   rpc ReportComment(ReportCommentRequest) returns (ReportCommentResponse);
+
   // 置顶评论
   rpc PinComment(PinCommentRequest) returns (PinCommentResponse);
-  // 获取主评论信息
-  rpc PageGetComment(PageGetCommentRequest) returns (PageGetCommentResponse);
-  // 获取子评论信息
-  rpc PageGetSubComment(PageGetSubCommentRequest)
-      returns (PageGetSubCommentResponse);
-  // 分页获取子评论信息
-  rpc PageGetSubCommentV2(PageGetSubCommentV2Request)
-      returns (PageGetSubCommentV2Response);
-  // 获取主评论详细信息
-  rpc PageGetDetailedComment(PageGetDetailedCommentRequest)
-      returns (PageGetDetailedCommentResponse);
 
-  rpc PageGetDetailedCommentV2(PageGetDetailedCommentV2Request)
-      returns (PageGetDetailedCommentV2Response);
+  // 获取主评论信息
+  rpc PageGetComment(PageGetCommentRequest) returns (PageGetCommentResponse) {
+    option (apiextension.protobuf.options.method).skip_metadata_uid_check = true;
+  };
+
+  // 获取子评论信息
+  rpc PageGetSubComment(PageGetSubCommentRequest) returns (PageGetSubCommentResponse) {
+    option (apiextension.protobuf.options.method).skip_metadata_uid_check = true;
+  };
+
+  // 分页获取子评论信息
+  rpc PageGetSubCommentV2(PageGetSubCommentV2Request) returns (PageGetSubCommentV2Response);
+
+  // 获取主评论详细信息
+  rpc PageGetDetailedComment(PageGetDetailedCommentRequest) returns (PageGetDetailedCommentResponse) {
+    option (apiextension.protobuf.options.method).skip_metadata_uid_check = true;
+  };
+
+  rpc PageGetDetailedCommentV2(PageGetDetailedCommentV2Request) returns (PageGetDetailedCommentV2Response);
+
   // 获取置顶评论
-  rpc GetPinnedComment(GetPinnedCommentRequest)
-      returns (GetPinnedCommentResponse);
+  rpc GetPinnedComment(GetPinnedCommentRequest) returns (GetPinnedCommentResponse) {
+    option (apiextension.protobuf.options.method).skip_metadata_uid_check = true;
+  };
+
   // 获取某个被评对象的评论数
-  rpc CountComment(CountCommentRequest) returns (CountCommentResponse);
+  rpc CountComment(CountCommentRequest) returns (CountCommentResponse) {
+    option (apiextension.protobuf.options.method).skip_metadata_uid_check = true;
+  };
+
   // 获取多个被评论对象的评论数
-  rpc BatchCountComment(BatchCountCommentRequest)
-      returns (BatchCountCommentResponse);
+  rpc BatchCountComment(BatchCountCommentRequest) returns (BatchCountCommentResponse) {
+    option (apiextension.protobuf.options.method).skip_metadata_uid_check = true;
+  };
+
   // 获取某条评论的点赞数
-  rpc GetCommentLikeCount(GetCommentLikeCountRequest)
-      returns (GetCommentLikeCountResponse);
+  rpc GetCommentLikeCount(GetCommentLikeCountRequest) returns (GetCommentLikeCountResponse) {
+    option (apiextension.protobuf.options.method).skip_metadata_uid_check = true;
+  };
+
   // 获取某条评论的点踩数
-  rpc GetCommentDislikeCount(GetCommentDislikeCountRequest)
-      returns (GetCommentDislikeCountResponse);
+  rpc GetCommentDislikeCount(GetCommentDislikeCountRequest) returns (GetCommentDislikeCountResponse) {
+    option (apiextension.protobuf.options.method).skip_metadata_uid_check = true;
+  };
+
   // 获取某个用户是否评论了某个对象
-  rpc CheckUserOnObject(CheckUserOnObjectRequest)
-      returns (CheckUserOnObjectResponse);
+  rpc CheckUserOnObject(CheckUserOnObjectRequest) returns (CheckUserOnObjectResponse) {
+    option (apiextension.protobuf.options.method).skip_metadata_uid_check = true;
+  };
 
   // 批量检查某个用户是否评论了某个对象
-  rpc BatchCheckUserOnObject(BatchCheckUserOnObjectRequest)
-      returns (BatchCheckUserOnObjectResponse);
+  rpc BatchCheckUserOnObject(BatchCheckUserOnObjectRequest) returns (BatchCheckUserOnObjectResponse) {
+    option (apiextension.protobuf.options.method).skip_metadata_uid_check = true;
+  };
 
   // 批量检查某个用户是否点赞了某些评论
-  rpc BatchCheckUserLikeComment(BatchCheckUserLikeCommentRequest)
-      returns (BatchCheckUserLikeCommentResponse);
+  rpc BatchCheckUserLikeComment(BatchCheckUserLikeCommentRequest) returns (BatchCheckUserLikeCommentResponse);
 
   // 上传图片评论（申请上传凭证）
-  rpc UploadCommentImages(UploadCommentImagesRequest)
-      returns (UploadCommentImagesResponse);
+  rpc UploadCommentImages(UploadCommentImagesRequest) returns (UploadCommentImagesResponse);
 
   // 批量检查评论是否存在
-  rpc BatchCheckCommentExist(BatchCheckCommentExistRequest)
-      returns (BatchCheckCommentExistResponse);
+  rpc BatchCheckCommentExist(BatchCheckCommentExistRequest) returns (BatchCheckCommentExistResponse);
 
   // 按照id获取评论
   rpc GetComment(GetCommentRequest) returns (GetCommentResponse);

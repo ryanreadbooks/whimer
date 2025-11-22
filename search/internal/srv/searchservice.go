@@ -32,11 +32,11 @@ func (s *SearchService) SearchNotes(ctx context.Context, in *searchv1.SearchNote
 	for _, filter := range in.Filters {
 		filterValue := filter.Value
 		switch filter.Type {
-		case searchv1.NoteFilterType_filter_sort_rule:
-			filters = append(filters, noteindex.WithSearchNoteFilterNoteType(filterValue))
-		case searchv1.NoteFilterType_filter_note_type:
+		case searchv1.NoteFilterType_SORT_RULE:
 			filters = append(filters, noteindex.WithSearchNoteSortBy(filterValue))
-		case searchv1.NoteFilterType_filter_note_pubtime:
+		case searchv1.NoteFilterType_NOTE_TYPE:
+			filters = append(filters, noteindex.WithSearchNoteFilterNoteType(filterValue))
+		case searchv1.NoteFilterType_NOTE_PUBTIME:
 			filters = append(filters, noteindex.WithSearchNotePubTime(filterValue))
 		}
 	}

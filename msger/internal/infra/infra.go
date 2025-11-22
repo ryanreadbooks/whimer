@@ -16,12 +16,16 @@ var (
 )
 
 func Init(c *config.Config) {
-	// cache := redis.MustNewRedis(c.Redis)
+	cache = redis.MustNewRedis(c.Redis)
 	dao = infradao.MustNew(c)
 }
 
 func Dao() *infradao.Dao {
 	return dao
+}
+
+func Redis() *redis.Redis {
+	return cache
 }
 
 func DaoTransact(ctx context.Context, f func(ctx context.Context) error) error {

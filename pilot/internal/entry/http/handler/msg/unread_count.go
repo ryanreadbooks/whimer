@@ -10,8 +10,7 @@ import (
 )
 
 type GetTotalUnreadCountResp struct {
-	System     *sysmsgmodel.ChatsUnreadCount `json:"system"`
-	PeerUnread int64                         `json:"peer_unread"`
+	System *sysmsgmodel.ChatsUnreadCount `json:"system"`
 }
 
 func (h *Handler) GetTotalUnreadCount() http.HandlerFunc {
@@ -33,7 +32,7 @@ func (h *Handler) GetTotalUnreadCount() http.HandlerFunc {
 }
 
 // 清除未读数
-func (h *Handler) ClearChatUnread() http.HandlerFunc {
+func (h *Handler) ClearSysChatUnread() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[SysChatReq](httpx.ParseJsonBody, r)
 		if err != nil {

@@ -25,7 +25,8 @@ import (
 )
 
 const (
-	sessionTTL = 60 * 5 // 5 mins
+	sessionTTL  = 60 * 5    // 5 mins
+	inactiveGap = time.Hour // 1h未活跃视为不在线
 )
 
 type UnSendableSession interface {
@@ -34,6 +35,7 @@ type UnSendableSession interface {
 	GetDevice() model.Device
 	GetRemote() string
 	GetLocalIp() string
+	GetReqId() string
 }
 
 type sessionNoSend struct {
@@ -186,6 +188,7 @@ func (b *sessionBiz) Connect(ctx context.Context, conn Session) error {
 		LastActiveTime: now,
 		LocalIp:        conn.GetLocalIp(),
 		Ip:             conn.GetRemote(),
+		ReqId:          conn.GetReqId(),
 	}
 	if target == nil {
 		// create a new one
@@ -366,18 +369,38 @@ func (b *sessionBiz) GetUnSendSessionByUidDevice(ctx context.Context, uid int64,
 	return results, nil
 }
 
-func (s *sessionBiz) seperateLocalAndNonLocal(sessions []*dao.Session) ([]Session, []UnSendableSession) {
+func (s *sessionBiz) seperateLocalAndNonLocal(ctx context.Context, sessions []*dao.Session) ([]Session, []UnSendableSession) {
 	local := make([]Session, 0, len(sessions))
 	unlocal := make([]UnSendableSession, 0, len(sessions))
+
+	// 补偿删除失效的sessId
+	invalidSessIds := []string{}
+
 	for _, sess := range sessions {
-		if sess != nil && sess.Status == ws.StatusActive {
-			if sess.LocalIp == config.GetIpAndPort() && s.sessions.Has(sess.Id) {
-				local = append(local, s.sessions.Get(sess.Id))
+		if sess != nil && sess.Status.Active() {
+			if sess.LocalIp == config.GetIpAndPort() {
+				if s.sessions.Has(sess.Id) {
+					local = append(local, s.sessions.Get(sess.Id))
+				} else {
+					// 在本机但是无记录 并且active-time很久了 可以清理掉
+					lt := sess.LastActiveTime // unix second
+					now := time.Now().Unix()
+					diffSec := now - lt
+					// abs
+					if diffSec < 0 {
+						diffSec = -diffSec
+					}
+					if diffSec > int64(inactiveGap.Seconds()) {
+						invalidSessIds = append(invalidSessIds, sess.Id)
+					}
+				}
 			} else {
 				unlocal = append(unlocal, sess)
 			}
 		}
 	}
+
+	s.asyncInvalidateSessions(ctx, invalidSessIds)
 
 	return local, unlocal
 }
@@ -395,7 +418,7 @@ func (s *sessionBiz) RespectivelyGetSessionByUids(ctx context.Context, uid []int
 		sessions = append(sessions, sess...)
 	}
 
-	local, unsend := s.seperateLocalAndNonLocal(sessions)
+	local, unsend := s.seperateLocalAndNonLocal(ctx, sessions)
 
 	return local, unsend, nil
 }
@@ -406,6 +429,23 @@ func (b *sessionBiz) RespectivelyGetSessionByIds(ctx context.Context, sessIds []
 		return nil, nil, xerror.Wrapf(err, "session failed to batch get by id").WithExtras("ids", sessIds).WithCtx(ctx)
 	}
 
-	local, nonlocal := b.seperateLocalAndNonLocal(xmap.Values(sessions))
+	local, nonlocal := b.seperateLocalAndNonLocal(ctx, xmap.Values(sessions))
 	return local, nonlocal, nil
+}
+
+func (b *sessionBiz) asyncInvalidateSessions(ctx context.Context, sessIds []string) {
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "wslink.sessionbiz.invalidate.sessions",
+		Job: func(ctx context.Context) error {
+			xlog.Msgf("invalidate %d sessions", len(sessIds)).Infox(ctx)
+			for _, sessId := range sessIds {
+				err := infra.Dao().SessionDao.DeleteById(ctx, sessId)
+				if err != nil {
+					xlog.Msgf("session dao delete by id failed (%s)", sessId).
+						Extra("sess_id", sessId).Err(err).Errorx(ctx)
+				}
+			}
+			return nil
+		},
+	})
 }

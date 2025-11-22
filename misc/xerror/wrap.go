@@ -82,51 +82,51 @@ func (e *errProxy) Format(f fmt.State, verb rune) {
 }
 
 func (e *errProxy) Unwrap() error {
-	if e == nil {
-		return nil
+	if e != nil {
+		return e.cause
 	}
 
-	return e.cause
+	return nil
 }
 
 func (e *errProxy) Cause() error {
-	if e == nil {
-		return nil
+	if e != nil {
+		return e.cause
 	}
 
-	return e.cause
+	return nil
 }
 
 func (e *errProxy) Stack() []*runtime.Frame {
-	if e == nil {
-		return nil
+	if e != nil {
+		return e.stack
 	}
 
-	return e.stack
+	return nil
 }
 
 func (e *errProxy) Context() context.Context {
-	if e == nil {
-		return nil
+	if e != nil {
+		return e.ctx
 	}
 
-	return e.ctx
+	return nil
 }
 
 func (e *errProxy) Fields() map[string]any {
-	if e == nil {
-		return nil
+	if e != nil {
+		return e.fields
 	}
 
-	return e.fields
+	return nil
 }
 
 func (e *errProxy) Extra() map[string]any {
-	if e == nil {
-		return nil
+	if e != nil {
+		return e.extra
 	}
 
-	return e.extra
+	return nil
 }
 
 // log related methods

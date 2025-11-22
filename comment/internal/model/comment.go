@@ -2,15 +2,13 @@ package model
 
 import (
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
-	"github.com/ryanreadbooks/whimer/comment/internal/infra/dao"
-	"github.com/ryanreadbooks/whimer/misc/xnet"
 )
 
 // 一条评论的数据模型
 type CommentItem struct {
 	Id         int64                         `json:"id"`
 	Oid        int64                         `json:"oid"`
-	Type       int8                          `json:"type"`
+	Type       CommentType                   `json:"type"`
 	Content    string                        `json:"content"`
 	Uid        int64                         `json:"uid"`
 	RootId     int64                         `json:"root_id"`
@@ -29,34 +27,6 @@ type CommentItem struct {
 	SubsCount int64 `json:"subs_count"` // 其下子评论的数量
 }
 
-func NewCommentItemFromDao(d *dao.Comment) *CommentItem {
-	return &CommentItem{
-		Id:         d.Id,
-		Oid:        d.Oid,
-		Type:       d.Type,
-		Content:    d.Content,
-		Uid:        d.Uid,
-		RootId:     d.RootId,
-		ParentId:   d.ParentId,
-		RepliedUid: d.ReplyUid,
-		LikeCount:  int64(d.Like),
-		HateCount:  int64(d.Dislike),
-		Ctime:      d.Ctime,
-		Mtime:      d.Mtime,
-		Ip:         xnet.BytesIpAsString(d.Ip),
-		IsPin:      d.IsPin == dao.AlreadyPinned,
-	}
-}
-
-func NewCommentItemSliceFromDao(ds []*dao.Comment) []*CommentItem {
-	result := make([]*CommentItem, 0, len(ds))
-	for _, d := range ds {
-		result = append(result, NewCommentItemFromDao(d))
-	}
-
-	return result
-}
-
 func (r *CommentItem) IsRoot() bool {
 	return r.RootId == 0 && r.ParentId == 0
 }
@@ -65,7 +35,7 @@ func (r *CommentItem) AsPb() *commentv1.CommentItem {
 	return &commentv1.CommentItem{
 		Id:        r.Id,
 		Oid:       r.Oid,
-		Type:      commentv1.CommentType(r.Type),
+		Type:      CommentTypeToPb(r.Type),
 		Content:   r.Content,
 		Uid:       r.Uid,
 		RootId:    r.RootId,

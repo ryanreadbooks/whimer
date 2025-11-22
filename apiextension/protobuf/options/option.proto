@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package apiextension.protobuf.options;
+
+import "google/api/annotations.proto";
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/ryanreadbooks/whimer/apiextension/protobuf/options";
+
+message WhimerMethodOption {
+  bool skip_metadata_uid_check = 1;
+}
+
+message WhimerServiceOption {
+  bool skip_metadata_uid_check = 1;
+}
+
+extend google.protobuf.MethodOptions {
+  optional WhimerMethodOption method = 50000;
+}
+
+extend google.protobuf.ServiceOptions {
+  optional WhimerServiceOption service = 50001;
+}

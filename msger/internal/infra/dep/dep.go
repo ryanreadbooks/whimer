@@ -40,5 +40,8 @@ func Idgen() foliumsdk.IClient {
 }
 
 func initIdGen(c *config.Config) {
-	idGen = idgen.GetIdgen(c.Seqer.Addr, func(newIdgen foliumsdk.IClient) { idGen = newIdgen })
+	idGen = idgen.GetIdgen(c.Seqer.Addr,
+		func(newIdgen foliumsdk.IClient) {
+			idGen = newIdgen
+		})
 }

@@ -4,6 +4,6 @@ package pushcmd
 type Action string
 
 const (
-	ActionPullP2P     = "pull_p2p"
+	ActionPullWhisper = "pull_whisper"
 	ActionPullUnreads = "pull_unreads"
 )

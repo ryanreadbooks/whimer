@@ -18,10 +18,7 @@ func Init(c zrpc.RpcServerConf, svc *srv.Service) *zrpc.RpcServer {
 		xgrpc.EnableReflectionIfNecessary(c, s)
 	})
 
-	interceptor.InstallUnaryServerInterceptors(
-		server,
-		interceptor.WithUnaryChecker(),
-	)
+	interceptor.InstallUnaryServerInterceptors(server)
 
 	return server
 }

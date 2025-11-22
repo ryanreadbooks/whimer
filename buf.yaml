@@ -9,6 +9,7 @@ modules:
   - path: msger/api
   - path: wslink/api
   - path: search/api
+  - path: apiextension
 lint:
   use:
     - DEFAULT
@@ -18,3 +19,4 @@ breaking:
 
 deps:
   - buf.build/bufbuild/protovalidate
+  - buf.build/googleapis/googleapis

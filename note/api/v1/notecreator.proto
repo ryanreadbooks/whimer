@@ -8,103 +8,113 @@ import "v1/note.proto";
 option go_package = "github.com/ryanreadbooks/whimer/note/api/v1";
 
 message IsUserOwnNoteRequest {
-  int64 uid = 1;                                           // 用户id
-  int64 note_id = 2 [ (buf.validate.field).int64.gt = 0 ]; // 笔记id
+  int64 uid     = 1;                                      // 用户id
+  int64 note_id = 2 [(buf.validate.field).int64.gt = 0];  // 笔记id
 }
 
 message IsUserOwnNoteResponse {
-  int64 uid = 1;
-  bool result = 2; // 结果
+  int64 uid    = 1;
+  bool  result = 2;  // 结果
 }
 
 message IsNoteExistRequest {
-  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ];
+  int64 note_id = 1 [(buf.validate.field).int64.gt = 0];
 }
 
-message IsNoteExistResponse { bool exist = 1; }
+message IsNoteExistResponse {
+  bool exist = 1;
+}
 
 message CreateReqBasic {
-  string title = 1;
-  string desc = 2;
-  int32 privacy = 3;
+  string title   = 1;
+  string desc    = 2;
+  int32  privacy = 3;
 }
 
 message CreateReqImage {
   string file_id = 1;
-  uint32 width = 2;
-  uint32 height = 3;
-  string format = 4;
+  uint32 width   = 2;
+  uint32 height  = 3;
+  string format  = 4;
 }
 
-message CreateReqTag { repeated int64 tag_list = 1; }
+message CreateReqTag {
+  repeated int64 tag_list = 1;
+}
 
 message CreateNoteRequest {
-  CreateReqBasic basic = 1;
-  repeated CreateReqImage images = 2;
-  CreateReqTag tags = 3;
-  repeated NoteAtUser at_users = 4;
+  CreateReqBasic          basic    = 1;
+  repeated CreateReqImage images   = 2;
+  CreateReqTag            tags     = 3;
+  repeated NoteAtUser     at_users = 4;
 }
 
-message CreateNoteResponse { int64 note_id = 1; }
+message CreateNoteResponse {
+  int64 note_id = 1;
+}
 
 message DeleteNoteRequest {
-  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ];
+  int64 note_id = 1 [(buf.validate.field).int64.gt = 0];
 }
 
 message DeleteNoteResponse {}
 
 message UpdateNoteRequest {
-  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ];
-  CreateNoteRequest note = 2;
+  int64             note_id = 1 [(buf.validate.field).int64.gt = 0];
+  CreateNoteRequest note    = 2;
 }
 
-message UpdateNoteResponse { int64 note_id = 1; }
+message UpdateNoteResponse {
+  int64 note_id = 1;
+}
 
 message GetNoteRequest {
-  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ];
+  int64 note_id = 1 [(buf.validate.field).int64.gt = 0];
 }
 
-message GetNoteResponse { NoteItem note = 1; }
+message GetNoteResponse {
+  NoteItem note = 1;
+}
 
 message ListNoteRequest {
   int64 cursor = 1;
-  int32 count = 2;
+  int32 count  = 2;
 }
 
 message ListNoteResponse {
-  repeated NoteItem items = 1;
-  int64 next_cursor = 2;
-  bool has_next = 3;
+  repeated NoteItem items       = 1;
+  int64             next_cursor = 2;
+  bool              has_next    = 3;
 }
 
 // Deprecated
 message GetUploadAuthRequest {
   string resource = 1;
-  string source = 2;
+  string source   = 2;
 }
 
 // Deprecated
 message BatchGetUploadAuthRequest {
   string resource = 1;
-  string source = 2;
-  int32 count = 3 [ (buf.validate.field).int32.gt = 0 ];
+  string source   = 2;
+  int32  count    = 3 [(buf.validate.field).int32.gt = 0];
 }
 
 // Deprecated
 message UploadAuthResponseHeaders {
-  string auth = 1;
+  string auth   = 1;
   string sha256 = 2;
-  string date = 3;
-  string token = 4;
+  string date   = 3;
+  string token  = 4;
 }
 
 // Deprecated
 message GetUploadAuthResponse {
-  string file_id = 1;
-  int64 current_time = 2;
-  int64 expire_time = 3;
-  string upload_addr = 4;
-  UploadAuthResponseHeaders headers = 5;
+  string                    file_id      = 1;
+  int64                     current_time = 2;
+  int64                     expire_time  = 3;
+  string                    upload_addr  = 4;
+  UploadAuthResponseHeaders headers      = 5;
 }
 
 // Deprecated
@@ -113,56 +123,69 @@ message BatchGetUploadAuthResponse {
 }
 
 message GetPostedCountRequest {
-  int64 uid = 1; // 用户id
+  int64 uid = 1;  // 用户id
 }
 
-message GetPostedCountResponse { int64 count = 1; }
+message GetPostedCountResponse {
+  int64 count = 1;
+}
 
 message BatchGetUploadAuthV2Request {
   string resource = 1;
-  string source = 2;
-  int32 count = 3 [ (buf.validate.field).int32.gt = 0 ];
+  string source   = 2;
+  int32  count    = 3 [(buf.validate.field).int32.gt = 0];
 }
 
 message BatchGetUploadAuthV2Response {
-  repeated string file_ids = 1;
-  int64 current_time = 2;
-  int64 expire_time = 3;
-  string upload_addr = 4;
-  string token = 5;
+  repeated string file_ids     = 1;
+  int64           current_time = 2;
+  int64           expire_time  = 3;
+  string          upload_addr  = 4;
+  string          token        = 5;
 }
 
 message PageListNoteRequest {
-  int32 page = 1;
+  int32 page  = 1;
   int32 count = 2;
 }
 
 message PageListNoteResponse {
-  int64 total = 1;
+  int64             total = 1;
   repeated NoteItem items = 2;
 }
 
-message AddTagRequest { string name = 1; }
+message AddTagRequest {
+  string name = 1;
+}
 
-message AddTagResponse { int64 id = 1; }
+message AddTagResponse {
+  int64 id = 1;
+}
 
 // 和笔记管理相关的服务
 // 比如发布笔记，修改笔记，删除笔记等管理笔记的功能
 service NoteCreatorService {
   // 检查用户是否拥有指定的笔记
   rpc IsUserOwnNote(IsUserOwnNoteRequest) returns (IsUserOwnNoteResponse);
+
   // 判断笔记是否存在
   rpc IsNoteExist(IsNoteExistRequest) returns (IsNoteExistResponse);
+
   // 创建笔记
   rpc CreateNote(CreateNoteRequest) returns (CreateNoteResponse);
+
   // 更新笔记
   rpc UpdateNote(UpdateNoteRequest) returns (UpdateNoteResponse);
+
   // 删除笔记
   rpc DeleteNote(DeleteNoteRequest) returns (DeleteNoteResponse);
+
   // 获取笔记的信息
   rpc GetNote(GetNoteRequest) returns (GetNoteResponse);
+
   // 列出笔记
   rpc ListNote(ListNoteRequest) returns (ListNoteResponse);
+
   // 分页列出笔记
   rpc PageListNote(PageListNoteRequest) returns (PageListNoteResponse);
 
@@ -175,12 +198,11 @@ service NoteCreatorService {
   //
   // Deprecated: BatchGetUploadAuth is deprecated, use BatchGetUploadAuthV2
   // instead.
-  rpc BatchGetUploadAuth(BatchGetUploadAuthRequest)
-      returns (BatchGetUploadAuthResponse);
+  rpc BatchGetUploadAuth(BatchGetUploadAuthRequest) returns (BatchGetUploadAuthResponse);
 
   // 获取上传凭证v2
-  rpc BatchGetUploadAuthV2(BatchGetUploadAuthV2Request)
-      returns (BatchGetUploadAuthV2Response);
+  rpc BatchGetUploadAuthV2(BatchGetUploadAuthV2Request) returns (BatchGetUploadAuthV2Response);
+  
   // 获取用户投稿数量
   rpc GetPostedCount(GetPostedCountRequest) returns (GetPostedCountResponse);
 

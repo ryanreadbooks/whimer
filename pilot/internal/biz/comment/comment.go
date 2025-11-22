@@ -348,8 +348,6 @@ func (b *Biz) LikeNoteComment(ctx context.Context, req *model.ThumbUpReq) error 
 		return xerror.Wrapf(err, "remote commenter like action failed")
 	}
 
-	// TODO 通知用户
-
 	return err
 }
 
@@ -522,4 +520,26 @@ func (b *Biz) GetCommentContent(ctx context.Context, id int64) (*globalmodel.Com
 		Text:    content,
 		AtUsers: atUsers,
 	}, nil
+}
+
+func (b *Biz) GetCommentUser(ctx context.Context, id int64) (int64, error) {
+	resp, err := dep.Commenter().GetCommentUser(ctx, &commentv1.GetCommentUserRequest{
+		CommentId: id,
+	})
+	if err != nil {
+		return 0, xerror.Wrapf(err, "remote get comment user failed").WithExtra("comment_id", id).WithCtx(ctx)
+	}
+
+	return resp.GetUid(), nil
+}
+
+func (b *Biz) GetComment(ctx context.Context, id int64) (*model.CommentItemBase, error) {
+	resp, err := dep.Commenter().GetComment(ctx, &commentv1.GetCommentRequest{
+		CommentId: id,
+	})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "remote get comment failed").WithExtra("comment_id", id).WithCtx(ctx)
+	}
+
+	return model.NewCommentItemBaseFromPb(resp.GetItem()), nil
 }

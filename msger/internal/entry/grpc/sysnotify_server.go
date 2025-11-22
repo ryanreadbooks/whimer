@@ -13,12 +13,12 @@ import (
 type SystemNotificationServiceServer struct {
 	systemv1.UnimplementedNotificationServiceServer
 
-	Svc *srv.Service
+	Service *srv.Service
 }
 
-func NewSystemNotificationServiceServer(svc *srv.Service) *SystemNotificationServiceServer {
+func NewSystemNotificationServiceServer(srv *srv.Service) *SystemNotificationServiceServer {
 	return &SystemNotificationServiceServer{
-		Svc: svc,
+		Service: srv,
 	}
 }
 
@@ -49,7 +49,7 @@ func (s *SystemNotificationServiceServer) NotifyReplyMsg(ctx context.Context, in
 		})
 	}
 
-	msgIds, err := s.Svc.SystemChatSrv.NotifyReplySystemMsg(ctx, reqs)
+	msgIds, err := s.Service.SystemChatSrv.NotifyReplySystemMsg(ctx, reqs)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (s *SystemNotificationServiceServer) NotifyMentionMsg(ctx context.Context, 
 		})
 	}
 
-	msgIds, err := s.Svc.SystemChatSrv.NotifyMentionSystemMsg(ctx, reqs)
+	msgIds, err := s.Service.SystemChatSrv.NotifyMentionSystemMsg(ctx, reqs)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (s *SystemNotificationServiceServer) NotifyLikesMsg(ctx context.Context, in
 		})
 	}
 
-	msgIds, err := s.Svc.SystemChatSrv.NotifyLikesSystemMsg(ctx, reqs)
+	msgIds, err := s.Service.SystemChatSrv.NotifyLikesSystemMsg(ctx, reqs)
 	if err != nil {
 		return nil, err
 	}

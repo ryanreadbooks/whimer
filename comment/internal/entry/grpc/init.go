@@ -16,11 +16,7 @@ func Init(c zrpc.RpcServerConf, svc *srv.Service) *zrpc.RpcServer {
 		xgrpc.EnableReflectionIfNecessary(c, s)
 	})
 	interceptor.InstallUnaryServerInterceptors(server,
-		interceptor.WithUnaryChecker(
-			checker.UidExistenceWithOpt(
-				checker.WithMethodsIgnore(uidCheckIgnoredMethods...),
-			),
-		))
+		interceptor.WithUnaryChecker(checker.UidExistence))
 
 	return server
 }

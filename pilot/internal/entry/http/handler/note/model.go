@@ -15,13 +15,13 @@ import (
 )
 
 const (
-	VisibilityPublic  = int8(notev1.NotePrivacy_NotePrivacy_Public)
-	VisibilityPrivate = int8(notev1.NotePrivacy_NotePrivacy_Private)
+	VisibilityPublic  = int8(notev1.NotePrivacy_PUBLIC)
+	VisibilityPrivate = int8(notev1.NotePrivacy_PRIVATE)
 )
 
 const (
-	AssetTypeImage = int8(notev1.NoteAssetType_NoteAssetType_Image)
-	AssetTypeVideo = int8(notev1.NoteAssetType_NoteAssetType_Video)
+	AssetTypeImage = int8(notev1.NoteAssetType_IMAGE)
+	AssetTypeVideo = int8(notev1.NoteAssetType_VIDEO)
 )
 
 const (

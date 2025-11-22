@@ -2,6 +2,7 @@ package xslice
 
 import (
 	stderr "errors"
+	"fmt"
 	"sync"
 )
 
@@ -68,6 +69,7 @@ func BatchAsyncExec[T any](wg *sync.WaitGroup, list []T, batchsize int, f func(s
 			defer func() {
 				wg.Done()
 				if e := recover(); e != nil {
+					errors <- fmt.Errorf("panic: %v", e)
 					return
 				}
 			}()

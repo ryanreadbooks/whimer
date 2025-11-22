@@ -15,6 +15,10 @@ import (
 type UnaryServerMetadataChecker func(ctx context.Context, info *grpc.UnaryServerInfo) error
 
 func UidExistence(ctx context.Context, info *grpc.UnaryServerInfo) error {
+	if GetForceSkipUidCheck(ctx) {
+		return nil
+	}
+
 	uid := metadata.Uid(ctx)
 	if uid == 0 {
 		return xerror.ErrNotLogin
@@ -24,6 +28,10 @@ func UidExistence(ctx context.Context, info *grpc.UnaryServerInfo) error {
 }
 
 func UidExistenceLoose(ctx context.Context, info *grpc.UnaryServerInfo) error {
+	if GetForceSkipUidCheck(ctx) {
+		return nil
+	}
+
 	uid := metadata.Uid(ctx)
 	if uid == 0 {
 		xlog.Msg("uid not found in grpc incoming metadata").Info()
@@ -42,23 +50,26 @@ type Option func(o *option)
 // 拦截器对某些grpc服务不生效
 func WithServicesIgnore(ignores ...string) Option {
 	return func(o *option) {
-		o.ignoredServices = ignores
+		o.ignoredServices = append(o.ignoredServices, ignores...)
 	}
 }
 
 // 拦截器对某给grpc方法不生效
 func WithMethodsIgnore(methods ...string) Option {
 	return func(o *option) {
-		o.ignoredMethods = methods
-		// 内置方法
-		o.ignoredMethods = append(o.ignoredMethods, grpc_health_v1.Health_Check_FullMethodName)
-		o.ignoredMethods = append(o.ignoredMethods, grpc_health_v1.Health_Watch_FullMethodName)
+		o.ignoredMethods = append(o.ignoredMethods, methods...)
 	}
 }
 
 // 可设置某些服务忽略此中间件检查
 func UidExistenceWithOpt(opts ...Option) UnaryServerMetadataChecker {
-	var opt option
+	var opt = option{
+		// 内置方法
+		ignoredMethods: []string{
+			grpc_health_v1.Health_Check_FullMethodName,
+			grpc_health_v1.Health_Watch_FullMethodName,
+		},
+	}
 	for _, o := range opts {
 		o(&opt)
 	}
@@ -87,7 +98,7 @@ func UidExistenceWithOpt(opts ...Option) UnaryServerMetadataChecker {
 
 	// interceptor
 	return func(ctx context.Context, info *grpc.UnaryServerInfo) error {
-		if shouldIgnore(info) {
+		if shouldIgnore(info) || GetForceSkipUidCheck(ctx) {
 			return nil
 		}
 

@@ -48,6 +48,14 @@ func GetFields(v any, skip ...string) string {
 	return s
 }
 
+func GetFieldSlice(v any, skip ...string) []string {
+	_, ss := getFields(v, func(tag string) bool {
+		return !slices.Contains(skip, tag)
+	})
+
+	return ss
+}
+
 func getQuest(fields string) string {
 	fieldsList := strings.Split(fields, ",")
 	fl := len(fieldsList)

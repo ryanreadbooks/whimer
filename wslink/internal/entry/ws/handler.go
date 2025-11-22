@@ -21,47 +21,56 @@ func (s *Server) isUpgradeAllowed(r *http.Request) error {
 		return global.ErrBizInternal
 	}
 
-	// 判断最大连接情况
+	// TODO
 
 	return nil
 }
 
 // 协议升级成websocket
 func (s *Server) upgrade(w http.ResponseWriter, r *http.Request) {
+	// req param check
+	reqId := r.URL.Query().Get("req_id")
+	if reqId == "" {
+		// req_id must exist
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(global.ErrReqIdMissing.Error()))
+		return
+	}
 	wsConn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		// err != nil时 upgrader.Upgrade已经处理了
 		return
 	}
 
-	session := ws.CreateSession(
+	conn := ws.CreateConnection(
 		wsConn,
 		ws.WithReadTimeout(s.conf.ReadTimeout.Duration()),
 		ws.WithWriteTimeout(s.conf.WriteTimeout.Duration()),
 	)
-	session.SetDevice(model.DeviceWeb)
-	session.SetLocalIp(config.GetIpAndPort())
+	conn.SetDevice(model.DeviceWeb)
+	conn.SetLocalIp(config.GetIpAndPort())
+	conn.SetReqId(reqId)
 
 	ctx := r.Context()
-	if err := s.OnCreate(ctx, session); err != nil {
+	if err := s.OnCreate(ctx, conn); err != nil {
 		// err is not nil, we deny this connection
-		ws.RecoverSession(session)
+		ws.RecoverConnection(conn)
 		xhttp.Error(r, w, err)
 		wsConn.Close()
 		return
 	}
 
-	session.SetOnData(s)
-	session.SetAfterClosed(s)
+	conn.SetOnData(s)
+	conn.SetAfterClosed(s)
 
 	concurrent.SafeGo(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer func() {
 			cancel()
-			ws.RecoverSession(session)
+			ws.RecoverConnection(conn)
 		}()
 
-		session.Loop(ctx)
+		conn.Loop(ctx)
 	})
 }
 

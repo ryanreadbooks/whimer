@@ -5,65 +5,67 @@ package note.api.v1;
 import "buf/validate/validate.proto";
 import "v1/note.proto";
 import "v1/noteinteract.proto";
+import "protobuf/options/option.proto";
 
 option go_package = "github.com/ryanreadbooks/whimer/note/api/v1";
 
 message RandomGetRequest {
-  int32 count = 1 [
-    (buf.validate.field).int32.gt = 0,
-    (buf.validate.field).int32.lte = 30
-  ];
+  int32 count = 1 [(buf.validate.field).int32.gt = 0, (buf.validate.field).int32.lte = 30];
 }
 
 message RandomGetResponse {
   repeated FeedNoteItem items = 1;
-  int32 count = 2;
+  int32                 count = 2;
 }
 
 message GetFeedNoteRequest {
-  int64 note_id = 1 [ (buf.validate.field).int64.gt = 0 ]; //笔记id
+  int64 note_id = 1 [(buf.validate.field).int64.gt = 0];  //笔记id
 }
 
 message GetFeedNoteResponse {
-  FeedNoteItem item = 1;
-  FeedNoteItemExt ext = 2;
+  FeedNoteItem    item = 1;
+  FeedNoteItemExt ext  = 2;
 }
 
 message RecommendGetRequest {
-  int64 uid = 1; // 用户id
-  int32 need_num = 2 [
-    (buf.validate.field).int32.gt = 0,
-    (buf.validate.field).int32.lte = 30
-  ]; // 推荐条数
+  int64 uid      = 1;  // 用户id
+  int32 need_num = 2 [(buf.validate.field).int32.gt  = 0,
+                      (buf.validate.field).int32.lte = 30];  // 推荐条数
 }
 
 message RecommendGetResponse {}
 
 message GetUserRecentPostRequest {
-  int64 uid = 1;
-  int32 count = 2 [ (buf.validate.field).int32.lte = 5 ];
+  int64 uid   = 1;
+  int32 count = 2 [(buf.validate.field).int32.lte = 5];
 }
 
-message GetUserRecentPostResponse { repeated FeedNoteItem items = 1; }
+message GetUserRecentPostResponse {
+  repeated FeedNoteItem items = 1;
+}
 
 message ListFeedByUidRequest {
-  int64 uid = 1;
+  int64 uid    = 1;
   int64 cursor = 2;
-  int32 count = 3;
+  int32 count  = 3;
 }
 
 message ListFeedByUidResponse {
-  repeated FeedNoteItem items = 1;
-  int64 next_cursor = 2;
-  bool has_next = 3;
+  repeated FeedNoteItem items       = 1;
+  int64                 next_cursor = 2;
+  bool                  has_next    = 3;
 }
 
-message GetTagInfoRequest { int64 id = 1; }
+message GetTagInfoRequest {
+  int64 id = 1;
+}
 
-message GetTagInfoResponse { NoteTag tag = 1; }
+message GetTagInfoResponse {
+  NoteTag tag = 1;
+}
 
 message BatchGetFeedNotesRequest {
-  repeated int64 note_ids = 1 [ (buf.validate.field).repeated .max_items = 30 ];
+  repeated int64 note_ids = 1 [(buf.validate.field).repeated .max_items = 30];
 }
 
 message BatchGetFeedNotesResponse {
@@ -71,21 +73,33 @@ message BatchGetFeedNotesResponse {
 }
 
 message GetPublicPostedCountRequest {
-  int64 uid = 1; // 用户id
+  int64 uid = 1;  // 用户id
 }
 
-message GetPublicPostedCountResponse { int64 count = 1; }
+message GetPublicPostedCountResponse {
+  int64 count = 1;
+}
 
-message BatchCheckFeedNoteExistRequest { repeated int64 note_ids = 1; }
+message BatchCheckFeedNoteExistRequest {
+  repeated int64 note_ids = 1;
+}
 
-message BatchCheckFeedNoteExistResponse { map<int64, bool> existence = 1; }
+message BatchCheckFeedNoteExistResponse {
+  map<int64, bool> existence = 1;
+}
 
-message GetNoteAuthorRequest { int64 note_id = 1; }
+message GetNoteAuthorRequest {
+  int64 note_id = 1;
+}
 
-message GetNoteAuthorResponse { int64 author = 1; }
+message GetNoteAuthorResponse {
+  int64 author = 1;
+}
 
 // note相关非管理功能服务
 service NoteFeedService {
+  option (apiextension.protobuf.options.service).skip_metadata_uid_check = true;
+
   // 随机获取笔记内容
   rpc RandomGet(RandomGetRequest) returns (RandomGetResponse);
 
@@ -96,15 +110,13 @@ service NoteFeedService {
   rpc GetNoteAuthor(GetNoteAuthorRequest) returns (GetNoteAuthorResponse);
 
   // 批量获取笔记
-  rpc BatchGetFeedNotes(BatchGetFeedNotesRequest)
-      returns (BatchGetFeedNotesResponse);
+  rpc BatchGetFeedNotes(BatchGetFeedNotesRequest) returns (BatchGetFeedNotesResponse);
 
   // 按照推荐获取
   rpc RecommendGet(RecommendGetRequest) returns (RecommendGetResponse);
 
   // 获取指定用户的最近的笔记内容
-  rpc GetUserRecentPost(GetUserRecentPostRequest)
-      returns (GetUserRecentPostResponse);
+  rpc GetUserRecentPost(GetUserRecentPostRequest) returns (GetUserRecentPostResponse);
 
   // 列出指定用户公开的笔记内容
   rpc ListFeedByUid(ListFeedByUidRequest) returns (ListFeedByUidResponse);
@@ -113,10 +125,8 @@ service NoteFeedService {
   rpc GetTagInfo(GetTagInfoRequest) returns (GetTagInfoResponse);
 
   // 获取用户投稿数量
-  rpc GetPublicPostedCount(GetPublicPostedCountRequest)
-      returns (GetPublicPostedCountResponse);
+  rpc GetPublicPostedCount(GetPublicPostedCountRequest) returns (GetPublicPostedCountResponse);
 
   // 检查笔记是否存在（存在且公开）
-  rpc BatchCheckFeedNoteExist(BatchCheckFeedNoteExistRequest)
-      returns (BatchCheckFeedNoteExistResponse);
+  rpc BatchCheckFeedNoteExist(BatchCheckFeedNoteExistRequest) returns (BatchCheckFeedNoteExistResponse);
 }

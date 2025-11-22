@@ -6,8 +6,8 @@ import "encoding/json"
 type Cmd string
 
 const (
-	CmdP2PMsgNotify = "p2p_notify"
-	CmdSysMsgNotify = "sys_notify"
+	CmdWhisperMsgNotify = "whisper_notify"
+	CmdSysMsgNotify     = "sys_notify"
 )
 
 type CmdAction struct {

@@ -1,6 +1,5 @@
 package sysnotify
 
-type Biz struct {
-}
+type Biz struct {}
 
 func NewBiz() *Biz { return &Biz{} }

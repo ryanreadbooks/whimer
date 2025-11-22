@@ -33,7 +33,7 @@ func (h *Handler) fetchNote(ctx context.Context, noteId int64) (*notev1.NoteItem
 }
 
 func isNotePrivate(note *notev1.NoteItem) bool {
-	return note.GetPrivacy() == int32(notev1.NotePrivacy_NotePrivacy_Private)
+	return note.GetPrivacy() == int32(notev1.NotePrivacy_PRIVATE)
 }
 
 func (h *Handler) creatorSyncNoteToSearcher(ctx context.Context, noteId int64, note *notev1.NoteItem) {
