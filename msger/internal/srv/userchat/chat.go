@@ -239,34 +239,45 @@ func (s *UserChatSrv) RecallMsg(ctx context.Context, operator int64, chatId, msg
 
 	// 处理inbox 如果msgId还没有被读 需要撤回未读数？
 	if targetChat.IsP2PChat() {
-		reads, err := s.BatchCheckUsersInBoxMsgRead(ctx, chatId, msgId, targetChat.Members)
-		if err != nil {
-			// 消息已经撤回 未读数为更新失败不影响流程
-			xlog.Msgf("batch check users inbox msg read error").
-				Extras("chat_id", chatId, "msg_id", msgId).Err(err).Errorx(ctx)
-			return nil
-		}
-		uidA, uidB := targetChat.Members[0], targetChat.Members[1]
-		uidARead := reads[uidA]
-		uidBRead := reads[uidB]
-		updateUids := []int64{}
-		if !uidARead {
-			updateUids = append(updateUids, uidA)
-		}
-		if !uidBRead {
-			updateUids = append(updateUids, uidB)
-		}
-
-		err = s.chatInboxBiz.BatchDecrUnreadCount(ctx, updateUids, chatId)
-		if err != nil {
-			xlog.Msgf("batch decr unread count failed").
-				Extras("chat_id", chatId, "msg_id", msgId, "uids", updateUids).Err(err).Errorx(ctx)
-			// 更新失败不影响
-		}
+		s.postHandleRecallMsgP2P(ctx, chatId, msgId, targetChat)
+	} else {
+		s.postHandleRecallMsgGroup(ctx, chatId, msgId, targetChat)
 	}
-	// TODO 此处人数太多的群聊可以先不处理 或者放消息队列异步处理
 
 	return nil
+}
+
+func (s *UserChatSrv) postHandleRecallMsgP2P(ctx context.Context, chatId, msgId uuid.UUID, targetChat *userchat.Chat) {
+	reads, err := s.BatchCheckUsersInBoxMsgRead(ctx, chatId, msgId, targetChat.Members)
+	if err != nil {
+		// 消息已经撤回 未读数为更新失败不影响流程
+		xlog.Msgf("batch check users inbox msg read error").
+			Extras("chat_id", chatId, "msg_id", msgId).Err(err).Errorx(ctx)
+
+		return
+	}
+
+	uidA, uidB := targetChat.Members[0], targetChat.Members[1]
+	uidARead := reads[uidA]
+	uidBRead := reads[uidB]
+	updateUids := []int64{}
+	if !uidARead {
+		updateUids = append(updateUids, uidA)
+	}
+	if !uidBRead {
+		updateUids = append(updateUids, uidB)
+	}
+
+	err = s.chatInboxBiz.BatchDecrUnreadCount(ctx, updateUids, chatId)
+	if err != nil {
+		// 更新失败不影响 仅打日志即可
+		xlog.Msgf("batch decr unread count failed").
+			Extras("chat_id", chatId, "msg_id", msgId, "uids", updateUids).Err(err).Errorx(ctx)
+	}
+}
+
+func (s *UserChatSrv) postHandleRecallMsgGroup(ctx context.Context, chatId, msgId uuid.UUID, targetChat *userchat.Chat) {
+	// TODO 此处人数太多的群聊可以先不处理 或者放消息队列异步处理
 }
 
 // 更新members收信箱
@@ -366,13 +377,6 @@ func (s *UserChatSrv) isAllowedToSendMsg(ctx context.Context, sender int64, chat
 }
 
 func (s *UserChatSrv) isAllowedToRecallMsg(ctx context.Context, operator int64, chat *userchat.Chat, msg *userchat.Msg) error {
-	// check msg time
-	msgSendAt := msg.Id.Time()
-	now := time.Now()
-	if now.Sub(msgSendAt) > model.MaxRecallTime {
-		return global.ErrRecallTimeReached
-	}
-
 	if !chat.IsUserInChat(operator) {
 		return global.ErrCantRecallMsg
 	}
@@ -386,6 +390,17 @@ func (s *UserChatSrv) isAllowedToRecallMsg(ctx context.Context, operator int64, 
 		// TODO
 	} else {
 		return global.ErrCantRecallMsg
+	}
+
+	if msg.Status.IsRecall() {
+		return global.ErrMsgAlreadyRecalled
+	}
+
+	// check msg time
+	msgSendAt := msg.Id.Time()
+	now := time.Now()
+	if now.Sub(msgSendAt) > model.MaxRecallTime {
+		return global.ErrRecallTimeReached
 	}
 
 	return nil
@@ -473,4 +488,14 @@ func (s *UserChatSrv) BatchCheckUsersInBoxMsgRead(ctx context.Context, chatId, m
 	}
 
 	return readsResult, nil
+}
+
+// 清除用户在chat的未读数
+func (s *UserChatSrv) ClearUnreadCount(ctx context.Context, uid int64, chatId uuid.UUID) error {
+	err := s.chatInboxBiz.SetLastReadMsgIdToLatest(ctx, chatId, uid)
+	if err != nil {
+		return xerror.Wrapf(err, "chat inbox biz set last read msg failed").WithCtx(ctx)
+	}
+
+	return nil
 }

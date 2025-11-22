@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
@@ -68,21 +69,32 @@ func (b *Biz) SendChatMsg(ctx context.Context, chatId, cid string, msg *whisperm
 		return "", xerror.Wrapf(err, "remove send msg to chat failed").WithCtx(ctx)
 	}
 
-	membersResp, err := dep.UserChatter().GetChatMembers(ctx,
-		&userchatv1.GetChatMembersRequest{
-			ChatId: chatId,
-		})
-	if err != nil {
-		xlog.Msg("remote get chat members failed").Extras("chat_id", chatId).Errorx(ctx)
-	} else {
-		members := xslice.Filter(membersResp.GetMembers(), func(_ int, v int64) bool { return v == uid })
-		// 消息推送
-		if err := pushcenter.BatchNotifyWhisperMsg(ctx, members); err != nil {
-			xlog.Msg("push notify whisper msg failed").Extras("chat_id", chatId, "members", members).Errorx(ctx)
-		}
-	}
-
+	b.asyncNotifyWhisperEvent(ctx, uid, chatId)
 	return resp.MsgId, nil
+}
+
+func (b *Biz) asyncNotifyWhisperEvent(ctx context.Context, uid int64, chatId string) {
+	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		Name: "whisper.biz.notify_whisper",
+		Job: func(ctx context.Context) error {
+			req := &userchatv1.GetChatMembersRequest{
+				ChatId: chatId,
+			}
+			resp, err := dep.UserChatter().GetChatMembers(ctx, req)
+			if err != nil {
+				xlog.Msg("remote get chat members failed").Extras("chat_id", chatId).Errorx(ctx)
+			} else {
+				// 排除uid 一般是消息发送者或者消息撤回者
+				members := xslice.Filter(resp.GetMembers(), func(_ int, v int64) bool { return v == uid })
+				// 消息推送
+				if err := pushcenter.BatchNotifyWhisperMsg(ctx, members); err != nil {
+					xlog.Msg("push notify whisper msg failed").Extras("chat_id", chatId, "members", members).Errorx(ctx)
+				}
+			}
+
+			return nil
+		},
+	})
 }
 
 // 列出用户最近会话列表
@@ -187,4 +199,45 @@ func (b *Biz) ListChatMsgs(ctx context.Context, uid int64, chatId string,
 	}
 
 	return msgs, nil
+}
+
+// 撤回消息
+func (b *Biz) RecallChatMsg(ctx context.Context, chatId, msgId string) error {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	_, err := dep.UserChatter().RecallMsg(ctx, &userchatv1.RecallMsgRequest{
+		Uid:    uid,
+		MsgId:  msgId,
+		ChatId: chatId,
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "remote recall msg failed").
+			WithCtx(ctx).WithExtras("msg_id", msgId, "chat_id", chatId)
+	}
+
+	// 消息推送
+	b.asyncNotifyWhisperEvent(ctx, uid, chatId)
+
+	return nil
+}
+
+// 清除用户会话未读数
+func (b *Biz) ClearChatUnread(ctx context.Context, chatId string) error {
+	var (
+		uid = metadata.Uid(ctx)
+	)
+
+	_, err := dep.UserChatter().ClearChatUnread(ctx, &userchatv1.ClearChatUnreadRequest{
+		ChatId: chatId,
+		Uid:    uid,
+	})
+
+	if err != nil {
+		return xerror.Wrapf(err, "remote clear chat unread failed").
+			WithCtx(ctx).WithExtras("chat_id", chatId)
+	}
+
+	return nil
 }

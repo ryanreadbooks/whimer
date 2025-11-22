@@ -107,10 +107,18 @@ func (u UUID) String() string {
 	return ""
 }
 
+// 32
 func encodeHex(dst []byte, uuid googleuuid.UUID) {
 	hex.Encode(dst, uuid[:4])
 	hex.Encode(dst[8:12], uuid[4:6])
 	hex.Encode(dst[12:16], uuid[6:8])
 	hex.Encode(dst[16:20], uuid[8:10])
 	hex.Encode(dst[20:], uuid[10:])
+}
+
+// 实现 encoding.TextMarshaler 接口
+func (u UUID) MarshalText() ([]byte, error) {
+	var js [32]byte
+	encodeHex(js[:], u.UUID)
+	return js[:], nil
 }

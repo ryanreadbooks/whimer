@@ -130,7 +130,7 @@ func (b *ChatInboxBiz) BatchUpdateInboxLastMsgId(ctx context.Context,
 	return nil
 }
 
-// 将uid信箱的最后已读消息设置为最后一条消息
+// 将uid信箱的最后已读消息设置为最后一条消息 并且清空未读数
 func (b *ChatInboxBiz) SetLastReadMsgIdToLatest(ctx context.Context, chatId uuid.UUID, uid int64) error {
 	err := infra.Dao().ChatInboxDao.SetLastReadMsgId(ctx, uid, chatId, getAccurateTime())
 	if err != nil {

@@ -32,7 +32,7 @@ func (h *Handler) GetTotalUnreadCount() http.HandlerFunc {
 }
 
 // 清除未读数
-func (h *Handler) ClearChatUnread() http.HandlerFunc {
+func (h *Handler) ClearSysChatUnread() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[SysChatReq](httpx.ParseJsonBody, r)
 		if err != nil {

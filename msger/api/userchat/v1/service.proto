@@ -27,6 +27,12 @@ service UserChatService {
 
   // 获取消息列表
   rpc ListChatMsgs(ListChatMsgsRequest) returns (ListChatMsgsResponse);
+
+  // 撤回消息
+  rpc RecallMsg(RecallMsgRequest) returns (RecallMsgResponse);
+
+  // 清空用户会话未读数
+  rpc ClearChatUnread(ClearChatUnreadRequest) returns (ClearChatUnreadResponse);
 }
 
 message Int64List {
@@ -100,3 +106,18 @@ message ListChatMsgsRequest {
 message ListChatMsgsResponse {
   repeated ChatMsg chat_msgs = 1;
 }
+
+message RecallMsgRequest {
+  int64  uid     = 1 [(buf.validate.field).int64.gt = 0];
+  string msg_id  = 2 [(buf.validate.field).string.min_len = 1];
+  string chat_id = 3 [(buf.validate.field).string.min_len = 1];
+}
+
+message RecallMsgResponse {}
+
+message ClearChatUnreadRequest {
+  int64  uid     = 1 [(buf.validate.field).int64.gt = 0];
+  string chat_id = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+message ClearChatUnreadResponse {}

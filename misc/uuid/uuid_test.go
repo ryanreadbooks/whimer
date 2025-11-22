@@ -1,9 +1,11 @@
 package uuid
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 )
 
 func TestUUIDCompare(t *testing.T) {
@@ -81,4 +83,31 @@ func TestUUIDString(t *testing.T) {
 	t.Log(id.String())
 	t.Log(parsed.String())
 	t.Log(parsed.UUID.String())
+}
+
+func TestUUIDLog(t *testing.T) {
+	uu := NewUUID()
+	xlog.Msg("check").Extras("uuid", uu).Info()
+	t.Logf("%s\n", uu)
+	t.Logf("%v\n", uu)
+	t.Logf("%+v\n", uu)
+	c, _ := json.Marshal(uu)
+	t.Logf("%s\n", c)
+
+	msg := struct {
+		MsgId UUID `json:"msg_id"`
+	}{}
+
+	texts := []string{
+		`{"msg_id": "019aa9a21afc70c6ac63385b68a11af3"}`,
+		`{"msg_id": "019a68a5-19fc-7b18-b3b8-3fc08a2d0779"}`,
+	}
+	for _, text := range texts {
+		err := json.Unmarshal([]byte(text), &msg)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		t.Log(msg.MsgId)
+	}
 }

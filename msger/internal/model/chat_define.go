@@ -73,7 +73,7 @@ const (
 // 参数定义
 const (
 	MaxTextLength = 500
-	MaxRecallTime = time.Second * 5
+	MaxRecallTime = time.Minute * 2
 )
 
 type ChatInboxPinState int8

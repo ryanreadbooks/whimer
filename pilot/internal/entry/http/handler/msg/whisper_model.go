@@ -3,7 +3,7 @@ package msg
 import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	whispermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/whisper/model"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
+	modelerr "github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 )
 
 type CreateWhisperChatReq struct {
@@ -17,11 +17,11 @@ func (r *CreateWhisperChatReq) Validate() error {
 	}
 
 	if r.Target == 0 {
-		return errors.ErrUserNotFound
+		return modelerr.ErrUserNotFound
 	}
 
 	if ok := whispermodel.IsValidChatType(string(r.Type)); !ok {
-		return errors.ErrUnsupportedChatType
+		return modelerr.ErrUnsupportedChatType
 	}
 
 	return nil
@@ -47,6 +47,22 @@ func (r *SendWhisperChatMsgReq) Validate() error {
 	return nil
 }
 
+type RecallWhisperChatMsgReq struct {
+	ChatId string `json:"chat_id"`
+	MsgId  string `json:"msg_id"`
+}
+
+func (r *RecallWhisperChatMsgReq) Validate() error {
+	if r.ChatId == "" {
+		return modelerr.ErrChatNotExists
+	}
+	if r.MsgId == "" {
+		return modelerr.ErrChatMsgNotExists
+	}
+
+	return nil
+}
+
 type SendWhisperChatMsgResp struct {
 	MsgId string `json:"msg_id"`
 }
@@ -66,4 +82,16 @@ type ListWhisperChatMsgsReq struct {
 	ChatId string `form:"chat_id"`
 	Pos    int64  `form:"pos,optional"`
 	Count  int32  `form:"count,default=50"`
+}
+
+type ChatIdParamReq struct {
+	ChatId string `json:"chat_id"`
+}
+
+func (r *ChatIdParamReq) Validate() error {
+	if r.ChatId == "" {
+		return modelerr.ErrChatNotExists
+	}
+
+	return nil
 }

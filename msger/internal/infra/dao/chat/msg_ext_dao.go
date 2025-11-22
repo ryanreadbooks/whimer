@@ -96,10 +96,10 @@ func (d *MsgExtDao) BatchGetByIds(ctx context.Context, msgIds []uuid.UUID) (map[
 }
 
 func (d *MsgExtDao) SetRecall(ctx context.Context, id uuid.UUID, recall json.RawMessage) error {
-	ub := sqlbuilder.NewUpdateBuilder()
-	ub.Update(msgExtPOTableName)
-	ub.Set(ub.EQ("recall", recall))
-	ub.Where(ub.EQ("msg_id", id))
+	ub := sqlbuilder.NewInsertBuilder()
+	ub.InsertInto(msgExtPOTableName)
+	ub.Cols("msg_id", "recall")
+	ub.Values(id, recall)
 
 	sql, args := ub.Build()
 

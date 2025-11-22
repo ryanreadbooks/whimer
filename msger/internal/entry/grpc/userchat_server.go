@@ -202,3 +202,38 @@ func (s *UserChatServiceServer) ListChatMsgs(ctx context.Context, in *pbuserchat
 		ChatMsgs: ToPbChatMsgs(chatMsgs),
 	}, nil
 }
+
+func (s *UserChatServiceServer) RecallMsg(ctx context.Context, in *pbuserchat.RecallMsgRequest) (
+	*pbuserchat.RecallMsgResponse, error) {
+
+	msgId, err := uuid.ParseString(in.GetMsgId())
+	if err != nil {
+		return nil, global.ErrArgs.Msg("invalid msgid")
+	}
+	chatId, err := uuid.ParseString(in.GetChatId())
+	if err != nil {
+		return nil, global.ErrArgs.Msg("invalid chatid")
+	}
+
+	err = s.Srv.UserChatSrv.RecallMsg(ctx, in.GetUid(), chatId, msgId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pbuserchat.RecallMsgResponse{}, nil
+}
+
+func (s *UserChatServiceServer) ClearChatUnread(ctx context.Context, in *pbuserchat.ClearChatUnreadRequest) (
+	*pbuserchat.ClearChatUnreadResponse, error) {
+	chatId, err := uuid.ParseString(in.GetChatId())
+	if err != nil {
+		return nil, global.ErrArgs.Msg("invalid chatid")
+	}
+
+	err = s.Srv.UserChatSrv.ClearUnreadCount(ctx, in.Uid, chatId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pbuserchat.ClearChatUnreadResponse{}, nil
+}

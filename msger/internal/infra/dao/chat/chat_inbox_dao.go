@@ -5,6 +5,7 @@ import (
 
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/ryanreadbooks/whimer/misc/uuid"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/msger/internal/model"
@@ -79,7 +80,7 @@ func (d *ChatInboxDao) BatchGetChatIdUids(ctx context.Context,
 
 		sql, args := sb.Build()
 		var tmp []*ChatInboxPO
-		err := d.db.QueryRowCtx(ctx, &tmp, sql, args...)
+		err := d.db.QueryRowsCtx(ctx, &tmp, sql, args...)
 		if err != nil {
 			return xsql.ConvertError(err)
 		}
@@ -88,7 +89,7 @@ func (d *ChatInboxDao) BatchGetChatIdUids(ctx context.Context,
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, xerror.Wrap(err)
 	}
 
 	result := xslice.MakeMap(inboxes, func(v *ChatInboxPO) int64 {
@@ -210,6 +211,7 @@ func (d *ChatInboxDao) DecrUnreadCount(ctx context.Context, uid int64, chatId uu
 
 func (d *ChatInboxDao) BatchDecrUnreadCount(ctx context.Context, uids []int64, chatId uuid.UUID, mtime int64) error {
 	ub := sqlbuilder.NewUpdateBuilder()
+	ub.Update(chatInboxPOTableName)
 	ub.Set("unread_count = GREATEST(unread_count - 1, 0)",
 		ub.EQ("mtime", mtime),
 	)

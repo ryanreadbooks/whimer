@@ -53,6 +53,14 @@ const (
 	MsgStatusRecall MsgStatus = 2 // 撤回
 )
 
+func (s MsgStatus) IsRecall() bool {
+	return s == MsgStatusRecall
+}
+
+func (s MsgStatus) IsNormal() bool {
+	return s == MsgStatusNormal
+}
+
 func MsgStatusToPb(s MsgStatus) pbmsg.MsgStatus {
 	return pbmsg.MsgStatus(s)
 }

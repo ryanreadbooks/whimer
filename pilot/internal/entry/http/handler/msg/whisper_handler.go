@@ -73,6 +73,26 @@ func (h *Handler) SendWhisperChatMsg() http.HandlerFunc {
 	}
 }
 
+// 撤回消息
+func (h *Handler) RecallWhisperChatMsg() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidateJsonBody[RecallWhisperChatMsgReq](r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		var ctx = r.Context()
+		err = h.whisperBiz.RecallChatMsg(ctx, req.ChatId, req.MsgId)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, nil)
+	}
+}
+
 func (h *Handler) ListWhisperRecentChats() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidateForm[ListWhisperRecentChatsReq](r)
@@ -137,5 +157,24 @@ func (h *Handler) ListWhisperChatMsgs() http.HandlerFunc {
 		}
 
 		xhttp.OkJson(w, msgs)
+	}
+}
+
+func (h *Handler) ClearWhisperChatUnread() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidateJsonBody[ChatIdParamReq](r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		ctx := r.Context()
+		err = h.whisperBiz.ClearChatUnread(ctx, req.ChatId)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, nil)
 	}
 }
