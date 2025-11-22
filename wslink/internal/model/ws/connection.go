@@ -41,6 +41,8 @@ func isTimeoutErr(err error) bool {
 // 对connection的封装
 type Connection struct {
 	id      string
+	reqId   string // 来自客户端
+	up      int64  // 上行次数记录
 	conn    *websocket.Conn
 	closed  atomic.Bool
 	device  model.Device
@@ -54,55 +56,56 @@ type Connection struct {
 	afterClosed ConnectionAfterClosedHandler
 }
 
-func (s *Connection) reset() {
-	s.id = ""
-	s.conn = nil
-	s.closed.Store(true)
-	s.device = ""
-	s.localIp = ""
+func (c *Connection) reset() {
+	c.id = ""
+	c.reqId = ""
+	c.conn = nil
+	c.closed.Store(true)
+	c.device = ""
+	c.localIp = ""
 
-	s.rTimeout = 0
-	s.wTimeout = 0
+	c.rTimeout = 0
+	c.wTimeout = 0
 
-	s.afterClosed = nil
-	s.onData = nil
+	c.afterClosed = nil
+	c.onData = nil
 }
 
-var sessionPool = sync.Pool{
+var connectionPool = sync.Pool{
 	New: func() any {
 		return new(Connection)
 	},
 }
 
-type sessionOpt struct {
+type connectionOpt struct {
 	autoId       bool
 	readTimeout  time.Duration
 	writeTimeout time.Duration
 }
 
-type createSessionOpt func(o *sessionOpt)
+type createConnectionOpt func(o *connectionOpt)
 
-func WithAutoId(b bool) createSessionOpt {
-	return func(o *sessionOpt) {
+func WithAutoId(b bool) createConnectionOpt {
+	return func(o *connectionOpt) {
 		o.autoId = b
 	}
 }
 
-func WithReadTimeout(rt time.Duration) createSessionOpt {
-	return func(o *sessionOpt) {
+func WithReadTimeout(rt time.Duration) createConnectionOpt {
+	return func(o *connectionOpt) {
 		o.readTimeout = rt
 	}
 }
 
-func WithWriteTimeout(wt time.Duration) createSessionOpt {
-	return func(o *sessionOpt) {
+func WithWriteTimeout(wt time.Duration) createConnectionOpt {
+	return func(o *connectionOpt) {
 		o.writeTimeout = wt
 	}
 }
 
-// 获取一个session实例
-func CreateSession(webconn *websocket.Conn, opts ...createSessionOpt) *Connection {
-	o := &sessionOpt{
+// 获取一个连接实例
+func CreateConnection(webconn *websocket.Conn, opts ...createConnectionOpt) *Connection {
+	o := &connectionOpt{
 		autoId:       true,
 		readTimeout:  time.Second * 60,
 		writeTimeout: time.Second * 60,
@@ -111,13 +114,12 @@ func CreateSession(webconn *websocket.Conn, opts ...createSessionOpt) *Connectio
 		opt(o)
 	}
 
-	s := sessionPool.Get().(*Connection)
+	s := connectionPool.Get().(*Connection)
 	s.conn = webconn
 	s.rTimeout = o.readTimeout
 	s.wTimeout = o.writeTimeout
 	if o.autoId {
-		cid := uuid.NewString()
-		s.id = cid
+		s.id = uuid.NewString()
 	}
 
 	s.closed.Store(false)
@@ -125,25 +127,25 @@ func CreateSession(webconn *websocket.Conn, opts ...createSessionOpt) *Connectio
 	return s
 }
 
-// 回收session
-func RecoverSession(s *Connection) {
+// 回收
+func RecoverConnection(s *Connection) {
 	if s != nil {
 		s.reset()
-		sessionPool.Put(s)
+		connectionPool.Put(s)
 	}
 }
 
-func (s *Connection) GetId() string {
-	return s.id
+func (c *Connection) GetId() string {
+	return c.id
 }
 
-func (s *Connection) SetId(id string) {
-	s.id = id
+func (c *Connection) SetId(id string) {
+	c.id = id
 }
 
-func (s *Connection) read() ([]byte, error) {
-	s.conn.SetReadDeadline(time.Now().Add(s.rTimeout))
-	msgTyp, data, err := s.conn.ReadMessage()
+func (c *Connection) read() ([]byte, error) {
+	c.conn.SetReadDeadline(time.Now().Add(c.rTimeout))
+	msgTyp, data, err := c.conn.ReadMessage()
 	if err != nil {
 		if strings.Contains(err.Error(), net.ErrClosed.Error()) {
 			// use of closed network connection
@@ -154,7 +156,7 @@ func (s *Connection) read() ([]byte, error) {
 
 	if msgTyp == websocket.PingMessage {
 		// pong back
-		err = s.conn.WriteMessage(websocket.PongMessage, []byte("PONG"))
+		err = c.conn.WriteMessage(websocket.PongMessage, []byte("PONG"))
 		if err != nil {
 			return nil, ErrContinued
 		}
@@ -173,7 +175,8 @@ func (s *Connection) read() ([]byte, error) {
 }
 
 // 消息处理循环
-func (s *Connection) Loop(ctx context.Context) {
+func (c *Connection) Loop(ctx context.Context) {
+	c.up++
 	defer func() {
 		if e := recover(); e != nil {
 			logErr := xerror.Wrapf(xerror.ErrPanic, "%v", e)
@@ -181,21 +184,21 @@ func (s *Connection) Loop(ctx context.Context) {
 				Err(logErr).
 				Extra("stack", stacktrace.FormatFrames(xerror.UnwrapFrames(logErr))).
 				Errorx(ctx)
-			s.Close(ctx)
+			c.Close(ctx)
 		}
 	}()
 
-	for !s.closed.Load() {
-		data, err := s.read()
+	for !c.closed.Load() {
+		data, err := c.read()
 		if err != nil {
 			if !errors.Is(err, ErrContinued) {
 				// unexpected error should close session
 				if isTimeoutErr(err) {
 					// After a read has timed out, the websocket connection state is corrupt and
 					// all future reads will return an error
-					s.GraceClose(ctx)
+					c.GraceClose(ctx)
 				} else {
-					s.Close(ctx)
+					c.Close(ctx)
 				}
 				return
 			}
@@ -203,15 +206,16 @@ func (s *Connection) Loop(ctx context.Context) {
 			continue
 		}
 
-		err = s.handleData(ctx, data)
+		c.up++
+		err = c.handleData(ctx, data)
 		if err != nil {
 			if errors.Is(err, ErrFinishConnection) {
 				// ErrFinishSession will close this session
-				s.Close(ctx)
+				c.Close(ctx)
 				return
 			}
 			// 其它情况记录日志
-			xlog.Msg(fmt.Sprintf("conn %s write error", s.id)).
+			xlog.Msg(fmt.Sprintf("conn %s write error", c.id)).
 				Err(err).
 				Errorx(ctx)
 		}
@@ -219,93 +223,97 @@ func (s *Connection) Loop(ctx context.Context) {
 }
 
 // 处理上行数据
-func (s *Connection) handleData(ctx context.Context, data []byte) error {
-	if s.onData != nil {
-		return s.onData.OnData(ctx, s, data)
+func (c *Connection) handleData(ctx context.Context, data []byte) error {
+	if c.onData != nil {
+		return c.onData.OnData(ctx, c, data)
 	}
 
 	return nil
 }
 
-func (s *Connection) Close(ctx context.Context) {
-	cid := s.id
-	if s.conn != nil {
-		if err := s.conn.Close(); err != nil {
-			xlog.Msgf("conn %s close err", s.id).Err(err).Errorx(ctx)
+func (c *Connection) Close(ctx context.Context) {
+	cid := c.id
+	if c.conn != nil {
+		if err := c.conn.Close(); err != nil {
+			xlog.Msgf("conn %s close err", c.id).Err(err).Errorx(ctx)
 		}
 	}
 
-	if s.afterClosed != nil {
-		s.afterClosed.AfterClosed(ctx, cid)
+	if c.afterClosed != nil {
+		c.afterClosed.AfterClosed(ctx, cid)
 	}
 
-	s.closed.Store(true)
+	c.closed.Store(true)
 }
 
 // GraceClose will send close control through websocket then close the net connection;
-func (s *Connection) GraceClose(ctx context.Context) {
-	cid := s.id
-	if s.conn != nil {
-		err1 := s.conn.WriteControl(websocket.CloseMessage,
+func (c *Connection) GraceClose(ctx context.Context) {
+	cid := c.id
+	if c.conn != nil {
+		err1 := c.conn.WriteControl(websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSED"),
 			time.Time{},
 		)
-		err2 := s.conn.Close()
+		err2 := c.conn.Close()
 		err := errors.Join(err1, err2)
 		if err2 != nil {
-			xlog.Msgf("conn %s grace close err", s.id).Err(err).Infox(ctx)
+			xlog.Msgf("conn %s grace close err", c.id).Err(err).Infox(ctx)
 		}
 	}
 
-	if s.afterClosed != nil {
-		s.afterClosed.AfterClosed(ctx, cid)
+	if c.afterClosed != nil {
+		c.afterClosed.AfterClosed(ctx, cid)
 	}
 
-	s.closed.Store(true)
+	c.closed.Store(true)
 }
 
-func (s *Connection) Write(data []byte) error {
-	if s.closed.Load() {
+func (c *Connection) Write(data []byte) error {
+	if c.closed.Load() {
 		return ErrConnectionClosed
 	}
 
-	s.conn.SetWriteDeadline(time.Now().Add(s.wTimeout))
-	return s.conn.WriteMessage(websocket.BinaryMessage, data)
+	c.conn.SetWriteDeadline(time.Now().Add(c.wTimeout))
+	return c.conn.WriteMessage(websocket.BinaryMessage, data)
 }
 
-func (s *Connection) WriteText(text string) error {
-	if s.closed.Load() {
+func (c *Connection) WriteText(text string) error {
+	if c.closed.Load() {
 		return ErrConnectionClosed
 	}
 
-	s.conn.SetWriteDeadline(time.Now().Add(s.wTimeout))
-	return s.conn.WriteMessage(websocket.TextMessage, utils.StringToBytes(text))
+	c.conn.SetWriteDeadline(time.Now().Add(c.wTimeout))
+	return c.conn.WriteMessage(websocket.TextMessage, utils.StringToBytes(text))
 }
 
-func (s *Connection) SetOnData(h ConnectionOnDataHandler) {
-	s.onData = h
+func (c *Connection) SetOnData(h ConnectionOnDataHandler) {
+	c.onData = h
 }
 
-func (s *Connection) SetAfterClosed(h ConnectionAfterClosedHandler) {
-	s.afterClosed = h
+func (c *Connection) SetAfterClosed(h ConnectionAfterClosedHandler) {
+	c.afterClosed = h
 }
 
-func (s *Connection) SetDevice(dev model.Device) {
-	s.device = dev
+func (c *Connection) SetDevice(dev model.Device) {
+	c.device = dev
 }
 
-func (s *Connection) GetDevice() model.Device {
-	return s.device
+func (c *Connection) GetDevice() model.Device {
+	return c.device
 }
 
-func (s *Connection) GetRemote() string {
-	return s.conn.RemoteAddr().String()
+func (c *Connection) GetRemote() string {
+	return c.conn.RemoteAddr().String()
 }
 
-func (s *Connection) GetLocalIp() string {
-	return s.localIp
+func (c *Connection) GetLocalIp() string {
+	return c.localIp
 }
 
-func (s *Connection) SetLocalIp(ip string) {
-	s.localIp = ip
+func (c *Connection) SetLocalIp(ip string) {
+	c.localIp = ip
+}
+
+func (c *Connection) SetReqId(reqId string) {
+	c.reqId = reqId
 }

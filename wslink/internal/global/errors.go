@@ -20,6 +20,7 @@ const (
 	ErrWsUserEmptyCode = ErrInvalidArgsCode + iota
 	ErrWsUnsupportedDeviceCode
 	ErrWsDataEmptyCode
+	ErrReqIdMissingCode
 )
 
 const (
@@ -46,4 +47,5 @@ var (
 	ErrDataEmpty         = xerror.ErrInvalidArgs.ErrCode(ErrWsDataEmptyCode).Msg("内容为空")
 	ErrAuthFailed        = xerror.ErrPermission.ErrCode(ErrWsAuthFailedCode).Msg("认证失败")
 	ErrServerBusy        = xerror.ErrServiceUnavailable.ErrCode(ErrWsServerBusyCode).Msg("系统繁忙，稍后重试")
+	ErrReqIdMissing      = xerror.ErrInvalidArgs.ErrCode(ErrReqIdMissingCode).Msg("reqId missing")
 )
