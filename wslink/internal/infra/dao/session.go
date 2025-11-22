@@ -6,18 +6,23 @@ import (
 )
 
 type Session struct {
-	Id             string           `redis:"id" mapstructure:"id"`
-	Uid            int64            `redis:"uid" mapstructure:"uid"` // 连接所属用户
-	Device         model.Device     `redis:"device" mapstructure:"device"`
-	Status         ws.SessionStatus `redis:"status" mapstructure:"status"`
-	Ctime          int64            `redis:"ctime" mapstructure:"ctime"` // 连接建立时间
+	Id             string           `redis:"id"               mapstructure:"id"`
+	Uid            int64            `redis:"uid"              mapstructure:"uid"` // 连接所属用户
+	Device         model.Device     `redis:"device"           mapstructure:"device"`
+	Status         ws.SessionStatus `redis:"status"           mapstructure:"status"`
+	Ctime          int64            `redis:"ctime"            mapstructure:"ctime"` // 连接建立时间
 	LastActiveTime int64            `redis:"last_active_time" mapstructure:"last_active_time"`
-	LocalIp        string           `redis:"local_ip" mapstructure:"local_ip"` // 所属的服务ip
-	Ip             string           `redis:"ip" mapstructure:"ip"`
+	LocalIp        string           `redis:"local_ip"         mapstructure:"local_ip"` // 所属的服务ip
+	Ip             string           `redis:"ip"               mapstructure:"ip"`
+	ReqId          string           `redis:"req_id"           mapstructure:"req_id"`
 }
 
 func (s *Session) GetId() string {
-	return s.Id
+	if s != nil {
+		return s.Id
+	}
+
+	return ""
 }
 
 func (s *Session) SetId(c string) {
@@ -25,17 +30,36 @@ func (s *Session) SetId(c string) {
 }
 
 func (s *Session) GetRemote() string {
-	return s.Ip
+	if s != nil {
+		return s.Ip
+	}
+	return ""
 }
 
 func (s *Session) GetLocalIp() string {
-	return s.LocalIp
+	if s != nil {
+		return s.LocalIp
+	}
+	return ""
 }
 
 func (s *Session) GetDevice() model.Device {
-	return s.Device
+	if s != nil {
+		return s.Device
+	}
+	return model.DeviceUnspec
 }
 
 func (s *Session) IsActive() bool {
-	return s.Status == ws.StatusActive
+	if s != nil {
+		return s.Status == ws.StatusActive
+	}
+	return false
+}
+
+func (s *Session) GetReqId() string {
+	if s != nil {
+		return s.ReqId
+	}
+	return ""
 }

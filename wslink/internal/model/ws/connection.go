@@ -317,3 +317,7 @@ func (c *Connection) SetLocalIp(ip string) {
 func (c *Connection) SetReqId(reqId string) {
 	c.reqId = reqId
 }
+
+func (c *Connection) GetReqId() string {
+	return c.reqId
+}

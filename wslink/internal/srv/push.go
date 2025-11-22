@@ -34,6 +34,11 @@ func (s *PushService) Push(ctx context.Context, uid int64, device model.Device, 
 		return xerror.Wrapf(err, "failed to get session by uid").WithCtx(ctx)
 	}
 
+	if len(locals) == 0 && len(nonLocals) == 0 {
+		xlog.Msgf("user:%d at device %s is offline", uid, device).Debugx(ctx)
+		return nil
+	}
+
 	concurrent.SafeGo(func() {
 		err := s.PushLocalConns(ctx, FormatPushLocalConnReq(locals, device, data))
 		if err != nil {
@@ -157,6 +162,11 @@ func (s *PushService) Broadcast(ctx context.Context, uids []int64, data []byte) 
 	locals, nonLocals, err := s.sessBiz.RespectivelyGetSessionByUids(ctx, uids)
 	if err != nil {
 		return xerror.Wrapf(err, "failed to get session by uid").WithCtx(ctx)
+	}
+
+	if len(locals) == 0 && len(nonLocals) == 0 {
+		xlog.Msgf("uids:%v are offline", uids).Infox(ctx)
+		return nil
 	}
 
 	concurrent.SafeGo(func() {
