@@ -18,6 +18,12 @@ log:
   serviceName: pilot
   stat: false
 
+mysql:
+  user: ${ENV_DB_USER}
+  pass: ${ENV_DB_PASS}
+  addr: ${ENV_DB_ADDR}
+  db_name: ${ENV_DB_NAME}
+
 backend:
   note:
     hosts: ${ENV_ETCD_HOSTS}

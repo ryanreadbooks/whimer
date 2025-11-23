@@ -3,6 +3,7 @@ module github.com/ryanreadbooks/whimer/pilot
 go 1.24.0
 
 require (
+	github.com/huandu/go-sqlbuilder v1.38.1
 	github.com/redis/go-redis/v9 v9.11.0
 	github.com/ryanreadbooks/whimer/comment v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
@@ -51,6 +52,8 @@ require (
 	github.com/grafana/pyroscope-go v1.2.2 // indirect
 	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect
+	github.com/huandu/go-clone v1.7.3 // indirect
+	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect

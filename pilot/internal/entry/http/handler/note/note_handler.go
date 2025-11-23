@@ -22,6 +22,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
+	modelerr "github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
@@ -308,12 +309,17 @@ func (b *Handler) ListLikedNotes() http.HandlerFunc {
 		}
 
 		var (
-			ctx = r.Context()
-			uid = metadata.Uid(ctx)
+			ctx    = r.Context()
+			curUid = metadata.Uid(ctx)
 		)
 
-		if uid != req.Uid {
-			// TODO 检查req.Uid的点赞记录是否公开
+		if curUid != req.Uid {
+			// 检查req.Uid的点赞记录是否公开
+			userSetting, _ := b.userBiz.GetIntegralUserSettings(ctx, req.Uid)
+			if !userSetting.ShowNoteLikes {
+				xhttp.Error(r, w, modelerr.ErrLikesHistoryHidden)
+				return
+			}
 		}
 
 		noteResp, err := dep.NoteInteractServer().PageListUserLikedNote(ctx,

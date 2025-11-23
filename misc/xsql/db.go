@@ -45,6 +45,14 @@ func (d *DB) Conn() sqlx.SqlConn {
 	return d.sc
 }
 
+func (d *DB) Close() error {
+	rd, err := d.sc.RawDB()
+	if err != nil {
+		return err
+	}
+	return rd.Close()
+}
+
 func (d *DB) Transact(ctx context.Context, fn func(ctx context.Context) error) error {
 	_, already := ctx.Value(beginTxKey{}).(sqlx.Session)
 	if !already {

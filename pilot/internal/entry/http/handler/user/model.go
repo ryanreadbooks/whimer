@@ -9,3 +9,7 @@ type MentionUserReq struct {
 type MentionUserResp struct {
 	Groups []*usermodel.MentionUserRespItem `json:"groups"`
 }
+
+type SetNoteShowSettingsReq struct {
+	ShowNoteLikes bool `json:"show_note_likes"`
+}

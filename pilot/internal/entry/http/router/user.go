@@ -29,6 +29,8 @@ func regUserRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 						settingsGroup.Get("/all", h.User.GetAllSettings())
 						// 设置粉丝列表/关注列表展示情况
 						settingsGroup.Post("/relation/update", h.Relation.UpdateSettings())
+						// 设置笔记展示情况
+						settingsGroup.Post("/note/update", h.User.SetNoteShowSettings())
 					}
 				}
 

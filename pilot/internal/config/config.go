@@ -23,6 +23,13 @@ type Config struct {
 	Redis redis.RedisConf `json:"redis"`
 	Log   logx.LogConf    `json:"log"`
 
+	MySql struct {
+		User   string `json:"user"`
+		Pass   string `json:"pass"`
+		Addr   string `json:"addr"`
+		DbName string `json:"db_name"`
+	} `json:"mysql"`
+
 	Backend struct {
 		Note     xconf.Discovery `json:"note"`
 		Comment  xconf.Discovery `json:"comment"`

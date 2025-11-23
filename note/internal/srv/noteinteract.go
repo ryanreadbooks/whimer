@@ -129,14 +129,14 @@ func (s *NoteInteractSrv) PageListUserLikedNoteIds(ctx context.Context, in *note
 		pageRes = model.PageResultV2{}
 	)
 
-	resp, err := dep.GetCounter().PageGetUserRecord(ctx, 
+	resp, err := dep.GetCounter().PageGetUserRecord(ctx,
 		&counterv1.PageGetUserRecordRequest{
-		BizCode:  global.NoteLikeBizcode,
-		Uid:      in.Uid,
-		Cursor:   in.Cursor,
-		Count:    in.Count,
-		SortRule: counterv1.SortRule_SORT_RULE_DESC,
-	})
+			BizCode:  global.NoteLikeBizcode,
+			Uid:      in.Uid,
+			Cursor:   in.Cursor,
+			Count:    in.Count,
+			SortRule: counterv1.SortRule_SORT_RULE_DESC,
+		})
 	if err != nil {
 		return nil, pageRes, xerror.Wrapf(err, "counter page get user record failed").WithCtx(ctx)
 	}
