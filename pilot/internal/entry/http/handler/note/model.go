@@ -268,22 +268,6 @@ func (r *UploadAuthReq) Validate() error {
 	return nil
 }
 
-func (r *UploadAuthReq) AsPb() *notev1.BatchGetUploadAuthRequest {
-	return &notev1.BatchGetUploadAuthRequest{
-		Resource: r.Resource,
-		Source:   r.Source,
-		Count:    r.Count,
-	}
-}
-
-func (r *UploadAuthReq) AsPbV2() *notev1.BatchGetUploadAuthV2Request {
-	return &notev1.BatchGetUploadAuthV2Request{
-		Resource: r.Resource,
-		Source:   r.Source,
-		Count:    r.Count,
-	}
-}
-
 type UploadAuthResHeaders struct {
 	Auth   string `json:"auth"`
 	Sha256 string `json:"sha256"`

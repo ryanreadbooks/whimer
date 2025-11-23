@@ -26,26 +26,6 @@ mysql:
 redis:
   host: ${ENV_REDIS_HOST}
 
-oss:
-  endpoint: ${ENV_OSS_ENDPOINT}
-  location: ${ENV_OSS_LOCATION}
-  bucket: nota
-  prefix: assets
-  display_endpoint: http://s1-file.whimer.com
-  upload_endpoint: http://s1-upload.whimer.com
-
-upload_auth_sign:
-  jwt_id: whm_ulas
-  jwt_issuer: whimer
-  jwt_subject: sts
-  jwt_duration: 30m
-  ak: ${ENV_OSS_AK}
-  sk: ${ENV_OSS_SK}
-
-img_proxy_auth:
-  key: ${IMGPROXY_KEY}
-  salt: ${IMGPROXY_SALT}
-
 # 外部依赖
 external:
   grpc:

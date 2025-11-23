@@ -58,3 +58,35 @@ kafka:
   brokers: ${ENV_KFK_BROKERS}
   username: ${ENV_KFK_USERNAME}
   password: ${ENV_KFK_PASSWORD}
+
+upload_auth_sign:
+  jwt_id: whm_ulas
+  jwt_issuer: whimer
+  jwt_subject: sts
+  jwt_duration: 30m
+  ak: ${ENV_OSS_AK}
+  sk: ${ENV_OSS_SK}
+
+oss:
+  endpoint: ${ENV_OSS_ENDPOINT}
+  location: ${ENV_OSS_LOCATION}
+  display_endpoint: http://s1-file.whimer.com
+  upload_endpoint: http://s1-upload.whimer.com
+
+upload_resource_define:
+  - name: note_image
+    meta:
+      bucket: nota
+      prefix: assets
+      prepend_bucket: true
+  - name: comment_image
+    meta:
+      bucket: pics
+      prefix: cmt_inline
+      prepend_bucket: true
+      prepend_prefix: true
+      stringer: random_v7
+
+img_proxy_auth:
+  key: ${IMGPROXY_KEY}
+  salt: ${IMGPROXY_SALT}

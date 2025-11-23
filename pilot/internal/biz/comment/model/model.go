@@ -4,8 +4,10 @@ import (
 	"context"
 
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
+	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 	"github.com/ryanreadbooks/whimer/misc/xconv"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model"
 )
@@ -35,18 +37,28 @@ type CommentItemImage struct {
 	Metadata CommentItemImageMetadata `json:"metadata"`
 }
 
-func NewCommentItemImageFromPb(img *commentv1.CommentItemImage) *CommentItemImage {
-	if img == nil {
+func NewCommentItemImageUrl(pbimg *commentv1.CommentItemImage) string {
+	bucket := config.Conf.UploadResourceDefineMap["comment_image"].Bucket
+	return imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(bucket),
+		pbimg.Key,
+		config.Conf.ImgProxyAuth.GetKey(),
+		config.Conf.ImgProxyAuth.GetSalt(),
+		imgproxy.WithQuality("50"),
+	)
+}
+
+func NewCommentItemImageFromPb(pbimg *commentv1.CommentItemImage) *CommentItemImage {
+	if pbimg == nil {
 		return &CommentItemImage{}
 	}
 
 	return &CommentItemImage{
-		Url: img.Url,
+		Url: NewCommentItemImageUrl(pbimg),
 		Metadata: CommentItemImageMetadata{
-			Width:  img.Meta.Width,
-			Height: img.Meta.Height,
-			Format: img.Meta.Format,
-			Type:   img.Meta.Type,
+			Width:  pbimg.Meta.Width,
+			Height: pbimg.Meta.Height,
+			Format: pbimg.Meta.Format,
+			Type:   pbimg.Meta.Type,
 		},
 	}
 }

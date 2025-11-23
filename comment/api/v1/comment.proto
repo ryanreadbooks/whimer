@@ -126,7 +126,7 @@ message CommentItemImageMeta {
 }
 
 message CommentItemImage {
-  string               url  = 1;
+  string               key  = 1;
   CommentItemImageMeta meta = 2;
 }
 
@@ -303,18 +303,6 @@ message BatchCheckUserLikeCommentResponse {
   map<int64, CommentLikedList> results = 1;
 }
 
-message UploadCommentImagesRequest {
-  int32 requested_count = 1;
-}
-
-message UploadCommentImagesResponse {
-  repeated string store_keys   = 1;
-  int64           current_time = 2;
-  int64           expire_time  = 3;
-  string          upload_addr  = 4;
-  string          token        = 5;
-}
-
 message BatchCheckCommentExistRequest {
   repeated int64 ids = 1;
 }
@@ -416,9 +404,6 @@ service CommentService {
 
   // 批量检查某个用户是否点赞了某些评论
   rpc BatchCheckUserLikeComment(BatchCheckUserLikeCommentRequest) returns (BatchCheckUserLikeCommentResponse);
-
-  // 上传图片评论（申请上传凭证）
-  rpc UploadCommentImages(UploadCommentImagesRequest) returns (UploadCommentImagesResponse);
 
   // 批量检查评论是否存在
   rpc BatchCheckCommentExist(BatchCheckCommentExistRequest) returns (BatchCheckCommentExistResponse);

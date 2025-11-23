@@ -38,7 +38,6 @@ const (
 	CommentService_CheckUserOnObject_FullMethodName         = "/comment.api.v1.CommentService/CheckUserOnObject"
 	CommentService_BatchCheckUserOnObject_FullMethodName    = "/comment.api.v1.CommentService/BatchCheckUserOnObject"
 	CommentService_BatchCheckUserLikeComment_FullMethodName = "/comment.api.v1.CommentService/BatchCheckUserLikeComment"
-	CommentService_UploadCommentImages_FullMethodName       = "/comment.api.v1.CommentService/UploadCommentImages"
 	CommentService_BatchCheckCommentExist_FullMethodName    = "/comment.api.v1.CommentService/BatchCheckCommentExist"
 	CommentService_GetComment_FullMethodName                = "/comment.api.v1.CommentService/GetComment"
 	CommentService_GetCommentUser_FullMethodName            = "/comment.api.v1.CommentService/GetCommentUser"
@@ -85,8 +84,6 @@ type CommentServiceClient interface {
 	BatchCheckUserOnObject(ctx context.Context, in *BatchCheckUserOnObjectRequest, opts ...grpc.CallOption) (*BatchCheckUserOnObjectResponse, error)
 	// 批量检查某个用户是否点赞了某些评论
 	BatchCheckUserLikeComment(ctx context.Context, in *BatchCheckUserLikeCommentRequest, opts ...grpc.CallOption) (*BatchCheckUserLikeCommentResponse, error)
-	// 上传图片评论（申请上传凭证）
-	UploadCommentImages(ctx context.Context, in *UploadCommentImagesRequest, opts ...grpc.CallOption) (*UploadCommentImagesResponse, error)
 	// 批量检查评论是否存在
 	BatchCheckCommentExist(ctx context.Context, in *BatchCheckCommentExistRequest, opts ...grpc.CallOption) (*BatchCheckCommentExistResponse, error)
 	// 按照id获取评论
@@ -293,16 +290,6 @@ func (c *commentServiceClient) BatchCheckUserLikeComment(ctx context.Context, in
 	return out, nil
 }
 
-func (c *commentServiceClient) UploadCommentImages(ctx context.Context, in *UploadCommentImagesRequest, opts ...grpc.CallOption) (*UploadCommentImagesResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UploadCommentImagesResponse)
-	err := c.cc.Invoke(ctx, CommentService_UploadCommentImages_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *commentServiceClient) BatchCheckCommentExist(ctx context.Context, in *BatchCheckCommentExistRequest, opts ...grpc.CallOption) (*BatchCheckCommentExistResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BatchCheckCommentExistResponse)
@@ -374,8 +361,6 @@ type CommentServiceServer interface {
 	BatchCheckUserOnObject(context.Context, *BatchCheckUserOnObjectRequest) (*BatchCheckUserOnObjectResponse, error)
 	// 批量检查某个用户是否点赞了某些评论
 	BatchCheckUserLikeComment(context.Context, *BatchCheckUserLikeCommentRequest) (*BatchCheckUserLikeCommentResponse, error)
-	// 上传图片评论（申请上传凭证）
-	UploadCommentImages(context.Context, *UploadCommentImagesRequest) (*UploadCommentImagesResponse, error)
 	// 批量检查评论是否存在
 	BatchCheckCommentExist(context.Context, *BatchCheckCommentExistRequest) (*BatchCheckCommentExistResponse, error)
 	// 按照id获取评论
@@ -448,9 +433,6 @@ func (UnimplementedCommentServiceServer) BatchCheckUserOnObject(context.Context,
 }
 func (UnimplementedCommentServiceServer) BatchCheckUserLikeComment(context.Context, *BatchCheckUserLikeCommentRequest) (*BatchCheckUserLikeCommentResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchCheckUserLikeComment not implemented")
-}
-func (UnimplementedCommentServiceServer) UploadCommentImages(context.Context, *UploadCommentImagesRequest) (*UploadCommentImagesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UploadCommentImages not implemented")
 }
 func (UnimplementedCommentServiceServer) BatchCheckCommentExist(context.Context, *BatchCheckCommentExistRequest) (*BatchCheckCommentExistResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchCheckCommentExist not implemented")
@@ -824,24 +806,6 @@ func _CommentService_BatchCheckUserLikeComment_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CommentService_UploadCommentImages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UploadCommentImagesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CommentServiceServer).UploadCommentImages(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: CommentService_UploadCommentImages_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CommentServiceServer).UploadCommentImages(ctx, req.(*UploadCommentImagesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _CommentService_BatchCheckCommentExist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BatchCheckCommentExistRequest)
 	if err := dec(in); err != nil {
@@ -978,10 +942,6 @@ var CommentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BatchCheckUserLikeComment",
 			Handler:    _CommentService_BatchCheckUserLikeComment_Handler,
-		},
-		{
-			MethodName: "UploadCommentImages",
-			Handler:    _CommentService_UploadCommentImages_Handler,
 		},
 		{
 			MethodName: "BatchCheckCommentExist",

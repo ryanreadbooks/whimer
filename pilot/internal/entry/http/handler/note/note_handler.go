@@ -17,6 +17,7 @@ import (
 	feedmodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/feed/model"
 	bizsearch "github.com/ryanreadbooks/whimer/pilot/internal/biz/search"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
+	bizupload "github.com/ryanreadbooks/whimer/pilot/internal/biz/upload"
 	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/user"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
@@ -32,6 +33,7 @@ type Handler struct {
 	searchBiz *bizsearch.Biz
 	userBiz   *bizuser.Biz
 	notifyBiz *bizsysnotify.Biz
+	uploadBiz *bizupload.Biz
 }
 
 func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
@@ -40,6 +42,7 @@ func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 		searchBiz: bizz.SearchBiz,
 		userBiz:   bizz.UserBiz,
 		notifyBiz: bizz.SysNotifyBiz,
+		uploadBiz: bizz.UploadBiz,
 	}
 }
 

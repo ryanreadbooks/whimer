@@ -21,14 +21,12 @@ import (
 type CommentSrv struct {
 	CommentBiz         biz.CommentBiz
 	CommentInteractBiz biz.CommentInteractBiz
-	AssetManagerBiz    *biz.AssetManagerBiz
 }
 
 func NewCommentSrv(s *Service, biz biz.Biz) *CommentSrv {
 	return &CommentSrv{
 		CommentBiz:         biz.CommentBiz,
 		CommentInteractBiz: biz.CommentInteractBiz,
-		AssetManagerBiz:    biz.AssetManagerBiz,
 	}
 }
 
@@ -410,10 +408,6 @@ func (s *CommentSrv) BatchCheckUserLikeStatus(ctx context.Context, uidCommentIds
 	}
 
 	return resp, err
-}
-
-func (s *CommentSrv) GetCommentImagesUploadAuth(ctx context.Context, cnt int32) (*biz.ImageAuth, error) {
-	return s.AssetManagerBiz.BatchGetImageAuths(ctx, cnt)
 }
 
 // 检查评论是否存在

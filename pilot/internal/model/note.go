@@ -3,20 +3,24 @@ package model
 import (
 	"context"
 
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	"github.com/ryanreadbooks/whimer/pilot/internal/config"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
+
+	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 )
 
 type NoteItemImageMeta struct {
 	Width  uint32 `json:"width"`
 	Height uint32 `json:"height"`
+	Format string `json:"format"`
 }
 
 type NoteItemImage struct {
-	Url    string            `json:"url"`
-	Type   int               `json:"type"`
-	Meta   NoteItemImageMeta `json:"meta"`
-	UrlPrv string            `json:"url_prv"`
+	Url      string            `json:"url"`
+	Type     int               `json:"type"`
+	Metadata NoteItemImageMeta `json:"metadata"`
+	UrlPrv   string            `json:"url_prv"`
 }
 
 type NoteItemImageList []*NoteItemImage
@@ -83,22 +87,54 @@ type AdminNoteItem struct {
 	AtUsers  []*AtUser         `json:"at_users,omitempty"`
 }
 
+func NewNoteImageItemUrl(pbimg *notev1.NoteImage) string {
+	noteAssetBucket := config.Conf.UploadResourceDefineMap["note_image"].Bucket
+
+	url := imgproxy.GetSignedUrl(
+		config.Conf.Oss.DisplayEndpointBucket(noteAssetBucket),
+		pbimg.Key,
+		config.Conf.ImgProxyAuth.GetKey(),
+		config.Conf.ImgProxyAuth.GetSalt(),
+		imgproxy.WithQuality("15"))
+	return url
+}
+
+func NewNoteImageItemUrlPrv(pbimg *notev1.NoteImage) string {
+	noteAssetBucket := config.Conf.UploadResourceDefineMap["note_image"].Bucket
+
+	url := imgproxy.GetSignedUrl(
+		config.Conf.Oss.DisplayEndpointBucket(noteAssetBucket),
+		pbimg.Key,
+		config.Conf.ImgProxyAuth.GetKey(),
+		config.Conf.ImgProxyAuth.GetSalt(),
+		imgproxy.WithQuality("1"))
+	return url
+}
+
+func NewNoteImageFromPb(pbimg *notev1.NoteImage) *NoteItemImage {
+	url := NewNoteImageItemUrl(pbimg)
+	urlPrv := NewNoteImageItemUrlPrv(pbimg)
+
+	return &NoteItemImage{
+		Url:    url,
+		Type:   int(pbimg.Type),
+		UrlPrv: urlPrv,
+		Metadata: NoteItemImageMeta{
+			Width:  pbimg.Meta.Width,
+			Height: pbimg.Meta.Height,
+			Format: pbimg.Meta.Format,
+		},
+	}
+}
+
 func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
 	if pb == nil {
 		return nil
 	}
 
 	images := make(NoteItemImageList, 0, len(pb.Images))
-	for _, img := range pb.Images {
-		images = append(images, &NoteItemImage{
-			Url:    img.Url,
-			Type:   int(img.Type),
-			UrlPrv: img.UrlPrv,
-			Meta: NoteItemImageMeta{
-				Width:  img.Meta.Width,
-				Height: img.Meta.Height,
-			},
-		})
+	for _, pbimg := range pb.Images {
+		images = append(images, NewNoteImageFromPb(pbimg))
 	}
 
 	var tagList []*NoteTag = NoteTagsFromPbs(pb.GetTags())

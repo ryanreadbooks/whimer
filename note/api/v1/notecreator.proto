@@ -87,61 +87,12 @@ message ListNoteResponse {
   bool              has_next    = 3;
 }
 
-// Deprecated
-message GetUploadAuthRequest {
-  string resource = 1;
-  string source   = 2;
-}
-
-// Deprecated
-message BatchGetUploadAuthRequest {
-  string resource = 1;
-  string source   = 2;
-  int32  count    = 3 [(buf.validate.field).int32.gt = 0];
-}
-
-// Deprecated
-message UploadAuthResponseHeaders {
-  string auth   = 1;
-  string sha256 = 2;
-  string date   = 3;
-  string token  = 4;
-}
-
-// Deprecated
-message GetUploadAuthResponse {
-  string                    file_id      = 1;
-  int64                     current_time = 2;
-  int64                     expire_time  = 3;
-  string                    upload_addr  = 4;
-  UploadAuthResponseHeaders headers      = 5;
-}
-
-// Deprecated
-message BatchGetUploadAuthResponse {
-  repeated GetUploadAuthResponse tickets = 1;
-}
-
 message GetPostedCountRequest {
   int64 uid = 1;  // 用户id
 }
 
 message GetPostedCountResponse {
   int64 count = 1;
-}
-
-message BatchGetUploadAuthV2Request {
-  string resource = 1;
-  string source   = 2;
-  int32  count    = 3 [(buf.validate.field).int32.gt = 0];
-}
-
-message BatchGetUploadAuthV2Response {
-  repeated string file_ids     = 1;
-  int64           current_time = 2;
-  int64           expire_time  = 3;
-  string          upload_addr  = 4;
-  string          token        = 5;
 }
 
 message PageListNoteRequest {
@@ -188,20 +139,6 @@ service NoteCreatorService {
 
   // 分页列出笔记
   rpc PageListNote(PageListNoteRequest) returns (PageListNoteResponse);
-
-  // 获取上传凭证
-  //
-  // Deprecated: GetUploadAuth is deprecated, use BatchGetUploadAuthV2 instead.
-  rpc GetUploadAuth(GetUploadAuthRequest) returns (GetUploadAuthResponse);
-
-  // 批量获取上传凭证
-  //
-  // Deprecated: BatchGetUploadAuth is deprecated, use BatchGetUploadAuthV2
-  // instead.
-  rpc BatchGetUploadAuth(BatchGetUploadAuthRequest) returns (BatchGetUploadAuthResponse);
-
-  // 获取上传凭证v2
-  rpc BatchGetUploadAuthV2(BatchGetUploadAuthV2Request) returns (BatchGetUploadAuthV2Response);
   
   // 获取用户投稿数量
   rpc GetPostedCount(GetPostedCountRequest) returns (GetPostedCountResponse);
