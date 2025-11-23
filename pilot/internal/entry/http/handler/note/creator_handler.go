@@ -15,6 +15,7 @@ import (
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
@@ -247,27 +248,6 @@ func (h *Handler) CreatorGetNote() http.HandlerFunc {
 	}
 }
 
-// Deprecated
-//
-// Use [CreatorUploadNoteAuthV2] instead
-func (h *Handler) CreatorUploadNoteAuth() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[UploadAuthReq](httpx.ParseForm, r)
-		if err != nil {
-			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
-			return
-		}
-
-		resp, err := dep.NoteCreatorServer().BatchGetUploadAuth(r.Context(), req.AsPb())
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		xhttp.OkJson(w, resp)
-	}
-}
-
 func (h *Handler) CreatorUploadNoteAuthV2() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[UploadAuthReq](httpx.ParseForm, r)
@@ -277,7 +257,7 @@ func (h *Handler) CreatorUploadNoteAuthV2() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		resp, err := dep.NoteCreatorServer().BatchGetUploadAuthV2(ctx, req.AsPbV2())
+		resp, err := h.uploadBiz.RequestUploadAuth(ctx, uploadresource.NoteImage, req.Count, req.Source)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

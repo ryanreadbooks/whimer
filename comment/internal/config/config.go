@@ -1,8 +1,6 @@
 package config
 
 import (
-	"github.com/ryanreadbooks/whimer/misc/imgproxy"
-	"github.com/ryanreadbooks/whimer/misc/oss/signer"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -36,36 +34,12 @@ type Config struct {
 
 	Cron struct {
 	} `json:"cron"`
-
-	Oss struct {
-		InlineImage OssConfig `json:"inline_image"`
-	} `json:"oss"`
-
-	OssUploadAuth signer.JwtSignConfig `json:"oss_upload_auth"`
-	ImgProxyAuth  imgproxy.Auth        `json:"img_proxy_auth"`
 }
 
 func (c *Config) Init() error {
-	return c.ImgProxyAuth.Init()
+	return nil
 }
 
 type Seqer struct {
 	Addr string `json:"addr"`
-}
-
-type OssConfig struct {
-	Endpoint        string `json:"endpoint"`
-	Location        string `json:"location"`
-	Bucket          string `json:"bucket"`
-	Prefix          string `json:"prefix"`
-	DisplayEndpoint string `json:"display_endpoint"`
-	UploadEndpoint  string `json:"upload_endpoint"`
-}
-
-func (c *OssConfig) DisplayEndpointBucket() string {
-	return c.DisplayEndpoint + "/" + c.Bucket
-}
-
-func (c *OssConfig) UploadEndpointBucket() string {
-	return c.UploadEndpoint + "/" + c.Bucket
 }

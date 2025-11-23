@@ -51,10 +51,10 @@ message NoteImageMeta {
 }
 
 message NoteImage {
-  string        url     = 1;
-  int32         type    = 2;
-  string        url_prv = 3;
-  NoteImageMeta meta    = 4;
+  string        key  = 1;
+  int32         type = 2;
+  NoteImageMeta meta = 3;
+  // string        url_prv = 3;
 }
 
 // 笔记信息的概览（一般用于首页，其它非创作者获取笔记的场景）

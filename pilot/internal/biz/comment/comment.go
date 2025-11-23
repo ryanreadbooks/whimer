@@ -377,17 +377,6 @@ func (b *Biz) GetNoteCommentLikeCount(ctx context.Context, req *model.GetLikeCou
 	}, nil
 }
 
-func (b *Biz) UploadCommentImages(ctx context.Context, req *model.UploadImagesReq) (*model.UploadImagesRes, error) {
-	resp, err := dep.Commenter().UploadCommentImages(ctx, &commentv1.UploadCommentImagesRequest{
-		RequestedCount: req.Count,
-	})
-	if err != nil {
-		return nil, xerror.Wrapf(err, "remote commenter upload comment images failed")
-	}
-
-	return resp, nil
-}
-
 // 填入用户信息
 func attachCommentsUsers(ctx context.Context, comments []*commentv1.CommentItem) ([]*model.CommentItem, error) {
 	uidsMap := make(map[int64]struct{})

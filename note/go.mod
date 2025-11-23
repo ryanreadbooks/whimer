@@ -4,7 +4,6 @@ go 1.24.0
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.2-20240717164558-a6c49f84cc0f.2
-	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/ryanreadbooks/whimer/apiextension v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/comment v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/counter v0.0.0-00010101000000-000000000000
@@ -13,7 +12,6 @@ require (
 	github.com/ryanreadbooks/whimer/search v0.0.0-00010101000000-000000000000
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/zeromicro/go-zero v1.8.5
-	golang.org/x/sync v0.18.0
 	google.golang.org/grpc v1.75.0
 	google.golang.org/protobuf v1.36.10
 )
@@ -95,6 +93,7 @@ require (
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/term v0.37.0 // indirect
 	golang.org/x/text v0.31.0 // indirect

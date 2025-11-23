@@ -27,7 +27,7 @@ type Biz struct {
 	recentContact *recentcontact.Store
 }
 
-func NewUserBiz(c *config.Config) *Biz {
+func NewBiz(c *config.Config) *Biz {
 	return &Biz{
 		recentContact: recentcontact.New(infra.Cache()),
 	}

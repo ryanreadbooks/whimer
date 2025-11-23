@@ -6,14 +6,12 @@ import (
 	"errors"
 	"math"
 
-	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 	tagdao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/tag"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 
-	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
@@ -225,20 +223,14 @@ func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 			Owner:    note.Owner,
 		}
 
-		k, s := config.Conf.ImgProxyAuth.GetKey(), config.Conf.ImgProxyAuth.GetSalt()
 		for _, asset := range noteAssets {
 			assetMeta := model.NewAssetImageMetaFromJson(asset.AssetMeta)
 			if note.NoteId == asset.NoteId {
 				// pureKey := strings.TrimLeft(asset.AssetKey, config.Conf.Oss.Bucket+"/") // 此处要去掉桶名称
-
-				url := imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, k, s, imgproxy.WithQuality("15"))
-				urlPrv := imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(), asset.AssetKey, k, s, imgproxy.WithQuality("1"))
-
+				// 放在pilot服务处理proxy
 				item.Images = append(item.Images, &model.NoteImage{
-					// TODO 大图片的占用还是太大了
-					Url:    url,
-					UrlPrv: urlPrv,
-					Type:   int(asset.AssetType),
+					Key: asset.AssetKey,
+					Type: int(asset.AssetType),
 					Meta: model.NoteImageMeta{
 						Width:  assetMeta.Width,
 						Height: assetMeta.Height,

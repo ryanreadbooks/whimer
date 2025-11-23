@@ -12,4 +12,6 @@ var (
 	ErrInvalidMsgContent     = xerror.ErrArgs.Msg("无效消息内容")
 	ErrChatNotExists         = xerror.ErrArgs.Msg("会话不存在")
 	ErrChatMsgNotExists      = xerror.ErrArgs.Msg("消息不存在")
+	ErrUnsupportedResource   = xerror.ErrArgs.Msg("不支持的资源类型")
+	ErrServerSignFailure     = xerror.ErrInternal.Msg("服务器签名失败")
 )

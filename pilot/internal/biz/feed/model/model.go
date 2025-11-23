@@ -17,20 +17,7 @@ type Interaction struct {
 	Following bool `json:"following"` // 用户是否关注了笔记作者
 }
 
-type NoteItemImageMeta struct {
-	Width  uint32 `json:"width"`
-	Height uint32 `json:"height"`
-	Format string `json:"format"`
-}
-
-type NoteItemImage struct {
-	Url      string            `json:"url"`
-	Type     int               `json:"type"`
-	UrlPrv   string            `json:"url_prv"`
-	Metadata NoteItemImageMeta `json:"metadata"`
-}
-
-type NoteItemImageList []*NoteItemImage
+type NoteItemImageList []*model.NoteItemImage
 
 type Author struct {
 	Uid      int64  `json:"uid"`
@@ -80,16 +67,7 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 
 	images := make(NoteItemImageList, 0, len(pb.Images))
 	for _, img := range pb.Images {
-		images = append(images, &NoteItemImage{
-			Url:    img.Url,
-			Type:   int(img.Type),
-			UrlPrv: img.UrlPrv,
-			Metadata: NoteItemImageMeta{
-				Width:  img.Meta.Width,
-				Height: img.Meta.Height,
-				Format: img.Meta.Format,
-			},
-		})
+		images = append(images, model.NewNoteImageFromPb(img))
 	}
 
 	ctx := context.Background()

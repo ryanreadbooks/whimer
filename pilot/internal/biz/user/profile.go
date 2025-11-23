@@ -4,19 +4,20 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/ryanreadbooks/whimer/misc/metadata"
-	"github.com/ryanreadbooks/whimer/misc/recovery"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
+	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model"
 	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 
+	"github.com/ryanreadbooks/whimer/misc/metadata"
+	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"golang.org/x/sync/errgroup"
 )
 
 // 获取用户卡片信息
-func (b *Biz) GetHoverProfile(ctx context.Context, targetUid int64) (*model.HoverInfo, error) {
+func (b *Biz) GetHoverProfile(ctx context.Context, targetUid int64) (*usermodel.HoverInfo, error) {
 	var (
 		uid             = metadata.Uid(ctx)
 		isAuthedRequest = uid != 0
@@ -75,7 +76,7 @@ func (b *Biz) GetHoverProfile(ctx context.Context, targetUid int64) (*model.Hove
 	})
 
 	// 用户最近发布的笔记信息
-	var postAssets = make([]model.PostAsset, 0, 3)
+	var postAssets = make([]usermodel.PostAsset, 0, 3)
 	eg.Go(func() error {
 		return recovery.Do(func() error {
 			resp, err := dep.NoteFeedServer().GetUserRecentPost(ctx, &notev1.GetUserRecentPostRequest{
@@ -89,9 +90,9 @@ func (b *Biz) GetHoverProfile(ctx context.Context, targetUid int64) (*model.Hove
 			for _, item := range resp.Items {
 				// 此处只需要封面
 				if len(item.Images) > 0 {
-					postAssets = append(postAssets, model.PostAsset{
-						Url:    item.Images[0].Url,
-						UrlPrv: item.Images[0].UrlPrv,
+					postAssets = append(postAssets, usermodel.PostAsset{
+						Url:    model.NewNoteImageItemUrl(item.Images[0]),
+						UrlPrv: model.NewNoteImageItemUrlPrv(item.Images[0]),
 						Type:   int(item.Images[0].Type),
 					})
 				}
@@ -125,21 +126,21 @@ func (b *Biz) GetHoverProfile(ctx context.Context, targetUid int64) (*model.Hove
 	}
 
 	// organize all result
-	var res model.HoverInfo
-	res.Relation.Status = model.RelationNone
+	var res usermodel.HoverInfo
+	res.Relation.Status = usermodel.RelationNone
 	res.BasicInfo.Nickname = targetUser.GetNickname()
 	res.BasicInfo.StyleSign = targetUser.GetStyleSign()
 	res.BasicInfo.Avatar = targetUser.GetAvatar()
 	if !isAuthedRequest {
 		// 非登录用户不展示准确的用户数据
-		res.Interaction.Fans = model.HideActualCount(fansCount)
-		res.Interaction.Follows = model.HideActualCount(followsCount)
+		res.Interaction.Fans = usermodel.HideActualCount(fansCount)
+		res.Interaction.Follows = usermodel.HideActualCount(followsCount)
 	} else {
 		res.Interaction.Fans = strconv.FormatInt(fansCount, 10)
 		res.Interaction.Follows = strconv.FormatInt(followsCount, 10)
 	}
 	if followed {
-		res.Relation.Status = model.RelationFollowing
+		res.Relation.Status = usermodel.RelationFollowing
 	}
 	res.RecentPosts = postAssets
 

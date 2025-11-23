@@ -2,47 +2,31 @@ package biz
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/rand"
-	"crypto/sha1"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"math"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
-	"github.com/ryanreadbooks/whimer/misc/oss/keygen"
-	"github.com/ryanreadbooks/whimer/misc/utils"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 	tagdao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/tag"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
-
-	jwtv5 "github.com/golang-jwt/jwt/v5"
 )
 
 // 笔记相关
 // 创作者相关
 type NoteCreatorBiz struct {
 	NoteBiz
-	OssKeyGen *keygen.Generator
 }
 
 func NewNoteCreatorBiz() NoteCreatorBiz {
-	b := NoteCreatorBiz{
-		OssKeyGen: keygen.NewGenerator(
-			keygen.WithBucket(config.Conf.Oss.Bucket),
-			keygen.WithPrefix(config.Conf.Oss.Prefix),
-			keygen.WithPrependBucket(true),
-		),
-	}
+	b := NoteCreatorBiz{}
 
 	return b
 }
@@ -436,77 +420,6 @@ func (b *NoteCreatorBiz) PageListNote(ctx context.Context, page, count int32) (*
 	}
 
 	return notesResp, total, nil
-}
-
-// Deprecated
-func (b *NoteCreatorBiz) GetUploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {
-	return nil, xerror.Wrap(global.ErrPermDenied.Msg("服务器签名失败"))
-}
-
-func (b *NoteCreatorBiz) GetUploadAuthSTS(ctx context.Context,
-	req *model.UploadAuthRequest) (*model.UploadAuthSTSResponse, error) {
-	// 生成count个上传凭证
-	fileIds := make([]string, 0, req.Count)
-	for range req.Count {
-		fileIds = append(fileIds, b.OssKeyGen.Gen())
-	}
-
-	now := time.Now()
-	expireAt := now.Add(config.Conf.UploadAuthSign.JwtDuration)
-	claim := newStsUploadAuthClaim(now, expireAt, req.Resource, req.Source)
-
-	token := jwtv5.NewWithClaims(jwtv5.SigningMethodHS256, claim)
-	ss, err := token.SignedString(utils.StringToBytes(config.Conf.UploadAuthSign.Sk))
-	if err != nil {
-		return nil, xerror.Wrapf(global.ErrInternal.Msg("服务器签名失败"), "%s", err.Error()).
-			WithCtx(ctx)
-	}
-
-	return &model.UploadAuthSTSResponse{
-		FileIds:     fileIds,
-		CurrentTime: now.Unix(),
-		ExpireTime:  expireAt.Unix(),
-		UploadAddr:  config.Conf.Oss.UploadEndpoint,
-		Token:       ss,
-	}, nil
-}
-
-type stsUploadAuthClaim struct {
-	jwtv5.RegisteredClaims
-
-	AccessKey string `json:"access_key"`
-	Resource  string `json:"resource"`
-	Source    string `json:"source"`
-}
-
-var claimSk = []byte(config.Conf.UploadAuthSign.Sk)
-
-func newStsUploadAuthClaim(now, expireAt time.Time, resource, source string) *stsUploadAuthClaim {
-	akb := make([]byte, 16)
-	_, err := rand.Read(akb)
-	if err != nil {
-		akb = []byte(config.Conf.UploadAuthSign.Ak)
-	}
-
-	hash := hmac.New(sha1.New, claimSk)
-	hash.Write(akb)
-	akb = hash.Sum(nil)
-	ak := hex.EncodeToString(akb)
-
-	return &stsUploadAuthClaim{
-		AccessKey: ak,
-		Resource:  resource,
-		Source:    source,
-
-		RegisteredClaims: jwtv5.RegisteredClaims{
-			Issuer:    config.Conf.UploadAuthSign.JwtIssuer,
-			Subject:   config.Conf.UploadAuthSign.JwtSubject,
-			ID:        config.Conf.UploadAuthSign.JwtId,
-			IssuedAt:  jwtv5.NewNumericDate(now),
-			NotBefore: jwtv5.NewNumericDate(now),
-			ExpiresAt: jwtv5.NewNumericDate(expireAt),
-		},
-	}
 }
 
 // 新增笔记标签

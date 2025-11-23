@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 
+	"github.com/ryanreadbooks/whimer/misc/must"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler"
@@ -22,6 +23,7 @@ func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
+	must.Do(config.Conf.Init())
 	logx.MustSetup(config.Conf.Log)
 	defer logx.Close()
 

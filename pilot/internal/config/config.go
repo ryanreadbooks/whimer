@@ -1,10 +1,13 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/rest"
@@ -40,6 +43,33 @@ type Config struct {
 	} `json:"job_config"`
 
 	Kafka *KafkaConfig `json:"kafka"`
+
+	UploadAuthSign UploadAuthSign `json:"upload_auth_sign"`
+
+	UploadResourceDefineMap UploadResourceDefineMap     `json:"-"`
+	UploadResourceDefine    []*UploadResourceDefineItem `json:"upload_resource_define"`
+
+	Oss Oss `json:"oss"`
+
+	ImgProxyAuth imgproxy.Auth `json:"img_proxy_auth"`
+}
+
+func (c *Config) Init() error {
+	err := c.ImgProxyAuth.Init()
+	if err != nil {
+		return err
+	}
+
+	// init upload define map
+	c.UploadResourceDefineMap = make(UploadResourceDefineMap)
+	for _, item := range c.UploadResourceDefine {
+		if !uploadresource.CheckValid(item.Name) {
+			return fmt.Errorf("uploadresource %s invalid", item.Name)
+		}
+		c.UploadResourceDefineMap[uploadresource.Type(item.Name)] = item.Meta
+	}
+
+	return nil
 }
 
 type NoteEventJob struct {
@@ -51,4 +81,35 @@ type KafkaConfig struct {
 	Brokers  string `json:"brokers"`
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type UploadAuthSign struct {
+	JwtId       string        `json:"jwt_id"`
+	JwtIssuer   string        `json:"jwt_issuer"`
+	JwtSubject  string        `json:"jwt_subject"`
+	JwtDuration time.Duration `json:"jwt_duration"`
+	Ak          string        `json:"ak"`
+	Sk          string        `json:"sk"`
+}
+
+type UploadResourceDefineItem struct {
+	Name string                  `json:"name"`
+	Meta uploadresource.Metadata `json:"meta"`
+}
+
+type UploadResourceDefineMap map[uploadresource.Type]uploadresource.Metadata // string is resourceType
+
+type Oss struct {
+	Endpoint        string `json:"endpoint"`
+	Location        string `json:"location"`
+	DisplayEndpoint string `json:"display_endpoint"`
+	UploadEndpoint  string `json:"upload_endpoint"`
+}
+
+func (c *Oss) DisplayEndpointBucket(bucket string) string {
+	return c.DisplayEndpoint + "/" + bucket
+}
+
+func (c *Oss) UploadEndpointBucket(bucket string) string {
+	return c.UploadEndpoint + "/" + bucket
 }

@@ -23,7 +23,7 @@ import (
 type Biz struct {
 }
 
-func NewFeedBiz() *Biz { return &Biz{} }
+func NewBiz() *Biz { return &Biz{} }
 
 func isGuestFromCtx(ctx context.Context) bool {
 	return imodel.IsGuestFromCtx(ctx)

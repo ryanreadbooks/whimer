@@ -356,31 +356,6 @@ func (s *CommentServiceServer) BatchCheckUserLikeComment(ctx context.Context,
 	return &commentv1.BatchCheckUserLikeCommentResponse{Results: results}, nil
 }
 
-// 获取上传图片评论凭证
-func (s *CommentServiceServer) UploadCommentImages(ctx context.Context, in *commentv1.UploadCommentImagesRequest) (
-	*commentv1.UploadCommentImagesResponse, error) {
-	if in.RequestedCount <= 0 {
-		return &commentv1.UploadCommentImagesResponse{}, nil
-	}
-
-	if in.RequestedCount > model.MaxCommentImageCount {
-		return nil, xerror.ErrInvalidArgs.Msg("request count too large")
-	}
-
-	auths, err := s.Svc.CommentSrv.GetCommentImagesUploadAuth(ctx, in.RequestedCount)
-	if err != nil {
-		return nil, err
-	}
-
-	return &commentv1.UploadCommentImagesResponse{
-		StoreKeys:   auths.ImageIds,
-		CurrentTime: auths.CurrentTime,
-		ExpireTime:  auths.ExpireTime,
-		Token:       auths.Token,
-		UploadAddr:  auths.UploadAddr,
-	}, nil
-}
-
 // 批量检查评论是否存在
 func (s *CommentServiceServer) BatchCheckCommentExist(ctx context.Context, in *commentv1.BatchCheckCommentExistRequest) (
 	*commentv1.BatchCheckCommentExistResponse, error,

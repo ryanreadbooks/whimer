@@ -3,12 +3,9 @@ package srv
 import (
 	"context"
 
-	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
-
-	"golang.org/x/sync/errgroup"
 )
 
 type NoteCreatorSrv struct {
@@ -36,57 +33,6 @@ func (s *NoteCreatorSrv) Create(ctx context.Context, req *model.CreateNoteReques
 // 更新笔记
 func (s *NoteCreatorSrv) Update(ctx context.Context, req *model.UpdateNoteRequest) error {
 	return s.noteCreatorBiz.UpdateNote(ctx, req)
-}
-
-// 获取上传凭证
-//
-// Deprecated: UploadAuth is deprecated
-func (s *NoteCreatorSrv) UploadAuth(ctx context.Context, req *model.UploadAuthRequest) (*model.UploadAuthResponse, error) {
-	return s.noteCreatorBiz.GetUploadAuth(ctx, req)
-}
-
-// 批量获取上传凭证
-//
-// Deprecated: BatchGetUploadAuth is deprecated
-func (s *NoteCreatorSrv) BatchGetUploadAuth(ctx context.Context,
-	req *model.UploadAuthRequest) ([]*model.UploadAuthResponse, error) {
-
-	eg, ctx := errgroup.WithContext(ctx)
-	var resps = make([]*model.UploadAuthResponse, req.Count)
-	for i := range req.Count {
-		eg.Go(func() error {
-			return recovery.Do(func() error {
-				resp, err := s.noteCreatorBiz.GetUploadAuth(ctx, req)
-				if err != nil {
-					return xerror.Wrapf(err, "get upload auth failed").WithExtra("req", req)
-				}
-
-				resps[i] = resp
-				return nil
-			})
-		})
-	}
-
-	if err := eg.Wait(); err != nil {
-		return nil, err
-	}
-
-	return resps, nil
-}
-
-// 获取临时上传凭证
-func (s *NoteCreatorSrv) BatchGetUploadAuthSTS(ctx context.Context,
-	req *model.UploadAuthRequest) (*model.UploadAuthSTSResponse, error) {
-	res, err := s.noteCreatorBiz.GetUploadAuthSTS(ctx, &model.UploadAuthRequest{
-		Resource: req.Resource,
-		Source:   req.Source,
-		Count:    req.Count,
-	})
-	if err != nil {
-		return nil, xerror.Wrapf(err, "srv creator get upload auth sts failed").WithCtx(ctx)
-	}
-
-	return res, nil
 }
 
 // 删除笔记

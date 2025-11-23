@@ -17,10 +17,12 @@ import (
 	bizsearch "github.com/ryanreadbooks/whimer/pilot/internal/biz/search"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
 	sysnotifymodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify/model"
+	bizupload "github.com/ryanreadbooks/whimer/pilot/internal/biz/upload"
 	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/user"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -30,6 +32,7 @@ type Handler struct {
 	searchBiz  *bizsearch.Biz
 	commentBiz *bizcomment.Biz
 	notifyBiz  *bizsysnotify.Biz
+	uploadBiz  *bizupload.Biz
 }
 
 func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
@@ -38,6 +41,7 @@ func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 		searchBiz:  bizz.SearchBiz,
 		commentBiz: bizz.CommentBiz,
 		notifyBiz:  bizz.SysNotifyBiz,
+		uploadBiz:  bizz.UploadBiz,
 	}
 }
 
@@ -270,13 +274,13 @@ func (h *Handler) UploadCommentImages() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		resp, err := h.commentBiz.UploadCommentImages(ctx, req)
+		resp, err := h.uploadBiz.RequestUploadAuth(ctx, uploadresource.CommentImage, req.Count, "")
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		xhttp.OkJson(w, resp)
+		xhttp.OkJson(w, newUploadTicket(resp))
 	}
 }
 

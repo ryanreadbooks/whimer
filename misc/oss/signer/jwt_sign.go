@@ -9,15 +9,14 @@ import (
 
 	jwtv5 "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/ryanreadbooks/whimer/misc/xstring"
 )
 
 type JwtSignConfig struct {
 	JwtIssuer   string        `json:"jwt_issuer"`
 	JwtSubject  string        `json:"jwt_subject"`
 	JwtDuration time.Duration `json:"jwt_duration"`
-	Ak          string        `json:"ak"`
-	Sk          string        `json:"sk"`
+	Ak          []byte        `json:"ak"`
+	Sk          []byte        `json:"sk"`
 }
 
 type JwtUploadAuthSigner struct {
@@ -40,7 +39,7 @@ func newSTSUploadAuthClaim(c *JwtSignConfig, fileIds []string, resource string, 
 		return nil, err
 	}
 
-	hash := hmac.New(sha256.New, []byte(c.Sk))
+	hash := hmac.New(sha256.New, c.Sk)
 	hash.Write(akb)
 	akb = hash.Sum(nil)
 	ak := hex.EncodeToString(akb)
@@ -86,7 +85,7 @@ func (s *JwtUploadAuthSigner) BatchGetUploadAuth(fileIds []string, resource stri
 	}
 
 	jwtToken := jwtv5.NewWithClaims(jwtv5.SigningMethodHS256, claim)
-	ss, err := jwtToken.SignedString(xstring.AsBytes(s.c.Sk))
+	ss, err := jwtToken.SignedString(s.c.Sk)
 
 	if err != nil {
 		return res, err

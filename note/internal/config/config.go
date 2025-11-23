@@ -1,9 +1,6 @@
 package config
 
 import (
-	"time"
-
-	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 
@@ -28,19 +25,6 @@ type Config struct {
 
 	Redis redis.RedisConf `json:"redis"`
 
-	Oss Oss `json:"oss"`
-
-	UploadAuthSign struct {
-		JwtId       string        `json:"jwt_id"`
-		JwtIssuer   string        `json:"jwt_issuer"`
-		JwtSubject  string        `json:"jwt_subject"`
-		JwtDuration time.Duration `json:"jwt_duration"`
-		Ak          string        `json:"ak"`
-		Sk          string        `json:"sk"`
-	} `json:"upload_auth_sign"`
-
-	ImgProxyAuth imgproxy.Auth `json:"img_proxy_auth"`
-
 	External struct {
 		Grpc struct {
 			Passport xconf.Discovery `json:"passport"`
@@ -59,22 +43,5 @@ type Config struct {
 }
 
 func (c *Config) Init() error {
-	return c.ImgProxyAuth.Init()
-}
-
-type Oss struct {
-	Endpoint        string `json:"endpoint"`
-	Location        string `json:"location"`
-	Bucket          string `json:"bucket"`
-	Prefix          string `json:"prefix"`
-	DisplayEndpoint string `json:"display_endpoint"`
-	UploadEndpoint  string `json:"upload_endpoint"`
-}
-
-func (c *Oss) DisplayEndpointBucket() string {
-	return c.DisplayEndpoint + "/" + c.Bucket
-}
-
-func (c *Oss) UploadEndpointBucket() string {
-	return c.UploadEndpoint + "/" + c.Bucket
+	return nil
 }
