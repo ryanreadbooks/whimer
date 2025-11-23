@@ -86,7 +86,7 @@ func (b *Biz) GetIntegralUserSettings(ctx context.Context, uid int64) (*model.In
 	if settingPo != nil {
 		flags := settingPo.Flags
 		return &model.IntegralUserSetting{
-			IntegralNoteShowSetting: &model.IntegralNoteShowSetting{
+			IntegralNoteShowSetting: model.IntegralNoteShowSetting{
 				ShowNoteLikes: model.ShouldShowNoteLikes(flags),
 			},
 		}, nil

@@ -1,8 +1,6 @@
 package usersetting
 
 import (
-	"encoding/json"
-
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
 
@@ -15,11 +13,11 @@ var (
 )
 
 type UserSettingPO struct {
-	Uid   int64           `db:"uid"`
-	Flags int64           `db:"flags"`
-	Ext   json.RawMessage `db:"ext"`
-	Ctime int64           `db:"ctime"`
-	Utime int64           `db:"utime"`
+	Uid   int64  `db:"uid"   json:"uid"`
+	Flags int64  `db:"flags" json:"flags"`
+	Ext   []byte `db:"ext"   json:"ext"`
+	Ctime int64  `db:"ctime" json:"ctime"`
+	Utime int64  `db:"utime" json:"utime"`
 }
 
 func (UserSettingPO) TableName() string {
@@ -29,7 +27,7 @@ func (UserSettingPO) TableName() string {
 func (s *UserSettingPO) Values() []any {
 	ext := s.Ext
 	if s.Ext == nil {
-		ext = json.RawMessage{}
+		ext = []byte{}
 	}
 	return []any{
 		s.Uid,

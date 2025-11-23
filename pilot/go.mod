@@ -78,6 +78,8 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/speps/go-hashids/v2 v2.0.1 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/zeromicro/go-queue v1.2.2 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.15 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.15 // indirect

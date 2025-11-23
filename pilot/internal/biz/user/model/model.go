@@ -82,7 +82,7 @@ func HideActualCount(cnt int64) string {
 type UserSettings struct {
 	ShowFanList    bool `json:"show_fan_list"`    // 是否展示粉丝列表
 	ShowFollowList bool `json:"show_follow_list"` // 是否展示关注列表
-	*IntegralUserSetting
+	IntegralUserSetting
 }
 
 type IntegralNoteShowSetting struct {
@@ -90,5 +90,5 @@ type IntegralNoteShowSetting struct {
 }
 
 type IntegralUserSetting struct {
-	*IntegralNoteShowSetting
+	IntegralNoteShowSetting
 }

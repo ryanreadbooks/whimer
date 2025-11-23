@@ -7,6 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/database/usersetting"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
 type Dao struct {
@@ -22,7 +23,7 @@ func (d *Dao) Transact(ctx context.Context, fn func(ctx context.Context) error) 
 	return d.db.Transact(ctx, fn)
 }
 
-func MustNew(c *config.Config) *Dao {
+func MustNew(c *config.Config, r *redis.Redis) *Dao {
 	conn := sqlx.NewMysql(xsql.GetDsn(
 		c.MySql.User,
 		c.MySql.Pass,
@@ -42,6 +43,6 @@ func MustNew(c *config.Config) *Dao {
 	db := xsql.New(conn)
 	return &Dao{
 		db:             db,
-		UserSettingDao: usersetting.NewDao(db),
+		UserSettingDao: usersetting.NewDao(db, r),
 	}
 }

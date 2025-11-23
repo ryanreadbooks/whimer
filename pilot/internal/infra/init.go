@@ -14,8 +14,8 @@ var (
 
 func Init(c *config.Config) {
 	initOnce.Do(func() {
-		dao.Init(c)
 		initCache(c)
+		dao.Init(c, Cache())
 		dep.Init(c)
 		initMisc(c)
 	})
