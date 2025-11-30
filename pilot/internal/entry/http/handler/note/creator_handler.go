@@ -2,6 +2,7 @@ package note
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -12,9 +13,11 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	bizstorage "github.com/ryanreadbooks/whimer/pilot/internal/biz/storage"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model"
+	modelerr "github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 
@@ -117,6 +120,66 @@ func (h *Handler) afterNoteUpserted(ctx context.Context, note *notev1.NoteItem) 
 	h.appendRecentContacts(ctx, note)
 }
 
+func (h *Handler) furthurCheckNoteImages(ctx context.Context, req *CreateReq) error {
+	var (
+		keys        = make([]string, 0, len(req.Images))
+		bucket, key string
+		err         error
+	)
+
+	for _, img := range req.Images {
+		bucket, key, err = h.storageBiz.SeperateResource(uploadresource.NoteImage, img.FileId)
+		if err != nil {
+			return err
+		}
+
+		keys = append(keys, key)
+	}
+
+	// 确保上传的资源此时是存在的
+	_, err = h.storageBiz.BatchCheckResourceExist(ctx, bucket, keys, true)
+	if err != nil {
+		if errors.Is(err, bizstorage.ErrResourceNotFound) {
+			err = modelerr.ErrResourceNotFound
+		}
+	} else {
+		// 进一步检查所有资源都是合法的受支持的图片格式
+		shouldTag := true
+		for _, key := range keys {
+			var (
+				content []byte
+				total   int64
+			)
+			content, total, err = h.storageBiz.GetResourceBytes(ctx, bucket, key, 32) // in bytes
+			if err != nil {
+				if errors.Is(err, bizstorage.ErrResourceNotFound) {
+					err = modelerr.ErrResourceNotFound
+				}
+				shouldTag = false
+				break
+			}
+
+			if err = uploadresource.NoteImage.Check(content, total); err != nil {
+				shouldTag = false
+				break
+			}
+		}
+
+		if shouldTag {
+			// 尽量给object打标签 方便后续清理脏数据
+			// 后续扫描bucket时发现不存在tag的就可以考虑删除
+			h.storageBiz.BatchMarkResourceActive(ctx, bucket, keys, false) // ignore error here
+		}
+	}
+
+	return err
+}
+
+func (h *Handler) furthurCheckNoteVideo(ctx context.Context, req *CreateReq) error {
+	// TODO
+	return nil
+}
+
 // 发布笔记
 func (h *Handler) CreatorCreateNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -125,9 +188,22 @@ func (h *Handler) CreatorCreateNote() http.HandlerFunc {
 			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
 			return
 		}
+		ctx := r.Context()
+
+		// check every resource
+		switch req.Basic.Type {
+		case model.NoteTypeImage:
+			err = h.furthurCheckNoteImages(ctx, req)
+		case model.NoteTypeVideo:
+			err = h.furthurCheckNoteVideo(ctx, req)
+		}
+
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
 
 		// service to create note
-		ctx := r.Context()
 		resp, err := dep.NoteCreatorServer().CreateNote(ctx, req.AsPb())
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -248,6 +324,9 @@ func (h *Handler) CreatorGetNote() http.HandlerFunc {
 	}
 }
 
+// Deprecated
+//
+// See: upload.GetTempCreds for newest usage
 func (h *Handler) CreatorUploadNoteAuthV2() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidate[UploadAuthReq](httpx.ParseForm, r)
@@ -257,7 +336,7 @@ func (h *Handler) CreatorUploadNoteAuthV2() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		resp, err := h.uploadBiz.RequestUploadAuth(ctx, uploadresource.NoteImage, req.Count, req.Source)
+		resp, err := h.storageBiz.RequestUploadTicket(ctx, uploadresource.NoteImage, req.Count, req.Source)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

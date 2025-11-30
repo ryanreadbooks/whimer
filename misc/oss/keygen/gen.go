@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	googleuuid "github.com/google/uuid"
 	"github.com/ryanreadbooks/whimer/misc/utils"
+	"github.com/ryanreadbooks/whimer/misc/uuid"
 )
 
 type Stringer interface {
@@ -19,13 +20,13 @@ type Stringer interface {
 type RandomStringer struct{}
 
 func (s RandomStringer) GetRandomString() string {
-	return uuid.NewString() + strconv.FormatInt(time.Now().UnixNano(), 10)
+	return googleuuid.NewString() + strconv.FormatInt(time.Now().UnixNano(), 10)
 }
 
 type RandomStringerV7 struct{}
 
 func (s RandomStringerV7) GetRandomString() string {
-	return utils.Must1(uuid.NewV7()).String()
+	return uuid.NewUUID().String()
 }
 
 type Generator struct {
@@ -127,4 +128,23 @@ func (g *Generator) Gen() string {
 	}
 
 	return prefix + res
+}
+
+// format:
+// /[bucket]/[prefix]/string_[suffix]
+//
+// unwrap bucket and key
+func (g *Generator) Unwrap(s string) (bucket, key string, ok bool) {
+	if !g.prependBucket {
+		return g.bucket, s, true
+	}
+
+	// bucket is prepended
+	if !strings.HasPrefix(s, g.bucket+"/") {
+		ok = false
+		return
+	}
+
+	key = strings.TrimPrefix(s, g.bucket+"/")
+	return g.bucket, key, true
 }

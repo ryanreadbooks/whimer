@@ -213,34 +213,29 @@ func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 
 	// 组合notes和noteAssets
 	for _, note := range notes {
-		item := &model.Note{
-			NoteId:   note.NoteId,
-			Title:    note.Title,
-			Desc:     note.Desc,
-			Privacy:  note.Privacy,
-			CreateAt: note.CreateAt,
-			UpdateAt: note.UpdateAt,
-			Owner:    note.Owner,
-		}
-
 		for _, asset := range noteAssets {
-			assetMeta := model.NewAssetImageMetaFromJson(asset.AssetMeta)
-			if note.NoteId == asset.NoteId {
-				// pureKey := strings.TrimLeft(asset.AssetKey, config.Conf.Oss.Bucket+"/") // 此处要去掉桶名称
-				// 放在pilot服务处理proxy
-				item.Images = append(item.Images, &model.NoteImage{
-					Key: asset.AssetKey,
-					Type: int(asset.AssetType),
-					Meta: model.NoteImageMeta{
-						Width:  assetMeta.Width,
-						Height: assetMeta.Height,
-						Format: assetMeta.Format,
-					},
-				})
+			switch note.Type {
+			case global.AssetTypeImage:
+				assetMeta := model.NewAssetImageMetaFromJson(asset.AssetMeta)
+				if note.NoteId == asset.NoteId {
+					// pureKey := strings.TrimLeft(asset.AssetKey, config.Conf.Oss.Bucket+"/") // 此处要去掉桶名称
+					// 放在pilot服务处理proxy
+					note.Images = append(note.Images, &model.NoteImage{
+						Key:  asset.AssetKey,
+						Type: int(asset.AssetType),
+						Meta: model.NoteImageMeta{
+							Width:  assetMeta.Width,
+							Height: assetMeta.Height,
+							Format: assetMeta.Format,
+						},
+					})
+				}
+			case global.AssetTypeVideo:
+				// TODO
 			}
 		}
 
-		res.Items = append(res.Items, item)
+		res.Items = append(res.Items, note)
 	}
 
 	return &res, nil

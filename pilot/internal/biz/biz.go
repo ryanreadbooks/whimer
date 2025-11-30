@@ -6,7 +6,7 @@ import (
 	bizrelation "github.com/ryanreadbooks/whimer/pilot/internal/biz/relation"
 	bizsearch "github.com/ryanreadbooks/whimer/pilot/internal/biz/search"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
-	bizupload "github.com/ryanreadbooks/whimer/pilot/internal/biz/upload"
+	bizstorage "github.com/ryanreadbooks/whimer/pilot/internal/biz/storage"
 	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/user"
 	bizwhisper "github.com/ryanreadbooks/whimer/pilot/internal/biz/whisper"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
@@ -20,7 +20,7 @@ type Biz struct {
 	RelationBiz  *bizrelation.Biz
 	SysNotifyBiz *bizsysnotify.Biz
 	WhisperBiz   *bizwhisper.Biz
-	UploadBiz    *bizupload.Biz
+	UploadBiz    *bizstorage.Biz
 }
 
 func New(c *config.Config) *Biz {
@@ -33,6 +33,6 @@ func New(c *config.Config) *Biz {
 		RelationBiz:  bizrelation.NewBiz(),
 		SysNotifyBiz: bizsysnotify.NewBiz(),
 		WhisperBiz:   bizwhisper.NewBiz(),
-		UploadBiz:    bizupload.NewBiz(c),
+		UploadBiz:    bizstorage.NewBiz(c),
 	}
 }

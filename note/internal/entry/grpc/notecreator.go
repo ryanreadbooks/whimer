@@ -61,9 +61,10 @@ func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.Cr
 
 	var req = model.CreateNoteRequest{
 		Basic: model.CreateNoteRequestBasic{
-			Title:   in.Basic.Title,
-			Desc:    in.Basic.Desc,
-			Privacy: int8(in.Basic.Privacy),
+			Title:    in.Basic.Title,
+			Desc:     in.Basic.Desc,
+			Privacy:  int8(in.Basic.Privacy),
+			NoteType: int8(in.Basic.AssetType),
 		},
 		Images:  images,
 		TagIds:  in.GetTags().GetTagList(),
@@ -104,9 +105,10 @@ func (s *NoteCreatorServiceServer) UpdateNote(ctx context.Context, in *notev1.Up
 		NoteId: in.NoteId,
 		CreateNoteRequest: model.CreateNoteRequest{
 			Basic: model.CreateNoteRequestBasic{
-				Title:   in.Note.Basic.Title,
-				Desc:    in.Note.Basic.Desc,
-				Privacy: int8(in.Note.Basic.Privacy),
+				Title:    in.Note.Basic.Title,
+				Desc:     in.Note.Basic.Desc,
+				Privacy:  int8(in.Note.Basic.Privacy),
+				NoteType: int8(in.Note.Basic.AssetType),
 			},
 			Images:  images,
 			TagIds:  in.GetNote().GetTags().GetTagList(),

@@ -52,24 +52,27 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *model.CreateNoteRe
 
 	now := time.Now().Unix()
 	newNote := &notedao.Note{
-		Title:   req.Basic.Title,
-		Desc:    req.Basic.Desc,
-		Privacy: int8(req.Basic.Privacy),
-		Owner:   uid,
-		Ip:      ip,
+		Title:    req.Basic.Title,
+		Desc:     req.Basic.Desc,
+		Privacy:  req.Basic.Privacy,
+		NoteType: req.Basic.NoteType,
+		Owner:    uid,
+		Ip:       ip,
 	}
 
 	var noteAssets = make([]*notedao.Asset, 0, len(req.Images))
 	for _, img := range req.Images {
-		imgMeta := model.NewAssetImageMeta(img.Width, img.Height, img.Format).String()
+		imgMeta := model.NewAssetImageMeta(img.Width, img.Height, img.Format).Bytes()
 		noteAssets = append(noteAssets, &notedao.Asset{
-			AssetKey:  img.FileId, // 包含桶名称
-			AssetType: global.AssetTypeImage,
+			AssetKey:  img.FileId,            // 包含桶名称
+			AssetType: global.AssetTypeImage, // image
 			NoteId:    noteId,
 			CreateAt:  now,
 			AssetMeta: imgMeta,
 		})
 	}
+
+	// TODO videos
 
 	err := infra.Dao().DB().Transact(ctx, func(ctx context.Context) error {
 		// 插入图片基础内容

@@ -20,10 +20,11 @@ import (
 
 // all sqls here
 const (
-	noteFields = "id,title,`desc`,privacy,owner,ip,create_at,update_at"
+	noteFields    = "id,title,`desc`,privacy,owner,ip,note_type,create_at,update_at"
+	noteInsFields = "title,`desc`,privacy,owner,ip,note_type,create_at,update_at"
 
 	sqlFind                   = "SELECT " + noteFields + " FROM note WHERE id=?"
-	sqlInsertAll              = "INSERT INTO note(title,`desc`,privacy,owner,ip,create_at,update_at) VALUES(?,?,?,?,?,?,?)"
+	sqlInsertAll              = "INSERT INTO note(" + noteInsFields + ") VALUES(?,?,?,?,?,?,?)"
 	sqlUpdateAll              = "UPDATE note SET title=?,`desc`=?,privacy=?,owner=?,ip=?,update_at=? WHERE id=?"
 	sqlDeleteById             = "DELETE FROM note WHERE id=?"
 	sqlListByOwner            = "SELECT " + noteFields + " FROM note WHERE owner=?"
@@ -70,6 +71,7 @@ type Note struct {
 	Privacy  int8   `db:"privacy"` // 公开类型
 	Owner    int64  `db:"owner"`   // 笔记作者
 	Ip       []byte `db:"ip"`
+	NoteType int8   `db:"note_type"` // 笔记类型
 	CreateAt int64  `db:"create_at"` // 创建时间
 	UpdateAt int64  `db:"update_at"` // 更新时间
 }
@@ -202,6 +204,7 @@ func (r *NoteDao) insert(ctx context.Context, note *Note) (int64, error) {
 		note.Privacy,
 		note.Owner,
 		note.Ip,
+		note.NoteType,
 		now,
 		now)
 

@@ -74,8 +74,12 @@ upload_auth_sign:
   sk: ${ENV_OSS_SK}
 
 oss:
+  use_secure: false
   endpoint: ${ENV_OSS_ENDPOINT}
   location: ${ENV_OSS_LOCATION}
+  user: ${ENV_OSS_USER}
+  password: ${ENV_OSS_PASS}
+  credential_duration_sec: 1800
   display_endpoint: http://s1-file.whimer.com
   upload_endpoint: http://s1-upload.whimer.com
 
@@ -85,6 +89,12 @@ upload_resource_define:
       bucket: nota
       prefix: assets
       prepend_bucket: true
+  - name: note_video
+    meta:
+      bucket: videos
+      prefix: note
+      prepend_bucket: true
+      prepend_prefix: true
   - name: comment_image
     meta:
       bucket: pics

@@ -1,6 +1,12 @@
 package uploadresource
 
-import "github.com/ryanreadbooks/whimer/misc/oss/keygen"
+import (
+	"slices"
+
+	"github.com/gabriel-vasile/mimetype"
+	"github.com/ryanreadbooks/whimer/misc/oss/keygen"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
+)
 
 // 定义每类资源对应的桶名称和key前缀
 type Metadata struct {
@@ -19,16 +25,63 @@ func (m *Metadata) GetStringer() keygen.Stringer {
 	return keygen.RandomStringer{}
 }
 
+const (
+	kB = 1024
+	mB = 1024 * kB
+)
+
 type Type string
 
 const (
 	NoteImage    Type = "note_image"
+	NoteVideo    Type = "note_video"
 	CommentImage Type = "comment_image"
 )
+
+func (t Type) PermitSize() int64 {
+	switch t {
+	case NoteImage:
+		return 10 * mB
+	case NoteVideo:
+		return 500 * mB
+	case CommentImage:
+		return 10 * mB
+	}
+
+	return 0
+}
+
+var (
+	allowedImageType = []string{"image/jpeg", "image/png", "image/webp"}
+)
+
+func (t Type) PermitContentType() []string {
+	switch t {
+	case NoteImage:
+		return allowedImageType
+	case NoteVideo:
+	case CommentImage:
+		return allowedImageType
+	}
+
+	return nil
+}
+
+func (t Type) Check(b []byte, total int64) error {
+	mimeType := mimetype.Detect(b).String()
+	permitSize := t.PermitSize()
+	permitType := t.PermitContentType()
+	if slices.Contains(permitType, mimeType) && total <= permitSize {
+		return nil
+	}
+
+	return xerror.ErrArgs.Msg("资源格式非法")
+}
 
 var (
 	validType = map[Type]struct{}{
 		NoteImage:    {},
+		NoteVideo:    {},
 		CommentImage: {},
 	}
 )
@@ -36,4 +89,13 @@ var (
 func CheckValid(s string) bool {
 	_, ok := validType[Type(s)]
 	return ok
+}
+
+func IsNoteResource(s string) bool {
+	switch s {
+	case string(NoteImage), string(NoteVideo):
+		return true
+	}
+
+	return false
 }

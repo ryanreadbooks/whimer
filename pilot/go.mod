@@ -3,7 +3,9 @@ module github.com/ryanreadbooks/whimer/pilot
 go 1.24.0
 
 require (
+	github.com/gabriel-vasile/mimetype v1.4.3
 	github.com/huandu/go-sqlbuilder v1.38.1
+	github.com/minio/minio-go/v7 v7.0.72
 	github.com/redis/go-redis/v9 v9.11.0
 	github.com/ryanreadbooks/whimer/comment v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
@@ -30,6 +32,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -62,7 +65,6 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/minio/minio-go/v7 v7.0.72 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
@@ -74,6 +76,7 @@ require (
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
+	github.com/rs/xid v1.5.0 // indirect
 	github.com/ryanreadbooks/whimer/apiextension v0.0.0-00010101000000-000000000000 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/speps/go-hashids/v2 v2.0.1 // indirect
@@ -99,6 +102,7 @@ require (
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect

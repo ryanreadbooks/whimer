@@ -2,8 +2,6 @@ package model
 
 import (
 	"encoding/json"
-
-	"github.com/ryanreadbooks/whimer/misc/utils"
 )
 
 type AssetImageMeta struct {
@@ -21,15 +19,20 @@ func NewAssetImageMeta(w, h uint32, format string) *AssetImageMeta {
 	}
 }
 
-func NewAssetImageMetaFromJson(s string) AssetImageMeta {
+func NewAssetImageMetaFromJson(s []byte) AssetImageMeta {
 	var a AssetImageMeta
-	_ = json.Unmarshal(utils.StringToBytes(s), &a)
+	_ = json.Unmarshal(s, &a)
 	return a
 }
 
 func (r *AssetImageMeta) String() string {
 	c, _ := json.Marshal(r)
 	return string(c)
+}
+
+func (r *AssetImageMeta) Bytes() []byte {
+	c, _ := json.Marshal(r)
+	return c
 }
 
 type AssetPreviewEventMetadata struct {

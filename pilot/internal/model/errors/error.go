@@ -14,6 +14,7 @@ var (
 	ErrChatNotExists         = xerror.ErrArgs.Msg("会话不存在")
 	ErrChatMsgNotExists      = xerror.ErrArgs.Msg("消息不存在")
 	ErrUnsupportedResource   = xerror.ErrArgs.Msg("不支持的资源类型")
+	ErrResourceNotFound      = xerror.ErrArgs.Msg("资源不存在")
 )
 
 // 5xx

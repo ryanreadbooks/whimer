@@ -107,10 +107,14 @@ type UploadResourceDefineItem struct {
 type UploadResourceDefineMap map[uploadresource.Type]uploadresource.Metadata // string is resourceType
 
 type Oss struct {
-	Endpoint        string `json:"endpoint"`
-	Location        string `json:"location"`
-	DisplayEndpoint string `json:"display_endpoint"`
-	UploadEndpoint  string `json:"upload_endpoint"`
+	UseSecure             bool   `json:"use_secure"`
+	Endpoint              string `json:"endpoint"`
+	Location              string `json:"location"`
+	User                  string `json:"user"`
+	Password              string `json:"password"`
+	CredentialDurationSec int    `json:"credential_duration_sec"`
+	DisplayEndpoint       string `json:"display_endpoint"`
+	UploadEndpoint        string `json:"upload_endpoint"`
 }
 
 func (c *Oss) DisplayEndpointBucket(bucket string) string {

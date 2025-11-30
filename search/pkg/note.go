@@ -8,7 +8,7 @@ type NoteAssetType string
 
 const (
 	NoteAssetTypeImage NoteAssetType = "image"
-	// NoteAssetTypeVideo NoteAssetType = "video"
+	NoteAssetTypeVideo NoteAssetType = "video"
 )
 
 var (

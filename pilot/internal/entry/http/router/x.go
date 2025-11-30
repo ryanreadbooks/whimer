@@ -33,6 +33,8 @@ func RegisterX(engine *rest.Server, h *handler.Handler) {
 	regFeedRoutes(xGroup, h)
 	// search routes
 	regSearchRoutes(xGroup, h)
+	// upload routes
+	regUploadRoutes(xGroup, h)
 
 	mod := h.Config.Http.Mode
 	if mod == zeroservice.DevMode || mod == zeroservice.TestMode {

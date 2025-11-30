@@ -21,7 +21,6 @@ const (
 
 	sqlFindImageByNoteId          = `SELECT id,asset_key,asset_type,note_id,create_at,asset_meta FROM note_asset WHERE note_id=? AND asset_type=1 FOR UPDATE`
 	sqlExcludeDeleteImageByNoteId = `DELETE FROM note_asset WHERE note_id=? AND asset_type=1`
-	sqlFindImageByKey             = `SELECT id,asset_key,asset_type,note_id,create_at,asset_meta FROM note_asset WHERE asset_key=? AND asset_type=1 LIMIT 1`
 )
 
 type NoteAssetDao struct {
@@ -40,7 +39,7 @@ type Asset struct {
 	AssetType int8   `db:"asset_type"` // 资源类型
 	NoteId    int64  `db:"note_id"`    // 所属笔记id
 	CreateAt  int64  `db:"create_at"`  // 创建时间
-	AssetMeta string `db:"asset_meta"` // 资源的元数据 存储格式为一个json字符串
+	AssetMeta []byte `db:"asset_meta"` // 资源的元数据 存储格式为一个json字符串
 }
 
 func (r *NoteAssetDao) FindOne(ctx context.Context, id int64) (*Asset, error) {
@@ -151,14 +150,4 @@ func (r *NoteAssetDao) FindByNoteIds(ctx context.Context, noteIds []int64) ([]*A
 		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
 	return res, nil
-}
-
-func (r *NoteAssetDao) FindImageAssetByKey(ctx context.Context, assetKey string) (*Asset, error) {
-	var asset Asset
-	err := r.db.QueryRowCtx(ctx, &asset, sqlFindImageByKey, assetKey)
-	if err != nil {
-		return nil, xerror.Wrap(xsql.ConvertError(err))
-	}
-
-	return &asset, nil
 }

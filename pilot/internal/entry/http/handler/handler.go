@@ -8,6 +8,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/msg"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/note"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/relation"
+	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/upload"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/user"
 )
 
@@ -20,6 +21,7 @@ type Handler struct {
 	Chat     *msg.Handler
 	User     *user.UserHandler
 	Feed     *feed.Handler
+	Upload   *upload.Handler
 }
 
 func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
@@ -31,6 +33,7 @@ func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 		Chat:     msg.NewHandler(c, bizz),
 		User:     user.NewUserHandler(c, bizz),
 		Feed:     feed.NewHandler(c, bizz),
+		Upload:   upload.NewHandler(c, bizz),
 	}
 
 	return h

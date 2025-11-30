@@ -15,9 +15,9 @@ import (
 	bizcomment "github.com/ryanreadbooks/whimer/pilot/internal/biz/comment"
 	commentmodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/comment/model"
 	bizsearch "github.com/ryanreadbooks/whimer/pilot/internal/biz/search"
+	bizstorage "github.com/ryanreadbooks/whimer/pilot/internal/biz/storage"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
 	sysnotifymodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify/model"
-	bizupload "github.com/ryanreadbooks/whimer/pilot/internal/biz/upload"
 	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/user"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
@@ -32,7 +32,7 @@ type Handler struct {
 	searchBiz  *bizsearch.Biz
 	commentBiz *bizcomment.Biz
 	notifyBiz  *bizsysnotify.Biz
-	uploadBiz  *bizupload.Biz
+	storageBiz *bizstorage.Biz
 }
 
 func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
@@ -41,7 +41,7 @@ func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 		searchBiz:  bizz.SearchBiz,
 		commentBiz: bizz.CommentBiz,
 		notifyBiz:  bizz.SysNotifyBiz,
-		uploadBiz:  bizz.UploadBiz,
+		storageBiz: bizz.UploadBiz,
 	}
 }
 
@@ -274,7 +274,7 @@ func (h *Handler) UploadCommentImages() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		resp, err := h.uploadBiz.RequestUploadAuth(ctx, uploadresource.CommentImage, req.Count, "")
+		resp, err := h.storageBiz.RequestUploadTicket(ctx, uploadresource.CommentImage, req.Count, "")
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

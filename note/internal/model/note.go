@@ -41,6 +41,7 @@ type Note struct {
 	Title    string        `json:"title"`
 	Desc     string        `json:"desc"`
 	Privacy  int8          `json:"privacy,omitempty"`
+	Type     int8          `json:"type"`
 	CreateAt int64         `json:"create_at,omitempty"`
 	UpdateAt int64         `json:"update_at,omitempty"`
 	Ip       string        `json:"ip"`
@@ -69,6 +70,7 @@ func NoteFromDao(d *notedao.Note) *Note {
 	n.Title = d.Title
 	n.Desc = d.Desc
 	n.Privacy = d.Privacy
+	n.Type = d.NoteType
 	n.CreateAt = d.CreateAt
 	n.UpdateAt = d.UpdateAt
 	n.Ip = xnet.BytesIpAsString(d.Ip)
@@ -91,6 +93,7 @@ func (i *Note) AsPb() *notev1.NoteItem {
 		Title:    i.Title,
 		Desc:     i.Desc,
 		Privacy:  int32(i.Privacy),
+		NoteType: notev1.NoteAssetType(i.Type),
 		CreateAt: i.CreateAt,
 		UpdateAt: i.UpdateAt,
 		Ip:       i.Ip,
@@ -114,6 +117,7 @@ func (i *Note) AsFeedPb() *notev1.FeedNoteItem {
 		NoteId:    i.NoteId,
 		Title:     i.Title,
 		Desc:      i.Desc,
+		NoteType:  notev1.NoteAssetType(i.Type),
 		CreatedAt: i.CreateAt,
 		UpdatedAt: i.UpdateAt,
 		Images:    i.Images.AsPb(),

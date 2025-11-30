@@ -3,11 +3,11 @@ package model
 import (
 	"context"
 
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model"
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
-	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 )
 
 // 包含发起请求的用户和该笔记的交互记录
@@ -44,6 +44,7 @@ type FeedNoteItem struct {
 	Likes    int64             `json:"likes"` // 笔记总点赞数
 	Ip       string            `json:"-"`
 	IpLoc    string            `json:"ip_loc"`
+	Type     imodel.NoteType   `json:"type"`
 
 	// 下面这些字段要单独设置 不从note grpc接口中拿
 	Author   *Author     `json:"author"`   // 作者信息
@@ -83,5 +84,6 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 		Likes:    pb.Likes,
 		Ip:       pb.Ip,
 		IpLoc:    ipLoc,
+		Type:     imodel.ConvertNoteTypeFromPb(pb.NoteType),
 	}
 }

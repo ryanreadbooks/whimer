@@ -10,6 +10,46 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 )
 
+type NoteType string
+
+// 笔记类型
+const (
+	NoteTypeImage = "image"
+	NoteTypeVideo = "video"
+)
+
+var (
+	noteTypePbMapping = map[NoteType]notev1.NoteAssetType{
+		NoteTypeImage: notev1.NoteAssetType_IMAGE,
+		NoteTypeVideo: notev1.NoteAssetType_VIDEO,
+	}
+
+	noteTypePbReverseMapping = map[notev1.NoteAssetType]NoteType{
+		notev1.NoteAssetType_IMAGE: NoteTypeImage,
+		notev1.NoteAssetType_VIDEO: NoteTypeVideo,
+	}
+)
+
+func IsNoteTypeValid(t NoteType) bool {
+	_, ok := noteTypePbMapping[t]
+	return ok
+}
+
+func ConvertNoteTypeAsPb(n NoteType) notev1.NoteAssetType {
+	if t, ok := noteTypePbMapping[n]; ok {
+		return t
+	}
+	return notev1.NoteAssetType_NOTE_ASSET_TYPE_UNSPECIFIED
+}
+
+func ConvertNoteTypeFromPb(n notev1.NoteAssetType) NoteType {
+	if t, ok := noteTypePbReverseMapping[n]; ok {
+		return t
+	}
+
+	return ""
+}
+
 type NoteItemImageMeta struct {
 	Width  uint32 `json:"width"`
 	Height uint32 `json:"height"`
@@ -79,6 +119,7 @@ type AdminNoteItem struct {
 	UpdateAt int64             `json:"update_at"`
 	Ip       string            `json:"-"`
 	IpLoc    string            `json:"ip_loc"`
+	Type     NoteType          `json:"type"`
 	Images   NoteItemImageList `json:"images"`
 	Likes    int64             `json:"likes"`
 	Replies  int64             `json:"replies"`
@@ -147,6 +188,7 @@ func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
 		Title:    pb.Title,
 		Desc:     pb.Desc,
 		Privacy:  int8(pb.Privacy),
+		Type:     ConvertNoteTypeFromPb(pb.NoteType),
 		CreateAt: pb.CreateAt,
 		UpdateAt: pb.UpdateAt,
 		Images:   images,

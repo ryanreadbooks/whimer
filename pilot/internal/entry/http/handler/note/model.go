@@ -8,6 +8,7 @@ import (
 	feedmodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/feed/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 
@@ -31,9 +32,10 @@ const (
 )
 
 type CreateReqBasic struct {
-	Title   string `json:"title"`
-	Desc    string `json:"desc"`
-	Privacy int8   `json:"privacy"`
+	Title   string         `json:"title"`
+	Desc    string         `json:"desc"`
+	Privacy int8           `json:"privacy"`
+	Type    model.NoteType `json:"type"`
 }
 
 func (v *CreateReqBasic) Validate() error {
@@ -48,6 +50,10 @@ func (v *CreateReqBasic) Validate() error {
 	descLen := utf8.RuneCountInString(v.Desc)
 	if descLen > maxDescLen {
 		return xerror.ErrArgs.Msg("简介超长")
+	}
+
+	if !model.IsNoteTypeValid(v.Type) {
+		return xerror.ErrArgs.Msg("不支持资源类型")
 	}
 
 	return nil
@@ -84,9 +90,21 @@ func (r CreateReqImageList) AsPb() []*notev1.CreateReqImage {
 	return images
 }
 
+type CreateReqVideo struct {
+}
+
+func (r *CreateReqVideo) Validate() error {
+	if r == nil {
+		return xerror.ErrNilArg
+	}
+
+	return nil
+}
+
 type CreateReq struct {
 	Basic   CreateReqBasic     `json:"basic"`
 	Images  CreateReqImageList `json:"images"`
+	Video   *CreateReqVideo    `json:"video,omitempty,optional"`
 	TagList []TagId            `json:"tag_list,omitempty,optional"`
 	AtUsers model.AtUserList   `json:"at_users,omitempty,optional"`
 }
@@ -95,18 +113,10 @@ type TagId struct { // 必须再包一层 直接用数组无法解析
 	Id model.TagId `json:"id"`
 }
 
-func (r *CreateReq) Validate() error {
-	if r == nil {
-		return xerror.ErrNilArg
-	}
-
-	if err := r.Basic.Validate(); err != nil {
-		return err
-	}
-
+func (r *CreateReq) ValidateImages() error {
 	for _, img := range r.Images {
 		if img.FileId == "" {
-			return xerror.ErrArgs.Msg("上传图片无名")
+			return xerror.ErrArgs.Msg("上传图片无标识")
 		}
 
 		if img.Width == 0 || img.Height == 0 || img.Format == "" {
@@ -118,8 +128,42 @@ func (r *CreateReq) Validate() error {
 		}
 	}
 
+	return nil
+}
+
+func (r *CreateReq) ValidateVideo() error {
+	return r.Video.Validate()
+}
+
+func (r *CreateReq) ValidateTags() error {
 	if len(r.TagList) > 10 {
 		return xerror.ErrArgs.Msg("标签超出限制")
+	}
+	return nil
+}
+
+func (r *CreateReq) Validate() error {
+	if r == nil {
+		return xerror.ErrNilArg
+	}
+
+	if err := r.Basic.Validate(); err != nil {
+		return err
+	}
+
+	var err error
+	switch r.Basic.Type {
+	case model.NoteTypeImage:
+		err = r.ValidateImages()
+	case model.NoteTypeVideo:
+		err = r.ValidateVideo()
+	}
+	if err != nil {
+		return err
+	}
+
+	if err := r.ValidateTags(); err != nil {
+		return err
 	}
 
 	r.AtUsers = r.AtUsers.Filter()
@@ -253,35 +297,30 @@ type UploadAuthReq struct {
 }
 
 const (
-	maxCountOfUploadAuth = 8
+	maxCountOfVideoUploads = 1
+	maxCountOfImageUploads = 8
 )
 
 func (r *UploadAuthReq) Validate() error {
 	if r.Count <= 0 {
-		r.Count = 1
+		return xerror.ErrInvalidArgs.Msg("参数错误")
 	}
 
-	if r.Count > maxCountOfUploadAuth {
-		return xerror.ErrInvalidArgs.Msg("不支持请求这么多上传凭证")
+	if !uploadresource.CheckValid(r.Resource) {
+		return xerror.ErrInvalidArgs.Msg("不支持的资源类型")
+	}
+
+	if r.Resource == string(uploadresource.NoteImage) {
+		if r.Count > maxCountOfImageUploads {
+			return xerror.ErrInvalidArgs.Msg("不支持请求这么多上传凭证")
+		}
+	} else if r.Resource == string(uploadresource.NoteVideo) {
+		if r.Count > maxCountOfVideoUploads {
+			return xerror.ErrInvalidArgs.Msg("不支持请求这么多上传凭证")
+		}
 	}
 
 	return nil
-}
-
-type UploadAuthResHeaders struct {
-	Auth   string `json:"auth"`
-	Sha256 string `json:"sha256"`
-	Date   string `json:"date"`
-	Token  string `json:"token"`
-}
-
-// 上传凭证响应
-type UploadAuthRes struct {
-	FildId      string               `json:"fild_id"`
-	CurrentTime int64                `json:"current_time"`
-	ExpireTime  int64                `json:"expire_time"`
-	UploadAddr  string               `json:"upload_addr"`
-	Headers     UploadAuthResHeaders `json:"headers"`
 }
 
 // 点赞/取消点赞

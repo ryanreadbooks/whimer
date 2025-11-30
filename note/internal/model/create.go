@@ -20,9 +20,10 @@ const (
 )
 
 type CreateNoteRequestBasic struct {
-	Title   string `json:"title"`
-	Desc    string `json:"desc"`
-	Privacy int8   `json:"privacy"`
+	Title    string `json:"title"`
+	Desc     string `json:"desc"`
+	Privacy  int8   `json:"privacy"`
+	NoteType int8   `json:"note_type"`
 }
 
 type CreateNoteRequestImage struct {
@@ -44,10 +45,6 @@ func (r *CreateNoteRequest) Validate() error {
 		return global.ErrNilReq
 	}
 
-	if len(r.Images) == 0 {
-		return global.ErrArgs.Msg("至少需要包含一张照片")
-	}
-
 	if len(r.Images) > maxImageLen {
 		return global.ErrArgs.Msg(fmt.Sprintf("最多上传%d张图片", maxImageLen))
 	}
@@ -63,6 +60,18 @@ func (r *CreateNoteRequest) Validate() error {
 
 	if r.Basic.Privacy != PrivacyPublic && r.Basic.Privacy != PrivacyPrivate {
 		return global.ErrArgs.Msg("笔记参数权限不支持")
+	}
+
+	switch r.Basic.NoteType {
+	case global.AssetTypeImage:
+		if len(r.Images) == 0 {
+			return global.ErrArgs.Msg("至少需要包含一张照片")
+		}
+	case global.AssetTypeVideo:
+		// TODO
+		fallthrough
+	default:
+		return global.ErrArgs.Msg("笔记资源类型不支持")
 	}
 
 	if len(r.TagIds) >= maxTagCount {

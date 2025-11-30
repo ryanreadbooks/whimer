@@ -29,6 +29,8 @@ message CreateReqBasic {
   string title   = 1;
   string desc    = 2;
   int32  privacy = 3;
+
+  note.api.v1.NoteAssetType asset_type = 4 [(buf.validate.field).enum.defined_only = true];
 }
 
 message CreateReqImage {
@@ -139,7 +141,7 @@ service NoteCreatorService {
 
   // 分页列出笔记
   rpc PageListNote(PageListNoteRequest) returns (PageListNoteResponse);
-  
+
   // 获取用户投稿数量
   rpc GetPostedCount(GetPostedCountRequest) returns (GetPostedCountResponse);
 

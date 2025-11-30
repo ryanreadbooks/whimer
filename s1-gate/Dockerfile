@@ -1,4 +1,5 @@
-FROM openresty/openresty:bionic
+FROM s1-gate:v0.0.5
+# FROM openresty/openresty:bionic
 
 # system dependencies
 RUN mkdir -p /app

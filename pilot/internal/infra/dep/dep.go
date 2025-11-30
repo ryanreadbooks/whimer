@@ -10,4 +10,5 @@ func Init(c *config.Config) {
 	InitMsger(c)
 	InitSearch(c)
 	InitWsLink(c)
+	InitOss(c)
 }
