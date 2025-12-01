@@ -2,8 +2,8 @@ package router
 
 import (
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler"
-	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/middleware"
+	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/x/handler"
+	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/x/middleware"
 )
 
 // 笔记管理路由

@@ -3,13 +3,13 @@ package handler
 import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/comment"
-	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/feed"
-	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/msg"
-	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/note"
-	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/relation"
-	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/upload"
-	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler/user"
+	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/x/handler/comment"
+	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/x/handler/feed"
+	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/x/handler/msg"
+	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/x/handler/note"
+	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/x/handler/relation"
+	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/x/handler/upload"
+	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/x/handler/user"
 )
 
 type Handler struct {

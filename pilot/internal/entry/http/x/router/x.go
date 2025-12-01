@@ -4,9 +4,8 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xhttp/middleware/remote"
 
-	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/handler"
-	zeroservice "github.com/zeromicro/go-zero/core/service"
-
+	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/x/handler"
+	
 	"github.com/zeromicro/go-zero/rest"
 )
 
@@ -17,6 +16,7 @@ func rootGroup(engine *rest.Server) *xhttp.RouterGroup {
 	return rootGroup
 }
 
+// 用户接口
 func RegisterX(engine *rest.Server, h *handler.Handler) {
 	rg := rootGroup(engine)
 	xGroup := rg.Group("/x")
@@ -35,9 +35,4 @@ func RegisterX(engine *rest.Server, h *handler.Handler) {
 	regSearchRoutes(xGroup, h)
 	// upload routes
 	regUploadRoutes(xGroup, h)
-
-	mod := h.Config.Http.Mode
-	if mod == zeroservice.DevMode || mod == zeroservice.TestMode {
-		engine.PrintRoutes()
-	}
 }

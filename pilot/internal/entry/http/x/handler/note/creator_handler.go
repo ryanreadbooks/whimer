@@ -143,7 +143,7 @@ func (h *Handler) furthurCheckNoteImages(ctx context.Context, req *CreateReq) er
 			err = modelerr.ErrResourceNotFound
 		}
 	} else {
-		// 进一步检查所有资源都是合法的受支持的图片格式
+		// 进一步检查所有资源都是受支持的图片格式
 		shouldTag := true
 		for _, key := range keys {
 			var (
