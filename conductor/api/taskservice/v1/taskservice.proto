@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+import "buf/validate/validate.proto";
+import "protobuf/options/option.proto";
+import "task/v1/task.proto";
+
+package conductor.api.task.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/conductor/api/taskservice/v1;taskservice";
+
+service TaskService {
+  // 注册任务
+  rpc RegisterTask(RegisterTaskRequest) returns (RegisterTaskResponse);
+  
+  // 获取任务
+  rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
+
+  // 终止任务
+  rpc AbortTask(AbortTaskRequest) returns (AbortTaskResponse);
+}
+
+message RegisterTaskRequest {
+  string task_type       = 1;
+  string namespace       = 2;
+  bytes  input_args      = 3;
+  bytes  output_args     = 4;
+  string callback_url    = 5;
+  int32  max_retry_cnt   = 6;
+  int32  max_timeout_sec = 7;
+}
+
+message RegisterTaskResponse {
+  string task_id = 1;
+}
+
+message GetTaskRequest {
+  string task_id = 1;
+}
+
+message GetTaskResponse {
+  Task task = 1;
+}
+
+message AbortTaskRequest {
+  string task_id = 1;
+}
+
+message AbortTaskResponse {
+  bool success = 1;
+}

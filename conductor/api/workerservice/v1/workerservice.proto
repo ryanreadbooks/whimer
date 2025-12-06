@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+import "buf/validate/validate.proto";
+import "protobuf/options/option.proto";
+
+package conductor.api.workerservice.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/conductor/api/workerservice/v1;workerservice";
+
+service WorkerService {}

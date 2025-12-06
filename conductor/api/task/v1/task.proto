@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+import "buf/validate/validate.proto";
+import "protobuf/options/option.proto";
+
+package conductor.api.task.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/conductor/api/task/v1;task";
+
+message Task {
+  string id              = 1;
+  string namespace       = 2;
+  string task_type       = 3;
+  bytes  input_args      = 4;
+  bytes  output_args     = 5;
+  string callback_url    = 6;
+  string state           = 7;
+  int32  max_retry_cnt   = 8;
+  int32  max_timeout_sec = 9;
+  int64  utime           = 10;
+}
