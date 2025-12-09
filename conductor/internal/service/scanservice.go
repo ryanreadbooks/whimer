@@ -367,49 +367,17 @@ func (s *ScanService) doRetryScan(ctx context.Context) {
 }
 
 func (s *ScanService) processFailureTask(ctx context.Context, task *model.Task) {
-	// 检查是否已过期
+	// 检查是否已过期，已过期则不重试，保持 failure 状态
 	now := time.Now().UnixMilli()
 	if task.IsExpired(now) {
-		err := s.bizz.Tx(ctx, func(ctx context.Context) error {
-			return s.taskBiz.ExpireTask(ctx, task.Id)
-		})
-		if err != nil {
-			xlog.Msg("expire task failed").
-				Extras("taskId", task.Id.String()).
-				Err(err).
-				Errorx(ctx)
-		} else {
-			xlog.Msg("task expired, marked as expired").
-				Extras("taskId", task.Id.String()).
-				Infox(ctx)
-		}
-		return
-	}
-
-	// 获取当前重试次数
-	currentRetryCnt, err := s.taskBiz.GetTaskRetryCnt(ctx, task.Id)
-	if err != nil {
-		xlog.Msg("get task retry cnt failed").
+		xlog.Msg("task expired, skip retry").
 			Extras("taskId", task.Id.String()).
-			Err(err).
-			Errorx(ctx)
+			Debugx(ctx)
 		return
 	}
 
-	// 检查是否可以重试
-	if !task.CanRetry(int64(currentRetryCnt)) {
-		xlog.Msg("task retry limit reached, keeping failure state").
-			Extras("taskId", task.Id.String(),
-				"maxRetryCnt", task.MaxRetryCnt,
-				"currentRetryCnt", currentRetryCnt).
-			Infox(ctx)
-		return
-	}
-
-	// 执行重试：将状态改为 pending_retry
-	newRetryCnt := currentRetryCnt + 1
-	err = s.bizz.Tx(ctx, func(ctx context.Context) error {
-		return s.taskBiz.RetryTask(ctx, task.Id, newRetryCnt)
+	err := s.bizz.Tx(ctx, func(ctx context.Context) error {
+		return s.taskBiz.RetryTask(ctx, task.Id)
 	})
 	if err != nil {
 		xlog.Msg("retry task failed").
@@ -421,7 +389,7 @@ func (s *ScanService) processFailureTask(ctx context.Context, task *model.Task) 
 
 	xlog.Msg("task marked for retry").
 		Extras("taskId", task.Id.String(),
-			"retryCnt", newRetryCnt,
+			"curRetryCnt", task.CurRetryCnt+1,
 			"maxRetryCnt", task.MaxRetryCnt).
 		Infox(ctx)
 }

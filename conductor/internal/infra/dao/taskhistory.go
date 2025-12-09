@@ -14,11 +14,10 @@ var (
 )
 
 type TaskHistoryPO struct {
-	Id       int64     `db:"id"        json:"id"`
-	TaskId   uuid.UUID `db:"task_id"   json:"task_id"`
-	State    string    `db:"state"     json:"state"`
-	RetryCnt int       `db:"retry_cnt" json:"retry_cnt"`
-	Ctime    int64     `db:"ctime"     json:"ctime"`
+	Id     int64     `db:"id"      json:"id"`
+	TaskId uuid.UUID `db:"task_id" json:"task_id"`
+	State  string    `db:"state"   json:"state"`
+	Ctime  int64     `db:"ctime"   json:"ctime"`
 }
 
 func (TaskHistoryPO) TableName() string {
@@ -30,7 +29,6 @@ func (s *TaskHistoryPO) Values() []any {
 		s.Id,
 		s.TaskId,
 		s.State,
-		s.RetryCnt,
 		s.Ctime,
 	}
 }

@@ -83,10 +83,9 @@ func (b *TaskBiz) RegisterTask(
 	}
 
 	taskHistoryPo := &dao.TaskHistoryPO{
-		TaskId:   taskPo.Id,
-		State:    string(model.TaskStateInited),
-		RetryCnt: 0,
-		Ctime:    now,
+		TaskId: taskPo.Id,
+		State:  string(model.TaskStateInited),
+		Ctime:  now,
 	}
 
 	err = b.taskHistoryDao.Insert(ctx, taskHistoryPo)
@@ -125,15 +124,6 @@ func (b *TaskBiz) GetTaskHistorys(
 		taskHistories = append(taskHistories, model.TaskHistoryFromPO(taskHistoryPo))
 	}
 	return taskHistories, nil
-}
-
-// GetTaskRetryCnt 获取任务当前的重试次数
-func (b *TaskBiz) GetTaskRetryCnt(ctx context.Context, taskId uuid.UUID) (int, error) {
-	cnt, err := b.taskHistoryDao.GetMaxRetryCnt(ctx, taskId)
-	if err != nil {
-		return 0, xerror.Wrapf(err, "task biz get task retry cnt failed").WithCtx(ctx)
-	}
-	return cnt, nil
 }
 
 // GetInitedTasks 获取创建成功但未被分配的任务
@@ -186,10 +176,9 @@ func (b *TaskBiz) UpdateTaskState(ctx context.Context, taskId uuid.UUID, state m
 	}
 
 	taskHistoryPo := &dao.TaskHistoryPO{
-		TaskId:   taskId,
-		State:    string(state),
-		RetryCnt: 0,
-		Ctime:    now,
+		TaskId: taskId,
+		State:  string(state),
+		Ctime:  now,
 	}
 	err = b.taskHistoryDao.Insert(ctx, taskHistoryPo)
 	if err != nil {
@@ -222,10 +211,9 @@ func (b *TaskBiz) CompleteTask(
 
 	// 记录任务状态变更历史
 	taskHistoryPo := &dao.TaskHistoryPO{
-		TaskId:   taskId,
-		State:    string(state),
-		RetryCnt: 0,
-		Ctime:    now,
+		TaskId: taskId,
+		State:  string(state),
+		Ctime:  now,
 	}
 	err = b.taskHistoryDao.Insert(ctx, taskHistoryPo)
 	if err != nil {
@@ -235,25 +223,14 @@ func (b *TaskBiz) CompleteTask(
 	return nil
 }
 
-// RetryTask 将任务标记为待重试状态
-func (b *TaskBiz) RetryTask(ctx context.Context, taskId uuid.UUID, retryCnt int) error {
+// RetryTask 将任务标记为待重试状态，同时增加重试计数
+func (b *TaskBiz) RetryTask(ctx context.Context, taskId uuid.UUID) error {
 	now := time.Now().UnixMilli()
-	err := b.taskDao.UpdateState(ctx, taskId, string(model.TaskStatePendingRetry), now)
+	err := b.taskDao.UpdateRetry(ctx, taskId, string(model.TaskStatePendingRetry), now)
 	if err != nil {
 		return xerror.Wrapf(err, "task biz retry task failed").
 			WithExtra("taskId", taskId.String()).
 			WithCtx(ctx)
-	}
-
-	taskHistoryPo := &dao.TaskHistoryPO{
-		TaskId:   taskId,
-		State:    string(model.TaskStatePendingRetry),
-		RetryCnt: retryCnt,
-		Ctime:    now,
-	}
-	err = b.taskHistoryDao.Insert(ctx, taskHistoryPo)
-	if err != nil {
-		return xerror.Wrapf(err, "task biz insert task history failed").WithCtx(ctx)
 	}
 
 	return nil

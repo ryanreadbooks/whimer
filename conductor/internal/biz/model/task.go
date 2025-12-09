@@ -26,6 +26,11 @@ func (s TaskState) IsPending() bool {
 	return s == TaskStateInited || s == TaskStatePendingRetry
 }
 
+// IsTerminal 是否为终态（success, failure, aborted, expired）
+func (s TaskState) IsTerminal() bool {
+	return s == TaskStateSuccess || s == TaskStateFailure || s == TaskStateAborted || s == TaskStateExpired
+}
+
 type Task struct {
 	Id          uuid.UUID
 	Namespace   string
@@ -36,6 +41,7 @@ type Task struct {
 	State       TaskState
 	TraceId     string
 	MaxRetryCnt int64        // -1 无限重试, 0 不重试
+	CurRetryCnt int64        // 当前已重试次数
 	ExpireTime  int64        // 过期时间 unix ms
 	Settings    TaskSettings // 额外设置
 	Ctime       int64
@@ -67,6 +73,7 @@ func TaskFromPO(po *dao.TaskPO) *Task {
 		State:       TaskState(po.State),
 		TraceId:     po.TraceId,
 		MaxRetryCnt: po.MaxRetryCnt,
+		CurRetryCnt: po.CurRetryCnt,
 		ExpireTime:  po.ExpireTime,
 		Settings:    settings,
 		Ctime:       po.Ctime,
@@ -80,25 +87,23 @@ func (t *Task) IsExpired(now int64) bool {
 }
 
 // CanRetry 检查任务是否可以重试
-func (t *Task) CanRetry(currentRetryCnt int64) bool {
+func (t *Task) CanRetry() bool {
 	if t.MaxRetryCnt < 0 {
 		return true // -1 表示无限重试
 	}
-	return currentRetryCnt < t.MaxRetryCnt
+	return t.CurRetryCnt < t.MaxRetryCnt
 }
 
 type TaskHistory struct {
-	TaskId   uuid.UUID
-	State    TaskState
-	RetryCnt int
-	Ctime    int64
+	TaskId uuid.UUID
+	State  TaskState
+	Ctime  int64
 }
 
 func TaskHistoryFromPO(po *dao.TaskHistoryPO) *TaskHistory {
 	return &TaskHistory{
-		TaskId:   po.TaskId,
-		State:    TaskState(po.State),
-		RetryCnt: po.RetryCnt,
-		Ctime:    po.Ctime,
+		TaskId: po.TaskId,
+		State:  TaskState(po.State),
+		Ctime:  po.Ctime,
 	}
 }

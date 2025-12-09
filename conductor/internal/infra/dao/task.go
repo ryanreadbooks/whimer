@@ -26,6 +26,7 @@ type TaskPO struct {
 	Ctime         int64     `db:"ctime"           json:"ctime"`
 	Utime         int64     `db:"utime"           json:"utime"`
 	MaxRetryCnt   int64     `db:"max_retry_cnt"   json:"max_retry_cnt"` // -1表示无限重试直到超时, 0表示不重试
+	CurRetryCnt   int64     `db:"cur_retry_cnt"   json:"cur_retry_cnt"` // 当前已重试次数
 	ExpireTime    int64     `db:"expire_time"     json:"expire_time"`   // 任务过期时间 unix ms
 	Settings      []byte    `db:"settings"        json:"settings"`      // 额外设置
 	Version       int64     `db:"version"         json:"version"`
@@ -61,6 +62,7 @@ func (s *TaskPO) Values() []any {
 		s.Ctime,
 		s.Utime,
 		s.MaxRetryCnt,
+		s.CurRetryCnt,
 		s.ExpireTime,
 		settings,
 		s.Version,

@@ -81,7 +81,6 @@ func (d *TaskHistoryDao) UpdateById(
 	ub.Set(
 		ub.Assign("task_id", po.TaskId),
 		ub.Assign("state", po.State),
-		ub.Assign("retry_cnt", po.RetryCnt),
 		ub.Assign("ctime", po.Ctime),
 	)
 	ub.Where(ub.Equal("id", id))
@@ -107,21 +106,4 @@ func (d *TaskHistoryDao) DeleteById(ctx context.Context, id int64) error {
 	}
 
 	return nil
-}
-
-// GetMaxRetryCnt 获取任务的最大重试次数（从历史记录中获取）
-func (d *TaskHistoryDao) GetMaxRetryCnt(ctx context.Context, taskId uuid.UUID) (int, error) {
-	sb := sqlbuilder.NewSelectBuilder()
-	sb.Select("COALESCE(MAX(retry_cnt), 0)")
-	sb.From(taskHistoryPOTableName)
-	sb.Where(sb.Equal("task_id", taskId))
-
-	sql, args := sb.Build()
-	var maxRetryCnt int
-	err := d.db.QueryRowCtx(ctx, &maxRetryCnt, sql, args...)
-	if err != nil {
-		return 0, xsql.ConvertError(err)
-	}
-
-	return maxRetryCnt, nil
 }

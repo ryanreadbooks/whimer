@@ -102,7 +102,7 @@ func (d *TaskDao) ListTaskByState(
 	return pos, nil
 }
 
-// ListExpiredTasks 查询已过期的任务（running 状态且 expire_time < now）
+// ListExpiredTasks 查询已过期的任务（非终态且 expire_time < now）
 func (d *TaskDao) ListExpiredTasks(
 	ctx context.Context,
 	shardStart, shardEnd int,
@@ -113,7 +113,7 @@ func (d *TaskDao) ListExpiredTasks(
 	sb.Select(taskPOFields...)
 	sb.From(taskPOTableName)
 	sb.Where(
-		sb.Equal("state", "running"),
+		sb.In("state", "inited", "dispatched", "running", "pending_retry"),
 		sb.GreaterEqualThan("task_type_shard", shardStart),
 		sb.LessThan("task_type_shard", shardEnd),
 		sb.GreaterThan("expire_time", 0),
@@ -196,6 +196,27 @@ func (d *TaskDao) UpdateState(ctx context.Context, id uuid.UUID, state string, u
 	return nil
 }
 
+// UpdateRetry 更新任务为重试状态，同时增加重试计数
+func (d *TaskDao) UpdateRetry(ctx context.Context, id uuid.UUID, state string, utime int64) error {
+	ub := sqlbuilder.NewUpdateBuilder()
+	ub.Update(taskPOTableName)
+	ub.Set(
+		ub.Assign("state", state),
+		ub.Assign("utime", utime),
+		ub.Incr("cur_retry_cnt"),
+		ub.Incr("version"),
+	)
+	ub.Where(ub.Equal("id", id))
+
+	sql, args := ub.Build()
+	_, err := d.db.ExecCtx(ctx, sql, args...)
+	if err != nil {
+		return xsql.ConvertError(err)
+	}
+
+	return nil
+}
+
 func (d *TaskDao) UpdateComplete(
 	ctx context.Context,
 	id uuid.UUID,
@@ -222,7 +243,8 @@ func (d *TaskDao) UpdateComplete(
 	return nil
 }
 
-// ListFailureTasks 查询失败状态的任务
+// ListFailureTasks 查询失败状态且可重试的任务
+// 条件：max_retry_cnt = -1（无限重试）或 cur_retry_cnt < max_retry_cnt（未达上限）
 func (d *TaskDao) ListFailureTasks(
 	ctx context.Context,
 	shardStart, shardEnd int,
@@ -237,6 +259,8 @@ func (d *TaskDao) ListFailureTasks(
 		sb.GreaterEqualThan("task_type_shard", shardStart),
 		sb.LessThan("task_type_shard", shardEnd),
 		sb.GreaterThan("id", offset),
+		// 可重试条件：无限重试(-1) 或 当前重试次数未达上限
+		"(max_retry_cnt = -1 OR cur_retry_cnt < max_retry_cnt)",
 	)
 	sb.OrderByAsc("id")
 	sb.Limit(int(limit))

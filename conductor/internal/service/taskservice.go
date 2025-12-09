@@ -89,13 +89,17 @@ func (s *TaskService) AbortTask(ctx context.Context, taskId string) error {
 		return xerror.ErrArgs.Msg("invalid task id")
 	}
 
-	// 只有 inited 和 dispatched 状态的任务可以被终止
+	// 只有非终态的任务可以被终止
 	task, err := s.taskBiz.GetTask(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	if task.State != model.TaskStateInited && task.State != model.TaskStateDispatched {
+	// 允许 abort 的状态：inited, dispatched, running, pending_retry
+	switch task.State {
+	case model.TaskStateInited, model.TaskStateDispatched, model.TaskStateRunning, model.TaskStatePendingRetry:
+		// 可以 abort
+	default:
 		return xerror.ErrArgs.Msg("task cannot be aborted")
 	}
 

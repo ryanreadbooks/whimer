@@ -16,6 +16,7 @@ type Biz struct {
 	TaskBiz      *TaskBiz
 	WorkerBiz    *WorkerBiz
 	ShardBiz     *shard.Biz
+	CallbackBiz  *CallbackBiz
 }
 
 func NewBiz(rootCtx context.Context, c *config.Config) *Biz {
@@ -27,8 +28,9 @@ func NewBiz(rootCtx context.Context, c *config.Config) *Biz {
 			infra.Dao().TaskDao,
 			infra.Dao().TaskHistoryDao,
 		),
-		WorkerBiz: NewWorkerBiz(c),
-		ShardBiz:  shard.NewBiz(c, infra.Etcd()),
+		WorkerBiz:   NewWorkerBiz(c),
+		ShardBiz:    shard.NewBiz(c, infra.Etcd()),
+		CallbackBiz: NewCallbackBiz(),
 	}
 }
 
