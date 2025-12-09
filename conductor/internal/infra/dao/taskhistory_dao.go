@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/huandu/go-sqlbuilder"
+	"github.com/ryanreadbooks/whimer/misc/uuid"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
 
@@ -32,7 +33,10 @@ func (d *TaskHistoryDao) Insert(ctx context.Context, po *TaskHistoryPO) error {
 	return nil
 }
 
-func (d *TaskHistoryDao) GetById(ctx context.Context, id int64) (*TaskHistoryPO, error) {
+func (d *TaskHistoryDao) GetById(
+	ctx context.Context,
+	id int64) (*TaskHistoryPO, error) {
+
 	sb := sqlbuilder.NewSelectBuilder()
 	sb.Select(taskHistoryPOFields...)
 	sb.From(taskHistoryPOTableName)
@@ -48,12 +52,15 @@ func (d *TaskHistoryDao) GetById(ctx context.Context, id int64) (*TaskHistoryPO,
 	return &po, nil
 }
 
-func (d *TaskHistoryDao) GetByTaskId(ctx context.Context, taskId []byte) ([]*TaskHistoryPO, error) {
+func (d *TaskHistoryDao) GetByTaskId(
+	ctx context.Context,
+	taskId uuid.UUID) ([]*TaskHistoryPO, error) {
+
 	sb := sqlbuilder.NewSelectBuilder()
 	sb.Select(taskHistoryPOFields...)
 	sb.From(taskHistoryPOTableName)
 	sb.Where(sb.Equal("task_id", taskId))
-	sb.OrderBy("id").Asc()
+	sb.OrderByAsc("id")
 
 	sql, args := sb.Build()
 	var pos []*TaskHistoryPO
@@ -65,7 +72,10 @@ func (d *TaskHistoryDao) GetByTaskId(ctx context.Context, taskId []byte) ([]*Tas
 	return pos, nil
 }
 
-func (d *TaskHistoryDao) UpdateById(ctx context.Context, id int64, po *TaskHistoryPO) error {
+func (d *TaskHistoryDao) UpdateById(
+	ctx context.Context,
+	id int64, po *TaskHistoryPO) error {
+
 	ub := sqlbuilder.NewUpdateBuilder()
 	ub.Update(taskHistoryPOTableName)
 	ub.Set(
@@ -99,3 +109,19 @@ func (d *TaskHistoryDao) DeleteById(ctx context.Context, id int64) error {
 	return nil
 }
 
+// GetMaxRetryCnt 获取任务的最大重试次数（从历史记录中获取）
+func (d *TaskHistoryDao) GetMaxRetryCnt(ctx context.Context, taskId uuid.UUID) (int, error) {
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select("COALESCE(MAX(retry_cnt), 0)")
+	sb.From(taskHistoryPOTableName)
+	sb.Where(sb.Equal("task_id", taskId))
+
+	sql, args := sb.Build()
+	var maxRetryCnt int
+	err := d.db.QueryRowCtx(ctx, &maxRetryCnt, sql, args...)
+	if err != nil {
+		return 0, xsql.ConvertError(err)
+	}
+
+	return maxRetryCnt, nil
+}

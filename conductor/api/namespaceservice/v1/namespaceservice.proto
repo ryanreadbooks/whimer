@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+import "buf/validate/validate.proto";
+import "namespace/v1/namespace.proto";
+
+package conductor.api.namespace.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/conductor/api/namespaceservice/v1;namespaceservice";
+
+service NamespaceService {
+  // 创建命名空间
+  rpc CreateNamespace(CreateNamespaceRequest) returns (CreateNamespaceResponse);
+
+  // 分页列出命名空间
+  rpc ListNamespace(ListNamespaceRequest) returns (ListNamespaceResponse);
+}
+
+message CreateNamespaceRequest {
+  // 命名空间名称
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message CreateNamespaceResponse {
+  Namespace namespace = 1;
+}
+
+message ListNamespaceRequest {
+  // 页码，从 1 开始
+  int32 page = 1 [(buf.validate.field).int32.gte = 1];
+  // 每页数量
+  int32 count = 2 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
+}
+
+message ListNamespaceResponse {
+  repeated Namespace namespaces = 1;
+  // 总数
+  int64 total = 2;
+}
+

@@ -133,3 +133,37 @@ func (d *NamespaceDao) DeleteById(ctx context.Context, id []byte) error {
 	return nil
 }
 
+// List 分页查询 namespace
+func (d *NamespaceDao) List(ctx context.Context, offset, limit int) ([]*NamespacePO, error) {
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select(namespacePOFields...)
+	sb.From(namespacePOTableName)
+	sb.OrderByAsc("id")
+	sb.Offset(offset)
+	sb.Limit(limit)
+
+	sql, args := sb.Build()
+	var pos []*NamespacePO
+	err := d.db.QueryRowsCtx(ctx, &pos, sql, args...)
+	if err != nil {
+		return nil, xsql.ConvertError(err)
+	}
+
+	return pos, nil
+}
+
+// Count 统计 namespace 总数
+func (d *NamespaceDao) Count(ctx context.Context) (int64, error) {
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select("COUNT(*)")
+	sb.From(namespacePOTableName)
+
+	sql, args := sb.Build()
+	var count int64
+	err := d.db.QueryRowCtx(ctx, &count, sql, args...)
+	if err != nil {
+		return 0, xsql.ConvertError(err)
+	}
+
+	return count, nil
+}

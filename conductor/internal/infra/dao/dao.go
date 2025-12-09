@@ -15,10 +15,11 @@ type Dao struct {
 	NamespaceDao   *NamespaceDao
 	TaskDao        *TaskDao
 	TaskHistoryDao *TaskHistoryDao
-	LockDao        *LockDao
 }
 
 func MustNew(c *config.Config, cache *redis.Redis) *Dao {
+	sqlx.DisableStmtLog()
+
 	conn := sqlx.NewMysql(xsql.GetDsn(
 		c.MySql.User,
 		c.MySql.Pass,
@@ -41,7 +42,6 @@ func MustNew(c *config.Config, cache *redis.Redis) *Dao {
 		NamespaceDao:   NewNamespaceDao(db, cache),
 		TaskDao:        NewTaskDao(db),
 		TaskHistoryDao: NewTaskHistoryDao(db),
-		LockDao:        NewLockDao(db),
 	}
 }
 

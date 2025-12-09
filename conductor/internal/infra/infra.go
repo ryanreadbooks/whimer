@@ -35,6 +35,9 @@ func Cache() *redis.Redis {
 
 func Close() {
 	dao.DB().Close()
+	if etcdCli != nil {
+		etcdCli.GetClient().Close()
+	}
 }
 
 func Etcd() *etcd.Client {

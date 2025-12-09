@@ -8,14 +8,39 @@ package conductor.api.task.v1;
 option go_package = "github.com/ryanreadbooks/whimer/conductor/api/task/v1;task";
 
 message Task {
-  string id              = 1;
-  string namespace       = 2;
-  string task_type       = 3;
-  bytes  input_args      = 4;
-  bytes  output_args     = 5;
-  string callback_url    = 6;
-  string state           = 7;
-  int32  max_retry_cnt   = 8;
-  int32  max_timeout_sec = 9;
-  int64  utime           = 10;
+  // 任务id
+  string id = 1;
+
+  // 所属命名空间
+  string namespace = 2;
+
+  // 任务类型
+  string task_type = 3 [(buf.validate.field).string.min_len = 1];
+
+  // 输入参数
+  bytes input_args = 4;
+
+  // 输出参数
+  optional bytes output_args = 5;
+
+  // 回调url
+  string callback_url = 6;
+
+  // 任务状态
+  string state = 7;
+
+  // 最大重试次数 -1表示无限重试直到超时, 0表示不重试
+  int64 max_retry_cnt = 8;
+
+  // 任务过期时间 unix ms
+  int64 expire_time = 9;
+
+  // 创建时间 unix ms
+  int64 ctime = 10;
+
+  // 更新时间 unix ms
+  int64 utime = 11;
+
+  // trace id
+  string trace_id = 12;
 }

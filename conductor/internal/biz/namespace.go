@@ -51,3 +51,32 @@ func (b *NamespaceBiz) Get(ctx context.Context, name string) (*model.Namespace, 
 
 	return model.NamespaceFromPO(po), nil
 }
+
+type ListNamespaceResult struct {
+	Namespaces []*model.Namespace
+	Total      int64
+}
+
+func (b *NamespaceBiz) List(ctx context.Context, page, count int) (*ListNamespaceResult, error) {
+	offset := (page - 1) * count
+
+	pos, err := b.namespaceDao.List(ctx, offset, count)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "namespace dao list failed").WithCtx(ctx)
+	}
+
+	total, err := b.namespaceDao.Count(ctx)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "namespace dao count failed").WithCtx(ctx)
+	}
+
+	namespaces := make([]*model.Namespace, 0, len(pos))
+	for _, po := range pos {
+		namespaces = append(namespaces, model.NamespaceFromPO(po))
+	}
+
+	return &ListNamespaceResult{
+		Namespaces: namespaces,
+		Total:      total,
+	}, nil
+}

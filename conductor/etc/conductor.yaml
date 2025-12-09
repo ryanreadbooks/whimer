@@ -38,3 +38,11 @@ etcd:
 shard:
   claim_retry_interval: 500ms
   check_interval: 5s
+
+scan_config:
+  process_interval: 1s
+  retry_interval: 5s
+  expire_interval: 10s
+
+worker_config:
+  long_poll_timeout: 30s

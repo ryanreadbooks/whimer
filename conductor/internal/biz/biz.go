@@ -14,22 +14,21 @@ type Biz struct {
 
 	NamespaceBiz *NamespaceBiz
 	TaskBiz      *TaskBiz
+	WorkerBiz    *WorkerBiz
 	ShardBiz     *shard.Biz
 }
 
-func NewBiz(c *config.Config) *Biz {
-	rootCtx, cancel := context.WithCancel(context.Background())
+func NewBiz(rootCtx context.Context, c *config.Config) *Biz {
 	return &Biz{
 		rootCtx: rootCtx,
-		cancel:  cancel,
 
 		NamespaceBiz: NewNamespaceBiz(infra.Dao().NamespaceDao),
 		TaskBiz: NewTaskBiz(
 			infra.Dao().TaskDao,
 			infra.Dao().TaskHistoryDao,
-			infra.Dao().LockDao,
 		),
-		ShardBiz: shard.NewBiz(c, infra.Etcd()),
+		WorkerBiz: NewWorkerBiz(c),
+		ShardBiz:  shard.NewBiz(c, infra.Etcd()),
 	}
 }
 
@@ -38,6 +37,9 @@ func (b *Biz) Start() {
 }
 
 func (b *Biz) Stop() {
-	b.cancel()
 	b.ShardBiz.Stop()
+}
+
+func (b *Biz) Tx(ctx context.Context, fn func(ctx context.Context) error) error {
+	return infra.Dao().DB().Transact(ctx, fn)
 }

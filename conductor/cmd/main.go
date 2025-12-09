@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 
 	"github.com/ryanreadbooks/whimer/conductor/internal/biz"
@@ -23,19 +24,26 @@ func main() {
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
 	global.MustInit(&config.Conf)
 	logx.MustSetup(config.Conf.Log)
-	defer logx.Close()
-
 	infra.Init(&config.Conf)
-	defer infra.Close()
 
-	bizz := biz.NewBiz(&config.Conf)
-
+	rootCtx, rootCancel := context.WithCancel(context.Background())
+	bizz := biz.NewBiz(rootCtx, &config.Conf)
 	srv := service.NewService(&config.Conf, bizz)
+	bizz.Start()
+	srv.Start(rootCtx)
+	defer func() {
+		rootCancel()
+
+		srv.Stop()
+		bizz.Stop()
+		infra.Close()
+		logx.Close()
+	}()
+
 	server := grpc.Init(config.Conf.Grpc, srv)
 	group := zeroservice.NewServiceGroup()
 	defer group.Stop()
-
-	group.Add(bizz)
+	// added service的启动顺序不能保证 所以biz和service单独处理
 	group.Add(server)
 
 	logx.Info("conductor is serving...")

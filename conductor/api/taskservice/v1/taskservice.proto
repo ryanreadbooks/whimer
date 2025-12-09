@@ -3,6 +3,7 @@ syntax = "proto3";
 import "buf/validate/validate.proto";
 import "protobuf/options/option.proto";
 import "task/v1/task.proto";
+import "google/protobuf/timestamp.proto";
 
 package conductor.api.task.v1;
 
@@ -11,7 +12,7 @@ option go_package = "github.com/ryanreadbooks/whimer/conductor/api/taskservice/v
 service TaskService {
   // 注册任务
   rpc RegisterTask(RegisterTaskRequest) returns (RegisterTaskResponse);
-  
+
   // 获取任务
   rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
 
@@ -20,13 +21,23 @@ service TaskService {
 }
 
 message RegisterTaskRequest {
-  string task_type       = 1;
-  string namespace       = 2;
-  bytes  input_args      = 3;
-  bytes  output_args     = 4;
-  string callback_url    = 5;
-  int32  max_retry_cnt   = 6;
-  int32  max_timeout_sec = 7;
+  // 任务类型
+  string task_type = 1 [(buf.validate.field).string.min_len = 1];
+
+  // 所属命名空间
+  string namespace = 2 [(buf.validate.field).string.min_len = 1];
+
+  // 输入参数
+  bytes input_args = 3;
+
+  // 回调url
+  string callback_url = 4;
+
+  // 最大重试次数 -1表示无限重试直到超时, 0表示不重试
+  int64 max_retry_cnt = 5;
+
+  // 任务过期时间
+  google.protobuf.Timestamp expire_time = 6;
 }
 
 message RegisterTaskResponse {
@@ -34,7 +45,7 @@ message RegisterTaskResponse {
 }
 
 message GetTaskRequest {
-  string task_id = 1;
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetTaskResponse {
@@ -42,9 +53,8 @@ message GetTaskResponse {
 }
 
 message AbortTaskRequest {
-  string task_id = 1;
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message AbortTaskResponse {
-  bool success = 1;
 }

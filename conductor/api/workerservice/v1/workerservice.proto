@@ -2,9 +2,51 @@ syntax = "proto3";
 
 import "buf/validate/validate.proto";
 import "protobuf/options/option.proto";
+import "task/v1/task.proto";
+import "worker/v1/worker.proto";
 
 package conductor.api.workerservice.v1;
 
 option go_package = "github.com/ryanreadbooks/whimer/conductor/api/workerservice/v1;workerservice";
 
-service WorkerService {}
+service WorkerService {
+  // worker长轮询获取任务
+  rpc LongPoll(LongPollRequest) returns (LongPollResponse);
+
+  // worker接受任务
+  rpc AcceptTask(AcceptTaskRequest) returns (AcceptTaskResponse);
+
+  // worker完成任务上报
+  rpc CompleteTask(CompleteTaskRequest) returns (CompleteTaskResponse);
+}
+
+message LongPollRequest {
+  // worker信息
+  conductor.api.worker.v1.Worker worker = 1;
+}
+
+message LongPollResponse {
+  conductor.api.task.v1.Task task = 1;
+}
+
+message AcceptTaskRequest {
+  string task_id = 1;
+}
+
+message AcceptTaskResponse {}
+
+message CompleteTaskRequest {
+  // 任务id
+  string task_id = 1;
+
+  // 输出结果
+  bytes output_args = 2;
+
+  // 处理成功还是失败
+  bool success = 3;
+
+  // 失败日志
+  bytes error_msg = 4;
+}
+
+message CompleteTaskResponse {}

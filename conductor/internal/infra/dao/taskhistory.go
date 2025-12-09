@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/uuid"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
 
@@ -13,11 +14,11 @@ var (
 )
 
 type TaskHistoryPO struct {
-	Id       int64  `db:"id"        json:"id"`
-	TaskId   []byte `db:"task_id"   json:"task_id"`
-	State    string `db:"state"     json:"state"`
-	RetryCnt int    `db:"retry_cnt" json:"retry_cnt"`
-	Ctime    int64  `db:"ctime"     json:"ctime"`
+	Id       int64     `db:"id"        json:"id"`
+	TaskId   uuid.UUID `db:"task_id"   json:"task_id"`
+	State    string    `db:"state"     json:"state"`
+	RetryCnt int       `db:"retry_cnt" json:"retry_cnt"`
+	Ctime    int64     `db:"ctime"     json:"ctime"`
 }
 
 func (TaskHistoryPO) TableName() string {
