@@ -68,7 +68,7 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 
 	images := make(NoteItemImageList, 0, len(pb.Images))
 	for _, img := range pb.Images {
-		images = append(images, model.NewNoteImageFromPb(img))
+		images = append(images, model.NewNoteImageFromPb(img, false))
 	}
 
 	ctx := context.Background()

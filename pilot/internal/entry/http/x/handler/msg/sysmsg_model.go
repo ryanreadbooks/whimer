@@ -3,7 +3,7 @@ package msg
 import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	sysnotifymodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify/model"
-	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
+	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
 )
 
 type CursorAndCountReq struct {

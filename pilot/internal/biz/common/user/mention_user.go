@@ -6,7 +6,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
+	"github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
 
 	"golang.org/x/sync/errgroup"
 )

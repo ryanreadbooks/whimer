@@ -96,6 +96,16 @@ func SafeGo2(ctx context.Context, opt SafeGo2Opt) {
 	}()
 }
 
+func SimpleSafeGo(
+	ctx context.Context,
+	name string,
+	job func(ctx context.Context) error) {
+	SafeGo2(ctx, SafeGo2Opt{
+		Name: name,
+		Job:  job,
+	})
+}
+
 type DoneInJob func(ctx context.Context)
 
 type DoneInJobWithError func(ctx context.Context) error

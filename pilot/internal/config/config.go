@@ -31,13 +31,14 @@ type Config struct {
 	} `json:"mysql"`
 
 	Backend struct {
-		Note     xconf.Discovery `json:"note"`
-		Comment  xconf.Discovery `json:"comment"`
-		Passport xconf.Discovery `json:"passport"`
-		Relation xconf.Discovery `json:"relation"`
-		Msger    xconf.Discovery `json:"msger"`
-		Search   xconf.Discovery `json:"search"`
-		WsLink   xconf.Discovery `json:"wslink"`
+		Note      xconf.Discovery `json:"note"`
+		Comment   xconf.Discovery `json:"comment"`
+		Passport  xconf.Discovery `json:"passport"`
+		Relation  xconf.Discovery `json:"relation"`
+		Msger     xconf.Discovery `json:"msger"`
+		Search    xconf.Discovery `json:"search"`
+		WsLink    xconf.Discovery `json:"wslink"`
+		Conductor xconf.Discovery `json:"conductor"`
 	} `json:"backend"`
 
 	Obfuscate struct {

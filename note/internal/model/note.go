@@ -61,7 +61,7 @@ func (n *Note) AsSlice() []*Note {
 	return []*Note{n}
 }
 
-func NoteFromDao(d *notedao.Note) *Note {
+func NoteFromDao(d *notedao.NotePO) *Note {
 	n := &Note{}
 	if d == nil {
 		return n
@@ -79,7 +79,7 @@ func NoteFromDao(d *notedao.Note) *Note {
 	return n
 }
 
-func NoteSliceFromDao(ds []*notedao.Note) []*Note {
+func NoteSliceFromDao(ds []*notedao.NotePO) []*Note {
 	notes := make([]*Note, 0, len(ds))
 	for _, n := range ds {
 		notes = append(notes, NoteFromDao(n))

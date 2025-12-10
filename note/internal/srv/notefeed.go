@@ -49,7 +49,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 		err    error
 		lastId int64
 		wg     sync.WaitGroup
-		items  []*notedao.Note // items为随机获取的结果
+		items  []*notedao.NotePO // items为随机获取的结果
 	)
 
 	wg.Add(1)
@@ -71,7 +71,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 
 	wg.Wait()
 
-	itemsMap := make(map[int64]*notedao.Note, count)
+	itemsMap := make(map[int64]*notedao.NotePO, count)
 	if maxCnt <= int64(count) {
 		// we fetch all
 		items, err = infra.Dao().NoteDao.GetPublicAll(ctx)
@@ -79,7 +79,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 			return nil, xerror.Wrapf(err, "note repo get public all failed").WithCtx(ctx).WithExtra("count", count)
 		}
 	} else {
-		var notes []*notedao.Note
+		var notes []*notedao.NotePO
 		for tryCnt := 1; tryCnt <= 8 && len(itemsMap) < count; tryCnt++ {
 			begin := rand.Int63n(int64(lastId))
 			if begin == 0 {

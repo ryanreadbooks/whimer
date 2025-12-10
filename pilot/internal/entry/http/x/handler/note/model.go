@@ -61,9 +61,10 @@ func (v *CreateReqBasic) Validate() error {
 
 func (b *CreateReqBasic) AsPb() *notev1.CreateReqBasic {
 	return &notev1.CreateReqBasic{
-		Title:   b.Title,
-		Desc:    b.Desc,
-		Privacy: int32(b.Privacy),
+		Title:     b.Title,
+		Desc:      b.Desc,
+		Privacy:   int32(b.Privacy),
+		AssetType: model.ConvertNoteTypeAsPb(b.Type),
 	}
 }
 

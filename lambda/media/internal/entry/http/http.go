@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/ryanreadbooks/whimer/lambda/codec/internal/service"
+	"github.com/ryanreadbooks/whimer/lambda/media/internal/service"
 	"github.com/zeromicro/go-zero/rest"
 )
 

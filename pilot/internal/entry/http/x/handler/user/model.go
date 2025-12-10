@@ -1,6 +1,6 @@
 package user
 
-import usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
+import usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
 
 type MentionUserReq struct {
 	Search string `form:"search,optional"`

@@ -31,7 +31,7 @@ func NewNoteCreatorBiz() NoteCreatorBiz {
 	return b
 }
 
-func isNoteExtValid(ext *notedao.Ext) bool {
+func isNoteExtValid(ext *notedao.ExtPO) bool {
 	if ext == nil {
 		return false
 	}
@@ -51,7 +51,7 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *model.CreateNoteRe
 	)
 
 	now := time.Now().Unix()
-	newNote := &notedao.Note{
+	newNote := &notedao.NotePO{
 		Title:    req.Basic.Title,
 		Desc:     req.Basic.Desc,
 		Privacy:  req.Basic.Privacy,
@@ -60,10 +60,10 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *model.CreateNoteRe
 		Ip:       ip,
 	}
 
-	var noteAssets = make([]*notedao.Asset, 0, len(req.Images))
+	var noteAssets = make([]*notedao.AssetPO, 0, len(req.Images))
 	for _, img := range req.Images {
 		imgMeta := model.NewAssetImageMeta(img.Width, img.Height, img.Format).Bytes()
-		noteAssets = append(noteAssets, &notedao.Asset{
+		noteAssets = append(noteAssets, &notedao.AssetPO{
 			AssetKey:  img.FileId,            // 包含桶名称
 			AssetType: global.AssetTypeImage, // image
 			NoteId:    noteId,
@@ -93,7 +93,7 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *model.CreateNoteRe
 			return xerror.Wrapf(errTx, "note asset dao batch insert tx failed")
 		}
 
-		var ext = notedao.Ext{
+		var ext = notedao.ExtPO{
 			NoteId:  noteId,
 			AtUsers: json.RawMessage{},
 		}
@@ -146,7 +146,7 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *model.UpdateNoteRe
 		return global.ErrPermDenied.Msg("你不拥有该笔记")
 	}
 
-	newNote := &notedao.Note{
+	newNote := &notedao.NotePO{
 		Id:       noteId,
 		Title:    req.Basic.Title,
 		Desc:     req.Basic.Desc,
@@ -157,13 +157,15 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *model.UpdateNoteRe
 		UpdateAt: now,
 	}
 
-	assets := make([]*notedao.Asset, 0, len(req.Images))
+	newAssetPos := make([]*notedao.AssetPO, 0, len(req.Images))
 	for _, img := range req.Images {
-		assets = append(assets, &notedao.Asset{
+		imgMeta := model.NewAssetImageMeta(img.Width, img.Height, img.Format).Bytes()
+		newAssetPos = append(newAssetPos, &notedao.AssetPO{
 			AssetKey:  img.FileId,
 			AssetType: global.AssetTypeImage,
 			NoteId:    noteId,
 			CreateAt:  now,
+			AssetMeta: imgMeta,
 		})
 	}
 
@@ -182,8 +184,8 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *model.UpdateNoteRe
 		}
 
 		// 笔记的新资源
-		newAssetKeys := make([]string, 0, len(assets))
-		for _, asset := range assets {
+		newAssetKeys := make([]string, 0, len(newAssetPos))
+		for _, asset := range newAssetPos {
 			newAssetKeys = append(newAssetKeys, asset.AssetKey)
 		}
 
@@ -199,14 +201,15 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *model.UpdateNoteRe
 		for _, old := range oldAssets {
 			oldAssetMap[old.AssetKey] = struct{}{}
 		}
-		newAssets := make([]*notedao.Asset, 0, len(assets))
-		for _, asset := range assets {
+		newAssets := make([]*notedao.AssetPO, 0, len(newAssetPos))
+		for _, asset := range newAssetPos {
 			if _, ok := oldAssetMap[asset.AssetKey]; !ok {
-				newAssets = append(newAssets, &notedao.Asset{
+				newAssets = append(newAssets, &notedao.AssetPO{
 					AssetKey:  asset.AssetKey,
 					AssetType: global.AssetTypeImage,
 					NoteId:    newNote.Id,
 					CreateAt:  now,
+					AssetMeta: asset.AssetMeta,
 				})
 			}
 		}
@@ -222,7 +225,7 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *model.UpdateNoteRe
 		}
 
 		// ext处理
-		ext := notedao.Ext{
+		ext := notedao.ExtPO{
 			NoteId:  oldNote.Id,
 			Tags:    xslice.JoinInts(req.TagIds),
 			AtUsers: json.RawMessage{},

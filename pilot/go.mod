@@ -6,8 +6,9 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.3
 	github.com/huandu/go-sqlbuilder v1.38.1
 	github.com/minio/minio-go/v7 v7.0.72
-	github.com/redis/go-redis/v9 v9.11.0
+	github.com/redis/go-redis/v9 v9.16.0
 	github.com/ryanreadbooks/whimer/comment v0.0.0-00010101000000-000000000000
+	github.com/ryanreadbooks/whimer/conductor v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/msger v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/note v0.0.0-00010101000000-000000000000
@@ -52,8 +53,8 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/grafana/pyroscope-go v1.2.2 // indirect
-	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
+	github.com/grafana/pyroscope-go v1.2.7 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.9 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect
 	github.com/huandu/go-clone v1.7.3 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
@@ -146,3 +147,5 @@ replace github.com/ryanreadbooks/whimer/search => ../search
 replace github.com/ryanreadbooks/whimer/wslink => ../wslink
 
 replace github.com/ryanreadbooks/whimer/apiextension => ../apiextension
+
+replace github.com/ryanreadbooks/whimer/conductor => ../conductor

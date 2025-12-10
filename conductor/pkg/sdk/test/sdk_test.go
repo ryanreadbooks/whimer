@@ -11,7 +11,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/producer"
 	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/worker"
-	"github.com/zeromicro/go-zero/zrpc"
+	"github.com/ryanreadbooks/whimer/misc/xconf"
 )
 
 // 测试用的任务输入
@@ -40,15 +40,14 @@ type CallbackPayload struct {
 }
 
 // 测试配置（需要根据实际环境修改）
-var testRpcConf = zrpc.RpcClientConf{
-	Endpoints: []string{"localhost:10200"},
-	NonBlock:  true,
-	Timeout:   30000, // 30s，普通请求超时
+var testRpcConf = xconf.Discovery{
+	Hosts: []string{"localhost:2379"},
+	Key:   "whimer.conductor.rpc",
 }
 
 // TestProducerRegisterTask 测试任务注册
 func TestProducerRegisterTask(t *testing.T) {
-	client, err := producer.NewClient(producer.ClientOptions{
+	client, err := producer.New(producer.ClientOptions{
 		HostConf:  testRpcConf,
 		Namespace: "test",
 	})
@@ -59,7 +58,7 @@ func TestProducerRegisterTask(t *testing.T) {
 	ctx := context.Background()
 
 	// 注册一个发送邮件的任务
-	taskId, err := client.Execute(ctx, "send_email", EmailInput{
+	taskId, err := client.Schedule(ctx, "send_email", EmailInput{
 		To:      "test@example.com",
 		Subject: "Hello World",
 		Body:    "This is a test email",
@@ -177,7 +176,7 @@ func TestProducerAndWorkerIntegration(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// ========== 创建 producer ==========
-	producerClient, err := producer.NewClient(producer.ClientOptions{
+	producerClient, err := producer.New(producer.ClientOptions{
 		HostConf:  testRpcConf,
 		Namespace: "default",
 	})
@@ -231,7 +230,7 @@ func TestProducerAndWorkerIntegration(t *testing.T) {
 
 	// ========== 注册任务（带 callback_url）==========
 	callbackUrl := fmt.Sprintf("http://localhost:%d/callback", callbackPort)
-	taskId, err := producerClient.Execute(ctx, "callback_test", map[string]string{
+	taskId, err := producerClient.Schedule(ctx, "callback_test", map[string]string{
 		"message": "hello from callback test",
 	}, producer.ExecuteOptions{
 		MaxRetry:    1,
@@ -287,7 +286,7 @@ func TestProducerAndWorkerIntegration(t *testing.T) {
 // TestRetryAndSuccess 测试重试并最终成功
 // 场景：Worker 第一次失败，重试后成功
 func TestRetryAndSuccess(t *testing.T) {
-	producerClient, err := producer.NewClient(producer.ClientOptions{
+	producerClient, err := producer.New(producer.ClientOptions{
 		HostConf:  testRpcConf,
 		Namespace: "default",
 	})
@@ -337,7 +336,7 @@ func TestRetryAndSuccess(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// 注册任务，允许重试
-	taskId, err := producerClient.Execute(ctx, "retry_success_test", map[string]string{
+	taskId, err := producerClient.Schedule(ctx, "retry_success_test", map[string]string{
 		"test": "retry_success",
 	}, producer.ExecuteOptions{
 		MaxRetry:    3,
@@ -380,7 +379,7 @@ func TestRetryAndSuccess(t *testing.T) {
 // TestRetryAndFailure 测试重试并最终失败
 // 场景：Worker 多次失败，超过最大重试次数后任务失败
 func TestRetryAndFailure(t *testing.T) {
-	producerClient, err := producer.NewClient(producer.ClientOptions{
+	producerClient, err := producer.New(producer.ClientOptions{
 		HostConf:  testRpcConf,
 		Namespace: "default",
 	})
@@ -419,7 +418,7 @@ func TestRetryAndFailure(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// 注册任务，限制重试次数
-	taskId, err := producerClient.Execute(ctx, "retry_failure_test", map[string]string{
+	taskId, err := producerClient.Schedule(ctx, "retry_failure_test", map[string]string{
 		"test": "retry_failure",
 	}, producer.ExecuteOptions{
 		MaxRetry:    maxRetry,
@@ -455,7 +454,7 @@ func TestRetryAndFailure(t *testing.T) {
 // TestRetryAndTimeout 测试重试并最终超时
 // 场景：任务重试过程中超时
 func TestRetryAndTimeout(t *testing.T) {
-	producerClient, err := producer.NewClient(producer.ClientOptions{
+	producerClient, err := producer.New(producer.ClientOptions{
 		HostConf:  testRpcConf,
 		Namespace: "default",
 	})
@@ -493,7 +492,7 @@ func TestRetryAndTimeout(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// 注册任务：允许无限重试，但设置短超时
-	taskId, err := producerClient.Execute(ctx, "retry_timeout_test", map[string]string{
+	taskId, err := producerClient.Schedule(ctx, "retry_timeout_test", map[string]string{
 		"test": "retry_timeout",
 	}, producer.ExecuteOptions{
 		MaxRetry:    -1, // 无限重试
@@ -527,7 +526,7 @@ func TestRetryAndTimeout(t *testing.T) {
 // TestNoRetryAndTimeout 测试没有重试，但最终超时
 // 场景：任务没有重试配置，Worker 不执行，最终超时
 func TestNoRetryAndTimeout(t *testing.T) {
-	producerClient, err := producer.NewClient(producer.ClientOptions{
+	producerClient, err := producer.New(producer.ClientOptions{
 		HostConf:  testRpcConf,
 		Namespace: "default",
 	})
@@ -541,7 +540,7 @@ func TestNoRetryAndTimeout(t *testing.T) {
 	defer cancel()
 
 	// 注册任务：不重试，短超时
-	taskId, err := producerClient.Execute(ctx, "no_retry_timeout_test", map[string]string{
+	taskId, err := producerClient.Schedule(ctx, "no_retry_timeout_test", map[string]string{
 		"test": "no_retry_timeout",
 	}, producer.ExecuteOptions{
 		MaxRetry:    0, // 不重试
@@ -579,7 +578,7 @@ func TestNoRetryAndTimeout(t *testing.T) {
 // TestAbortTaskWhileRunning 测试任务执行过程中被 Producer 主动终止
 // 场景：Worker 正在执行任务时，Producer 调用 AbortTask 终止
 func TestAbortTaskWhileRunning(t *testing.T) {
-	producerClient, err := producer.NewClient(producer.ClientOptions{
+	producerClient, err := producer.New(producer.ClientOptions{
 		HostConf:  testRpcConf,
 		Namespace: "default",
 	})
@@ -627,7 +626,7 @@ func TestAbortTaskWhileRunning(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// 注册任务
-	taskId, err := producerClient.Execute(ctx, "abort_test", map[string]string{
+	taskId, err := producerClient.Schedule(ctx, "abort_test", map[string]string{
 		"test": "abort_while_running",
 	}, producer.ExecuteOptions{
 		MaxRetry:    0,
@@ -689,7 +688,7 @@ func TestAbortTaskWhileRunning(t *testing.T) {
 // TestFailureWithoutRetry 测试任务失败且没有重试配置
 // 场景：Worker 执行失败，MaxRetry=0，最终状态为 failure
 func TestFailureWithoutRetry(t *testing.T) {
-	producerClient, err := producer.NewClient(producer.ClientOptions{
+	producerClient, err := producer.New(producer.ClientOptions{
 		HostConf:  testRpcConf,
 		Namespace: "default",
 	})
@@ -727,7 +726,7 @@ func TestFailureWithoutRetry(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// 注册任务，不重试
-	taskId, err := producerClient.Execute(ctx, "failure_no_retry_test", map[string]string{
+	taskId, err := producerClient.Schedule(ctx, "failure_no_retry_test", map[string]string{
 		"test": "failure_no_retry",
 	}, producer.ExecuteOptions{
 		MaxRetry:    0, // 不重试
@@ -767,7 +766,7 @@ func TestFailureWithoutRetry(t *testing.T) {
 // TestMaxRetryExhausted 测试达到最大重试次数后仍然失败
 // 场景：Worker 执行始终失败，达到 MaxRetry 后进入 failure 终态
 func TestMaxRetryExhausted(t *testing.T) {
-	producerClient, err := producer.NewClient(producer.ClientOptions{
+	producerClient, err := producer.New(producer.ClientOptions{
 		HostConf:  testRpcConf,
 		Namespace: "default",
 	})
@@ -806,7 +805,7 @@ func TestMaxRetryExhausted(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// 注册任务，允许重试 2 次
-	taskId, err := producerClient.Execute(ctx, "max_retry_exhausted_test", map[string]string{
+	taskId, err := producerClient.Schedule(ctx, "max_retry_exhausted_test", map[string]string{
 		"test": "max_retry_exhausted",
 	}, producer.ExecuteOptions{
 		MaxRetry:    maxRetry,

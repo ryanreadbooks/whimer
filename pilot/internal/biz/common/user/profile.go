@@ -6,7 +6,7 @@ import (
 
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
-	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
+	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model"
 	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"

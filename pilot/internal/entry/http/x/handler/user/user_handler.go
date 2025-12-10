@@ -10,8 +10,8 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
-	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/user"
-	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
+	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user"
+	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 
 	"github.com/zeromicro/go-zero/rest/httpx"

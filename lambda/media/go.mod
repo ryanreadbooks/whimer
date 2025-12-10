@@ -1,4 +1,4 @@
-module github.com/ryanreadbooks/whimer/lambda/codec
+module github.com/ryanreadbooks/whimer/lambda/media
 
 go 1.24.0
 

@@ -104,6 +104,20 @@ func (b *Biz) BatchMarkResourceActive(ctx context.Context, bucket string, keys [
 	return nil
 }
 
+func (b *Biz) BatchMarkResourceInactive(ctx context.Context, bucket string, keys []string, strict bool) error {
+	for _, key := range keys {
+		err := b.MarkResourceInactive(ctx, bucket, key)
+		if err != nil {
+			if strict {
+				return err
+			}
+			xlog.Msg("batch mark resource inactive err").Err(err).Extras("bucket", bucket, "keys", keys).Errorx(ctx)
+		}
+	}
+	
+	return nil
+}
+
 func (b *Biz) MarkResourceInactive(ctx context.Context, bucket, key string) error {
 	curTags, err := b.ossClient.GetObjectTagging(ctx, bucket, key, minio.GetObjectTaggingOptions{})
 	if err != nil {

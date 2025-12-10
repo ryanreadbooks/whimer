@@ -5,7 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
+	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
 )
 
 func (h *UserHandler) SetNoteShowSettings() http.HandlerFunc {

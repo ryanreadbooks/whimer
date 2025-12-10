@@ -33,7 +33,7 @@ func NewNoteAssetDao(db *xsql.DB) *NoteAssetDao {
 	}
 }
 
-type Asset struct {
+type AssetPO struct {
 	Id        int64  `db:"id"`
 	AssetKey  string `db:"asset_key"`  // 资源key 包含bucket name
 	AssetType int8   `db:"asset_type"` // 资源类型
@@ -42,8 +42,8 @@ type Asset struct {
 	AssetMeta []byte `db:"asset_meta"` // 资源的元数据 存储格式为一个json字符串
 }
 
-func (r *NoteAssetDao) FindOne(ctx context.Context, id int64) (*Asset, error) {
-	model := new(Asset)
+func (r *NoteAssetDao) FindOne(ctx context.Context, id int64) (*AssetPO, error) {
+	model := new(AssetPO)
 	err := r.db.QueryRowCtx(ctx, model, sqlFindAllById, id)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
@@ -51,7 +51,7 @@ func (r *NoteAssetDao) FindOne(ctx context.Context, id int64) (*Asset, error) {
 	return model, nil
 }
 
-func (r *NoteAssetDao) insert(ctx context.Context, asset *Asset) error {
+func (r *NoteAssetDao) insert(ctx context.Context, asset *AssetPO) error {
 	now := time.Now().Unix()
 	_, err := r.db.ExecCtx(ctx, sqlInsert,
 		asset.AssetKey,
@@ -63,12 +63,12 @@ func (r *NoteAssetDao) insert(ctx context.Context, asset *Asset) error {
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteAssetDao) Insert(ctx context.Context, asset *Asset) error {
+func (r *NoteAssetDao) Insert(ctx context.Context, asset *AssetPO) error {
 	return r.insert(ctx, asset)
 }
 
-func (r *NoteAssetDao) findImageByNoteId(ctx context.Context, noteId int64) ([]*Asset, error) {
-	res := make([]*Asset, 0)
+func (r *NoteAssetDao) findImageByNoteId(ctx context.Context, noteId int64) ([]*AssetPO, error) {
+	res := make([]*AssetPO, 0)
 	err := r.db.QueryRowsCtx(ctx, &res, sqlFindImageByNoteId, noteId)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
@@ -76,7 +76,7 @@ func (r *NoteAssetDao) findImageByNoteId(ctx context.Context, noteId int64) ([]*
 	return res, nil
 }
 
-func (r *NoteAssetDao) FindImageByNoteId(ctx context.Context, noteId int64) ([]*Asset, error) {
+func (r *NoteAssetDao) FindImageByNoteId(ctx context.Context, noteId int64) ([]*AssetPO, error) {
 	return r.findImageByNoteId(ctx, noteId)
 }
 
@@ -104,7 +104,7 @@ func (r *NoteAssetDao) excludeDeleteImageByNoteId(ctx context.Context, noteId in
 				tmpl += ","
 			}
 		}
-		query += fmt.Sprintf(" and `asset_key` not in (%s)", tmpl)
+		query += fmt.Sprintf(" AND `asset_key` NOT IN (%s)", tmpl)
 	}
 	_, err := r.db.ExecCtx(ctx, query, args...)
 
@@ -114,7 +114,7 @@ func (r *NoteAssetDao) ExcludeDeleteImageByNoteId(ctx context.Context, noteId in
 	return r.excludeDeleteImageByNoteId(ctx, noteId, assetKeys)
 }
 
-func (r *NoteAssetDao) batchInsert(ctx context.Context, assets []*Asset) error {
+func (r *NoteAssetDao) batchInsert(ctx context.Context, assets []*AssetPO) error {
 	if len(assets) == 0 {
 		return nil
 	}
@@ -136,15 +136,15 @@ func (r *NoteAssetDao) batchInsert(ctx context.Context, assets []*Asset) error {
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteAssetDao) BatchInsert(ctx context.Context, assets []*Asset) error {
+func (r *NoteAssetDao) BatchInsert(ctx context.Context, assets []*AssetPO) error {
 	return r.batchInsert(ctx, assets)
 }
-func (r *NoteAssetDao) FindByNoteIds(ctx context.Context, noteIds []int64) ([]*Asset, error) {
+func (r *NoteAssetDao) FindByNoteIds(ctx context.Context, noteIds []int64) ([]*AssetPO, error) {
 	if len(noteIds) == 0 {
-		return []*Asset{}, nil
+		return []*AssetPO{}, nil
 	}
 	query := fmt.Sprintf(sqlFindByNoteIds, uslices.JoinInts(noteIds))
-	res := make([]*Asset, 0)
+	res := make([]*AssetPO, 0)
 	err := r.db.QueryRowsCtx(ctx, &res, query)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))

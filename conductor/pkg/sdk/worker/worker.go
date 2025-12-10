@@ -5,13 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	taskv1 "github.com/ryanreadbooks/whimer/conductor/api/task/v1"
 	workerv1 "github.com/ryanreadbooks/whimer/conductor/api/worker/v1"
 	workerservice "github.com/ryanreadbooks/whimer/conductor/api/workerservice/v1"
+	"github.com/ryanreadbooks/whimer/misc/xconf"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -69,7 +71,7 @@ type Handler func(ctx context.Context, task *Task) Result
 
 // Options Worker 配置
 type Options struct {
-	HostConf zrpc.RpcClientConf
+	HostConf xconf.Discovery
 
 	// Worker ID（可选）
 	WorkerId string
@@ -103,9 +105,10 @@ type Worker struct {
 	handlers map[string]Handler
 	mu       sync.RWMutex
 
-	quitCh chan struct{}
-	doneCh chan struct{}
-	cancel context.CancelFunc // 用于取消正在进行的 LongPoll
+	quitCh   chan struct{}
+	doneCh   chan struct{}
+	cancel   context.CancelFunc
+	stopping atomic.Bool
 }
 
 // New 创建 Worker
@@ -113,7 +116,6 @@ func New(opts Options) (*Worker, error) {
 	if opts.Concurrency <= 0 {
 		opts.Concurrency = 1
 	}
-	// 初始化重试配置默认值
 	if opts.ReportRetry.MaxAttempts <= 0 {
 		opts.ReportRetry.MaxAttempts = 5
 	}
@@ -127,27 +129,24 @@ func New(opts Options) (*Worker, error) {
 		opts.ReportRetry.Multiplier = 2
 	}
 
-	cli, err := zrpc.NewClient(opts.HostConf)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Worker{
+	w := &Worker{
 		opts:     opts,
-		client:   workerservice.NewWorkerServiceClient(cli.Conn()),
 		handlers: make(map[string]Handler),
 		quitCh:   make(chan struct{}),
 		doneCh:   make(chan struct{}),
-	}, nil
-}
-
-// MustNew 创建 Worker，失败则 panic
-func MustNew(opts Options) *Worker {
-	w, err := New(opts)
-	if err != nil {
-		panic(err)
 	}
-	return w
+
+	client := xgrpc.NewRecoverableClient(
+		opts.HostConf,
+		workerservice.NewWorkerServiceClient,
+		func(t workerservice.WorkerServiceClient) {
+			w.client = t
+		},
+	)
+
+	w.client = client
+
+	return w, nil
 }
 
 // RegisterHandler 注册任务处理函数
@@ -171,7 +170,6 @@ func (w *Worker) Run(ctx context.Context) error {
 		return nil
 	}
 
-	// 创建可取消的 context，Stop 时取消以中断 LongPoll
 	ctx, w.cancel = context.WithCancel(ctx)
 
 	var wg sync.WaitGroup
@@ -198,9 +196,10 @@ func (w *Worker) Run(ctx context.Context) error {
 
 // Stop 停止 Worker
 func (w *Worker) Stop() {
+	w.stopping.Store(true)
 	close(w.quitCh)
 	if w.cancel != nil {
-		w.cancel() // 取消 context，中断正在进行的 LongPoll
+		w.cancel()
 	}
 	<-w.doneCh
 }
@@ -215,7 +214,6 @@ func (w *Worker) pollLoop(ctx context.Context, taskType string, sem chan struct{
 		default:
 		}
 
-		// 获取信号量，控制并发
 		select {
 		case <-w.quitCh:
 			return
@@ -226,10 +224,12 @@ func (w *Worker) pollLoop(ctx context.Context, taskType string, sem chan struct{
 
 		task, err := w.poll(ctx, taskType)
 		if err != nil {
-			// 长轮询正常超时不打印错误日志，直接继续轮询
+			if w.stopping.Load() {
+				<-sem
+				return
+			}
 			if !isTimeoutError(err) {
 				xlog.Msg("poll task failed").Err(err).Errorx(ctx)
-				// 出错时短暂等待后重试
 				time.Sleep(time.Second)
 			}
 			<-sem
@@ -242,7 +242,6 @@ func (w *Worker) pollLoop(ctx context.Context, taskType string, sem chan struct{
 			continue
 		}
 
-		// 处理任务
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -256,7 +255,6 @@ func (w *Worker) pollLoop(ctx context.Context, taskType string, sem chan struct{
 }
 
 func (w *Worker) poll(ctx context.Context, taskType string) (*Task, error) {
-	// 长轮询超时由 server 端控制
 	resp, err := w.client.LongPoll(ctx, &workerservice.LongPollRequest{
 		Worker: &workerv1.Worker{
 			Id: w.opts.WorkerId,
@@ -277,7 +275,6 @@ func (w *Worker) poll(ctx context.Context, taskType string) (*Task, error) {
 }
 
 func (w *Worker) processTask(ctx context.Context, task *Task) {
-	// Accept task
 	_, err := w.client.AcceptTask(ctx, &workerservice.AcceptTaskRequest{
 		TaskId: task.Id,
 	})
@@ -286,7 +283,6 @@ func (w *Worker) processTask(ctx context.Context, task *Task) {
 		return
 	}
 
-	// Get handler
 	w.mu.RLock()
 	handler, ok := w.handlers[task.TaskType]
 	w.mu.RUnlock()
@@ -297,10 +293,8 @@ func (w *Worker) processTask(ctx context.Context, task *Task) {
 		return
 	}
 
-	// Execute handler
 	result := w.safeExecute(ctx, task, handler)
 
-	// Complete task
 	if result.Error != nil {
 		w.completeTask(ctx, task.Id, result.Output, false, result.Error.Error())
 	} else {
@@ -334,7 +328,6 @@ func (w *Worker) completeTask(ctx context.Context, taskId string, output any, su
 
 	ctx = context.WithoutCancel(ctx)
 
-	// 指数退避重试
 	backoff := w.opts.ReportRetry.InitialBackoff
 	for attempt := 1; attempt <= w.opts.ReportRetry.MaxAttempts; attempt++ {
 		_, err := w.client.CompleteTask(ctx, req)
@@ -353,10 +346,7 @@ func (w *Worker) completeTask(ctx context.Context, taskId string, output any, su
 			Extras("taskId", taskId, "attempt", attempt, "maxAttempts", w.opts.ReportRetry.MaxAttempts).
 			Err(err).Infox(ctx)
 
-		// 等待退避时间
 		time.Sleep(backoff)
-
-		// 计算下次退避时间
 		backoff = min(time.Duration(float64(backoff)*w.opts.ReportRetry.Multiplier), w.opts.ReportRetry.MaxBackoff)
 	}
 }
@@ -369,16 +359,13 @@ func (e *panicError) Error() string {
 	return "handler panic"
 }
 
-// isTimeoutError 判断是否为正常的超时错误
 func isTimeoutError(err error) bool {
 	if err == nil {
 		return false
 	}
-	// context 超时
 	if errors.Is(err, context.DeadlineExceeded) {
 		return true
 	}
-	// gRPC 超时
 	if s, ok := status.FromError(err); ok {
 		return s.Code() == codes.DeadlineExceeded
 	}

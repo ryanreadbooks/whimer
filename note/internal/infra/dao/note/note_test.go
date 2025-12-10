@@ -53,7 +53,7 @@ func TestNote_GetRecentPost(t *testing.T) {
 
 func TestNoteExt_Upsert(t *testing.T) {
 	Convey("NoteExt Upsert", t, func() {
-		err := noteExtDao.Upsert(ctx, &Ext{
+		err := noteExtDao.Upsert(ctx, &ExtPO{
 			NoteId: 100,
 			Tags:   "9223372036854775807",
 		})
@@ -63,17 +63,17 @@ func TestNoteExt_Upsert(t *testing.T) {
 
 func TestNoteExt_Get(t *testing.T) {
 	Convey("NoteExt Get", t, func() {
-		err := noteExtDao.Upsert(ctx, &Ext{
+		err := noteExtDao.Upsert(ctx, &ExtPO{
 			NoteId: 100,
 			Tags:   "1",
 		})
 		So(err, ShouldBeNil)
-		err = noteExtDao.Upsert(ctx, &Ext{
+		err = noteExtDao.Upsert(ctx, &ExtPO{
 			NoteId: 200,
 			Tags:   "2",
 		})
 		So(err, ShouldBeNil)
-		err = noteExtDao.Upsert(ctx, &Ext{
+		err = noteExtDao.Upsert(ctx, &ExtPO{
 			NoteId: 300,
 			Tags:   "3",
 		})

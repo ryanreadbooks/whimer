@@ -46,6 +46,9 @@ backend:
   wslink:
     hosts: ${ENV_ETCD_HOSTS}
     key: whimer.wslink.rpc
+  conductor:
+    hosts: ${ENV_ETCD_HOSTS}
+    key: whimer.conductor.rpc
 
 obfuscate:
   note:

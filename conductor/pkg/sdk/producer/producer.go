@@ -7,14 +7,14 @@ import (
 
 	taskv1 "github.com/ryanreadbooks/whimer/conductor/api/task/v1"
 	taskservice "github.com/ryanreadbooks/whimer/conductor/api/taskservice/v1"
-	"github.com/zeromicro/go-zero/zrpc"
+	"github.com/ryanreadbooks/whimer/misc/xconf"
+	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ClientOptions 客户端配置
 type ClientOptions struct {
-	HostConf zrpc.RpcClientConf
-	// 默认命名空间
+	HostConf  xconf.Discovery
 	Namespace string
 }
 
@@ -24,26 +24,23 @@ type Client struct {
 	client taskservice.TaskServiceClient
 }
 
-// NewClient 创建任务客户端
-func NewClient(opts ClientOptions) (*Client, error) {
-	cli, err := zrpc.NewClient(opts.HostConf)
-	if err != nil {
-		return nil, err
+// New 创建任务客户端
+func New(opts ClientOptions) (*Client, error) {
+	p := &Client{
+		opts: opts,
 	}
 
-	return &Client{
-		opts:   opts,
-		client: taskservice.NewTaskServiceClient(cli.Conn()),
-	}, nil
-}
+	client := xgrpc.NewRecoverableClient(
+		opts.HostConf,
+		taskservice.NewTaskServiceClient,
+		func(t taskservice.TaskServiceClient) {
+			p.client = t
+		},
+	)
 
-// MustNewClient 创建任务客户端，失败则 panic
-func MustNewClient(opts ClientOptions) *Client {
-	cli, err := NewClient(opts)
-	if err != nil {
-		panic(err)
-	}
-	return cli
+	p.client = client
+
+	return p, nil
 }
 
 // Task 任务信息
@@ -110,11 +107,10 @@ type ExecuteOptions struct {
 	ExpireAfter time.Duration
 }
 
-// Execute 执行任务
-// taskType: 任务类型
-// input: 输入参数（自动 JSON 序列化，传 nil 表示无参数）
-// opts: 执行选项
-func (c *Client) Execute(ctx context.Context, taskType string, input any, opts ExecuteOptions) (string, error) {
+// 提交任务后返回 通过设置callback接收任务执行结果
+// 
+// 返回任务id可用后续查询任务状态
+func (c *Client) Schedule(ctx context.Context, taskType string, input any, opts ExecuteOptions) (string, error) {
 	var inputArgs []byte
 	var err error
 	if input != nil {
@@ -124,11 +120,15 @@ func (c *Client) Execute(ctx context.Context, taskType string, input any, opts E
 		}
 	}
 
-	return c.ExecuteRaw(ctx, taskType, inputArgs, opts)
+	return c.scheduleRaw(ctx, taskType, inputArgs, opts)
 }
 
-// ExecuteRaw 执行任务（原始字节输入）
-func (c *Client) ExecuteRaw(ctx context.Context, taskType string, inputArgs []byte, opts ExecuteOptions) (string, error) {
+func (c *Client) scheduleRaw(
+	ctx context.Context,
+	taskType string,
+	inputArgs []byte,
+	opts ExecuteOptions,
+) (string, error) {
 	namespace := opts.Namespace
 	if namespace == "" {
 		namespace = c.opts.Namespace

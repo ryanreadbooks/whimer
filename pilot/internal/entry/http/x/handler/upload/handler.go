@@ -5,7 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
-	bizstorage "github.com/ryanreadbooks/whimer/pilot/internal/biz/storage"
+	bizstorage "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/storage"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 )

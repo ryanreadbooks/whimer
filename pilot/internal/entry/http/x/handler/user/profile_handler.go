@@ -3,7 +3,7 @@ package user
 import (
 	"net/http"
 
-	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
+	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )

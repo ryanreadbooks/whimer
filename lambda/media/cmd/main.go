@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 
-	"github.com/ryanreadbooks/whimer/lambda/codec/internal/config"
-	"github.com/ryanreadbooks/whimer/lambda/codec/internal/entry/http"
-	"github.com/ryanreadbooks/whimer/lambda/codec/internal/service"
+	"github.com/ryanreadbooks/whimer/lambda/media/internal/config"
+	"github.com/ryanreadbooks/whimer/lambda/media/internal/entry/http"
+	"github.com/ryanreadbooks/whimer/lambda/media/internal/service"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -13,7 +13,7 @@ import (
 	"github.com/zeromicro/go-zero/rest"
 )
 
-var configFile = flag.String("f", "etc/codec.yaml", "the config file")
+var configFile = flag.String("f", "etc/media.yaml", "the config file")
 
 func main() {
 	flag.Parse()
@@ -30,6 +30,6 @@ func main() {
 
 	group.Add(restServer)
 
-	logx.Info("lambda-codec is serving...")
+	logx.Info("lambda-media is serving...")
 	group.Start()
 }

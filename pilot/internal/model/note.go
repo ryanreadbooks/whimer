@@ -57,6 +57,7 @@ type NoteItemImageMeta struct {
 }
 
 type NoteItemImage struct {
+	Key      string            `json:"key,omitempty"`
 	Url      string            `json:"url"`
 	Type     int               `json:"type"`
 	Metadata NoteItemImageMeta `json:"metadata"`
@@ -152,11 +153,11 @@ func NewNoteImageItemUrlPrv(pbimg *notev1.NoteImage) string {
 	return url
 }
 
-func NewNoteImageFromPb(pbimg *notev1.NoteImage) *NoteItemImage {
+func NewNoteImageFromPb(pbimg *notev1.NoteImage, showKey bool) *NoteItemImage {
 	url := NewNoteImageItemUrl(pbimg)
 	urlPrv := NewNoteImageItemUrlPrv(pbimg)
 
-	return &NoteItemImage{
+	img := &NoteItemImage{
 		Url:    url,
 		Type:   int(pbimg.Type),
 		UrlPrv: urlPrv,
@@ -166,6 +167,10 @@ func NewNoteImageFromPb(pbimg *notev1.NoteImage) *NoteItemImage {
 			Format: pbimg.Meta.Format,
 		},
 	}
+	if showKey {
+		img.Key = pbimg.Key
+	}
+	return img
 }
 
 func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
@@ -175,7 +180,7 @@ func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
 
 	images := make(NoteItemImageList, 0, len(pb.Images))
 	for _, pbimg := range pb.Images {
-		images = append(images, NewNoteImageFromPb(pbimg))
+		images = append(images, NewNoteImageFromPb(pbimg, true))
 	}
 
 	var tagList []*NoteTag = NoteTagsFromPbs(pb.GetTags())

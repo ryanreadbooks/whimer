@@ -95,12 +95,17 @@ func (b *CallbackBiz) doCallback(ctx context.Context, callbackUrl string, payloa
 	// 2xx 视为成功
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		xlog.Msg("callback success").
-			Extras("callbackUrl", callbackUrl, "taskId", payload.TaskId, "statusCode", resp.StatusCode).
+			Extras("callbackUrl", callbackUrl,
+				"taskId", payload.TaskId,
+				"statusCode", resp.StatusCode,
+				"responseBody", resp.Body).
 			Infox(ctx)
 		return
 	}
 
 	xlog.Msg("callback failed with status").
-		Extras("callbackUrl", callbackUrl, "taskId", payload.TaskId, "statusCode", resp.StatusCode).
+		Extras("callbackUrl", callbackUrl,
+			"taskId", payload.TaskId,
+			"statusCode", resp.StatusCode).
 		Errorx(ctx)
 }

@@ -47,6 +47,9 @@ require (
 	github.com/grafana/pyroscope-go v1.2.2 // indirect
 	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect
+	github.com/huandu/go-clone v1.7.3 // indirect
+	github.com/huandu/go-sqlbuilder v1.38.1 // indirect
+	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/jtolds/gls v4.20.0+incompatible // indirect

@@ -3,7 +3,7 @@ package msg
 import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
-	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/user"
+	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user"
 	bizwhisper "github.com/ryanreadbooks/whimer/pilot/internal/biz/whisper"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 )

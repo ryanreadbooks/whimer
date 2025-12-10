@@ -1,18 +1,18 @@
 http:
   mode: dev
-  name: lambda-codec-api
+  name: lambda-media-api
   host: 0.0.0.0
   port: 10200
   log:
     level: debug
   telemetry:
-    name: lambda-codec
+    name: lambda-media
     endpoint: ${ENV_JAEGER_ENDPOINT}
     sampler: 1.0
     batcher: jaeger
 
 log:
-  serviceName: lambda-codec
+  serviceName: lambda-media
   stat: false
 
 mysql:

@@ -6,7 +6,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
+	"github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 )
 

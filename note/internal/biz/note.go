@@ -259,7 +259,7 @@ func (b *NoteBiz) AssembleNotesExt(ctx context.Context, notes []*model.Note) err
 	}
 
 	// noteId -> ext
-	extsPoMap := xslice.MakeMap(extsPo, func(e *notedao.Ext) int64 { return e.NoteId })
+	extsPoMap := xslice.MakeMap(extsPo, func(e *notedao.ExtPO) int64 { return e.NoteId })
 	extMap := make(map[int64]*model.NoteExt, len(extsPoMap))
 	totalTagIds := make([]int64, 0, len(extsPoMap))
 

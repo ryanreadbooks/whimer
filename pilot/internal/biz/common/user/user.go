@@ -13,7 +13,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
+	"github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/cache/recentcontact"

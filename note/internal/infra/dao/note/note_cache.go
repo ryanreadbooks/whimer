@@ -29,7 +29,7 @@ func getNotePublicCountByOwnerCacheKey(uid int64) string {
 	return notePublicCountByOwnerCacheKey + xconv.FormatInt(uid)
 }
 
-func (d *NoteDao) CacheGetNote(ctx context.Context, nid int64) (*Note, error) {
+func (d *NoteDao) CacheGetNote(ctx context.Context, nid int64) (*NotePO, error) {
 	if d.cache == nil {
 		return nil, fmt.Errorf("cache is nil")
 	}
@@ -39,7 +39,7 @@ func (d *NoteDao) CacheGetNote(ctx context.Context, nid int64) (*Note, error) {
 		return nil, err
 	}
 
-	var ret Note
+	var ret NotePO
 	err = json.Unmarshal(utils.StringToBytes(res), &ret)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (d *NoteDao) CacheDelNote(ctx context.Context, nid int64) error {
 	return err
 }
 
-func (d *NoteDao) CacheSetNote(ctx context.Context, model *Note) error {
+func (d *NoteDao) CacheSetNote(ctx context.Context, model *NotePO) error {
 	if d.cache == nil {
 		return nil
 	}

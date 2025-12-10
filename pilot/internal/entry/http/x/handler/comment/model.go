@@ -1,6 +1,6 @@
 package comment
 
-import "github.com/ryanreadbooks/whimer/pilot/internal/biz/storage"
+import "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/storage"
 
 type UploadTicket struct {
 	StoreKeys   []string `json:"store_keys"`
