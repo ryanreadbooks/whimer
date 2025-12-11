@@ -8,6 +8,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/conductor/internal/biz/model"
 	"github.com/ryanreadbooks/whimer/conductor/internal/config"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -27,13 +28,11 @@ func TestRemoveWaiting(t *testing.T) {
 		b := newTestWorkerBiz()
 		taskType := "test_task"
 
-		ctx, cancel := context.WithCancel(context.Background())
 		w := &waitingWorker{
 			workerId: "worker-1",
 			taskType: taskType,
 			taskCh:   make(chan *model.Task, 1),
-			ctx:      ctx,
-			cancel:   cancel,
+			doneCh:   make(chan struct{}),
 		}
 
 		Convey("添加 worker 后队列长度为 1", func() {
@@ -56,13 +55,11 @@ func TestRemoveWaiting_Multiple(t *testing.T) {
 
 		workers := make([]*waitingWorker, 5)
 		for i := 0; i < 5; i++ {
-			ctx, cancel := context.WithCancel(context.Background())
 			workers[i] = &waitingWorker{
 				workerId: "worker-" + string(rune('0'+i)),
 				taskType: taskType,
 				taskCh:   make(chan *model.Task, 1),
-				ctx:      ctx,
-				cancel:   cancel,
+				doneCh:   make(chan struct{}),
 			}
 			b.addWaiting(workers[i])
 		}
@@ -91,13 +88,11 @@ func TestRemoveWaiting_DoubleRemove(t *testing.T) {
 		b := newTestWorkerBiz()
 		taskType := "test_task"
 
-		ctx, cancel := context.WithCancel(context.Background())
 		w := &waitingWorker{
 			workerId: "worker-1",
 			taskType: taskType,
 			taskCh:   make(chan *model.Task, 1),
-			ctx:      ctx,
-			cancel:   cancel,
+			doneCh:   make(chan struct{}),
 		}
 
 		b.addWaiting(w)
@@ -129,13 +124,11 @@ func TestDispatchAfterRemove(t *testing.T) {
 
 		workers := make([]*waitingWorker, 3)
 		for i := 0; i < 3; i++ {
-			ctx, cancel := context.WithCancel(context.Background())
 			workers[i] = &waitingWorker{
 				workerId: "worker-" + string(rune('0'+i)),
 				taskType: taskType,
 				taskCh:   make(chan *model.Task, 1),
-				ctx:      ctx,
-				cancel:   cancel,
+				doneCh:   make(chan struct{}),
 			}
 			b.addWaiting(workers[i])
 		}

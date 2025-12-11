@@ -16,6 +16,28 @@ enum NoteAssetType {
   VIDEO                       = 2;
 }
 
+enum NoteState {
+  NOTE_STATE_UNSPECIFIED = 0;
+
+  // 资源处理中
+  PROCESSING = 1;
+
+  // 资源处理完成
+  PROCESSED = 2;
+
+  // 审核中
+  AUDITING = 3;
+
+  // 已发布
+  PUBLISHED = 4;
+
+  // 审核不通过
+  REJECTED = 5;
+
+  // 被封禁
+  BANNED = 6;
+}
+
 message NoteTag {
   int64  id    = 1;
   string name  = 2;
@@ -43,6 +65,7 @@ message NoteItem {
   string              ip        = 12;
   repeated NoteAtUser at_users  = 13;  // @人
   NoteAssetType       note_type = 14;  // 笔记类型 图片笔记或者视频笔记
+  NoteState           state     = 15;  // 笔记状态
 }
 
 message NoteImageMeta {

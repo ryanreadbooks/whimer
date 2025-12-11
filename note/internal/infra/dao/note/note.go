@@ -13,7 +13,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/misc/xtime"
-	"github.com/ryanreadbooks/whimer/note/internal/global"
+	"github.com/ryanreadbooks/whimer/note/internal/model"
 
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
@@ -28,15 +28,16 @@ var (
 )
 
 type NotePO struct {
-	Id       int64  `db:"id"`
-	Title    string `db:"title"`   // 标题
-	Desc     string `db:"desc"`    // 描述
-	Privacy  int8   `db:"privacy"` // 公开类型
-	Owner    int64  `db:"owner"`   // 笔记作者
-	Ip       []byte `db:"ip"`
-	NoteType int8   `db:"note_type"` // 笔记类型
-	CreateAt int64  `db:"create_at"` // 创建时间
-	UpdateAt int64  `db:"update_at"` // 更新时间
+	Id       int64           `db:"id"`
+	Title    string          `db:"title"`   // 标题
+	Desc     string          `db:"desc"`    // 描述
+	Privacy  model.Privacy   `db:"privacy"` // 公开类型
+	Owner    int64           `db:"owner"`   // 笔记作者
+	Ip       []byte          `db:"ip"`
+	NoteType model.NoteType  `db:"note_type"` // 笔记类型
+	State    model.NoteState `db:"state"`     // 状态
+	CreateAt int64           `db:"create_at"` // 创建时间
+	UpdateAt int64           `db:"update_at"` // 更新时间
 }
 
 func (NotePO) TableName() string {
@@ -44,11 +45,32 @@ func (NotePO) TableName() string {
 }
 
 func (n *NotePO) Values() []any {
-	return []any{n.Id, n.Title, n.Desc, n.Privacy, n.Owner, n.Ip, n.NoteType, n.CreateAt, n.UpdateAt}
+	return []any{
+		n.Id,
+		n.Title,
+		n.Desc,
+		n.Privacy,
+		n.Owner,
+		n.Ip,
+		n.NoteType,
+		n.State,
+		n.CreateAt,
+		n.UpdateAt,
+	}
 }
 
 func (n *NotePO) InsertValues() []any {
-	return []any{n.Title, n.Desc, n.Privacy, n.Owner, n.Ip, n.NoteType, n.CreateAt, n.UpdateAt}
+	return []any{
+		n.Title,
+		n.Desc,
+		n.Privacy,
+		n.Owner,
+		n.Ip,
+		n.NoteType,
+		n.State,
+		n.CreateAt,
+		n.UpdateAt,
+	}
 }
 
 type NoteDao struct {
@@ -92,6 +114,23 @@ func (r *NoteDao) FindOne(ctx context.Context, id int64) (*NotePO, error) {
 	return resp, xerror.Wrap(xsql.ConvertError(err))
 }
 
+func (r *NoteDao) FindOneForUpdate(ctx context.Context, id int64) (*NotePO, error) {
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select(noteFields...)
+	sb.From(noteTableName)
+	sb.Where(sb.Equal("id", id))
+	sb.SQL("FOR UPDATE")
+
+	sql, args := sb.Build()
+	resp := new(NotePO)
+	err := r.db.QueryRowCtx(ctx, resp, sql, args...)
+	if err != nil {
+		return nil, xerror.Wrap(xsql.ConvertError(err))
+	}
+
+	return resp, nil
+}
+
 // 批量获取
 func (r *NoteDao) BatchGet(ctx context.Context, ids []int64) (map[int64]*NotePO, error) {
 	keys := make([]string, 0, len(ids))
@@ -105,30 +144,31 @@ func (r *NoteDao) BatchGet(ctx context.Context, ids []int64) (map[int64]*NotePO,
 	intermediate, err := r.noteCache.MGet(ctx, keys,
 		xcache.WithMGetFallbackSec[*NotePO](xtime.WeekJitterSec(time.Hour)),
 		xcache.WithMGetBgSet[*NotePO](true),
-		xcache.WithMGetFallback(func(ctx context.Context, missingKeys []string) (t map[string]*NotePO, err error) {
-			if len(missingKeys) == 0 {
-				return
-			}
+		xcache.WithMGetFallback(
+			func(ctx context.Context, missingKeys []string) (t map[string]*NotePO, err error) {
+				if len(missingKeys) == 0 {
+					return
+				}
 
-			var missings []int64
-			for _, k := range missingKeys {
-				missings = append(missings, keysMap[k])
-			}
+				var missings []int64
+				for _, k := range missingKeys {
+					missings = append(missings, keysMap[k])
+				}
 
-			sb := sqlbuilder.NewSelectBuilder()
-			sb.Select(noteFields...)
-			sb.From(noteTableName)
-			sb.Where(sb.In("id", xslice.Any(missings)...))
+				sb := sqlbuilder.NewSelectBuilder()
+				sb.Select(noteFields...)
+				sb.From(noteTableName)
+				sb.Where(sb.In("id", xslice.Any(missings)...))
 
-			sql, args := sb.Build()
-			var notes []*NotePO
-			err = r.db.QueryRowsCtx(ctx, &notes, sql, args...)
-			if err != nil {
-				return nil, xerror.Wrap(xsql.ConvertError(err))
-			}
+				sql, args := sb.Build()
+				var notes []*NotePO
+				err = r.db.QueryRowsCtx(ctx, &notes, sql, args...)
+				if err != nil {
+					return nil, xerror.Wrap(xsql.ConvertError(err))
+				}
 
-			return xslice.MakeMap(notes, func(v *NotePO) string { return getNoteCacheKey(v.Id) }), nil
-		}),
+				return xslice.MakeMap(notes, func(v *NotePO) string { return getNoteCacheKey(v.Id) }), nil
+			}),
 	)
 
 	if err != nil {
@@ -159,7 +199,11 @@ func (r *NoteDao) ListByOwner(ctx context.Context, uid int64) ([]*NotePO, error)
 	return res, nil
 }
 
-func (r *NoteDao) ListByOwnerByCursor(ctx context.Context, uid int64, cursor int64, limit int32) ([]*NotePO, error) {
+func (r *NoteDao) ListByOwnerByCursor(
+	ctx context.Context,
+	uid int64,
+	cursor int64,
+	limit int32) ([]*NotePO, error) {
 	sb := sqlbuilder.NewSelectBuilder()
 	sb.Select(noteFields...)
 	sb.From(noteTableName)
@@ -179,14 +223,19 @@ func (r *NoteDao) ListByOwnerByCursor(ctx context.Context, uid int64, cursor int
 }
 
 // ATTENTION: listing is in reverse order
-func (r *NoteDao) ListPublicByOwnerByCursor(ctx context.Context, uid int64, cursor int64, limit int32) ([]*NotePO, error) {
+func (r *NoteDao) ListPublicByOwnerByCursor(
+	ctx context.Context,
+	uid int64,
+	cursor int64,
+	limit int32,
+) ([]*NotePO, error) {
 	sb := sqlbuilder.NewSelectBuilder()
 	sb.Select(noteFields...).
 		From(noteTableName).
 		Where(
 			sb.EQ("owner", uid),
 			sb.LessThan("id", cursor),
-			sb.EQ("privacy", global.PrivacyPublic),
+			sb.EQ("privacy", model.PrivacyPublic),
 		).
 		OrderByDesc("create_at").OrderByDesc("id").
 		Limit(int(limit))
@@ -210,7 +259,7 @@ func (r *NoteDao) ListPublicByCursor(ctx context.Context, cursor int64, limit in
 		From(noteTableName).
 		Where(
 			sb.LessThan("id", cursor),
-			sb.EQ("privacy", global.PrivacyPublic),
+			sb.EQ("privacy", model.PrivacyPublic),
 		).
 		OrderByDesc("create_at").OrderByDesc("id").
 		Limit(int(limit))
@@ -244,11 +293,7 @@ func (r *NoteDao) PageListByOwner(ctx context.Context, uid int64, page, count in
 	return res, nil
 }
 
-func (r *NoteDao) insert(ctx context.Context, note *NotePO) (int64, error) {
-	now := time.Now().Unix()
-	note.CreateAt = now
-	note.UpdateAt = now
-
+func (r *NoteDao) Insert(ctx context.Context, note *NotePO) (int64, error) {
 	ib := sqlbuilder.NewInsertBuilder()
 	ib.InsertInto(noteTableName)
 	ib.Cols(noteInsFields...)
@@ -267,11 +312,7 @@ func (r *NoteDao) insert(ctx context.Context, note *NotePO) (int64, error) {
 	return int64(newId), nil
 }
 
-func (r *NoteDao) Insert(ctx context.Context, note *NotePO) (int64, error) {
-	return r.insert(ctx, note)
-}
-
-func (r *NoteDao) update(ctx context.Context, note *NotePO) error {
+func (r *NoteDao) Update(ctx context.Context, note *NotePO) error {
 	ub := sqlbuilder.NewUpdateBuilder()
 	ub.Update(noteTableName)
 	ub.Set(
@@ -280,6 +321,8 @@ func (r *NoteDao) update(ctx context.Context, note *NotePO) error {
 		ub.EQ("privacy", note.Privacy),
 		ub.EQ("owner", note.Owner),
 		ub.EQ("ip", note.Ip),
+		ub.EQ("note_type", note.NoteType),
+		ub.EQ("state", note.State),
 		ub.EQ("update_at", time.Now().Unix()),
 	)
 	ub.Where(ub.EQ("id", note.Id))
@@ -303,10 +346,6 @@ func (r *NoteDao) update(ctx context.Context, note *NotePO) error {
 	})
 
 	return xerror.Wrap(xsql.ConvertError(err))
-}
-
-func (r *NoteDao) Update(ctx context.Context, note *NotePO) error {
-	return r.update(ctx, note)
 }
 
 func (r *NoteDao) delete(ctx context.Context, noteId int64) error {
@@ -350,11 +389,11 @@ func (r *NoteDao) Delete(ctx context.Context, id int64) error {
 }
 
 func (r *NoteDao) GetPublicByCursor(ctx context.Context, id int64, count int) ([]*NotePO, error) {
-	return r.getByCursor(ctx, id, count, global.PrivacyPublic)
+	return r.getByCursor(ctx, id, count, int8(model.PrivacyPublic))
 }
 
 func (r *NoteDao) GetPrivateByCursor(ctx context.Context, id int64, count int) ([]*NotePO, error) {
-	return r.getByCursor(ctx, id, count, global.PrivacyPrivate)
+	return r.getByCursor(ctx, id, count, int8(model.PrivacyPrivate))
 }
 
 func (r *NoteDao) getByCursor(ctx context.Context, id int64, count int, privacy int8) ([]*NotePO, error) {
@@ -371,11 +410,11 @@ func (r *NoteDao) getByCursor(ctx context.Context, id int64, count int, privacy 
 }
 
 func (r *NoteDao) GetPublicLastId(ctx context.Context) (int64, error) {
-	return r.getLastId(ctx, global.PrivacyPublic)
+	return r.getLastId(ctx, int8(model.PrivacyPublic))
 }
 
 func (r *NoteDao) GetPrivateLastId(ctx context.Context) (int64, error) {
-	return r.getLastId(ctx, global.PrivacyPrivate)
+	return r.getLastId(ctx, int8(model.PrivacyPrivate))
 }
 
 func (r *NoteDao) getLastId(ctx context.Context, privacy int8) (int64, error) {
@@ -392,7 +431,7 @@ func (r *NoteDao) getLastId(ctx context.Context, privacy int8) (int64, error) {
 	return lastId, xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteDao) getAll(ctx context.Context, privacy int8) ([]*NotePO, error) {
+func (r *NoteDao) getAllByPrivacy(ctx context.Context, privacy model.Privacy) ([]*NotePO, error) {
 	sb := sqlbuilder.NewSelectBuilder()
 	sb.Select(noteFields...).
 		From(noteTableName).
@@ -405,22 +444,22 @@ func (r *NoteDao) getAll(ctx context.Context, privacy int8) ([]*NotePO, error) {
 }
 
 func (r *NoteDao) GetPublicAll(ctx context.Context) ([]*NotePO, error) {
-	return r.getAll(ctx, global.PrivacyPublic)
+	return r.getAllByPrivacy(ctx, model.PrivacyPublic)
 }
 
 func (r *NoteDao) GetPrivateAll(ctx context.Context) ([]*NotePO, error) {
-	return r.getAll(ctx, global.PrivacyPrivate)
+	return r.getAllByPrivacy(ctx, model.PrivacyPrivate)
 }
 
 func (r *NoteDao) GetPublicCount(ctx context.Context) (int64, error) {
-	return r.getCount(ctx, global.PrivacyPublic)
+	return r.getCountByPrivacy(ctx, model.PrivacyPublic)
 }
 
 func (r *NoteDao) GetPrivateCount(ctx context.Context) (int64, error) {
-	return r.getCount(ctx, global.PrivacyPrivate)
+	return r.getCountByPrivacy(ctx, model.PrivacyPrivate)
 }
 
-func (r *NoteDao) getCount(ctx context.Context, privacy int8) (int64, error) {
+func (r *NoteDao) getCountByPrivacy(ctx context.Context, privacy model.Privacy) (int64, error) {
 	sb := sqlbuilder.NewSelectBuilder()
 	sb.Select("COUNT(*)").
 		From(noteTableName).
@@ -466,7 +505,7 @@ func (r *NoteDao) GetPublicPostedCountByOwner(ctx context.Context, uid int64) (i
 				sb := sqlbuilder.NewSelectBuilder()
 				sb.Select("COUNT(*)").
 					From(noteTableName).
-					Where(sb.EQ("owner", uid), sb.EQ("privacy", global.PrivacyPublic))
+					Where(sb.EQ("owner", uid), sb.EQ("privacy", model.PrivacyPublic))
 
 				sql, args := sb.Build()
 				var cnt int64
@@ -490,7 +529,7 @@ func (r *NoteDao) GetRecentPublicPosted(ctx context.Context, uid int64, count in
 	sb := sqlbuilder.NewSelectBuilder()
 	sb.Select(noteFields...).
 		From(noteTableName).
-		Where(sb.EQ("owner", uid), sb.EQ("privacy", global.PrivacyPublic)).
+		Where(sb.EQ("owner", uid), sb.EQ("privacy", model.PrivacyPublic)).
 		OrderByDesc("create_at").
 		Limit(int(count))
 
@@ -498,4 +537,15 @@ func (r *NoteDao) GetRecentPublicPosted(ctx context.Context, uid int64, count in
 	var res = make([]*NotePO, 0, count)
 	err := r.db.QueryRowsCtx(ctx, &res, sql, args...)
 	return res, xerror.Wrap(xsql.ConvertError(err))
+}
+
+func (r *NoteDao) UpdateState(ctx context.Context, noteId int64, state model.NoteState) error {
+	ub := sqlbuilder.NewUpdateBuilder()
+	ub.Update(noteTableName)
+	ub.Set(ub.EQ("state", state))
+	ub.Where(ub.EQ("id", noteId))
+
+	sql, args := ub.Build()
+	_, err := r.db.ExecCtx(ctx, sql, args...)
+	return xerror.Wrap(xsql.ConvertError(err))
 }

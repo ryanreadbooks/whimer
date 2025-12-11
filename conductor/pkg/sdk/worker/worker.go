@@ -18,6 +18,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const longPollTimeout = 35 * time.Second
+
 // Task 任务上下文
 type Task struct {
 	Id          string
@@ -176,7 +178,6 @@ func (w *Worker) Run(ctx context.Context) error {
 	sem := make(chan struct{}, w.opts.Concurrency)
 
 	for _, taskType := range taskTypes {
-		taskType := taskType
 		wg.Add(1)
 		go func() {
 			defer func() {
@@ -236,8 +237,7 @@ func (w *Worker) pollLoop(ctx context.Context, taskType string, sem chan struct{
 			continue
 		}
 
-		if task == nil {
-			// 没有任务，释放信号量继续轮询
+		if task == nil || task.Id == "" {
 			<-sem
 			continue
 		}
@@ -255,7 +255,10 @@ func (w *Worker) pollLoop(ctx context.Context, taskType string, sem chan struct{
 }
 
 func (w *Worker) poll(ctx context.Context, taskType string) (*Task, error) {
-	resp, err := w.client.LongPoll(ctx, &workerservice.LongPollRequest{
+	pollCtx, cancel := context.WithTimeout(ctx, longPollTimeout)
+	defer cancel()
+
+	resp, err := w.client.LongPoll(pollCtx, &workerservice.LongPollRequest{
 		Worker: &workerv1.Worker{
 			Id: w.opts.WorkerId,
 			Ability: &workerv1.WorkerAbility{

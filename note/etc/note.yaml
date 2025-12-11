@@ -13,6 +13,19 @@ grpc:
     sampler: 1.0
     batcher: jaeger
 
+http:
+  mode: dev
+  name: note-api
+  host: 0.0.0.0
+  port: 8890
+  log:
+    level: debug
+  telemetry:
+    name: note
+    endpoint: ${ENV_JAEGER_ENDPOINT}
+    sampler: 1.0
+    batcher: jaeger
+
 log:
   serviceName: note
   stat: false
@@ -41,6 +54,9 @@ external:
     search:
       hosts: ${ENV_ETCD_HOSTS}
       key: whimer.search.rpc
+    conductor:
+      hosts: ${ENV_ETCD_HOSTS}
+      key: whimer.conductor.rpc
 
 salt: ${ENV_NOTE_SALT}
 
@@ -51,3 +67,6 @@ obfuscate:
     salt: ${ENV_OBFUSCATE_TAG_SALT}
     min_length: 24
     alphabet: 0123456789abcdef
+
+dev_callbacks:
+  note_process_callback: http://localhost:8890/inner/api/v1/dev/note_process/callback

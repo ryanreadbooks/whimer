@@ -9,6 +9,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	uslices "github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
+	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
 
 // all sqls here
@@ -34,12 +35,12 @@ func NewNoteAssetDao(db *xsql.DB) *NoteAssetDao {
 }
 
 type AssetPO struct {
-	Id        int64  `db:"id"`
-	AssetKey  string `db:"asset_key"`  // 资源key 包含bucket name
-	AssetType int8   `db:"asset_type"` // 资源类型
-	NoteId    int64  `db:"note_id"`    // 所属笔记id
-	CreateAt  int64  `db:"create_at"`  // 创建时间
-	AssetMeta []byte `db:"asset_meta"` // 资源的元数据 存储格式为一个json字符串
+	Id        int64           `db:"id"`
+	AssetKey  string          `db:"asset_key"`  // 资源key 包含bucket name
+	AssetType model.AssetType `db:"asset_type"` // 资源类型
+	NoteId    int64           `db:"note_id"`    // 所属笔记id
+	CreateAt  int64           `db:"create_at"`  // 创建时间
+	AssetMeta []byte          `db:"asset_meta"` // 资源的元数据 存储格式为一个json字符串
 }
 
 func (r *NoteAssetDao) FindOne(ctx context.Context, id int64) (*AssetPO, error) {

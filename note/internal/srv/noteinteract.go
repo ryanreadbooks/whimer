@@ -49,7 +49,7 @@ func (s *NoteInteractSrv) LikeNote(ctx context.Context, in *notev1.LikeNoteReque
 	}
 
 	// 非公开笔记 其它人不能点赞
-	if note.Privacy != global.PrivacyPublic && opUid != note.Owner {
+	if note.Privacy != model.PrivacyPublic && opUid != note.Owner {
 		return nil, global.ErrNoteNotPublic
 	}
 
@@ -76,7 +76,7 @@ func (s *NoteInteractSrv) GetNoteLikes(ctx context.Context, noteId int64) (int64
 		return 0, xerror.Wrapf(err, "get public note failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
-	if note.Privacy != global.PrivacyPublic && uid != note.Owner {
+	if note.Privacy != model.PrivacyPublic && uid != note.Owner {
 		return 0, global.ErrNoteNotPublic
 	}
 
@@ -110,7 +110,7 @@ func (s *NoteInteractSrv) GetNoteInteraction(ctx context.Context, noteId int64) 
 		return nil, xerror.Wrapf(err, "get public note failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
-	if note.Privacy != global.PrivacyPublic && uid != note.Owner {
+	if note.Privacy != model.PrivacyPublic && uid != note.Owner {
 		return nil, global.ErrNoteNotPublic
 	}
 

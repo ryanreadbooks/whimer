@@ -12,6 +12,7 @@ type Service struct {
 	NoteCreatorSrv  *NoteCreatorSrv
 	NoteFeedSrv     *NoteFeedSrv
 	NoteInteractSrv *NoteInteractSrv
+	NoteProcessSrv *NoteProcessSrv
 }
 
 // 初始化一个service
@@ -24,7 +25,7 @@ func NewService(c *config.Config, bizz biz.Biz) *Service {
 	s.NoteCreatorSrv = NewNoteCreatorSrv(s, bizz)
 	s.NoteFeedSrv = NewNoteFeedSrv(s, bizz)
 	s.NoteInteractSrv = NewNoteInteractSrv(s, bizz)
-
+	s.NoteProcessSrv = NewNoteProcessSrv(bizz)
 	return s
 }
 

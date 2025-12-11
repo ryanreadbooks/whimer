@@ -1,9 +1,10 @@
-package model
+package biz
 
 import (
 	"fmt"
 
 	"github.com/ryanreadbooks/whimer/note/internal/global"
+	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
 
 const (
@@ -13,17 +14,11 @@ const (
 	maxTagCount = 10
 )
 
-const (
-	// 笔记可见范围
-	PrivacyPublic  = global.PrivacyPublic
-	PrivacyPrivate = global.PrivacyPrivate
-)
-
 type CreateNoteRequestBasic struct {
-	Title    string `json:"title"`
-	Desc     string `json:"desc"`
-	Privacy  int8   `json:"privacy"`
-	NoteType int8   `json:"note_type"`
+	Title    string         `json:"title"`
+	Desc     string         `json:"desc"`
+	Privacy  model.Privacy  `json:"privacy"`
+	NoteType model.NoteType `json:"note_type"`
 }
 
 type CreateNoteRequestImage struct {
@@ -37,7 +32,7 @@ type CreateNoteRequest struct {
 	Basic   CreateNoteRequestBasic   `json:"basic"`
 	Images  []CreateNoteRequestImage `json:"images"`
 	TagIds  []int64                  `json:"tag_ids"`
-	AtUsers []*AtUser                `json:"at_users"`
+	AtUsers []*model.AtUser          `json:"at_users"`
 }
 
 func (r *CreateNoteRequest) Validate() error {
@@ -58,16 +53,17 @@ func (r *CreateNoteRequest) Validate() error {
 		return global.ErrArgs.Msg(fmt.Sprintf("笔记描述最多%d个字符", maxTitleLen))
 	}
 
-	if r.Basic.Privacy != PrivacyPublic && r.Basic.Privacy != PrivacyPrivate {
+	if r.Basic.Privacy != model.PrivacyPublic && r.Basic.Privacy != model.PrivacyPrivate {
 		return global.ErrArgs.Msg("笔记参数权限不支持")
 	}
 
-	switch r.Basic.NoteType {
-	case global.AssetTypeImage:
+	noteType := model.NoteType(r.Basic.NoteType)
+	switch noteType {
+	case model.AssetTypeImage:
 		if len(r.Images) == 0 {
 			return global.ErrArgs.Msg("至少需要包含一张照片")
 		}
-	case global.AssetTypeVideo:
+	case model.AssetTypeVideo:
 		// TODO
 		fallthrough
 	default:
@@ -78,11 +74,48 @@ func (r *CreateNoteRequest) Validate() error {
 		return global.ErrArgs.Msg(fmt.Sprintf("笔记最多支持%d个标签", maxTagCount))
 	}
 
-	r.AtUsers = FilterInvalidAtUsers(r.AtUsers)
+	r.AtUsers = model.FilterInvalidAtUsers(r.AtUsers)
 
 	return nil
 }
 
 type CreateNoteResponse struct {
 	NoteId string `json:"note_id"`
+}
+
+type UpdateNoteRequest struct {
+	NoteId int64 `json:"note_id"`
+	CreateNoteRequest
+}
+
+func (r *UpdateNoteRequest) Validate() error {
+	if r == nil {
+		return global.ErrNilReq
+	}
+
+	if r.NoteId == 0 {
+		return global.ErrArgs.Msg("笔记不存在")
+	}
+
+	return r.CreateNoteRequest.Validate()
+}
+
+type DeleteNoteRequest struct {
+	NoteId int64 `json:"note_id"`
+}
+
+func (r *DeleteNoteRequest) Validate() error {
+	if r == nil {
+		return global.ErrNilReq
+	}
+
+	if r.NoteId <= 0 {
+		return global.ErrArgs.Msg("笔记不存在")
+	}
+
+	return nil
+}
+
+type GetNoteReq struct {
+	NoteId int64 `path:"note_id"`
 }

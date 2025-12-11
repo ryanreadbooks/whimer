@@ -1,9 +1,7 @@
 package model
 
 import (
-	"github.com/ryanreadbooks/whimer/misc/xnet"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
-	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 )
 
 type NoteImageMeta struct {
@@ -40,8 +38,9 @@ type Note struct {
 	NoteId   int64         `json:"note_id"`
 	Title    string        `json:"title"`
 	Desc     string        `json:"desc"`
-	Privacy  int8          `json:"privacy,omitempty"`
-	Type     int8          `json:"type"`
+	Privacy  Privacy       `json:"privacy,omitempty"`
+	Type     NoteType      `json:"type"`
+	State    NoteState     `json:"state"` // 笔记状态
 	CreateAt int64         `json:"create_at,omitempty"`
 	UpdateAt int64         `json:"update_at,omitempty"`
 	Ip       string        `json:"ip"`
@@ -61,38 +60,13 @@ func (n *Note) AsSlice() []*Note {
 	return []*Note{n}
 }
 
-func NoteFromDao(d *notedao.NotePO) *Note {
-	n := &Note{}
-	if d == nil {
-		return n
-	}
-	n.NoteId = d.Id
-	n.Title = d.Title
-	n.Desc = d.Desc
-	n.Privacy = d.Privacy
-	n.Type = d.NoteType
-	n.CreateAt = d.CreateAt
-	n.UpdateAt = d.UpdateAt
-	n.Ip = xnet.BytesIpAsString(d.Ip)
-	n.Owner = d.Owner
-
-	return n
-}
-
-func NoteSliceFromDao(ds []*notedao.NotePO) []*Note {
-	notes := make([]*Note, 0, len(ds))
-	for _, n := range ds {
-		notes = append(notes, NoteFromDao(n))
-	}
-	return notes
-}
-
 func (i *Note) AsPb() *notev1.NoteItem {
 	res := &notev1.NoteItem{
 		NoteId:   i.NoteId,
 		Title:    i.Title,
 		Desc:     i.Desc,
 		Privacy:  int32(i.Privacy),
+		State:    notev1.NoteState(i.State),
 		NoteType: notev1.NoteAssetType(i.Type),
 		CreateAt: i.CreateAt,
 		UpdateAt: i.UpdateAt,
@@ -147,10 +121,6 @@ func PbFeedNoteItemsFromNotes(ns *Notes) []*notev1.FeedNoteItem {
 	}
 
 	return items
-}
-
-type GetNoteReq struct {
-	NoteId int64 `path:"note_id"`
 }
 
 // 每个用户和笔记的交互情况

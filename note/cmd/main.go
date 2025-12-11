@@ -7,6 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/entry/grpc"
+	"github.com/ryanreadbooks/whimer/note/internal/entry/http"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
 
@@ -23,7 +24,7 @@ func main() {
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
 	logx.MustSetup(config.Conf.Log)
 	defer logx.Close()
-	
+
 	if err := config.Conf.Init(); err != nil {
 		panic(fmt.Errorf("panic: config init: %w", err))
 	}
@@ -34,11 +35,13 @@ func main() {
 	svc := srv.NewService(&config.Conf, bizz)
 
 	grpcServer := grpc.Init(config.Conf.Grpc, svc)
+	httpServer := http.Init(config.Conf.Http, svc)
 
 	group := service.NewServiceGroup()
 	defer group.Stop()
 
 	group.Add(grpcServer)
+	group.Add(httpServer)
 	group.Add(srv.AsService{})
 	logx.Info("note is serving...")
 	group.Start()

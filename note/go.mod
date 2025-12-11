@@ -4,8 +4,10 @@ go 1.24.0
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.2-20240717164558-a6c49f84cc0f.2
+	github.com/huandu/go-sqlbuilder v1.38.1
 	github.com/ryanreadbooks/whimer/apiextension v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/comment v0.0.0-00010101000000-000000000000
+	github.com/ryanreadbooks/whimer/conductor v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/counter v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000
@@ -36,6 +38,7 @@ require (
 	github.com/go-openapi/swag v0.22.4 // indirect
 	github.com/go-sql-driver/mysql v1.9.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/cel-go v0.21.0 // indirect
@@ -44,11 +47,10 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
-	github.com/grafana/pyroscope-go v1.2.2 // indirect
-	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
+	github.com/grafana/pyroscope-go v1.2.7 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.9 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect
 	github.com/huandu/go-clone v1.7.3 // indirect
-	github.com/huandu/go-sqlbuilder v1.38.1 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -128,3 +130,5 @@ replace github.com/ryanreadbooks/whimer/comment => ../comment
 replace github.com/ryanreadbooks/whimer/search => ../search
 
 replace github.com/ryanreadbooks/whimer/apiextension => ../apiextension
+
+replace github.com/ryanreadbooks/whimer/conductor => ../conductor

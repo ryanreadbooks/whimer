@@ -1,3 +1,5 @@
+conductor: cd conductor && go run cmd/main.go -f etc/conductor.yaml
+lambda-media: cd lambda/media && go run cmd/main.go -f etc/media.yaml
 passport: cd passport && go run cmd/main.go -f etc/passport.yaml
 counter: cd counter && go run cmd/main.go -f etc/counter.yaml
 note: cd note && go run cmd/main.go -f etc/note.yaml
@@ -6,5 +8,4 @@ comment: cd comment && go run cmd/main.go -f etc/comment.yaml
 relation: cd relation && go run cmd/main.go -f etc/relation.yaml
 msger: cd msger && go run cmd/main.go -f etc/msger.yaml
 wslink: cd wslink && go run cmd/main.go -f etc/wslink.yaml
-conductor: cd conductor && go run cmd/main.go -f etc/conductor.yaml
 pilot: cd pilot && go run cmd/main.go -f etc/pilot.yaml

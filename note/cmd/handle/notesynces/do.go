@@ -12,7 +12,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"
-	"github.com/ryanreadbooks/whimer/note/internal/model"
+	"github.com/ryanreadbooks/whimer/note/internal/model/convert"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
 	"github.com/ryanreadbooks/whimer/note/pkg/id"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
@@ -43,7 +43,7 @@ func Handle(c *config.Config, bizz biz.Biz, svc *srv.Service) error {
 
 		xlog.Msgf("list note by cursor got %d notes", len(batchNotes)).Info()
 
-		res, err := bizz.Creator.AssembleNotes(ctx, model.NoteSliceFromDao(batchNotes))
+		res, err := bizz.Creator.AssembleNotes(ctx, convert.NoteSliceFromDao(batchNotes))
 		if err != nil {
 			return fmt.Errorf("creator assemble notes err: %w", err)
 		}

@@ -43,7 +43,7 @@ func (s *WorkerService) LongPoll(ctx context.Context, req *LongPollRequest) (*Lo
 	if err != nil {
 		// 正常的长轮询超时/取消
 		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-			return &LongPollResponse{Task: nil}, nil
+			return &LongPollResponse{Task: &model.Task{Id: uuid.EmptyUUID()}}, nil
 		}
 		return nil, xerror.Wrapf(err, "worker service long poll failed").WithCtx(ctx)
 	}

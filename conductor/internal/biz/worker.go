@@ -4,9 +4,11 @@ import (
 	"container/list"
 	"context"
 	"sync"
+	"time"
 
 	"github.com/ryanreadbooks/whimer/conductor/internal/biz/model"
 	"github.com/ryanreadbooks/whimer/conductor/internal/config"
+	"github.com/ryanreadbooks/whimer/misc/uuid"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 )
 
@@ -15,8 +17,7 @@ type waitingWorker struct {
 	workerId string
 	taskType string
 	taskCh   chan *model.Task
-	ctx      context.Context
-	cancel   context.CancelFunc
+	doneCh   chan struct{}
 	element  *list.Element // 在链表中的位置，用于 O(1) 删除
 }
 
@@ -37,21 +38,20 @@ func NewWorkerBiz(conf *config.Config) *WorkerBiz {
 	}
 }
 
-// WaitForTask Worker 等待任务（长轮询）
-// 返回任务或 context 超时/取消
+// Worker 等待任务
 func (b *WorkerBiz) WaitForTask(
 	ctx context.Context,
 	workerId, taskType string,
 ) (*model.Task, error) {
 	timeout := b.conf.WorkerConfig.GetLongPollTimeout()
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
 
 	w := &waitingWorker{
 		workerId: workerId,
 		taskType: taskType,
 		taskCh:   make(chan *model.Task, 1),
-		ctx:      ctx,
-		cancel:   cancel,
+		doneCh:   make(chan struct{}),
 	}
 
 	b.addWaiting(w)
@@ -65,8 +65,13 @@ func (b *WorkerBiz) WaitForTask(
 				"traceId", task.TraceId).
 			Infox(ctx)
 		return task, nil
+	case <-timer.C:
+		b.removeWaiting(w)
+		close(w.doneCh)
+		return &model.Task{Id: uuid.EmptyUUID()}, nil
 	case <-ctx.Done():
 		b.removeWaiting(w)
+		close(w.doneCh)
 		return nil, ctx.Err()
 	}
 }
@@ -96,7 +101,7 @@ func (b *WorkerBiz) dispatchTaskLocked(ctx context.Context, task *model.Task) bo
 
 		// 跳过已超时的 worker
 		select {
-		case <-w.ctx.Done():
+		case <-w.doneCh:
 			continue
 		default:
 		}
@@ -104,7 +109,6 @@ func (b *WorkerBiz) dispatchTaskLocked(ctx context.Context, task *model.Task) bo
 		// 发送任务
 		select {
 		case w.taskCh <- task:
-			w.cancel()
 			xlog.Msg("task dispatched to worker").
 				Extras("workerId", w.workerId,
 					"taskType", task.TaskType,

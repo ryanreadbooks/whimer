@@ -20,7 +20,7 @@ type CallbackPayload struct {
 	Namespace   string          `json:"namespace"`
 	TaskType    string          `json:"task_type"`
 	State       model.TaskState `json:"state"`
-	OutputArgs  json.RawMessage `json:"output_args,omitempty"`
+	OutputArgs  []byte          `json:"output_args,omitempty"`
 	ErrorMsg    string          `json:"error_msg,omitempty"`
 	TraceId     string          `json:"trace_id,omitempty"`
 	CompletedAt int64           `json:"completed_at"`

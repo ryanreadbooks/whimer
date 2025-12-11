@@ -11,7 +11,6 @@ import (
 func regDevRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 	webhookGroup := group.Group("/api/v1/webhook")
 	webhookGroup.Post("/minio", func(w http.ResponseWriter, r *http.Request) {
-
 		fmt.Println(r)
 	})
 }

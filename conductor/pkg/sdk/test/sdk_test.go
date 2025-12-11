@@ -62,7 +62,7 @@ func TestProducerRegisterTask(t *testing.T) {
 		To:      "test@example.com",
 		Subject: "Hello World",
 		Body:    "This is a test email",
-	}, producer.ExecuteOptions{
+	}, producer.ScheduleOptions{
 		Namespace:   "default",
 		MaxRetry:    3,
 		ExpireAfter: time.Hour,
@@ -232,7 +232,7 @@ func TestProducerAndWorkerIntegration(t *testing.T) {
 	callbackUrl := fmt.Sprintf("http://localhost:%d/callback", callbackPort)
 	taskId, err := producerClient.Schedule(ctx, "callback_test", map[string]string{
 		"message": "hello from callback test",
-	}, producer.ExecuteOptions{
+	}, producer.ScheduleOptions{
 		MaxRetry:    1,
 		ExpireAfter: time.Minute,
 		CallbackUrl: callbackUrl,
@@ -338,7 +338,7 @@ func TestRetryAndSuccess(t *testing.T) {
 	// 注册任务，允许重试
 	taskId, err := producerClient.Schedule(ctx, "retry_success_test", map[string]string{
 		"test": "retry_success",
-	}, producer.ExecuteOptions{
+	}, producer.ScheduleOptions{
 		MaxRetry:    3,
 		ExpireAfter: time.Minute,
 	})
@@ -420,7 +420,7 @@ func TestRetryAndFailure(t *testing.T) {
 	// 注册任务，限制重试次数
 	taskId, err := producerClient.Schedule(ctx, "retry_failure_test", map[string]string{
 		"test": "retry_failure",
-	}, producer.ExecuteOptions{
+	}, producer.ScheduleOptions{
 		MaxRetry:    maxRetry,
 		ExpireAfter: time.Minute,
 	})
@@ -494,7 +494,7 @@ func TestRetryAndTimeout(t *testing.T) {
 	// 注册任务：允许无限重试，但设置短超时
 	taskId, err := producerClient.Schedule(ctx, "retry_timeout_test", map[string]string{
 		"test": "retry_timeout",
-	}, producer.ExecuteOptions{
+	}, producer.ScheduleOptions{
 		MaxRetry:    -1, // 无限重试
 		ExpireAfter: 10 * time.Second,
 	})
@@ -542,7 +542,7 @@ func TestNoRetryAndTimeout(t *testing.T) {
 	// 注册任务：不重试，短超时
 	taskId, err := producerClient.Schedule(ctx, "no_retry_timeout_test", map[string]string{
 		"test": "no_retry_timeout",
-	}, producer.ExecuteOptions{
+	}, producer.ScheduleOptions{
 		MaxRetry:    0, // 不重试
 		ExpireAfter: 10 * time.Second,
 	})
@@ -628,7 +628,7 @@ func TestAbortTaskWhileRunning(t *testing.T) {
 	// 注册任务
 	taskId, err := producerClient.Schedule(ctx, "abort_test", map[string]string{
 		"test": "abort_while_running",
-	}, producer.ExecuteOptions{
+	}, producer.ScheduleOptions{
 		MaxRetry:    0,
 		ExpireAfter: time.Minute,
 	})
@@ -728,7 +728,7 @@ func TestFailureWithoutRetry(t *testing.T) {
 	// 注册任务，不重试
 	taskId, err := producerClient.Schedule(ctx, "failure_no_retry_test", map[string]string{
 		"test": "failure_no_retry",
-	}, producer.ExecuteOptions{
+	}, producer.ScheduleOptions{
 		MaxRetry:    0, // 不重试
 		ExpireAfter: time.Minute,
 	})
@@ -807,7 +807,7 @@ func TestMaxRetryExhausted(t *testing.T) {
 	// 注册任务，允许重试 2 次
 	taskId, err := producerClient.Schedule(ctx, "max_retry_exhausted_test", map[string]string{
 		"test": "max_retry_exhausted",
-	}, producer.ExecuteOptions{
+	}, producer.ScheduleOptions{
 		MaxRetry:    maxRetry,
 		ExpireAfter: 2 * time.Minute,
 	})

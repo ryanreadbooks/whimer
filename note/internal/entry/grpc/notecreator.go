@@ -4,6 +4,7 @@ import (
 	"context"
 
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
@@ -49,9 +50,9 @@ func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.Cr
 		return nil, global.ErrNilReq
 	}
 
-	images := make([]model.CreateNoteRequestImage, 0, len(in.Images))
+	images := make([]biz.CreateNoteRequestImage, 0, len(in.Images))
 	for _, img := range in.Images {
-		images = append(images, model.CreateNoteRequestImage{
+		images = append(images, biz.CreateNoteRequestImage{
 			FileId: img.FileId,
 			Width:  img.Width,
 			Height: img.Height,
@@ -59,12 +60,12 @@ func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.Cr
 		})
 	}
 
-	var req = model.CreateNoteRequest{
-		Basic: model.CreateNoteRequestBasic{
+	var req = biz.CreateNoteRequest{
+		Basic: biz.CreateNoteRequestBasic{
 			Title:    in.Basic.Title,
 			Desc:     in.Basic.Desc,
-			Privacy:  int8(in.Basic.Privacy),
-			NoteType: int8(in.Basic.AssetType),
+			Privacy:  model.Privacy(in.Basic.Privacy),
+			NoteType: model.NoteType(in.Basic.AssetType),
 		},
 		Images:  images,
 		TagIds:  in.GetTags().GetTagList(),
@@ -91,9 +92,9 @@ func (s *NoteCreatorServiceServer) UpdateNote(ctx context.Context, in *notev1.Up
 		return nil, global.ErrNilReq
 	}
 
-	images := make([]model.CreateNoteRequestImage, 0, len(in.Note.Images))
+	images := make([]biz.CreateNoteRequestImage, 0, len(in.Note.Images))
 	for _, img := range in.Note.Images {
-		images = append(images, model.CreateNoteRequestImage{
+		images = append(images, biz.CreateNoteRequestImage{
 			FileId: img.FileId,
 			Width:  img.Width,
 			Height: img.Height,
@@ -101,14 +102,14 @@ func (s *NoteCreatorServiceServer) UpdateNote(ctx context.Context, in *notev1.Up
 		})
 	}
 
-	var req = model.UpdateNoteRequest{
+	var req = biz.UpdateNoteRequest{
 		NoteId: in.NoteId,
-		CreateNoteRequest: model.CreateNoteRequest{
-			Basic: model.CreateNoteRequestBasic{
+		CreateNoteRequest: biz.CreateNoteRequest{
+			Basic: biz.CreateNoteRequestBasic{
 				Title:    in.Note.Basic.Title,
 				Desc:     in.Note.Basic.Desc,
-				Privacy:  int8(in.Note.Basic.Privacy),
-				NoteType: int8(in.Note.Basic.AssetType),
+				Privacy:  model.Privacy(in.Note.Basic.Privacy),
+				NoteType: model.NoteType(in.Note.Basic.AssetType),
 			},
 			Images:  images,
 			TagIds:  in.GetNote().GetTags().GetTagList(),
@@ -135,7 +136,7 @@ func (s *NoteCreatorServiceServer) DeleteNote(ctx context.Context, in *notev1.De
 		return nil, global.ErrNilReq
 	}
 
-	var req = model.DeleteNoteRequest{
+	var req = biz.DeleteNoteRequest{
 		NoteId: in.NoteId,
 	}
 

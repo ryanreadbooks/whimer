@@ -13,10 +13,11 @@ import (
 type Dao struct {
 	db *xsql.DB
 
-	NoteDao       *notedao.NoteDao
-	NoteAssetRepo *notedao.NoteAssetDao
-	NoteExtDao    *notedao.NoteExtDao
-	TagDao        *tagdao.TagDao
+	NoteDao          *notedao.NoteDao
+	NoteAssetRepo    *notedao.NoteAssetDao
+	NoteExtDao       *notedao.NoteExtDao
+	ProcessRecordDao *notedao.ProcessRecordDao
+	TagDao           *tagdao.TagDao
 }
 
 func MustNew(c *config.Config, cache *redis.Redis) *Dao {
@@ -39,11 +40,12 @@ func MustNew(c *config.Config, cache *redis.Redis) *Dao {
 	db := xsql.New(conn)
 
 	return &Dao{
-		db:            db,
-		NoteDao:       notedao.NewNoteDao(db, cache),
-		NoteAssetRepo: notedao.NewNoteAssetDao(db),
-		NoteExtDao:    notedao.NewNoteExtDao(db),
-		TagDao:        tagdao.NewTagDao(db, cache),
+		db:               db,
+		NoteDao:          notedao.NewNoteDao(db, cache),
+		NoteAssetRepo:    notedao.NewNoteAssetDao(db),
+		NoteExtDao:       notedao.NewNoteExtDao(db),
+		ProcessRecordDao: notedao.NewProcessRecordDao(db),
+		TagDao:           tagdao.NewTagDao(db, cache),
 	}
 }
 

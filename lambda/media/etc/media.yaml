@@ -1,25 +1,10 @@
-http:
-  mode: dev
-  name: lambda-media-api
-  host: 0.0.0.0
-  port: 10200
-  log:
-    level: debug
-  telemetry:
-    name: lambda-media
-    endpoint: ${ENV_JAEGER_ENDPOINT}
-    sampler: 1.0
-    batcher: jaeger
-
 log:
   serviceName: lambda-media
   stat: false
 
-mysql:
-  user: ${ENV_DB_USER}
-  pass: ${ENV_DB_PASS}
-  addr: ${ENV_DB_ADDR}
-  db_name: ${ENV_DB_NAME}
+conductor:
+  hosts: ${ENV_ETCD_HOSTS}
+  key: whimer.conductor.rpc
 
-redis:
-  host: ${ENV_REDIS_HOST}
+worker:
+  concurrency: 2

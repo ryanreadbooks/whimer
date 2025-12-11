@@ -17,6 +17,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
+	"github.com/ryanreadbooks/whimer/note/internal/model/convert"
 )
 
 type NoteFeedSrv struct {
@@ -99,7 +100,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 		items = maps.Values(itemsMap)
 	}
 
-	result, err := s.noteBiz.AssembleNotes(ctx, model.NoteSliceFromDao(items))
+	result, err := s.noteBiz.AssembleNotes(ctx, convert.NoteSliceFromDao(items))
 	if err != nil {
 		return nil, xerror.Wrapf(err, "feed srv assemble notes failed")
 	}
@@ -121,7 +122,7 @@ func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId int64) (*model.N
 		return nil, xerror.Wrapf(err, "get note detail failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
-	if note.Privacy == global.PrivacyPrivate && note.Owner != uid {
+	if note.Privacy == model.PrivacyPrivate && note.Owner != uid {
 		return nil, global.ErrNoteNotPublic
 	}
 
@@ -156,7 +157,7 @@ func (s *NoteFeedSrv) BatchGetNoteDetail(ctx context.Context, noteIds []int64) (
 
 	// 过滤掉private的笔记
 	pNotes := xmap.Filter(notes, func(k int64, v *model.Note) bool {
-		return v.Privacy == global.PrivacyPrivate
+		return v.Privacy == model.PrivacyPrivate
 	})
 
 	nns := &model.Notes{Items: xmap.Values(pNotes)}
@@ -233,7 +234,7 @@ func (s *NoteFeedSrv) BatchCheckNoteExistence(ctx context.Context, noteIds []int
 	for _, noteId := range noteIds {
 		if target, ok := notes[noteId]; ok {
 			// 如果笔记存在，公开笔记所有人都可访问，私有笔记只有所有者可访问
-			result[noteId] = target.Privacy != global.PrivacyPrivate || target.Owner == reqUid
+			result[noteId] = target.Privacy != model.PrivacyPrivate || target.Owner == reqUid
 		} else {
 			result[noteId] = false
 		}

@@ -18,6 +18,8 @@ const (
 
 	ErrNoteNilReqCode = ErrInvalidArgsCode + iota
 	ErrNoteUnsupportedResourceCode
+	ErrNoteTypeCannotChangeCode
+	ErrTagNotFoundCode
 )
 
 const (
@@ -54,9 +56,11 @@ var (
 	ErrInternal   = ErrBizNoteInternal.Msg("笔记服务错误, 请稍后重试")
 	ErrPermDenied = ErrBizNoteDenied.Msg("你的操作权限不足")
 
-	// 通用错误
-	ErrNilReq              = ErrBizNoteArgs.ErrCode(ErrNoteNilReqCode).Msg("请求参数为空")
-	ErrUnsupportedResource = ErrBizNoteArgs.ErrCode(ErrNoteUnsupportedResourceCode).Msg("不支持的资源类型")
+	// 参数错误
+	ErrNilReq               = ErrBizNoteArgs.ErrCode(ErrNoteNilReqCode).Msg("请求参数为空")
+	ErrUnsupportedResource  = ErrBizNoteArgs.ErrCode(ErrNoteUnsupportedResourceCode).Msg("不支持的资源类型")
+	ErrNoteTypeCannotChange = ErrBizNoteArgs.ErrCode(ErrNoteTypeCannotChangeCode).Msg("不支持变更笔记类型")
+	ErrTagNotFound          = ErrBizNoteArgs.ErrCode(ErrTagNotFoundCode).Msg("标签不存在")
 
 	// 笔记操作失败
 	ErrInsertNoteFail   = ErrBizNoteInternal.ErrCode(ErrNoteInsertNoteFailCode).Msg("添加笔记失败")

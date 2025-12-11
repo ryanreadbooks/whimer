@@ -87,30 +87,39 @@ func taskFromProto(t *taskv1.Task) *Task {
 	}
 }
 
-// ExecuteOptions 执行任务的选项
-type ExecuteOptions struct {
+// ScheduleOptions 执行任务的选项
+type ScheduleOptions struct {
 	// 命名空间（可选，不设置则使用 ClientOptions 中的默认值）
 	Namespace string
 
-	// 执行成功的回调 URL
+	// 执行成功的回调 URL, 失败 过期等状态均不回调
 	//
-	// 失败 过期等状态均不回调
+	// 回调地址应该接收HTTP POST方法
+	//
+	// 当成功响应时应该返回HTTP 200状态码, 响应体中的内容会被忽略
+	//
+	// 当前设计上 回调只会触发一次, 后续会加入非200自动重试N次, 被回调方需要保证接口幂等
 	CallbackUrl string
 
-	// 最大重试次数 (-1: 无限重试, 0: 不重试, >0: 指定次数)
+	// 任务执行最大重试次数 (-1: 无限重试, 0: 不重试, >0: 指定次数)
 	MaxRetry int64
 
-	// 过期时间 精度到秒
+	// 任务执行过期时间 精度到秒
 	ExpireTime time.Time
 
-	// 过期时长（与 ExpireTime 二选一） 精度到秒
+	// 任务执行过期时长（与 ExpireTime 二选一） 精度到秒
 	ExpireAfter time.Duration
 }
 
 // 提交任务后返回 通过设置callback接收任务执行结果
-// 
+//
 // 返回任务id可用后续查询任务状态
-func (c *Client) Schedule(ctx context.Context, taskType string, input any, opts ExecuteOptions) (string, error) {
+func (c *Client) Schedule(
+	ctx context.Context,
+	taskType string,
+	input any,
+	opts ScheduleOptions) (string, error) {
+
 	var inputArgs []byte
 	var err error
 	if input != nil {
@@ -127,8 +136,9 @@ func (c *Client) scheduleRaw(
 	ctx context.Context,
 	taskType string,
 	inputArgs []byte,
-	opts ExecuteOptions,
+	opts ScheduleOptions,
 ) (string, error) {
+
 	namespace := opts.Namespace
 	if namespace == "" {
 		namespace = c.opts.Namespace

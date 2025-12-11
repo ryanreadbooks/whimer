@@ -92,6 +92,7 @@ func (r CreateReqImageList) AsPb() []*notev1.CreateReqImage {
 }
 
 type CreateReqVideo struct {
+	// TODO
 }
 
 func (r *CreateReqVideo) Validate() error {

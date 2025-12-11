@@ -11,6 +11,7 @@ import (
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 	tagdao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/tag"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
+	"github.com/ryanreadbooks/whimer/note/internal/model/convert"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xmap"
@@ -37,7 +38,7 @@ func (b *NoteBiz) GetNote(ctx context.Context, noteId int64) (*model.Note, error
 		return nil, xerror.Wrapf(err, "biz find one note failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
-	resp, err := b.AssembleNotes(ctx, model.NoteFromDao(note).AsSlice())
+	resp, err := b.AssembleNotes(ctx, convert.NoteFromDao(note).AsSlice())
 	if err != nil {
 		return nil, xerror.Wrapf(err, "biz assemble notes failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
@@ -57,7 +58,7 @@ func (b *NoteBiz) BatchGetNote(ctx context.Context, noteIds []int64) (map[int64]
 	}
 
 	notes := xmap.Values(notesMap)
-	assembledNotes, err := b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
+	assembledNotes, err := b.AssembleNotes(ctx, convert.NoteSliceFromDao(notes))
 	if err != nil {
 		return nil, xerror.Wrapf(err, "biz assemble notes failed").WithCtx(ctx)
 	}
@@ -82,7 +83,7 @@ func (b *NoteBiz) BatchGetNoteWithoutAsset(ctx context.Context, noteIds []int64)
 	}
 
 	daoNotes := xmap.Values(notesMap)
-	notes := model.NoteSliceFromDao(daoNotes)
+	notes := convert.NoteSliceFromDao(daoNotes)
 
 	resp := make(map[int64]*model.Note, len(notes))
 	for _, n := range notes {
@@ -103,7 +104,7 @@ func (b *NoteBiz) GetUserRecentNote(ctx context.Context, uid int64, count int32)
 		return nil, xerror.Wrapf(err, "biz find recent posted failed").WithExtras("uid", uid, "count", count).WithCtx(ctx)
 	}
 
-	resp, err := b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
+	resp, err := b.AssembleNotes(ctx, convert.NoteSliceFromDao(notes))
 	if err != nil {
 		return nil, xerror.Wrapf(err, "biz assemble notes failed when get recent notes").
 			WithExtras("uid", uid, "count", count).WithCtx(ctx)
@@ -140,7 +141,7 @@ func (b *NoteBiz) ListUserPublicNote(ctx context.Context, uid int64, cursor int6
 		nextPage.HasNext = false
 	}
 
-	resp, err := b.AssembleNotes(ctx, model.NoteSliceFromDao(notes))
+	resp, err := b.AssembleNotes(ctx, convert.NoteSliceFromDao(notes))
 	if err != nil {
 		return nil,
 			nextPage,
@@ -157,7 +158,7 @@ func (b *NoteBiz) GetPublicNote(ctx context.Context, noteId int64) (*model.Note,
 		return nil, err
 	}
 
-	if note.Privacy != global.PrivacyPublic {
+	if note.Privacy != model.PrivacyPublic {
 		return nil, global.ErrNoteNotPublic
 	}
 
@@ -215,7 +216,7 @@ func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 	for _, note := range notes {
 		for _, asset := range noteAssets {
 			switch note.Type {
-			case global.AssetTypeImage:
+			case model.AssetTypeImage:
 				assetMeta := model.NewAssetImageMetaFromJson(asset.AssetMeta)
 				if note.NoteId == asset.NoteId {
 					// pureKey := strings.TrimLeft(asset.AssetKey, config.Conf.Oss.Bucket+"/") // 此处要去掉桶名称
@@ -230,7 +231,7 @@ func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 						},
 					})
 				}
-			case global.AssetTypeVideo:
+			case model.AssetTypeVideo:
 				// TODO
 			}
 		}
@@ -322,9 +323,22 @@ func (b *NoteBiz) GetTag(ctx context.Context, tagId int64) (*model.NoteTag, erro
 		return nil, xerror.Wrapf(err, "tag dao failed to get").WithExtra("tag_id", tagId).WithCtx(ctx)
 	}
 
-	return &model.NoteTag{
-		Id:    tag.Id,
-		Name:  tag.Name,
-		Ctime: tag.Ctime,
-	}, nil
+	return convert.NoteTagFromDao(tag), nil
+}
+
+func (b *NoteBiz) BatchGetTag(ctx context.Context, tagIds []int64) (map[int64]*model.NoteTag, error) {
+	tags, err := infra.Dao().TagDao.BatchGetById(ctx, tagIds)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "tag dao failed to batch get").WithExtra("tag_ids", tagIds).WithCtx(ctx)
+	}
+
+	res := make(map[int64]*model.NoteTag, len(tags))
+	for _, tag := range tags {
+		if tag == nil {
+			continue
+		}
+		res[tag.Id] = convert.NoteTagFromDao(tag)
+	}
+
+	return res, nil
 }
