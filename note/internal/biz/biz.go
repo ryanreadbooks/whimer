@@ -3,22 +3,26 @@ package biz
 import (
 	"context"
 
-	"github.com/ryanreadbooks/whimer/note/internal/infra"
+	"github.com/ryanreadbooks/whimer/note/internal/data"
 )
 
 type Biz struct {
-	Note      NoteBiz
-	Interact  NoteInteractBiz
-	Creator   NoteCreatorBiz
-	Procedure NoteProcedureBiz
+	data *data.Data
+
+	Note      *NoteBiz
+	Interact  *NoteInteractBiz
+	Creator   *NoteCreatorBiz
+	Procedure *NoteProcedureBiz
 }
 
-func New() Biz {
-	note := NewNoteBiz()
-	creator := NewNoteCreatorBiz()
-	interact := NewNoteInteractBiz()
-	procedure := NewNoteProcedureBiz()
-	return Biz{
+func New(dt *data.Data) *Biz {
+	note := NewNoteBiz(dt)
+	creator := NewNoteCreatorBiz(dt, note)
+	interact := NewNoteInteractBiz(dt, note)
+	procedure := NewNoteProcedureBiz(dt)
+
+	return &Biz{
+		data:      dt,
 		Note:      note,
 		Interact:  interact,
 		Creator:   creator,
@@ -27,5 +31,5 @@ func New() Biz {
 }
 
 func (b *Biz) Tx(ctx context.Context, fn func(ctx context.Context) error) error {
-	return infra.Dao().DB().Transact(ctx, fn)
+	return b.data.DB().Transact(ctx, fn)
 }

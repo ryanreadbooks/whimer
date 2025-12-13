@@ -10,7 +10,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
-	"github.com/ryanreadbooks/whimer/note/internal/infra"
+	"github.com/ryanreadbooks/whimer/note/internal/data"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/note/internal/model/convert"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
@@ -19,7 +19,7 @@ import (
 	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 )
 
-func Handle(c *config.Config, bizz biz.Biz, svc *srv.Service) error {
+func Handle(c *config.Config, bizz *biz.Biz, svc *srv.Service, dt *data.Data) error {
 	var (
 		cursor    int64 = math.MaxInt64
 		batchsize int32 = 500
@@ -32,7 +32,7 @@ func Handle(c *config.Config, bizz biz.Biz, svc *srv.Service) error {
 	var userMaps = make(map[int64]string)
 
 	for {
-		batchNotes, err := infra.Dao().NoteDao.ListPublicByCursor(ctx, cursor, batchsize)
+		batchNotes, err := dt.Note.ListPublicByCursor(ctx, cursor, batchsize)
 		if err != nil {
 			return fmt.Errorf("dao list public by cursor err: %w", err)
 		}
@@ -43,12 +43,12 @@ func Handle(c *config.Config, bizz biz.Biz, svc *srv.Service) error {
 
 		xlog.Msgf("list note by cursor got %d notes", len(batchNotes)).Info()
 
-		res, err := bizz.Creator.AssembleNotes(ctx, convert.NoteSliceFromDao(batchNotes))
+		res, err := bizz.Note.AssembleNotes(ctx, convert.NoteSliceFromDao(batchNotes))
 		if err != nil {
 			return fmt.Errorf("creator assemble notes err: %w", err)
 		}
 
-		err = bizz.Creator.AssembleNotesExt(ctx, res.Items)
+		err = bizz.Note.AssembleNotesExt(ctx, res.Items)
 		if err != nil {
 			return fmt.Errorf("creator assemble note exts err: %w", err)
 		}

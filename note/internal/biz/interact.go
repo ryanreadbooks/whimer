@@ -8,6 +8,7 @@ import (
 	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/note/internal/data"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
@@ -20,13 +21,15 @@ const (
 
 // 笔记互动相关功能
 type NoteInteractBiz struct {
-	NoteBiz
+	data *data.Data
+	note *NoteBiz
 }
 
-func NewNoteInteractBiz() NoteInteractBiz {
-	b := NoteInteractBiz{}
-
-	return b
+func NewNoteInteractBiz(dt *data.Data, note *NoteBiz) *NoteInteractBiz {
+	return &NoteInteractBiz{
+		data: dt,
+		note: note,
+	}
 }
 
 // 点赞笔记
@@ -35,7 +38,7 @@ func (b *NoteInteractBiz) LikeNote(ctx context.Context, uid int64, noteId int64,
 		err error
 	)
 
-	ok, err := b.IsNoteExist(ctx, noteId)
+	ok, err := b.note.IsNoteExist(ctx, noteId)
 	if err != nil {
 		return xerror.Wrapf(err, "GetNoteInteraction check note exists failed")
 	}
@@ -71,7 +74,7 @@ func (b *NoteInteractBiz) LikeNote(ctx context.Context, uid int64, noteId int64,
 
 // 获取用户是否点赞过笔记
 func (b *NoteInteractBiz) CheckUserLikeStatus(ctx context.Context, uid int64, noteId int64) (bool, error) {
-	ok, err := b.IsNoteExist(ctx, noteId)
+	ok, err := b.note.IsNoteExist(ctx, noteId)
 	if err != nil {
 		return false, xerror.Wrapf(err, "GetNoteInteraction check note exists failed")
 	}
@@ -182,7 +185,7 @@ func (b *NoteInteractBiz) AssignNoteLikes(ctx context.Context, batch *model.Note
 
 // 获取笔记点赞数量
 func (b *NoteInteractBiz) GetNoteLikes(ctx context.Context, noteId int64) (int64, error) {
-	ok, err := b.IsNoteExist(ctx, noteId)
+	ok, err := b.note.IsNoteExist(ctx, noteId)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "GetNoteInteraction check note exists failed")
 	}
@@ -204,7 +207,7 @@ func (b *NoteInteractBiz) GetNoteLikes(ctx context.Context, noteId int64) (int64
 
 // 获取笔记评论数量
 func (b *NoteInteractBiz) GetNoteReplyCount(ctx context.Context, noteId int64) (int64, error) {
-	ok, err := b.IsNoteExist(ctx, noteId)
+	ok, err := b.note.IsNoteExist(ctx, noteId)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "GetNoteInteraction check note exists failed")
 	}

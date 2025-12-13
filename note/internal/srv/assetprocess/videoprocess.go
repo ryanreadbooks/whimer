@@ -10,10 +10,10 @@ import (
 type VideoProcessor struct {
 	baseProcessor
 
-	biz biz.Biz
+	biz *biz.Biz
 }
 
-func newVideoProcessor(biz biz.Biz) Processor {
+func newVideoProcessor(biz *biz.Biz) Processor {
 	return &VideoProcessor{biz: biz}
 }
 

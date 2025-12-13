@@ -33,8 +33,14 @@ func main() {
 	infra.Init(&config.Conf)
 	defer infra.Close()
 
-	bizz := biz.New()
-	svc := srv.NewService(&config.Conf, bizz)
+	// 获取 data 层实例
+	dt := infra.Data()
+
+	// 创建 biz 层，注入 data 依赖
+	bizz := biz.New(dt)
+
+	// 创建 service 层
+	svc := srv.NewService(&config.Conf, bizz, dt)
 
 	grpcServer := grpc.Init(config.Conf.Grpc, svc)
 	httpServer := http.Init(config.Conf.Http, svc)

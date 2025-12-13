@@ -7,18 +7,18 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
-	"github.com/ryanreadbooks/whimer/note/internal/infra"
+	"github.com/ryanreadbooks/whimer/note/internal/data"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
 
 type NoteProcedureBiz struct {
-	procedureDao *notedao.ProcedureRecordDao
+	data *data.Data
 }
 
-func NewNoteProcedureBiz() NoteProcedureBiz {
-	return NoteProcedureBiz{
-		procedureDao: infra.Dao().ProcedureRecordDao,
+func NewNoteProcedureBiz(dt *data.Data) *NoteProcedureBiz {
+	return &NoteProcedureBiz{
+		data: dt,
 	}
 }
 
@@ -44,7 +44,7 @@ func (b *NoteProcedureBiz) CreateRecord(
 		NextCheckTime: nextCheckTime,
 	}
 
-	err := b.procedureDao.Insert(ctx, record)
+	err := b.data.ProcedureRecord.Insert(ctx, record)
 	if err != nil {
 		return xerror.Wrapf(err, "biz create process record failed").
 			WithExtras("noteId", req.NoteId, "protype", req.Protype).
@@ -60,7 +60,7 @@ func (b *NoteProcedureBiz) UpdateTaskId(
 	protype model.ProcedureType,
 	taskId string,
 ) error {
-	err := b.procedureDao.UpdateTaskId(ctx, noteId, protype, taskId)
+	err := b.data.ProcedureRecord.UpdateTaskId(ctx, noteId, protype, taskId)
 	if err != nil {
 		return xerror.Wrapf(err, "biz update process record task id failed").
 			WithExtras("noteId", noteId, "protype", protype, "taskId", taskId).
@@ -75,7 +75,7 @@ func (b *NoteProcedureBiz) UpdateStatus(
 	protype model.ProcedureType,
 	status model.ProcedureStatus,
 ) error {
-	err := b.procedureDao.UpdateStatus(ctx, noteId, protype, status)
+	err := b.data.ProcedureRecord.UpdateStatus(ctx, noteId, protype, status)
 	if err != nil {
 		return xerror.Wrapf(err, "biz update process record status failed").
 			WithExtras("noteId", noteId, "protype", protype, "status", status).
@@ -90,7 +90,7 @@ func (b *NoteProcedureBiz) UpdateRetry(
 	protype model.ProcedureType,
 	nextCheckTime int64,
 ) error {
-	err := b.procedureDao.UpdateRetry(ctx, noteId, protype, nextCheckTime)
+	err := b.data.ProcedureRecord.UpdateRetry(ctx, noteId, protype, nextCheckTime)
 	if err != nil {
 		return xerror.Wrapf(err, "biz update retry failed").
 			WithExtras("noteId", noteId, "protype", protype).
@@ -99,17 +99,18 @@ func (b *NoteProcedureBiz) UpdateRetry(
 	return nil
 }
 
-func (b *NoteProcedureBiz) UpdateRecord(
+// 更新taskId cur_retry 和 next_check_time
+func (b *NoteProcedureBiz) UpdateTaskIdRetryNextCheckTime(
 	ctx context.Context,
 	record *ProcedureRecord,
 ) error {
-	err := b.procedureDao.UpdateRecord(ctx, &notedao.ProcedureRecordPO{
+	err := b.data.ProcedureRecord.UpdateTaskIdRetryNextCheckTime(ctx, &notedao.ProcedureRecordPO{
 		Id:            record.Id,
 		NoteId:        record.NoteId,
 		Protype:       record.Protype,
 		TaskId:        record.TaskId,
-		Status:        record.Status,
 		NextCheckTime: record.NextCheckTime,
+		CurRetry:      record.CurRetry,
 	})
 	if err != nil {
 		return xerror.Wrapf(err, "biz update process record failed").
@@ -139,7 +140,7 @@ func (b *NoteProcedureBiz) GetRecord(
 	ctx context.Context,
 	noteId int64,
 	protype model.ProcedureType) (*ProcedureRecord, error) {
-	record, err := b.procedureDao.Get(ctx, noteId, protype)
+	record, err := b.data.ProcedureRecord.Get(ctx, noteId, protype)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "biz get process record failed").
 			WithExtras("noteId", noteId, "protype", protype).
@@ -153,7 +154,7 @@ func (b *NoteProcedureBiz) Delete(
 	noteId int64,
 	protype model.ProcedureType,
 ) error {
-	err := b.procedureDao.Delete(ctx, noteId, protype)
+	err := b.data.ProcedureRecord.Delete(ctx, noteId, protype)
 	if err != nil {
 		return xerror.Wrapf(err, "biz delete process records failed").
 			WithExtra("noteId", noteId).
@@ -172,7 +173,7 @@ type ListProcessingRetryReq struct {
 func (b *NoteProcedureBiz) GetEarliestScannedRecord(
 	ctx context.Context,
 	status model.ProcedureStatus) (*ProcedureRecord, error) {
-	record, err := b.procedureDao.GetEarliestNextCheckTimeRecord(ctx, status)
+	record, err := b.data.ProcedureRecord.GetEarliestNextCheckTimeRecord(ctx, status)
 	if err != nil {
 		if xsql.IsNoRecord(err) {
 			return nil, nil
@@ -199,7 +200,7 @@ func (b *NoteProcedureBiz) ListRangeScannedRecords(
 ) (
 	[]*ProcedureRecord, error,
 ) {
-	records, err := b.procedureDao.ListNextCheckTimeByRange(
+	records, err := b.data.ProcedureRecord.ListNextCheckTimeByRange(
 		ctx,
 		req.Status,
 		req.RangeStart, req.RangeEnd,

@@ -13,8 +13,8 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xmap"
 	maps "github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
+	"github.com/ryanreadbooks/whimer/note/internal/data"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
-	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 	"github.com/ryanreadbooks/whimer/note/internal/model/convert"
@@ -23,14 +23,16 @@ import (
 type NoteFeedSrv struct {
 	Ctx *Service
 
-	noteBiz         biz.NoteBiz
-	noteCreatorBiz  biz.NoteCreatorBiz
-	noteInteractBiz biz.NoteInteractBiz
+	data            *data.Data
+	noteBiz         *biz.NoteBiz
+	noteCreatorBiz  *biz.NoteCreatorBiz
+	noteInteractBiz *biz.NoteInteractBiz
 }
 
-func NewNoteFeedSrv(ctx *Service, biz biz.Biz) *NoteFeedSrv {
+func NewNoteFeedSrv(ctx *Service, biz *biz.Biz, dt *data.Data) *NoteFeedSrv {
 	s := &NoteFeedSrv{
 		Ctx:             ctx,
+		data:            dt,
 		noteBiz:         biz.Note,
 		noteCreatorBiz:  biz.Creator,
 		noteInteractBiz: biz.Interact,
@@ -57,7 +59,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 	concurrent.DoneInCtx(ctx, time.Second*10, func(sCtx context.Context) {
 		defer wg.Done()
 		//  TODO optimize by using local cache
-		id, sErr := infra.Dao().NoteDao.GetPublicLastId(sCtx)
+		id, sErr := s.data.Note.GetPublicLastId(sCtx)
 		if sErr != nil {
 			xlog.Msg("note repo get public last id failed").Err(err).Errorx(sCtx)
 		}
@@ -65,7 +67,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 	})
 
 	// TODO optimize by using local cache
-	maxCnt, err := infra.Dao().NoteDao.GetPublicCount(ctx)
+	maxCnt, err := s.data.Note.GetPublicCount(ctx)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "note repo get public count failed").WithCtx(ctx)
 	}
@@ -75,7 +77,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 	itemsMap := make(map[int64]*notedao.NotePO, count)
 	if maxCnt <= int64(count) {
 		// we fetch all
-		items, err = infra.Dao().NoteDao.GetPublicAll(ctx)
+		items, err = s.data.Note.GetPublicAll(ctx)
 		if err != nil {
 			return nil, xerror.Wrapf(err, "note repo get public all failed").WithCtx(ctx).WithExtra("count", count)
 		}
@@ -86,7 +88,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 			if begin == 0 {
 				begin = 1
 			}
-			notes, err = infra.Dao().NoteDao.GetPublicByCursor(ctx, int64(begin), count)
+			notes, err = s.data.Note.GetPublicByCursor(ctx, int64(begin), count)
 			if err != nil {
 				return nil, xerror.Wrapf(err, "note repo get public by cursor failed").
 					WithExtra("begin", begin).

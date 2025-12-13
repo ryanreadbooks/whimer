@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"math"
 
+	"github.com/ryanreadbooks/whimer/note/internal/data"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
-	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 	tagdao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/tag"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
@@ -20,15 +19,18 @@ import (
 )
 
 // NoteBiz作为最基础的biz可以被其它biz依赖，其它biz之间不能相互依赖
-type NoteBiz struct{}
+type NoteBiz struct {
+	data *data.Data
+}
 
-func NewNoteBiz() NoteBiz {
-	b := NoteBiz{}
-	return b
+func NewNoteBiz(dt *data.Data) *NoteBiz {
+	return &NoteBiz{
+		data: dt,
+	}
 }
 
 func (b *NoteBiz) GetNoteType(ctx context.Context, noteId int64) (model.NoteType, error) {
-	noteType, err := infra.Dao().NoteDao.GetNoteType(ctx, noteId)
+	noteType, err := b.data.Note.GetNoteType(ctx, noteId)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "biz get note type failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
@@ -37,7 +39,7 @@ func (b *NoteBiz) GetNoteType(ctx context.Context, noteId int64) (model.NoteType
 }
 
 func (b *NoteBiz) GetNoteWithoutCache(ctx context.Context, noteId int64) (*model.Note, error) {
-	note, err := infra.Dao().NoteDao.FindOneWithoutCache(ctx, noteId)
+	note, err := b.data.Note.FindOne(ctx, noteId, data.WithoutCache())
 	if err != nil {
 		return nil, xerror.Wrapf(err, "biz find one note failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
@@ -48,7 +50,7 @@ func (b *NoteBiz) GetNoteWithoutCache(ctx context.Context, noteId int64) (*model
 // 获取笔记基础信息
 // 不包含点赞等互动信息和标签
 func (b *NoteBiz) GetNote(ctx context.Context, noteId int64) (*model.Note, error) {
-	note, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
+	note, err := b.data.Note.FindOne(ctx, noteId)
 	if err != nil {
 		if xsql.IsNoRecord(err) {
 			return nil, global.ErrNoteNotFound
@@ -66,7 +68,7 @@ func (b *NoteBiz) GetNote(ctx context.Context, noteId int64) (*model.Note, error
 
 // 批量获取笔记基础信息 不包含点赞等互动信息和标签
 func (b *NoteBiz) BatchGetNote(ctx context.Context, noteIds []int64) (map[int64]*model.Note, error) {
-	notesMap, err := infra.Dao().NoteDao.BatchGet(ctx, noteIds)
+	notesMap, err := b.data.Note.BatchGet(ctx, noteIds)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "biz batch get note failed").WithCtx(ctx)
 	}
@@ -91,7 +93,7 @@ func (b *NoteBiz) BatchGetNote(ctx context.Context, noteIds []int64) (map[int64]
 
 // 批量获取笔记基础信息 不包含点赞等互动信息和标签 不包含asset
 func (b *NoteBiz) BatchGetNoteWithoutAsset(ctx context.Context, noteIds []int64) (map[int64]*model.Note, error) {
-	notesMap, err := infra.Dao().NoteDao.BatchGet(ctx, noteIds)
+	notesMap, err := b.data.Note.BatchGet(ctx, noteIds)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "biz batch get note failed").WithCtx(ctx)
 	}
@@ -113,7 +115,7 @@ func (b *NoteBiz) BatchGetNoteWithoutAsset(ctx context.Context, noteIds []int64)
 
 // 获取用户最近发布的笔记
 func (b *NoteBiz) GetUserRecentNote(ctx context.Context, uid int64, count int32) (*model.Notes, error) {
-	notes, err := infra.Dao().NoteDao.GetRecentPublicPosted(ctx, uid, count)
+	notes, err := b.data.Note.GetRecentPublicPosted(ctx, uid, count)
 	if err != nil {
 		if xsql.IsNoRecord(err) {
 			return &model.Notes{}, nil
@@ -134,12 +136,12 @@ func (b *NoteBiz) GetUserRecentNote(ctx context.Context, uid int64, count int32)
 func (b *NoteBiz) ListUserPublicNote(ctx context.Context, uid int64, cursor int64, count int32) (*model.Notes, model.PageResult, error) {
 	var nextPage = model.PageResult{}
 	if cursor == 0 {
-		cursor = math.MaxInt64
+		cursor = model.MaxCursor
 	}
 
 	newCount := count + 1
 
-	notes, err := infra.Dao().NoteDao.ListPublicByOwnerByCursor(ctx, uid, cursor, newCount)
+	notes, err := b.data.Note.ListPublicByOwnerByCursor(ctx, uid, cursor, newCount)
 	if err != nil {
 		if xsql.IsNoRecord(err) {
 			return &model.Notes{}, nextPage, nil
@@ -189,7 +191,7 @@ func (b *NoteBiz) IsNoteExist(ctx context.Context, noteId int64) (bool, error) {
 		return false, nil
 	}
 
-	_, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
+	_, err := b.data.Note.FindOne(ctx, noteId)
 	if err != nil {
 		if !xsql.IsNoRecord(err) {
 			return false, xerror.Wrapf(err, "note repo find one failed").WithExtra("noteId", noteId).WithCtx(ctx)
@@ -202,7 +204,7 @@ func (b *NoteBiz) IsNoteExist(ctx context.Context, noteId int64) (bool, error) {
 
 // 获取笔记作者
 func (b *NoteBiz) GetNoteOwner(ctx context.Context, noteId int64) (int64, error) {
-	n, err := infra.Dao().NoteDao.FindOne(ctx, noteId)
+	n, err := b.data.Note.FindOne(ctx, noteId)
 	if err != nil {
 		if !xsql.IsNoRecord(err) {
 			return 0, xerror.Wrapf(err, "biz find one failed").WithExtra("noteId", noteId).WithCtx(ctx)
@@ -225,7 +227,7 @@ func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 	}
 
 	// 获取资源信息
-	noteAssets, err := infra.Dao().NoteAssetRepo.FindByNoteIds(ctx, noteIds)
+	noteAssets, err := b.data.NoteAsset.FindByNoteIds(ctx, noteIds)
 	if err != nil && !errors.Is(err, xsql.ErrNoRecord) {
 		return nil, xerror.Wrapf(err, "repo note asset failed")
 	}
@@ -272,7 +274,7 @@ func (b *NoteBiz) AssembleNotesExt(ctx context.Context, notes []*model.Note) err
 	}
 
 	noteIds = xslice.Uniq(noteIds)
-	extsPo, err := infra.Dao().NoteExtDao.BatchGetById(ctx, noteIds)
+	extsPo, err := b.data.NoteExt.BatchGetById(ctx, noteIds)
 	if err != nil {
 		return xerror.Wrapf(err, "note ext dao failed to batch get")
 	}
@@ -304,7 +306,7 @@ func (b *NoteBiz) AssembleNotesExt(ctx context.Context, notes []*model.Note) err
 	var tagMap = make(map[int64]*tagdao.Tag)
 	// query tags
 	if len(totalTagIds) != 0 {
-		tags, err := infra.Dao().TagDao.BatchGetById(ctx, totalTagIds)
+		tags, err := b.data.Tag.BatchGetById(ctx, totalTagIds)
 		if err != nil {
 			return xerror.Wrapf(err, "tag dao failed to batch get")
 		}
@@ -336,7 +338,7 @@ func (b *NoteBiz) AssembleNotesExt(ctx context.Context, notes []*model.Note) err
 }
 
 func (b *NoteBiz) GetTag(ctx context.Context, tagId int64) (*model.NoteTag, error) {
-	tag, err := infra.Dao().TagDao.FindById(ctx, tagId)
+	tag, err := b.data.Tag.FindById(ctx, tagId)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "tag dao failed to get").WithExtra("tag_id", tagId).WithCtx(ctx)
 	}
@@ -345,7 +347,7 @@ func (b *NoteBiz) GetTag(ctx context.Context, tagId int64) (*model.NoteTag, erro
 }
 
 func (b *NoteBiz) BatchGetTag(ctx context.Context, tagIds []int64) (map[int64]*model.NoteTag, error) {
-	tags, err := infra.Dao().TagDao.BatchGetById(ctx, tagIds)
+	tags, err := b.data.Tag.BatchGetById(ctx, tagIds)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "tag dao failed to batch get").WithExtra("tag_ids", tagIds).WithCtx(ctx)
 	}

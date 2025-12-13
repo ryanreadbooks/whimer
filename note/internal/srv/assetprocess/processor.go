@@ -15,7 +15,7 @@ type Processor interface {
 	GetTaskResult(ctx context.Context, taskId string) (output []byte, success bool, err error)
 }
 
-func NewProcessor(noteType model.NoteType, biz biz.Biz) Processor {
+func NewProcessor(noteType model.NoteType, biz *biz.Biz) Processor {
 	switch noteType {
 	case model.AssetTypeImage:
 		return newImageProcessor(biz)

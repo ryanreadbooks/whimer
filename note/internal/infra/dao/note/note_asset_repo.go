@@ -24,12 +24,13 @@ const (
 	sqlExcludeDeleteImageByNoteId = `DELETE FROM note_asset WHERE note_id=? AND asset_type=1`
 )
 
-type NoteAssetDao struct {
+// NoteAssetRepo 笔记资源数据库仓储 - 纯数据库操作
+type NoteAssetRepo struct {
 	db *xsql.DB
 }
 
-func NewNoteAssetDao(db *xsql.DB) *NoteAssetDao {
-	return &NoteAssetDao{
+func NewNoteAssetRepo(db *xsql.DB) *NoteAssetRepo {
+	return &NoteAssetRepo{
 		db: db,
 	}
 }
@@ -43,7 +44,7 @@ type AssetPO struct {
 	AssetMeta []byte          `db:"asset_meta"` // 资源的元数据 存储格式为一个json字符串
 }
 
-func (r *NoteAssetDao) FindOne(ctx context.Context, id int64) (*AssetPO, error) {
+func (r *NoteAssetRepo) FindOne(ctx context.Context, id int64) (*AssetPO, error) {
 	model := new(AssetPO)
 	err := r.db.QueryRowCtx(ctx, model, sqlFindAllById, id)
 	if err != nil {
@@ -52,7 +53,7 @@ func (r *NoteAssetDao) FindOne(ctx context.Context, id int64) (*AssetPO, error) 
 	return model, nil
 }
 
-func (r *NoteAssetDao) insert(ctx context.Context, asset *AssetPO) error {
+func (r *NoteAssetRepo) insert(ctx context.Context, asset *AssetPO) error {
 	now := time.Now().Unix()
 	_, err := r.db.ExecCtx(ctx, sqlInsert,
 		asset.AssetKey,
@@ -64,11 +65,11 @@ func (r *NoteAssetDao) insert(ctx context.Context, asset *AssetPO) error {
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteAssetDao) Insert(ctx context.Context, asset *AssetPO) error {
+func (r *NoteAssetRepo) Insert(ctx context.Context, asset *AssetPO) error {
 	return r.insert(ctx, asset)
 }
 
-func (r *NoteAssetDao) findImageByNoteId(ctx context.Context, noteId int64) ([]*AssetPO, error) {
+func (r *NoteAssetRepo) findImageByNoteId(ctx context.Context, noteId int64) ([]*AssetPO, error) {
 	res := make([]*AssetPO, 0)
 	err := r.db.QueryRowsCtx(ctx, &res, sqlFindImageByNoteId, noteId)
 	if err != nil {
@@ -77,20 +78,20 @@ func (r *NoteAssetDao) findImageByNoteId(ctx context.Context, noteId int64) ([]*
 	return res, nil
 }
 
-func (r *NoteAssetDao) FindImageByNoteId(ctx context.Context, noteId int64) ([]*AssetPO, error) {
+func (r *NoteAssetRepo) FindImageByNoteId(ctx context.Context, noteId int64) ([]*AssetPO, error) {
 	return r.findImageByNoteId(ctx, noteId)
 }
 
-func (r *NoteAssetDao) deleteByNoteId(ctx context.Context, noteId int64) error {
+func (r *NoteAssetRepo) deleteByNoteId(ctx context.Context, noteId int64) error {
 	_, err := r.db.ExecCtx(ctx, sqlDeleteByNoteId, noteId)
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteAssetDao) DeleteByNoteId(ctx context.Context, noteId int64) error {
+func (r *NoteAssetRepo) DeleteByNoteId(ctx context.Context, noteId int64) error {
 	return r.deleteByNoteId(ctx, noteId)
 }
 
-func (r *NoteAssetDao) excludeDeleteImageByNoteId(ctx context.Context, noteId int64, assetKeys []string) error {
+func (r *NoteAssetRepo) excludeDeleteImageByNoteId(ctx context.Context, noteId int64, assetKeys []string) error {
 	var alen = len(assetKeys)
 	var args []any = make([]any, 0, alen)
 	args = append(args, noteId)
@@ -111,11 +112,11 @@ func (r *NoteAssetDao) excludeDeleteImageByNoteId(ctx context.Context, noteId in
 
 	return xerror.Wrap(xsql.ConvertError(err))
 }
-func (r *NoteAssetDao) ExcludeDeleteImageByNoteId(ctx context.Context, noteId int64, assetKeys []string) error {
+func (r *NoteAssetRepo) ExcludeDeleteImageByNoteId(ctx context.Context, noteId int64, assetKeys []string) error {
 	return r.excludeDeleteImageByNoteId(ctx, noteId, assetKeys)
 }
 
-func (r *NoteAssetDao) batchInsert(ctx context.Context, assets []*AssetPO) error {
+func (r *NoteAssetRepo) batchInsert(ctx context.Context, assets []*AssetPO) error {
 	if len(assets) == 0 {
 		return nil
 	}
@@ -137,10 +138,10 @@ func (r *NoteAssetDao) batchInsert(ctx context.Context, assets []*AssetPO) error
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteAssetDao) BatchInsert(ctx context.Context, assets []*AssetPO) error {
+func (r *NoteAssetRepo) BatchInsert(ctx context.Context, assets []*AssetPO) error {
 	return r.batchInsert(ctx, assets)
 }
-func (r *NoteAssetDao) FindByNoteIds(ctx context.Context, noteIds []int64) ([]*AssetPO, error) {
+func (r *NoteAssetRepo) FindByNoteIds(ctx context.Context, noteIds []int64) ([]*AssetPO, error) {
 	if len(noteIds) == 0 {
 		return []*AssetPO{}, nil
 	}

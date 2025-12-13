@@ -18,11 +18,11 @@ import (
 type NoteInteractSrv struct {
 	Ctx *Service
 
-	noteBiz         biz.NoteBiz
-	noteInteractBiz biz.NoteInteractBiz
+	noteBiz         *biz.NoteBiz
+	noteInteractBiz *biz.NoteInteractBiz
 }
 
-func NewNoteInteractSrv(ctx *Service, biz biz.Biz) *NoteInteractSrv {
+func NewNoteInteractSrv(ctx *Service, biz *biz.Biz) *NoteInteractSrv {
 	s := &NoteInteractSrv{
 		Ctx:             ctx,
 		noteBiz:         biz.Note,

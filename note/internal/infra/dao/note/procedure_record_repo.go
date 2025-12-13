@@ -15,7 +15,7 @@ const (
 
 var (
 	procedureRecordFields    = xsql.GetFieldSlice(&ProcedureRecordPO{})
-	procedureRecordInsFields = xsql.GetFieldSlice(&ProcedureRecordPO{})
+	procedureRecordInsFields = xsql.GetFieldSlice(&ProcedureRecordPO{}, "id")
 )
 
 type ProcedureRecordPO struct {
@@ -49,15 +49,16 @@ func (p *ProcedureRecordPO) InsertValues() []any {
 	}
 }
 
-type ProcedureRecordDao struct {
+// ProcedureRecordRepo 流程记录数据库仓储 - 纯数据库操作
+type ProcedureRecordRepo struct {
 	db *xsql.DB
 }
 
-func NewProcedureRecordDao(db *xsql.DB) *ProcedureRecordDao {
-	return &ProcedureRecordDao{db: db}
+func NewProcedureRecordRepo(db *xsql.DB) *ProcedureRecordRepo {
+	return &ProcedureRecordRepo{db: db}
 }
 
-func (d *ProcedureRecordDao) Insert(
+func (d *ProcedureRecordRepo) Insert(
 	ctx context.Context,
 	record *ProcedureRecordPO,
 ) error {
@@ -77,7 +78,7 @@ func (d *ProcedureRecordDao) Insert(
 	return xsql.ConvertError(err)
 }
 
-func (d *ProcedureRecordDao) UpdateTaskId(
+func (d *ProcedureRecordRepo) UpdateTaskId(
 	ctx context.Context,
 	noteId int64,
 	protype model.ProcedureType,
@@ -99,7 +100,7 @@ func (d *ProcedureRecordDao) UpdateTaskId(
 	return xsql.ConvertError(err)
 }
 
-func (d *ProcedureRecordDao) UpdateRecord(
+func (d *ProcedureRecordRepo) UpdateTaskIdRetryNextCheckTime(
 	ctx context.Context,
 	record *ProcedureRecordPO,
 ) error {
@@ -107,7 +108,6 @@ func (d *ProcedureRecordDao) UpdateRecord(
 	sb.Update(procedureRecordTableName).
 		Set(
 			sb.Assign("task_id", record.TaskId),
-			sb.Assign("status", record.Status),
 			sb.Assign("cur_retry", record.CurRetry),
 			sb.Assign("next_check_time", record.NextCheckTime),
 			sb.Assign("utime", time.Now().Unix()),
@@ -119,7 +119,7 @@ func (d *ProcedureRecordDao) UpdateRecord(
 	return xsql.ConvertError(err)
 }
 
-func (d *ProcedureRecordDao) UpdateStatus(
+func (d *ProcedureRecordRepo) UpdateStatus(
 	ctx context.Context,
 	noteId int64,
 	protype model.ProcedureType,
@@ -141,7 +141,7 @@ func (d *ProcedureRecordDao) UpdateStatus(
 	return xsql.ConvertError(err)
 }
 
-func (d *ProcedureRecordDao) UpdateRetry(
+func (d *ProcedureRecordRepo) UpdateRetry(
 	ctx context.Context,
 	noteId int64,
 	protype model.ProcedureType,
@@ -164,7 +164,7 @@ func (d *ProcedureRecordDao) UpdateRetry(
 	return xsql.ConvertError(err)
 }
 
-func (d *ProcedureRecordDao) Get(
+func (d *ProcedureRecordRepo) Get(
 	ctx context.Context,
 	noteId int64,
 	protype model.ProcedureType,
@@ -183,7 +183,7 @@ func (d *ProcedureRecordDao) Get(
 	return record, xsql.ConvertError(err)
 }
 
-func (d *ProcedureRecordDao) Delete(
+func (d *ProcedureRecordRepo) Delete(
 	ctx context.Context,
 	noteId int64,
 	protype model.ProcedureType,
@@ -200,8 +200,8 @@ func (d *ProcedureRecordDao) Delete(
 	return xsql.ConvertError(err)
 }
 
-// 获取next_check_time最小的那条记录 且 status=特定status 且 protype=特定type
-func (d *ProcedureRecordDao) GetEarliestNextCheckTimeRecord(
+// GetEarliestNextCheckTimeRecord 获取next_check_time最小的那条记录 且 status=特定status 且 protype=特定type
+func (d *ProcedureRecordRepo) GetEarliestNextCheckTimeRecord(
 	ctx context.Context,
 	status model.ProcedureStatus,
 ) (*ProcedureRecordPO, error) {
@@ -222,7 +222,7 @@ func (d *ProcedureRecordDao) GetEarliestNextCheckTimeRecord(
 	return &record, xsql.ConvertError(err)
 }
 
-func (d *ProcedureRecordDao) ListNextCheckTimeByRange(
+func (d *ProcedureRecordRepo) ListNextCheckTimeByRange(
 	ctx context.Context,
 	status model.ProcedureStatus,
 	start int64,

@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	noteDao    *NoteDao
-	noteExtDao *NoteExtDao
-	ctx        = context.TODO()
-	testDb     *xsql.DB
+	noteRepo    *NoteRepo
+	noteExtRepo *NoteExtRepo
+	ctx         = context.TODO()
+	testDb      *xsql.DB
 )
 
 func TestMain(m *testing.M) {
@@ -28,14 +28,14 @@ func TestMain(m *testing.M) {
 
 	db := xsql.New(conn)
 	testDb = db
-	noteDao = NewNoteDao(db, nil)
-	noteExtDao = NewNoteExtDao(db)
+	noteRepo = NewNoteRepo(db)
+	noteExtRepo = NewNoteExtRepo(db)
 	m.Run()
 }
 
 func TestNote_GetByCursor(t *testing.T) {
 	Convey("GetByCursor", t, func() {
-		res, err := noteDao.GetPublicByCursor(ctx, 129, 15)
+		res, err := noteRepo.GetPublicByCursor(ctx, 129, 15)
 		So(err, ShouldBeNil)
 		for _, r := range res {
 			t.Logf("%+v\n", r)
@@ -45,7 +45,7 @@ func TestNote_GetByCursor(t *testing.T) {
 
 func TestNote_GetRecentPost(t *testing.T) {
 	Convey("GetRecentPost", t, func() {
-		res, err := noteDao.GetRecentPublicPosted(ctx, 200, 3)
+		res, err := noteRepo.GetRecentPublicPosted(ctx, 200, 3)
 		So(err, ShouldBeNil)
 		for _, r := range res {
 			t.Logf("%+v\n", r)
@@ -55,7 +55,7 @@ func TestNote_GetRecentPost(t *testing.T) {
 
 func TestNoteExt_Upsert(t *testing.T) {
 	Convey("NoteExt Upsert", t, func() {
-		err := noteExtDao.Upsert(ctx, &ExtPO{
+		err := noteExtRepo.Upsert(ctx, &ExtPO{
 			NoteId: 100,
 			Tags:   "9223372036854775807",
 		})
@@ -65,23 +65,23 @@ func TestNoteExt_Upsert(t *testing.T) {
 
 func TestNoteExt_Get(t *testing.T) {
 	Convey("NoteExt Get", t, func() {
-		err := noteExtDao.Upsert(ctx, &ExtPO{
+		err := noteExtRepo.Upsert(ctx, &ExtPO{
 			NoteId: 100,
 			Tags:   "1",
 		})
 		So(err, ShouldBeNil)
-		err = noteExtDao.Upsert(ctx, &ExtPO{
+		err = noteExtRepo.Upsert(ctx, &ExtPO{
 			NoteId: 200,
 			Tags:   "2",
 		})
 		So(err, ShouldBeNil)
-		err = noteExtDao.Upsert(ctx, &ExtPO{
+		err = noteExtRepo.Upsert(ctx, &ExtPO{
 			NoteId: 300,
 			Tags:   "3",
 		})
 		So(err, ShouldBeNil)
 
-		gots, err := noteExtDao.BatchGetById(ctx, []int64{100, 300, 200})
+		gots, err := noteExtRepo.BatchGetById(ctx, []int64{100, 300, 200})
 		So(err, ShouldBeNil)
 		So(len(gots), ShouldEqual, 3)
 

@@ -20,49 +20,51 @@ type ExtPO struct {
 }
 
 const (
-	tagFields = "note_id,tags,at_users,ctime,utime"
+	extFields = "note_id,tags,at_users,ctime,utime"
 )
 
-type NoteExtDao struct {
+// NoteExtRepo 笔记扩展信息数据库仓储 - 纯数据库操作
+type NoteExtRepo struct {
 	db *xsql.DB
 }
 
-func NewNoteExtDao(db *xsql.DB) *NoteExtDao {
-	return &NoteExtDao{
+func NewNoteExtRepo(db *xsql.DB) *NoteExtRepo {
+	return &NoteExtRepo{
 		db: db,
 	}
 }
 
-func (d *NoteExtDao) Upsert(ctx context.Context, ext *ExtPO) error {
+func (d *NoteExtRepo) Upsert(ctx context.Context, ext *ExtPO) error {
 	now := time.Now().Unix()
 	if ext.Ctime == 0 {
 		ext.Ctime = now
 	}
 	ext.Utime = now
 
-	const sql = "INSERT INTO note_ext(" + tagFields + ") VALUES(?,?,?,?,?) " +
+	const sql = "INSERT INTO note_ext(" + extFields + ") VALUES(?,?,?,?,?) " +
 		" ON DUPLICATE KEY UPDATE tags=VALUES(tags),at_users=VALUES(at_users),utime=VALUES(utime)"
 
 	_, err := d.db.ExecCtx(ctx, sql, ext.NoteId, ext.Tags, ext.AtUsers, ext.Ctime, ext.Utime)
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (d *NoteExtDao) Delete(ctx context.Context, noteId int64) error {
+func (d *NoteExtRepo) Delete(ctx context.Context, noteId int64) error {
 	const sql = "DELETE FROM note_ext WHERE note_id=? LIMIT 1"
 	_, err := d.db.ExecCtx(ctx, sql, noteId)
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (d *NoteExtDao) GetById(ctx context.Context, noteId int64) (*ExtPO, error) {
-	const sql = "SELECT " + tagFields + " FROM note_ext WHERE note_id=?"
+func (d *NoteExtRepo) GetById(ctx context.Context, noteId int64) (*ExtPO, error) {
+	const sql = "SELECT " + extFields + " FROM note_ext WHERE note_id=?"
 	var ext ExtPO
 	err := d.db.QueryRowCtx(ctx, &ext, sql)
 	return &ext, xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (d *NoteExtDao) BatchGetById(ctx context.Context, noteIds []int64) ([]*ExtPO, error) {
+func (d *NoteExtRepo) BatchGetById(ctx context.Context, noteIds []int64) ([]*ExtPO, error) {
 	var exts []*ExtPO
-	const sql = "SELECT " + tagFields + " FROM note_ext WHERE note_id IN (%s)"
+	const sql = "SELECT " + extFields + " FROM note_ext WHERE note_id IN (%s)"
 	err := d.db.QueryRowsCtx(ctx, &exts, fmt.Sprintf(sql, xslice.JoinInts(noteIds)))
 	return exts, xerror.Wrap(xsql.ConvertError(err))
 }
+

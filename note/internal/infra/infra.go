@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/ryanreadbooks/whimer/note/internal/config"
-	infradao "github.com/ryanreadbooks/whimer/note/internal/infra/dao"
+	"github.com/ryanreadbooks/whimer/note/internal/data"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/etcd"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -15,7 +15,7 @@ import (
 // 包含持久化、外部依赖等
 var (
 	once  sync.Once
-	dao   *infradao.Dao
+	dt    *data.Data
 	cache *redis.Redis
 
 	etcdCli *etcd.Client
@@ -25,13 +25,14 @@ func Init(c *config.Config) {
 	once.Do(func() {
 		etcdCli = etcd.MustNew(c)
 		cache = redis.MustNewRedis(c.Redis)
-		dao = infradao.MustNew(c, cache)
+		dt = data.MustNew(c, cache)
 		dep.Init(c)
 	})
 }
 
-func Dao() *infradao.Dao {
-	return dao
+// Data 获取数据层实例
+func Data() *data.Data {
+	return dt
 }
 
 func Cache() *redis.Redis {
@@ -40,7 +41,7 @@ func Cache() *redis.Redis {
 
 func Close() {
 	logx.Info("closing infra")
-	dao.Close()
+	dt.Close()
 }
 
 func Etcd() *etcd.Client {

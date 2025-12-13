@@ -17,10 +17,10 @@ import (
 type ImageProcessor struct {
 	baseProcessor
 
-	bizz biz.Biz
+	bizz *biz.Biz
 }
 
-func newImageProcessor(biz biz.Biz) Processor {
+func newImageProcessor(biz *biz.Biz) Processor {
 	return &ImageProcessor{bizz: biz}
 }
 
@@ -46,4 +46,3 @@ func (p *ImageProcessor) Process(ctx context.Context, note *model.Note) (string,
 
 	return taskId, nil
 }
-
