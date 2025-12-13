@@ -20,28 +20,29 @@ enum NoteState {
   NOTE_STATE_UNSPECIFIED = 0;
 
   // 资源处理中
-  PROCESSING = 1;
+  PROCESSING = 10;
 
   // 资源处理完成
-  PROCESSED = 2;
-
-  // 审核中
-  AUDITING = 3;
-
-  // 审核不通过
-  REJECTED = 4;
-
-  // 审核通过
-  AUDIT_PASSED = 5;
-
-  // 已发布
-  PUBLISHED = 6;
-
-  // 被封禁
-  BANNED = 7;
+  PROCESSED = 11;
 
   // 资源处理失败
-  PROCESS_FAILED = 8;
+  PROCESS_FAILED = 12;
+
+  // 审核中
+  AUDITING = 20;
+
+  // 审核不通过
+  REJECTED = 21;
+
+  // 审核通过
+  AUDIT_PASSED = 22;
+
+  // 已发布
+  PUBLISHED = 100;
+
+  // 被封禁
+  BANNED = 101;
+
 }
 
 message NoteTag {
