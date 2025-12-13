@@ -495,8 +495,5 @@ func (s *NoteProcedureSrv) retryHandleAssetProcess(
 			Err(err).
 			Extras("record", record).
 			Errorx(ctx)
-		return
 	}
-
-	return
 }

@@ -18,8 +18,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const longPollTimeout = 35 * time.Second
-
 // Task 任务上下文
 type Task struct {
 	Id          string
@@ -144,6 +142,7 @@ func New(opts Options) (*Worker, error) {
 		func(t workerservice.WorkerServiceClient) {
 			w.client = t
 		},
+		xgrpc.WithoutDefaultInterceptor(),
 	)
 
 	w.client = client
@@ -255,10 +254,7 @@ func (w *Worker) pollLoop(ctx context.Context, taskType string, sem chan struct{
 }
 
 func (w *Worker) poll(ctx context.Context, taskType string) (*Task, error) {
-	pollCtx, cancel := context.WithTimeout(ctx, longPollTimeout)
-	defer cancel()
-
-	resp, err := w.client.LongPoll(pollCtx, &workerservice.LongPollRequest{
+	resp, err := w.client.LongPoll(ctx, &workerservice.LongPollRequest{
 		Worker: &workerv1.Worker{
 			Id: w.opts.WorkerId,
 			Ability: &workerv1.WorkerAbility{
