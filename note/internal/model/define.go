@@ -39,6 +39,9 @@ const (
 	// 资源处理完成
 	NoteStateProcessed = NoteState(v1.NoteState_PROCESSED)
 
+	// 资源处理失败
+	NoteStateProcessFailed = NoteState(v1.NoteState_PROCESS_FAILED)
+
 	// 审核中
 	NoteStateAuditing = NoteState(v1.NoteState_AUDITING)
 
@@ -57,7 +60,7 @@ const (
 
 type ProcedureStatus int8
 
-// 处理状态
+// 本地流程处理状态记录
 const (
 	// 处理中
 	ProcessStatusProcessing ProcedureStatus = 0

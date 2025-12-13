@@ -35,8 +35,9 @@ func NewNoteProcedureSrv(c *config.Config, biz *biz.Biz, procedureMgr *Procedure
 }
 
 type HandleAssetProcessResultReq struct {
-	NoteId int64
-	TaskId string
+	NoteId  int64
+	TaskId  string
+	Success bool
 }
 
 // HandleAssetProcessResult 调度任务完成后回调处理逻辑
@@ -45,7 +46,11 @@ func (s *NoteProcedureSrv) HandleAssetProcessResult(
 	ctx context.Context,
 	req *HandleAssetProcessResultReq,
 ) error {
-	return s.procedureMgr.Complete(ctx, req.NoteId, req.TaskId)
+	if req.Success {
+		return s.procedureMgr.CompleteSuccess(ctx, req.NoteId, req.TaskId)
+	} else {
+		return s.procedureMgr.CompleteFailure(ctx, req.NoteId, req.TaskId)
+	}
 }
 
 // goStartBackgroundHandle 启动后台处理

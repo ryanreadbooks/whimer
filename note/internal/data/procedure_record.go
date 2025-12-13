@@ -24,37 +24,76 @@ func (d *ProcedureRecordData) Insert(ctx context.Context, record *notedao.Proced
 }
 
 // UpdateTaskId 更新流程记录的任务ID
-func (d *ProcedureRecordData) UpdateTaskId(ctx context.Context, noteId int64, protype model.ProcedureType, taskId string) error {
+func (d *ProcedureRecordData) UpdateTaskId(
+	ctx context.Context,
+	noteId int64,
+	protype model.ProcedureType,
+	taskId string,
+) error {
 	return d.repo.UpdateTaskId(ctx, noteId, protype, taskId)
 }
 
 // UpdateRecord 更新流程记录
-func (d *ProcedureRecordData) UpdateTaskIdRetryNextCheckTime(ctx context.Context, record *notedao.ProcedureRecordPO) error {
+func (d *ProcedureRecordData) UpdateTaskIdRetryNextCheckTime(
+	ctx context.Context,
+	record *notedao.ProcedureRecordPO,
+) error {
 	return d.repo.UpdateTaskIdRetryNextCheckTime(ctx, record)
 }
 
 // UpdateStatus 更新流程记录状态
-func (d *ProcedureRecordData) UpdateStatus(ctx context.Context, noteId int64, protype model.ProcedureType, status model.ProcedureStatus) error {
+func (d *ProcedureRecordData) UpdateStatus(
+	ctx context.Context,
+	noteId int64,
+	protype model.ProcedureType,
+	status model.ProcedureStatus,
+) error {
 	return d.repo.UpdateStatus(ctx, noteId, protype, status)
 }
 
 // UpdateRetry 更新流程记录重试次数
-func (d *ProcedureRecordData) UpdateRetry(ctx context.Context, noteId int64, protype model.ProcedureType, nextCheckTime int64) error {
-	return d.repo.UpdateRetry(ctx, noteId, protype, nextCheckTime)
+func (d *ProcedureRecordData) UpdateRetry(
+	ctx context.Context,
+	noteId int64,
+	protype model.ProcedureType,
+	nextCheckTime int64,
+) error {
+	return d.repo.UpdateRetry(ctx, noteId, protype, nextCheckTime, false)
+}
+
+// UpdateRetryMarkFailure 更新流程记录重试次数并标记失败
+func (d *ProcedureRecordData) UpdateRetryMarkFailure(
+	ctx context.Context,
+	noteId int64,
+	protype model.ProcedureType,
+	nextCheckTime int64,
+) error {
+	return d.repo.UpdateRetry(ctx, noteId, protype, nextCheckTime, true)
 }
 
 // Get 获取流程记录
-func (d *ProcedureRecordData) Get(ctx context.Context, noteId int64, protype model.ProcedureType) (*notedao.ProcedureRecordPO, error) {
+func (d *ProcedureRecordData) Get(
+	ctx context.Context,
+	noteId int64,
+	protype model.ProcedureType,
+) (*notedao.ProcedureRecordPO, error) {
 	return d.repo.Get(ctx, noteId, protype)
 }
 
 // Delete 删除流程记录
-func (d *ProcedureRecordData) Delete(ctx context.Context, noteId int64, protype model.ProcedureType) error {
+func (d *ProcedureRecordData) Delete(
+	ctx context.Context,
+	noteId int64,
+	protype model.ProcedureType,
+) error {
 	return d.repo.Delete(ctx, noteId, protype)
 }
 
 // GetEarliestNextCheckTimeRecord 获取最早需要检查的流程记录
-func (d *ProcedureRecordData) GetEarliestNextCheckTimeRecord(ctx context.Context, status model.ProcedureStatus) (*notedao.ProcedureRecordPO, error) {
+func (d *ProcedureRecordData) GetEarliestNextCheckTimeRecord(
+	ctx context.Context,
+	status model.ProcedureStatus,
+) (*notedao.ProcedureRecordPO, error) {
 	return d.repo.GetEarliestNextCheckTimeRecord(ctx, status)
 }
 

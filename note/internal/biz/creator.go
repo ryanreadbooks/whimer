@@ -503,9 +503,19 @@ func (b *NoteCreatorBiz) SetNoteStateProcessed(ctx context.Context, noteId int64
 	return b.setNoteState(ctx, noteId, model.NoteStateProcessed)
 }
 
+// 设置笔记状态为处理失败
+func (b *NoteCreatorBiz) SetNoteStateProcessFailed(ctx context.Context, noteId int64) error {
+	return b.setNoteState(ctx, noteId, model.NoteStateProcessFailed)
+}
+
 // 设置笔记状态为审核中
 func (b *NoteCreatorBiz) SetNoteStateAuditing(ctx context.Context, noteId int64) error {
 	return b.setNoteState(ctx, noteId, model.NoteStateAuditing)
+}
+
+// 设置笔记状态为审核通过
+func (b *NoteCreatorBiz) SetNoteStateAuditPassed(ctx context.Context, noteId int64) error {
+	return b.setNoteState(ctx, noteId, model.NoteStateAuditPassed)
 }
 
 // 设置笔记状态为已发布

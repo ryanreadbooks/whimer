@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	conductorsdk "github.com/ryanreadbooks/whimer/conductor/pkg/sdk/task"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
@@ -40,11 +41,17 @@ func (h *Handler) NoteAssetProcessCallback() http.HandlerFunc {
 			Extras("taskId", req.TaskId).
 			Infox(r.Context())
 
+		var (
+			ctx   = r.Context()
+			input = &srv.HandleAssetProcessResultReq{
+				NoteId:  req.NoteId,
+				TaskId:  req.TaskId,
+				Success: req.State == conductorsdk.TaskStateSuccess,
+			}
+		)
+
 		// 处理回调
-		err = h.Svc.NoteProcedureSrv.HandleAssetProcessResult(r.Context(), &srv.HandleAssetProcessResultReq{
-			NoteId: req.NoteId,
-			TaskId: req.TaskId,
-		})
+		err = h.Svc.NoteProcedureSrv.HandleAssetProcessResult(ctx, input)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

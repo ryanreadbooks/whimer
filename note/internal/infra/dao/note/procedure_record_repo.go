@@ -146,6 +146,7 @@ func (d *ProcedureRecordRepo) UpdateRetry(
 	noteId int64,
 	protype model.ProcedureType,
 	nextCheckTime int64,
+	markFailure bool,
 ) error {
 	sb := sqlbuilder.NewUpdateBuilder()
 	sb.Update(procedureRecordTableName).
@@ -153,11 +154,17 @@ func (d *ProcedureRecordRepo) UpdateRetry(
 			sb.Incr("cur_retry"),
 			sb.Assign("next_check_time", nextCheckTime),
 			sb.Assign("utime", time.Now().Unix()),
-		).
-		Where(
-			sb.EQ("note_id", noteId),
-			sb.EQ("protype", protype),
 		)
+	if markFailure {
+		sb.Set(
+			sb.Assign("status", model.ProcessStatusFailed),
+		)
+	}
+
+	sb.Where(
+		sb.EQ("note_id", noteId),
+		sb.EQ("protype", protype),
+	)
 
 	sql, args := sb.Build()
 	_, err := d.db.ExecCtx(ctx, sql, args...)

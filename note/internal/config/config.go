@@ -71,13 +71,17 @@ type DevCallbacks struct {
 }
 
 type RetryConfig struct {
-	ProcedureRetry struct {
-		TaskRegister struct {
-			ScanInterval   time.Duration `json:"scan_interval,default=10s"`
-			RetryInterval  time.Duration `json:"retry_interval,default=1m"` // 任务重试间隔
-			Limit          int           `json:"limit,default=200"`
-			SlotGapSec     int           `json:"slot_gap_sec,default=10"` // 时间片长度 单位秒
-			FutureInterval time.Duration `json:"future_interval,default=1m"`
-		} `json:"task_register"`
-	} `json:"procedure_retry"`
+	ProcedureRetry ProcedureRetryConfig `json:"procedure_retry"`
+}
+
+type ProcedureRetryConfig struct {
+	TaskRegister ProcedureTaskRegisterConfig `json:"task_register"`
+}
+
+type ProcedureTaskRegisterConfig struct {
+	ScanInterval   time.Duration `json:"scan_interval,default=10s"`
+	RetryInterval  time.Duration `json:"retry_interval,default=1m"` // 任务重试间隔
+	ScanLimit      int           `json:"scan_limit,default=200"`
+	SlotGapSec     int           `json:"slot_gap_sec,default=10"` // 时间片长度 单位秒
+	FutureInterval time.Duration `json:"future_interval,default=1m"`
 }

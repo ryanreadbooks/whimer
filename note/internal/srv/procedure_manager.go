@@ -85,13 +85,18 @@ func (m *ProcedureManager) selectPool(protype model.ProcedureType) *ants.Pool {
 
 // Create 初始化流程
 // 创建流程记录并标记笔记状态为处理中
-func (m *ProcedureManager) Create(ctx context.Context, note *model.Note, protype model.ProcedureType) error {
+func (m *ProcedureManager) Create(		
+	ctx context.Context,
+	note *model.Note,
+	protype model.ProcedureType,
+	maxRetryCnt int,
+) error {
 	// taskId 先留空后续再填充
 	err := m.noteProcedureBiz.CreateRecord(ctx, &biz.CreateProcedureRecordReq{
 		NoteId:      note.NoteId,
 		Protype:     protype,
 		TaskId:      "",
-		MaxRetryCnt: 3,
+		MaxRetryCnt: maxRetryCnt,
 	})
 	if err != nil {
 		return xerror.Wrapf(err, "procedure manager create record failed").
@@ -138,8 +143,8 @@ func (m *ProcedureManager) Confirm(ctx context.Context, noteId int64, taskId str
 }
 
 // Complete 完成流程
-// 处理回调结果，标记成功
-func (m *ProcedureManager) Complete(ctx context.Context, noteId int64, taskId string) error {
+// 流程成功处理
+func (m *ProcedureManager) CompleteSuccess(ctx context.Context, noteId int64, taskId string) error {
 	record, err := m.noteProcedureBiz.GetRecord(ctx, noteId, model.ProcedureTypeAssetProcess)
 	if err != nil {
 		return xerror.Wrapf(err, "procedure manager get record failed").
@@ -156,8 +161,6 @@ func (m *ProcedureManager) Complete(ctx context.Context, noteId int64, taskId st
 				WithCtx(ctx)
 		}
 
-		// TODO 可能也有处理失败的情况 需要一并处理
-
 		// 任务状态设置成功
 		err = m.noteProcedureBiz.MarkSuccess(ctx, record.NoteId, record.Protype)
 		if err != nil {
@@ -169,8 +172,7 @@ func (m *ProcedureManager) Complete(ctx context.Context, noteId int64, taskId st
 		return nil
 	})
 	if err != nil {
-		// 失败仅打日志 + 后台重试
-		xlog.Msg("procedure manager tx failed").
+		xlog.Msg("procedure manager mark success tx failed").
 			Err(err).
 			Extras("taskId", taskId).
 			Errorx(ctx)
@@ -178,11 +180,55 @@ func (m *ProcedureManager) Complete(ctx context.Context, noteId int64, taskId st
 		return nil
 	}
 
-	xlog.Msgf("procedure manager tx success").
+	xlog.Msgf("procedure manager mark success tx success").
 		Extras("taskId", taskId, "noteId", record.NoteId).
 		Infox(ctx)
 
 	// TODO 异步进入下一流程 (审核)
+
+	return nil
+}
+
+// 流程失败处理
+func (m *ProcedureManager) CompleteFailure(ctx context.Context, noteId int64, taskId string) error {
+	record, err := m.noteProcedureBiz.GetRecord(ctx, noteId, model.ProcedureTypeAssetProcess)
+	if err != nil {
+		return xerror.Wrapf(err, "procedure manager get record failed").
+			WithExtra("taskId", taskId).
+			WithCtx(ctx)
+	}
+
+	err = m.bizz.Tx(ctx, func(ctx context.Context) error {
+		// 笔记状态标记处理资源失败
+		err := m.noteCreatorBiz.SetNoteStateProcessFailed(ctx, record.NoteId)
+		if err != nil {
+			return xerror.Wrapf(err, "procedure manager set note state process-failed failed").
+				WithExtra("noteId", record.NoteId).
+				WithCtx(ctx)
+		}
+
+		// 任务状态设置失败
+		err = m.noteProcedureBiz.MarkFailed(ctx, record.NoteId, record.Protype)
+		if err != nil {
+			return xerror.Wrapf(err, "procedure manager mark record failed failed").
+				WithExtra("taskId", taskId).
+				WithCtx(ctx)
+		}
+
+		return nil
+	})
+	if err != nil {
+		xlog.Msg("procedure manager mark failure tx failed").
+			Err(err).
+			Extras("taskId", taskId).
+			Errorx(ctx)
+
+		return nil
+	}
+
+	xlog.Msgf("procedure manager mark failure tx success").
+		Extras("taskId", taskId, "noteId", record.NoteId).
+		Infox(ctx)
 
 	return nil
 }
@@ -307,7 +353,7 @@ func (m *ProcedureManager) retrySlot(ctx context.Context, start, end int64) {
 	}
 
 	var (
-		limit        = m.c.RetryConfig.ProcedureRetry.TaskRegister.Limit
+		limit        = m.c.RetryConfig.ProcedureRetry.TaskRegister.ScanLimit
 		lastId int64 = 0
 
 		totalRecords []*biz.ProcedureRecord
@@ -466,7 +512,7 @@ func (m *ProcedureManager) retryAssetProcess(ctx context.Context, record *biz.Pr
 
 	// 检查是否允许重试
 	if record.CurRetry >= record.MaxRetryCnt {
-		m.markRetryExhausted(ctx, record)
+		// 超过重试直接返回了
 		return
 	}
 
@@ -480,7 +526,7 @@ func (m *ProcedureManager) pollTaskResult(
 	record *biz.ProcedureRecord,
 	processor assetprocess.Processor,
 ) {
-	_, ok, err := processor.GetTaskResult(ctx, record.TaskId)
+	_, success, err := processor.GetTaskResult(ctx, record.TaskId)
 	if err != nil {
 		xlog.Msg("procedure manager get task result failed").
 			Err(err).
@@ -488,26 +534,21 @@ func (m *ProcedureManager) pollTaskResult(
 			Errorx(ctx)
 		return
 	}
-	if !ok {
-		return
-	}
 
-	// 执行成功，完成流程
-	err = m.Complete(ctx, record.NoteId, record.TaskId)
-	if err != nil {
-		xlog.Msg("procedure manager complete failed").
-			Err(err).
-			Extras("record", record).
-			Errorx(ctx)
+	var (
+		msg string
+	)
+	if !success {
+		// 执行失败
+		msg = "procedure manager get task result failed"
+		err = m.CompleteFailure(ctx, record.NoteId, record.TaskId)
+	} else {
+		// 执行成功，完成流程
+		msg = "procedure manager get task result success"
+		err = m.CompleteSuccess(ctx, record.NoteId, record.TaskId)
 	}
-}
-
-// markRetryExhausted 标记重试耗尽
-func (m *ProcedureManager) markRetryExhausted(ctx context.Context, record *biz.ProcedureRecord) {
-	// 发送通知 发布流程中间有一环失败了 发布失败
-	err := m.noteProcedureBiz.MarkFailed(ctx, record.NoteId, record.Protype)
 	if err != nil {
-		xlog.Msg("procedure manager mark failed failed").
+		xlog.Msg(msg).
 			Err(err).
 			Extras("record", record).
 			Errorx(ctx)
@@ -537,10 +578,25 @@ func (m *ProcedureManager) reExecuteTask(
 			Extras("record", record).
 			Errorx(ctx)
 
+		nowRetryCnt := record.CurRetry + 1
+		shouldMarkFailure := false
+		if nowRetryCnt >= record.MaxRetryCnt {
+			// 当前已经是最后一次重试了还是失败
+			shouldMarkFailure = true
+			defer func() {
+				// TODO 通知流程失败
+				err := m.CompleteFailure(ctx, record.NoteId, record.TaskId)
+				if err != nil {
+					xlog.Msg("procedure manager complete failure in defer failed").
+						Err(err).
+						Extras("record", record).
+						Errorx(ctx)
+				}
+			}()
+		}
+
 		// 重试次数增加 并等待下一次重试
-		err = m.noteProcedureBiz.UpdateRetry(
-			ctx, record.NoteId, record.Protype, nextCheckTime.Unix(),
-		)
+		err = m.noteProcedureBiz.UpdateRetry(ctx, record.NoteId, record.Protype, nextCheckTime.Unix(), shouldMarkFailure)
 		if err != nil {
 			xlog.Msg("procedure manager update retry failed").
 				Err(err).

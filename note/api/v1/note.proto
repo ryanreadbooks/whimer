@@ -39,6 +39,9 @@ enum NoteState {
 
   // 被封禁
   BANNED = 7;
+
+  // 资源处理失败
+  PROCESS_FAILED = 8;
 }
 
 message NoteTag {

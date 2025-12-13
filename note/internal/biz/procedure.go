@@ -89,8 +89,14 @@ func (b *NoteProcedureBiz) UpdateRetry(
 	noteId int64,
 	protype model.ProcedureType,
 	nextCheckTime int64,
+	markFailure bool,
 ) error {
-	err := b.data.ProcedureRecord.UpdateRetry(ctx, noteId, protype, nextCheckTime)
+	var err error
+	if markFailure {
+		err = b.data.ProcedureRecord.UpdateRetryMarkFailure(ctx, noteId, protype, nextCheckTime)
+	} else {
+		err = b.data.ProcedureRecord.UpdateRetry(ctx, noteId, protype, nextCheckTime)
+	}
 	if err != nil {
 		return xerror.Wrapf(err, "biz update retry failed").
 			WithExtras("noteId", noteId, "protype", protype).
