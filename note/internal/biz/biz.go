@@ -7,22 +7,22 @@ import (
 )
 
 type Biz struct {
-	Note     NoteBiz
-	Interact NoteInteractBiz
-	Creator  NoteCreatorBiz
-	Process  NoteProcessBiz
+	Note      NoteBiz
+	Interact  NoteInteractBiz
+	Creator   NoteCreatorBiz
+	Procedure NoteProcedureBiz
 }
 
 func New() Biz {
 	note := NewNoteBiz()
 	creator := NewNoteCreatorBiz()
 	interact := NewNoteInteractBiz()
-	process := NewNoteProcessBiz()
+	procedure := NewNoteProcedureBiz()
 	return Biz{
-		Note:     note,
-		Interact: interact,
-		Creator:  creator,
-		Process:  process,
+		Note:      note,
+		Interact:  interact,
+		Creator:   creator,
+		Procedure: procedure,
 	}
 }
 

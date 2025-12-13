@@ -28,14 +28,17 @@ enum NoteState {
   // 审核中
   AUDITING = 3;
 
-  // 已发布
-  PUBLISHED = 4;
-
   // 审核不通过
-  REJECTED = 5;
+  REJECTED = 4;
+
+  // 审核通过
+  AUDIT_PASSED = 5;
+
+  // 已发布
+  PUBLISHED = 6;
 
   // 被封禁
-  BANNED = 6;
+  BANNED = 7;
 }
 
 message NoteTag {

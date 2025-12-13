@@ -55,6 +55,7 @@ func (b *CallbackBiz) TriggerCallback(ctx context.Context, callbackUrl string, p
 	// traceid 格式为 W3C traceparent: 00-{trace-id}-{span-id}-{flags}
 	traceCtx := trace.ContextWithTraceparent(ctx, payload.TraceId)
 
+	// TODO 引入协程池 控制并发数量
 	concurrent.SafeGo2(traceCtx, concurrent.SafeGo2Opt{
 		Name:       "conductor.callback.trigger",
 		LogOnError: true,

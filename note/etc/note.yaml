@@ -70,3 +70,7 @@ obfuscate:
 
 dev_callbacks:
   note_process_callback: http://localhost:8890/inner/api/v1/dev/note_process/callback
+
+etcd:
+  hosts: ${ENV_ETCD_HOSTS}
+  key: /whimer/note/procedure/shard

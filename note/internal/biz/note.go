@@ -27,6 +27,24 @@ func NewNoteBiz() NoteBiz {
 	return b
 }
 
+func (b *NoteBiz) GetNoteType(ctx context.Context, noteId int64) (model.NoteType, error) {
+	noteType, err := infra.Dao().NoteDao.GetNoteType(ctx, noteId)
+	if err != nil {
+		return 0, xerror.Wrapf(err, "biz get note type failed").WithExtra("noteId", noteId).WithCtx(ctx)
+	}
+
+	return noteType, nil
+}
+
+func (b *NoteBiz) GetNoteWithoutCache(ctx context.Context, noteId int64) (*model.Note, error) {
+	note, err := infra.Dao().NoteDao.FindOneWithoutCache(ctx, noteId)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "biz find one note failed").WithExtra("noteId", noteId).WithCtx(ctx)
+	}
+
+	return convert.NoteFromDao(note), nil
+}
+
 // 获取笔记基础信息
 // 不包含点赞等互动信息和标签
 func (b *NoteBiz) GetNote(ctx context.Context, noteId int64) (*model.Note, error) {

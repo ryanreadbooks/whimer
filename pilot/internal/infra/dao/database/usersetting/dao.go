@@ -54,7 +54,7 @@ func (d *Dao) GetByUid(ctx context.Context, uid int64, forUpdate bool) (*UserSet
 	sb.From(userSettingPOTableName)
 	sb.Where(sb.EQ("uid", uid))
 	if forUpdate {
-		sb.SQL("FOR UPDATE")
+		sb.ForUpdate()
 		d.cache.Del(ctx, fmtUserSettingCacheKey(uid))
 	}
 

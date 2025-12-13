@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
@@ -20,19 +21,21 @@ type (
 type NoteCreatorSrv struct {
 	parent *Service
 
-	biz             biz.Biz
-	noteBiz         biz.NoteBiz
-	noteCreatorBiz  biz.NoteCreatorBiz
-	noteInteractBiz biz.NoteInteractBiz
+	biz              biz.Biz
+	noteBiz          biz.NoteBiz
+	noteProcedureBiz biz.NoteProcedureBiz
+	noteCreatorBiz   biz.NoteCreatorBiz
+	noteInteractBiz  biz.NoteInteractBiz
 }
 
 func NewNoteCreatorSrv(p *Service, biz biz.Biz) *NoteCreatorSrv {
 	return &NoteCreatorSrv{
-		parent:          p,
-		biz:             biz,
-		noteBiz:         biz.Note,
-		noteCreatorBiz:  biz.Creator,
-		noteInteractBiz: biz.Interact,
+		parent:           p,
+		biz:              biz,
+		noteBiz:          biz.Note,
+		noteProcedureBiz: biz.Procedure,
+		noteCreatorBiz:   biz.Creator,
+		noteInteractBiz:  biz.Interact,
 	}
 }
 
@@ -51,17 +54,45 @@ func (s *NoteCreatorSrv) Create(ctx context.Context, req *CreateNoteRequest) (in
 		}
 	}
 
+	var newNote *model.Note
+
 	// create note
-	newNote, err := s.noteCreatorBiz.CreateNote(ctx, req)
+	err := s.biz.Tx(ctx, func(ctx context.Context) error {
+		var errTx error
+		newNote, errTx = s.noteCreatorBiz.CreateNote(ctx, req)
+		if errTx != nil {
+			return xerror.Wrapf(errTx, "srv creator create note failed").WithCtx(ctx)
+		}
+
+		errTx = s.beforeEnterAssetProcessFlow(ctx, newNote)
+		if errTx != nil {
+			return xerror.Wrapf(errTx, "srv creator before enter publish flow failed").WithCtx(ctx)
+		}
+
+		return nil
+	})
 	if err != nil {
-		return 0, xerror.Wrapf(err, "srv creator create note failed").WithCtx(ctx)
+		return 0, xerror.Wrapf(err, "srv creator tx failed").WithCtx(ctx)
 	}
 
-	// 进入发布流程
-	err = s.enterPublishFlow(ctx, newNote)
+	// 注册调度任务
+	newTaskId, err := s.enterPublishFlow(ctx, newNote)
 	if err != nil {
-		// TODO 失败没有补偿机制
-		return 0, xerror.Wrapf(err, "srv creator enter publish flow failed").WithCtx(ctx)
+		// 此处笔记已入库 只是调度任务失败 后台重试不返回错误 此处仅打日志 + 打点告警
+		xlog.Msg("srv creator enter publish flow failed").
+			Err(err).
+			Extras("note_id", newNote.NoteId).
+			Errorx(ctx)
+	} else {
+		// 回调taskId失败同样后台重试兜底 此处仅打日志
+		err = s.afterEnterAssetProcessFlow(ctx, newNote, newTaskId)
+		if err != nil {
+			xlog.Msg("srv creator after enter publish flow failed").
+				Err(err).
+				Extras("note_id", newNote.NoteId).
+				Extras("taskId", newTaskId).
+				Errorx(ctx)
+		}
 	}
 
 	return newNote.NoteId, nil
@@ -80,7 +111,7 @@ func (s *NoteCreatorSrv) Update(ctx context.Context, req *UpdateNoteRequest) err
 		return err
 	}
 
-	// TODO 重新进入发布流程
+	// TODO 重新走发布流程
 
 	return nil
 }
@@ -158,16 +189,54 @@ func (s *NoteCreatorSrv) AddTag(ctx context.Context, name string) (int64, error)
 	return id, nil
 }
 
-// 进入发布流程
-func (s *NoteCreatorSrv) enterPublishFlow(ctx context.Context, note *model.Note) error {
-	// 1. 先处理笔记资源
-	processor := assetprocess.NewProcessor(note.Type, s.biz)
-	err := processor.Process(ctx, note)
+// 发起远程调度任务注册前 先本地写表
+func (s *NoteCreatorSrv) beforeEnterAssetProcessFlow(ctx context.Context, note *model.Note) error {
+	// taskId 先留空后续再填充
+	err := s.noteProcedureBiz.CreateRecord(ctx, &biz.CreateProcedureRecordReq{
+		NoteId:      note.NoteId,
+		Protype:     model.ProcedureTypeAssetProcess,
+		TaskId:      "",
+		MaxRetryCnt: 3,
+	})
 	if err != nil {
-		return xerror.Wrapf(err, "srv creator process note asset failed").
+		return xerror.Wrapf(err, "srv creator create process record failed").
+			WithExtra("note_id", note.NoteId).
+			WithCtx(ctx)
+	}
+
+	// 标记开始处理
+	err = s.noteCreatorBiz.SetNoteStateProcessing(ctx, note.NoteId)
+	if err != nil {
+		return xerror.Wrapf(err, "srv creator set note state processing failed").
 			WithExtra("note_id", note.NoteId).
 			WithCtx(ctx)
 	}
 
 	return nil
+}
+
+func (s *NoteCreatorSrv) afterEnterAssetProcessFlow(ctx context.Context, note *model.Note, taskId string) error {
+	// taskId 回填 optional
+	err := s.noteProcedureBiz.UpdateTaskId(ctx, note.NoteId, model.ProcedureTypeAssetProcess, taskId)
+	if err != nil {
+		return xerror.Wrapf(err, "srv creator update process record task id failed").
+			WithExtras("note_id", note.NoteId, "taskId", taskId).
+			WithCtx(ctx)
+	}
+
+	return nil
+}
+
+// 进入发布流程
+func (s *NoteCreatorSrv) enterPublishFlow(ctx context.Context, note *model.Note) (string, error) {
+	// 调度处理笔记资源
+	assetProcessor := assetprocess.NewProcessor(note.Type, s.biz)
+	taskId, err := assetProcessor.Process(ctx, note)
+	if err != nil {
+		return "", xerror.Wrapf(err, "srv creator enter publish flow failed").
+			WithExtra("note_id", note.NoteId).
+			WithCtx(ctx)
+	}
+
+	return taskId, nil
 }

@@ -91,6 +91,26 @@ func NewNoteDao(db *xsql.DB, cache *redis.Redis) *NoteDao {
 	}
 }
 
+func (r *NoteDao) GetNoteType(ctx context.Context, id int64) (model.NoteType, error) {
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select("note_type").From(noteTableName).Where(sb.Equal("id", id))
+	sql, args := sb.Build()
+	var noteType model.NoteType
+	err := r.db.QueryRowCtx(ctx, &noteType, sql, args...)
+	return noteType, xerror.Wrap(xsql.ConvertError(err))
+}
+
+func (r *NoteDao) FindOneWithoutCache(ctx context.Context, id int64) (*NotePO, error) {
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select(noteFields...)
+	sb.From(noteTableName)
+	sb.Where(sb.Equal("id", id))
+	sql, args := sb.Build()
+	resp := new(NotePO)
+	err := r.db.QueryRowCtx(ctx, resp, sql, args...)
+	return resp, xerror.Wrap(xsql.ConvertError(err))
+}
+
 func (r *NoteDao) FindOne(ctx context.Context, id int64) (*NotePO, error) {
 	if resp, err := r.CacheGetNote(ctx, id); err == nil && resp != nil {
 		return resp, nil
@@ -119,7 +139,7 @@ func (r *NoteDao) FindOneForUpdate(ctx context.Context, id int64) (*NotePO, erro
 	sb.Select(noteFields...)
 	sb.From(noteTableName)
 	sb.Where(sb.Equal("id", id))
-	sb.SQL("FOR UPDATE")
+	sb.ForUpdate()
 
 	sql, args := sb.Build()
 	resp := new(NotePO)
@@ -547,5 +567,15 @@ func (r *NoteDao) UpdateState(ctx context.Context, noteId int64, state model.Not
 
 	sql, args := ub.Build()
 	_, err := r.db.ExecCtx(ctx, sql, args...)
+
+	// 删除缓存
+	concurrent.SafeGo(func() {
+		ctx := context.WithoutCancel(ctx)
+		if err := r.CacheDelNote(ctx, noteId); err != nil {
+			xlog.Msg("note dao failed to del note cache when updating state").
+				Err(err).Extras("noteId", noteId).Errorx(ctx)
+		}
+	})
+
 	return xerror.Wrap(xsql.ConvertError(err))
 }

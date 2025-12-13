@@ -1,9 +1,14 @@
 package config
 
 import (
+	"fmt"
+	"net/url"
+	"time"
+
 	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 
+	"github.com/zeromicro/go-zero/core/discov"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/rest"
@@ -45,12 +50,34 @@ type Config struct {
 	} `json:"obfuscate"`
 
 	DevCallbacks DevCallbacks `json:"dev_callbacks"`
+
+	RetryConfig RetryConfig `json:"retry_config"`
+
+	// 额外使用etcd进行分片分配
+	Etcd discov.EtcdConf `json:"etcd"`
 }
 
 func (c *Config) Init() error {
+	_, err := url.Parse(c.DevCallbacks.NoteProcessCallback)
+	if err != nil {
+		return fmt.Errorf("dev_callbacks.note_process_callback is not a valid url: %w", err)
+	}
+
 	return nil
 }
 
 type DevCallbacks struct {
 	NoteProcessCallback string `json:"note_process_callback"`
+}
+
+type RetryConfig struct {
+	ProcedureRetry struct {
+		TaskRegister struct {
+			ScanInterval   time.Duration `json:"scan_interval,default=10s"`
+			RetryInterval  time.Duration `json:"retry_interval,default=1m"`
+			Limit          int           `json:"limit,default=200"`
+			SlotGapSec     int           `json:"slot_gap_sec,default=10"` // 时间片长度 单位秒
+			FutureInterval time.Duration `json:"future_interval,default=1m"`
+		} `json:"task_register"`
+	} `json:"procedure_retry"`
 }

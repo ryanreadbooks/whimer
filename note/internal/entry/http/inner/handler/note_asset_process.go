@@ -6,10 +6,16 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/note/internal/srv"
+	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-// CallbackPayload 回调请求体
-type CallbackPayload struct {
+// NoteAssetCallbackPayload 回调请求体
+type NoteAssetCallbackPayload struct {
+	// in req query
+	NoteId int64 `form:"note_id"`
+
+	// in req body
 	TaskId      string `json:"task_id"`
 	Namespace   string `json:"namespace"`
 	TaskType    string `json:"task_type"`
@@ -20,10 +26,10 @@ type CallbackPayload struct {
 	CompletedAt int64  `json:"completed_at,omitempty,optional"`
 }
 
-// NoteProcessCallback 笔记处理流程回调
-func (h *Handler) NoteProcessCallback() http.HandlerFunc {
+// NoteAssetProcessCallback 笔记处理流程回调
+func (h *Handler) NoteAssetProcessCallback() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidateJsonBody[CallbackPayload](r)
+		req, err := xhttp.ParseValidate[NoteAssetCallbackPayload](httpx.Parse, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -34,8 +40,11 @@ func (h *Handler) NoteProcessCallback() http.HandlerFunc {
 			Extras("taskId", req.TaskId).
 			Infox(r.Context())
 
-		// TODO 处理回调
-		err = h.Svc.NoteProcessSrv.Process(r.Context(), req.TaskId)
+		// 处理回调
+		err = h.Svc.NoteProcedureSrv.HandleAssetProcessResult(r.Context(), &srv.HandleAssetProcessResultReq{
+			NoteId: req.NoteId,
+			TaskId: req.TaskId,
+		})
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

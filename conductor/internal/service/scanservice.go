@@ -116,7 +116,8 @@ func NewScanService(conf *config.Config, bizz *biz.Biz) *ScanService {
 func (s *ScanService) Start(ctx context.Context) {
 	// 任务扫描协程（inited + pending_retry）
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "conductor.scan.dispatch",
+		Name:             "conductor.scan.dispatch",
+		InheritCtxCancel: true,
 		Job: func(ctx context.Context) error {
 			defer close(s.doneCh)
 			s.dispatchScanLoop(ctx)
@@ -126,7 +127,8 @@ func (s *ScanService) Start(ctx context.Context) {
 
 	// 任务分发处理协程
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "conductor.scan.processor",
+		Name:             "conductor.scan.processor",
+		InheritCtxCancel: true,
 		Job: func(ctx context.Context) error {
 			s.processLoop(ctx)
 			return nil
@@ -135,7 +137,8 @@ func (s *ScanService) Start(ctx context.Context) {
 
 	// 失败任务重试协程
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "conductor.scan.retry",
+		Name:             "conductor.scan.retry",
+		InheritCtxCancel: true,
 		Job: func(ctx context.Context) error {
 			s.retryScanLoop(ctx)
 			return nil
@@ -144,7 +147,8 @@ func (s *ScanService) Start(ctx context.Context) {
 
 	// 过期任务清理协程
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "conductor.scan.expire",
+		Name:             "conductor.scan.expire",
+		InheritCtxCancel: true,
 		Job: func(ctx context.Context) error {
 			s.expireScanLoop(ctx)
 			return nil

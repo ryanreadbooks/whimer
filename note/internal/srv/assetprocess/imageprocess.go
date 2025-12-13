@@ -15,6 +15,8 @@ import (
 )
 
 type ImageProcessor struct {
+	baseProcessor
+
 	bizz biz.Biz
 }
 
@@ -23,43 +25,25 @@ func newImageProcessor(biz biz.Biz) Processor {
 }
 
 // 处理笔记图片
-func (p *ImageProcessor) Process(ctx context.Context, note *model.Note) error {
-	// 先设置状态
-	err := p.bizz.Creator.SetNoteStateProcessing(ctx, note.NoteId)
-	if err != nil {
-		return xerror.Wrapf(err, "srv creator set note state processing failed").
-			WithExtra("note_id", note.NoteId).
-			WithCtx(ctx)
-	}
-
+func (p *ImageProcessor) Process(ctx context.Context, note *model.Note) (string, error) {
 	// 注册任务+回调
+	callbackUrl := encodeCallbackUrl(config.Conf.DevCallbacks.NoteProcessCallback, note.NoteId)
 	taskId, err := dep.GetConductProducer().Schedule(
 		ctx,
 		global.NoteImageProcessTaskType,
 		note,
 		conductor.ScheduleOptions{
 			Namespace:   global.NoteProcessNamespace,
-			CallbackUrl: config.Conf.DevCallbacks.NoteProcessCallback,
+			CallbackUrl: callbackUrl,
 			MaxRetry:    5,
 			ExpireAfter: 1 * time.Hour,
 		})
 	if err != nil {
-		return xerror.Wrapf(err, "srv creator schedule task failed").
+		return "", xerror.Wrapf(err, "srv creator schedule task failed").
 			WithExtra("note_id", note.NoteId).
 			WithCtx(ctx)
 	}
 
-	_, err = p.bizz.Process.CreateRecord(ctx, note.NoteId, taskId)
-	if err != nil {
-		// 实际注册任务成功了 但是本地落盘失败
-		// TODO 打点上报
-		return xerror.Wrapf(err, "srv creator create process record failed").
-			WithExtra("note_id", note.NoteId).
-			WithExtra("task_id", taskId).
-			WithCtx(ctx)
-	}
-
-	// TODO 后台主动轮询taskId查询状态
-
-	return nil
+	return taskId, nil
 }
+

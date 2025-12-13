@@ -42,26 +42,35 @@ const (
 	// 审核中
 	NoteStateAuditing = NoteState(v1.NoteState_AUDITING)
 
-	// 已发布
-	NoteStatePublished = NoteState(v1.NoteState_PUBLISHED)
-
 	// 审核不通过
 	NoteStateRejected = NoteState(v1.NoteState_REJECTED)
+
+	// 审核通过
+	NoteStateAuditPassed = NoteState(v1.NoteState_AUDIT_PASSED)
+
+	// 已发布
+	NoteStatePublished = NoteState(v1.NoteState_PUBLISHED)
 
 	// 被封禁
 	NoteStateBanned = NoteState(v1.NoteState_BANNED)
 )
 
-type ProcessStatus int8
+type ProcedureStatus int8
 
-// 笔记处理状态
+// 处理状态
 const (
 	// 处理中
-	ProcessStatusProcessing ProcessStatus = 0
+	ProcessStatusProcessing ProcedureStatus = 0
 
 	// 处理成功
-	ProcessStatusSuccess ProcessStatus = 1
+	ProcessStatusSuccess ProcedureStatus = 1
 
 	// 处理失败
-	ProcessStatusFailed ProcessStatus = 2
+	ProcessStatusFailed ProcedureStatus = 2
+)
+
+type ProcedureType string
+
+const (
+	ProcedureTypeAssetProcess ProcedureType = "asset_process"
 )

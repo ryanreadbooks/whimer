@@ -15,6 +15,7 @@ var (
 	noteDao    *NoteDao
 	noteExtDao *NoteExtDao
 	ctx        = context.TODO()
+	testDb     *xsql.DB
 )
 
 func TestMain(m *testing.M) {
@@ -26,6 +27,7 @@ func TestMain(m *testing.M) {
 	))
 
 	db := xsql.New(conn)
+	testDb = db
 	noteDao = NewNoteDao(db, nil)
 	noteExtDao = NewNoteExtDao(db)
 	m.Run()
