@@ -7,6 +7,11 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 )
 
+// 图片处理请求
+type ImageProcessRequest struct {
+
+}
+
 func HandleImageProcess(ctx context.Context, task *worker.Task) worker.Result {
 	xlog.Msg("processing image task").Extra("taskId", task.Id).Infox(ctx)
 
