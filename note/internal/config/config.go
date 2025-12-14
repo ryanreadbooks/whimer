@@ -7,6 +7,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
+	"github.com/ryanreadbooks/whimer/misc/xkq/kafka"
 
 	"github.com/zeromicro/go-zero/core/discov"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -41,6 +42,8 @@ type Config struct {
 			Conductor xconf.Discovery `json:"conductor"`
 		} `json:"grpc"`
 	} `json:"external"`
+
+	Kafka *kafka.Config `json:"kafka"`
 
 	Salt string `json:"salt"`
 

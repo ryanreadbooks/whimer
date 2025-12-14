@@ -30,8 +30,9 @@ type NotePO struct {
 	Ip       []byte          `db:"ip"`
 	NoteType model.NoteType  `db:"note_type"` // 笔记类型
 	State    model.NoteState `db:"state"`     // 状态
-	CreateAt int64           `db:"create_at"` // 创建时间
-	UpdateAt int64           `db:"update_at"` // 更新时间
+	CreateAt int64           `db:"create_at"` // 笔记创建时间
+	UpdateAt int64           `db:"update_at"` // 笔记更新时间
+	ModifyAt int64           `db:"modify_at"` // 数据记录更新时间, 和笔记更新时间update_at区分开
 }
 
 func (NotePO) TableName() string {
@@ -50,6 +51,7 @@ func (n *NotePO) Values() []any {
 		n.State,
 		n.CreateAt,
 		n.UpdateAt,
+		n.ModifyAt,
 	}
 }
 
@@ -64,6 +66,7 @@ func (n *NotePO) InsertValues() []any {
 		n.State,
 		n.CreateAt,
 		n.UpdateAt,
+		n.ModifyAt,
 	}
 }
 
@@ -264,6 +267,7 @@ func (r *NoteRepo) Insert(ctx context.Context, note *NotePO) (int64, error) {
 	return int64(newId), nil
 }
 
+// 更新笔记
 func (r *NoteRepo) Update(ctx context.Context, note *NotePO) error {
 	ub := sqlbuilder.NewUpdateBuilder()
 	ub.Update(noteTableName)
@@ -276,6 +280,7 @@ func (r *NoteRepo) Update(ctx context.Context, note *NotePO) error {
 		ub.EQ("note_type", note.NoteType),
 		ub.EQ("state", note.State),
 		ub.EQ("update_at", time.Now().Unix()),
+		ub.EQ("modify_at", time.Now().Unix()),
 	)
 	ub.Where(ub.EQ("id", note.Id))
 
@@ -439,11 +444,23 @@ func (r *NoteRepo) GetRecentPublicPosted(ctx context.Context, uid int64, count i
 func (r *NoteRepo) UpdateState(ctx context.Context, noteId int64, state model.NoteState) error {
 	ub := sqlbuilder.NewUpdateBuilder()
 	ub.Update(noteTableName)
-	ub.Set(ub.EQ("state", state))
+	ub.Set(ub.EQ("state", state), ub.EQ("modify_at", time.Now().Unix()))
 	ub.Where(ub.EQ("id", noteId))
 
 	sql, args := ub.Build()
 	_, err := r.db.ExecCtx(ctx, sql, args...)
 
+	return xerror.Wrap(xsql.ConvertError(err))
+}
+
+// 状态升级
+func (r *NoteRepo) UpgradeState(ctx context.Context, noteId int64, state model.NoteState) error {
+	ub := sqlbuilder.NewUpdateBuilder()
+	ub.Update(noteTableName)
+	ub.Set(ub.EQ("state", state), ub.EQ("modify_at", time.Now().Unix()))
+	ub.Where(ub.EQ("id", noteId), ub.LTE("state", state)) // 当前状态小于等于目标状态才更新
+
+	sql, args := ub.Build()
+	_, err := r.db.ExecCtx(ctx, sql, args...)
 	return xerror.Wrap(xsql.ConvertError(err))
 }

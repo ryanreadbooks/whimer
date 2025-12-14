@@ -122,6 +122,16 @@ func (d *NoteData) Insert(ctx context.Context, note *notedao.NotePO) (int64, err
 	return d.repo.Insert(ctx, note)
 }
 
+func (d *NoteData) delNoteRelatedCache(ctx context.Context, noteId, ownerId int64) {
+	concurrent.SafeGo(func() {
+		ctx := context.WithoutCancel(ctx)
+		if err := d.cache.DelNoteRelatedCache(ctx, noteId, ownerId); err != nil {
+			xlog.Msg("note data failed to del cache when updating").
+				Extras("noteId", noteId).Err(err).Errorx(ctx)
+		}
+	})
+}
+
 // Update 更新笔记，同时删除相关缓存
 func (d *NoteData) Update(ctx context.Context, note *notedao.NotePO) error {
 	err := d.repo.Update(ctx, note)
@@ -130,14 +140,7 @@ func (d *NoteData) Update(ctx context.Context, note *notedao.NotePO) error {
 	}
 
 	// 异步删除缓存
-	concurrent.SafeGo(func() {
-		ctx := context.WithoutCancel(ctx)
-		if err := d.cache.DelNoteRelatedCache(ctx, note.Id, note.Owner); err != nil {
-			xlog.Msg("note data failed to del cache when updating").
-				Extras("noteId", note.Id).Err(err).Errorx(ctx)
-		}
-	})
-
+	d.delNoteRelatedCache(ctx, note.Id, note.Owner)
 	return nil
 }
 
@@ -155,26 +158,12 @@ func (d *NoteData) Delete(ctx context.Context, noteId int64) error {
 		return err
 	}
 
-	// 异步删除缓存
-	concurrent.SafeGo(func() {
-		ctx := context.WithoutCancel(ctx)
-		if err := d.cache.DelNoteRelatedCache(ctx, noteId, ownerId); err != nil {
-			xlog.Msg("note data failed to del cache when deleting").
-				Extras("noteId", noteId).Err(err).Errorx(ctx)
-		}
-	})
+	d.delNoteRelatedCache(ctx, noteId, ownerId)
 
 	return nil
 }
 
-// UpdateState 更新笔记状态，同时删除缓存
-func (d *NoteData) UpdateState(ctx context.Context, noteId int64, state model.NoteState) error {
-	err := d.repo.UpdateState(ctx, noteId, state)
-	if err != nil {
-		return err
-	}
-
-	// 异步删除缓存
+func (d *NoteData) delNoteCache(ctx context.Context, noteId int64) {
 	concurrent.SafeGo(func() {
 		ctx := context.WithoutCancel(ctx)
 		if err := d.cache.DelNote(ctx, noteId); err != nil {
@@ -182,6 +171,38 @@ func (d *NoteData) UpdateState(ctx context.Context, noteId int64, state model.No
 				Extras("noteId", noteId).Err(err).Errorx(ctx)
 		}
 	})
+}
+
+// UpdateState 更新笔记状态，同时删除缓存
+func (d *NoteData) UpdateState(
+	ctx context.Context,
+	noteId int64,
+	state model.NoteState,
+) error {
+	err := d.repo.UpdateState(ctx, noteId, state)
+	if err != nil {
+		return err
+	}
+
+	d.delNoteCache(ctx, noteId)
+
+	return nil
+}
+
+// 带条件检查的笔记状态更新 同时删除缓存
+//
+// 如果当前状态小于等于目标状态，则更新状态，否则不更新
+func (d *NoteData) UpgradeState(
+	ctx context.Context,
+	noteId int64,
+	state model.NoteState,
+) error {
+	err := d.repo.UpgradeState(ctx, noteId, state)
+	if err != nil {
+		return err
+	}
+
+	d.delNoteCache(ctx, noteId)
 
 	return nil
 }

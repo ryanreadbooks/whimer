@@ -12,18 +12,20 @@ import (
 
 type retryExecuteFunc func(ctx context.Context, note *model.Note) (taskId string, err error)
 type retryPollResultFunc func(ctx context.Context, taskId string) (success bool, err error)
-type retryOnCompleteFunc func(ctx context.Context, noteId int64, taskId string) error
+type onCompleteFunc func(ctx context.Context, noteId int64, taskId string) (bool, error)
 
 // procedure的通用重试逻辑
 type retryHelper struct {
+	txHelper         *txHelper
 	noteBiz          *biz.NoteBiz
 	noteProcedureBiz *biz.NoteProcedureBiz
 }
 
-func newRetryHelper(noteBiz *biz.NoteBiz, noteProcedureBiz *biz.NoteProcedureBiz) *retryHelper {
+func newRetryHelper(bizz *biz.Biz) *retryHelper {
 	return &retryHelper{
-		noteBiz:          noteBiz,
-		noteProcedureBiz: noteProcedureBiz,
+		txHelper: newTxHelper(bizz),
+		noteBiz:  bizz.Note,
+		noteProcedureBiz: bizz.Procedure,
 	}
 }
 
@@ -32,7 +34,7 @@ func (h *retryHelper) retry(
 	record *biz.ProcedureRecord,
 	pollFn retryPollResultFunc,
 	execFn retryExecuteFunc,
-	onSuccess, onFailure retryOnCompleteFunc,
+	onSuccess, onFailure onCompleteFunc,
 ) error {
 	// 存在 taskId 表明注册成功，主动轮询结果
 	if record.TaskId != "" {
@@ -52,7 +54,7 @@ func (h *retryHelper) pollAndComplete(
 	ctx context.Context,
 	record *biz.ProcedureRecord,
 	pollFn retryPollResultFunc,
-	onSuccess, onFailure retryOnCompleteFunc,
+	onSuccess, onFailure onCompleteFunc,
 ) error {
 	success, err := pollFn(ctx, record.TaskId)
 	if err != nil {
@@ -64,16 +66,17 @@ func (h *retryHelper) pollAndComplete(
 	}
 
 	if success {
-		return onSuccess(ctx, record.NoteId, record.TaskId)
+		return h.txHelper.txHandleSuccess(ctx, record.NoteId, record.TaskId, record.Protype, onSuccess)
 	}
-	return onFailure(ctx, record.NoteId, record.TaskId)
+
+	return h.txHelper.txHandleFailure(ctx, record.NoteId, record.TaskId, record.Protype, onFailure)
 }
 
 func (h *retryHelper) reExecute(
 	ctx context.Context,
 	record *biz.ProcedureRecord,
 	execFn retryExecuteFunc,
-	onFailure retryOnCompleteFunc,
+	onFailure onCompleteFunc,
 ) error {
 	// 获取笔记原始信息
 	note, err := h.noteBiz.GetNoteWithoutCache(ctx, record.NoteId)
@@ -103,7 +106,7 @@ func (h *retryHelper) handleExecuteFailure(
 	ctx context.Context,
 	record *biz.ProcedureRecord,
 	nextCheckTime time.Time,
-	onFailure retryOnCompleteFunc,
+	onFailure onCompleteFunc,
 ) error {
 	nowRetryCnt := record.CurRetry + 1
 	shouldMarkFailure := nowRetryCnt >= record.MaxRetryCnt
@@ -124,12 +127,7 @@ func (h *retryHelper) handleExecuteFailure(
 
 	// 最后一次重试仍失败，标记流程失败
 	if shouldMarkFailure {
-		if err := onFailure(ctx, record.NoteId, record.TaskId); err != nil {
-			xlog.Msg("retry helper on failure callback failed").
-				Err(err).
-				Extras("record_id", record.Id).
-				Errorx(ctx)
-		}
+		return h.txHelper.txHandleFailure(ctx, record.NoteId, record.TaskId, record.Protype, onFailure)
 	}
 
 	return nil

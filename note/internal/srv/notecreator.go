@@ -58,7 +58,7 @@ func (s *NoteCreatorSrv) Create(ctx context.Context, req *CreateNoteRequest) (in
 
 	var (
 		newNote *model.Note
-		proceed func() bool
+		proceed func(ctx context.Context) bool
 	)
 
 	// create note
@@ -70,7 +70,7 @@ func (s *NoteCreatorSrv) Create(ctx context.Context, req *CreateNoteRequest) (in
 		}
 
 		// // 初始化流程记录
-		proceed, errTx = s.procedureMgr.BeginPipeline(ctx, newNote, procedure.StartAtAssetProcess())
+		proceed, errTx = s.procedureMgr.RunPipeline(ctx, newNote, procedure.StartAtAssetProcess())
 		if errTx != nil {
 			return xerror.Wrapf(errTx, "srv creator init procedure failed").WithCtx(ctx)
 		}
@@ -82,7 +82,7 @@ func (s *NoteCreatorSrv) Create(ctx context.Context, req *CreateNoteRequest) (in
 	}
 
 	// 继续执行流程任务
-	_ = proceed()
+	_ = proceed(ctx)
 
 	return newNote.NoteId, nil
 }
@@ -101,6 +101,7 @@ func (s *NoteCreatorSrv) Update(ctx context.Context, req *UpdateNoteRequest) err
 	}
 
 	// TODO 重新走发布流程
+	// 1. 区分需要重新走哪些流程 
 
 	return nil
 }

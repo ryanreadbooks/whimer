@@ -19,23 +19,47 @@ type Procedure interface {
 	Type() model.ProcedureType
 
 	// 流程开始前的初始化工作
-	PreStart(ctx context.Context, note *model.Note) error
+	//
+	// 返回doRecord=true表示需要该流程接下来会进行远程调用 需要创建本地调用记录
+	//
+	// 返回doRecord=false后, 后续的Execute失败时将不会触发重试机制
+	PreStart(ctx context.Context, note *model.Note) (doRecord bool, err error)
 
 	// Execute 执行流程任务 返回任务ID用于后续追踪
 	Execute(ctx context.Context, note *model.Note) (taskId string, err error)
 
 	// OnSuccess 流程成功处理 更新笔记状态、记录状态等
-	OnSuccess(ctx context.Context, noteId int64, taskId string) error
+	//
+	// 会在本地事务中执行
+	//
+	// 返回true表示需要更新记录状态
+	OnSuccess(ctx context.Context, noteId int64, taskId string) (bool, error)
 
 	// OnFailure 流程失败处理 更新笔记状态、记录状态等
-	OnFailure(ctx context.Context, noteId int64, taskId string) error
+	//
+	// 会在本地事务中执行
+	//
+	// 返回true表示需要更新记录状态
+	OnFailure(ctx context.Context, noteId int64, taskId string) (bool, error)
 
 	// PollResult 主动轮询任务结果
+	//
 	// 用于后台重试时检查已提交任务的状态
+	//
 	// 返回: success=true表示任务成功, success=false表示任务失败
 	PollResult(ctx context.Context, taskId string) (success bool, err error)
 
 	// Retry 重试流程
+	//
 	// record 包含当前重试状态信息
 	Retry(ctx context.Context, record *biz.ProcedureRecord) error
+}
+
+type AutoCompleter interface {
+	// 自动完成
+	//
+	// 有些流程没有回调触发OnSuccess 需要手动调用完成
+	//
+	// true=OnSuccess, false=OnFailure
+	AutoComplete(ctx context.Context, noteId int64, taskId string) (success bool)
 }

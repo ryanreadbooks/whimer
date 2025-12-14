@@ -35,7 +35,7 @@ func NewAssetProcedure(bizz *biz.Biz) *AssetProcedure {
 		noteCreatorBiz:    bizz.Creator,
 		noteProcedureBiz:  bizz.Procedure,
 		conductorProducer: dep.GetConductProducer(),
-		retryHelper:       newRetryHelper(bizz.Note, bizz.Procedure),
+		retryHelper:       newRetryHelper(bizz),
 	}
 }
 
@@ -43,14 +43,14 @@ func (p *AssetProcedure) Type() model.ProcedureType {
 	return model.ProcedureTypeAssetProcess
 }
 
-func (p *AssetProcedure) PreStart(ctx context.Context, note *model.Note) error {
-	err := p.noteCreatorBiz.SetNoteStateProcessing(ctx, note.NoteId)
+func (p *AssetProcedure) PreStart(ctx context.Context, note *model.Note) (bool, error) {
+	err := p.noteCreatorBiz.TransferNoteStateToProcessing(ctx, note.NoteId)
 	if err != nil {
-		return xerror.Wrapf(err, "asset procedure set note state processing failed").
+		return false, xerror.Wrapf(err, "asset procedure set note state processing failed").
 			WithExtra("note_id", note.NoteId).
 			WithCtx(ctx)
 	}
-	return nil
+	return true, nil
 }
 
 func (p *AssetProcedure) Execute(ctx context.Context, note *model.Note) (string, error) {
@@ -64,80 +64,73 @@ func (p *AssetProcedure) Execute(ctx context.Context, note *model.Note) (string,
 	return taskId, nil
 }
 
-func (p *AssetProcedure) OnSuccess(ctx context.Context, noteId int64, taskId string) error {
-	record, err := p.noteProcedureBiz.GetRecord(ctx, noteId, model.ProcedureTypeAssetProcess)
+func (p *AssetProcedure) upgradeStateCheck(
+	ctx context.Context,
+	noteId int64,
+	state model.NoteState,
+) (abort bool) {
+	note, err := p.noteBiz.GetNoteWithoutCache(ctx, noteId)
 	if err != nil {
-		return xerror.Wrapf(err, "asset procedure get record failed").
-			WithExtra("taskId", taskId).
-			WithCtx(ctx)
+		xlog.Msg("asset procedure get note failed, try to update state without checking").
+			Err(err).
+			Extras("noteId", noteId).
+			Errorx(ctx)
 	}
 
-	err = p.bizz.Tx(ctx, func(ctx context.Context) error {
-		if err := p.noteCreatorBiz.SetNoteStateProcessed(ctx, record.NoteId); err != nil {
-			return xerror.Wrapf(err, "asset procedure set note state processed failed").
-				WithExtra("noteId", record.NoteId).
-				WithCtx(ctx)
-		}
+	// 已经有了最新状态了 可能已经被更新
+	if note != nil && note.State > state {
+		return true
+	}
 
-		if err := p.noteProcedureBiz.MarkSuccess(ctx, record.NoteId, record.Protype); err != nil {
-			return xerror.Wrapf(err, "asset procedure mark record success failed").
-				WithExtra("taskId", taskId).
-				WithCtx(ctx)
-		}
+	return false
+}
 
-		return nil
-	})
-	if err != nil {
-		xlog.Msg("asset procedure on success tx failed").
-			Err(err).
-			Extras("taskId", taskId).
-			Errorx(ctx)
-		return err
+func (p *AssetProcedure) OnSuccess(
+	ctx context.Context,
+	noteId int64,
+	taskId string,
+) (bool, error) {
+	// 简单幂等保证
+	abort := p.upgradeStateCheck(ctx, noteId, model.NoteStateProcessed)
+	if abort {
+		return true, nil
+	}
+
+	if err := p.noteCreatorBiz.TransferNoteStateToProcessed(ctx, noteId); err != nil {
+		return false, xerror.Wrapf(err, "asset procedure set note state processed failed").
+			WithExtra("noteId", noteId).
+			WithCtx(ctx)
 	}
 
 	xlog.Msg("asset procedure on success completed").
-		Extras("taskId", taskId, "noteId", record.NoteId).
+		Extras("taskId", taskId, "noteId", noteId).
 		Infox(ctx)
 
-	return nil
+	return true, nil
 }
 
-func (p *AssetProcedure) OnFailure(ctx context.Context, noteId int64, taskId string) error {
-	record, err := p.noteProcedureBiz.GetRecord(ctx, noteId, model.ProcedureTypeAssetProcess)
-	if err != nil {
-		return xerror.Wrapf(err, "asset procedure get record failed").
-			WithExtra("taskId", taskId).
+func (p *AssetProcedure) OnFailure(
+	ctx context.Context,
+	noteId int64,
+	taskId string,
+) (bool, error) {
+	// 简单幂等保证
+	abort := p.upgradeStateCheck(ctx, noteId, model.NoteStateProcessFailed)
+	if abort {
+		return true, nil
+	}
+
+	if err := p.noteCreatorBiz.TransferNoteStateToProcessFailed(ctx, noteId); err != nil {
+		return false, xerror.Wrapf(err, "asset procedure set note state failed failed").
+			WithExtra("noteId", noteId).
 			WithCtx(ctx)
 	}
 
-	err = p.bizz.Tx(ctx, func(ctx context.Context) error {
-		if err := p.noteCreatorBiz.SetNoteStateProcessFailed(ctx, record.NoteId); err != nil {
-			return xerror.Wrapf(err, "asset procedure set note state failed failed").
-				WithExtra("noteId", record.NoteId).
-				WithCtx(ctx)
-		}
-
-		if err := p.noteProcedureBiz.MarkFailed(ctx, record.NoteId, record.Protype); err != nil {
-			return xerror.Wrapf(err, "asset procedure mark record failed failed").
-				WithExtra("taskId", taskId).
-				WithCtx(ctx)
-		}
-
-		return nil
-	})
-	if err != nil {
-		xlog.Msg("asset procedure on failure tx failed").
-			Err(err).
-			Extras("taskId", taskId).
-			Errorx(ctx)
-		return err
-	}
-
 	xlog.Msg("asset procedure on failure completed").
-		Extras("taskId", taskId, "noteId", record.NoteId).
+		Extras("taskId", taskId, "noteId", noteId).
 		Infox(ctx)
 
-	return nil
+	return true, nil
 }
 
 func (p *AssetProcedure) PollResult(ctx context.Context, taskId string) (bool, error) {

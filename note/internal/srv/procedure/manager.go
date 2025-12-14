@@ -27,6 +27,8 @@ const (
 	minSlotGapSec = 5       // 5s
 	maxFutureSec  = 30 * 60 // 30min
 
+	defaultRetry = 3
+
 	defaultPoolCount    = 4
 	defaultPoolCapacity = 150
 )
@@ -49,11 +51,13 @@ type Manager struct {
 	noteProcedureBiz *biz.NoteProcedureBiz
 	noteCreatorBiz   *biz.NoteCreatorBiz
 
+	txHelper *txHelper
+
 	// 协程池组，按 protype hash 选择
 	pools []*ants.Pool
 
 	// 笔记处理的流水线
-	standardPipeline *pipeline // 标准发布流程流水线
+	pipeline *pipeline // 标准发布流程流水线
 
 	wg     sync.WaitGroup
 	quitCh chan struct{}
@@ -70,7 +74,8 @@ func NewManager(c *config.Config, bizz *biz.Biz) (*Manager, error) {
 	// 流程实现注册 后续有新增的流程都需要注册在这里
 	registry := NewRegistry()
 	registry.Register(NewAssetProcedure(bizz))
-	registry.Register(NewPublishProcedure())
+	registry.Register(NewAuditProcedure(bizz))
+	registry.Register(NewPublishProcedure(bizz))
 
 	m := &Manager{
 		c: c,
@@ -82,6 +87,7 @@ func NewManager(c *config.Config, bizz *biz.Biz) (*Manager, error) {
 		noteBiz:          bizz.Note,
 		noteProcedureBiz: bizz.Procedure,
 		noteCreatorBiz:   bizz.Creator,
+		txHelper:         newTxHelper(bizz),
 
 		pools:  pools,
 		quitCh: make(chan struct{}),
@@ -93,7 +99,7 @@ func NewManager(c *config.Config, bizz *biz.Biz) (*Manager, error) {
 		return nil, fmt.Errorf("init standard pipeline failed: %w", err)
 	}
 
-	m.standardPipeline = standardPipeline
+	m.pipeline = standardPipeline
 
 	return m, nil
 }
@@ -105,46 +111,59 @@ func (m *Manager) selectPool(protype model.ProcedureType) *ants.Pool {
 	return m.pools[idx]
 }
 
-// 开始笔记流程处理
+// 从某个流程节点开始运行流水线
 //
 // 返回值:
-// 1. 继续执行后续流程的函数
-// 2. 错误
-func (m *Manager) BeginPipeline(
+//
+//	proceed: 外部需要调用此函数来继续后续流程, 包含Execute+Confirm,
+//	如果流程中设置了自动成功 则自动调用OnSuccess
+func (m *Manager) RunPipeline(
 	ctx context.Context,
 	note *model.Note,
-	startAt PipelineStage,
-) (func() bool, error) {
-	ppl := m.standardPipeline
-	targetProc := ppl.startAt(startAt)
-	err := m.Create(ctx, note, targetProc, 3)
+	startStage pipelineStage,
+) (proceed func(ctx context.Context) bool, err error) {
+	ppl := m.pipeline
+	targetProcType := ppl.startAt(startStage)
+	err = m.Create(ctx, note, targetProcType, defaultRetry)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "procedure manager begin pipeline failed").
-			WithExtras("note_id", note.NoteId, "pipeline_type", startAt.String()).WithCtx(ctx)
+		return nil, xerror.Wrapf(err, "procedure manager run pipeline failed").
+			WithExtras("note_id", note.NoteId, "ppltype", startStage).WithCtx(ctx)
 	}
 
 	// 外部需要调用此函数来继续执行后续流程
-	proceed := func() bool {
+	proceed = func(ctx context.Context) bool {
 		// 任务开始执行 一般涉及对外调用 错误仅打日志 后续有重试机制
-		newTaskId, err := m.Execute(ctx, note, targetProc)
+		newTaskId, err := m.Execute(ctx, note, targetProcType)
+		logExtras := []any{"note_id", note.NoteId, "protype", targetProcType, "task_id", newTaskId}
 		if err != nil {
 			xlog.Msg("procedure manager execute failed").
 				Err(err).
-				Extras("note_id", note.NoteId, "protype", targetProc).
+				Extras(logExtras...).
 				Errorx(ctx)
 			return false
 		}
 
-		// 确认任务创建成功既可（回填taskId）错误仅打日志 后续有重试机制
-		err = m.Confirm(ctx, note.NoteId, newTaskId, targetProc)
-		if err != nil {
-			xlog.Msg("procedure manager confirm failed").
-				Err(err).
-				Extras("note_id", note.NoteId, "protype", targetProc).
-				Errorx(ctx)
-			return false
+		if newTaskId != "" {
+			// 确认任务创建成功既可（回填taskId）错误仅打日志 后续有重试机制
+			err = m.Confirm(ctx, note.NoteId, targetProcType, newTaskId)
+			if err != nil {
+				xlog.Msg("procedure manager confirm failed").
+					Err(err).
+					Extras(logExtras...).
+					Errorx(ctx)
+				return false
+			}
+
+			xlog.Msgf("procedure manager confirm success").
+				Extras(logExtras...).
+				Infox(ctx)
 		}
 
+		xlog.Msgf("procedure manager execute success").
+			Extras(logExtras...).
+			Infox(ctx)
+
+		m.autoCompleteIfNeeded(ctx, note.NoteId, targetProcType, newTaskId)
 		return true
 	}
 
@@ -152,7 +171,7 @@ func (m *Manager) BeginPipeline(
 }
 
 // Create 初始化流程
-// 
+//
 // 创建流程记录并标记笔记状态为处理中, 应该作为本地事务的一部分
 func (m *Manager) Create(
 	ctx context.Context,
@@ -165,32 +184,34 @@ func (m *Manager) Create(
 		return xerror.Wrap(ErrProcedureNotRegistered).WithExtra("protype", protype).WithCtx(ctx)
 	}
 
-	// taskId 先留空后续再填充
-	err := m.noteProcedureBiz.CreateRecord(ctx, &biz.CreateProcedureRecordReq{
-		NoteId:      note.NoteId,
-		Protype:     protype,
-		TaskId:      "",
-		MaxRetryCnt: maxRetryCnt,
-	})
-	if err != nil {
-		return xerror.Wrapf(err, "procedure manager create record failed").
-			WithExtra("note_id", note.NoteId).
-			WithCtx(ctx)
-	}
-
 	// 流程初始化
-	err = proc.PreStart(ctx, note)
+	doRecord, err := proc.PreStart(ctx, note)
 	if err != nil {
 		return xerror.Wrapf(err, "procedure manager pre start failed").
 			WithExtras("note_id", note.NoteId, "protype", protype).
 			WithCtx(ctx)
 	}
 
+	if doRecord {
+		// taskId 先留空后续再填充
+		err = m.noteProcedureBiz.CreateRecord(ctx, &biz.CreateProcedureRecordReq{
+			NoteId:      note.NoteId,
+			Protype:     protype,
+			TaskId:      "",
+			MaxRetryCnt: maxRetryCnt,
+		})
+		if err != nil {
+			return xerror.Wrapf(err, "procedure manager create record failed").
+				WithExtra("note_id", note.NoteId).
+				WithCtx(ctx)
+		}
+	}
+
 	return nil
 }
 
 // Execute 执行流程
-// 
+//
 // 根据流程类型调度处理任务 可以执行远程调用或者本地数据库操作
 func (m *Manager) Execute(
 	ctx context.Context,
@@ -216,8 +237,8 @@ func (m *Manager) Execute(
 func (m *Manager) Confirm(
 	ctx context.Context,
 	noteId int64,
-	taskId string,
 	protype model.ProcedureType,
+	taskId string,
 ) error {
 	err := m.noteProcedureBiz.UpdateTaskId(ctx, noteId, protype, taskId)
 	if err != nil {
@@ -233,8 +254,8 @@ func (m *Manager) Confirm(
 func (m *Manager) Complete(
 	ctx context.Context,
 	noteId int64,
-	taskId string,
 	protype model.ProcedureType,
+	taskId string,
 	success bool,
 ) error {
 	proc, ok := m.registry.Get(protype)
@@ -243,20 +264,73 @@ func (m *Manager) Complete(
 	}
 
 	if success {
-		// 成功后需要将流水线流转到下一个流程
-		return proc.OnSuccess(ctx, noteId, taskId)
+		return m.handleSuccess(ctx, noteId, protype, taskId, proc)
 	}
 
 	// 失败就不处理流水线流转
-	return proc.OnFailure(ctx, noteId, taskId)
+	return m.handleFailure(ctx, noteId, protype, taskId, proc)
+}
+
+func (m *Manager) handleFailure(
+	ctx context.Context,
+	noteId int64,
+	protype model.ProcedureType,
+	taskId string,
+	proc Procedure,
+) error {
+	return m.txHelper.txHandleFailure(ctx, noteId, taskId, protype, proc.OnFailure)
+}
+
+func (m *Manager) handleSuccess(
+	ctx context.Context,
+	noteId int64,
+	protype model.ProcedureType,
+	taskId string,
+	proc Procedure,
+) error {
+	err := m.txHelper.txHandleSuccess(ctx, noteId, taskId, protype, proc.OnSuccess)
+	if err != nil {
+		return xerror.Wrap(err)
+	}
+
+	// 成功后需要将流水线流转到下一个流程
+	nextProcType := m.pipeline.nextOf(protype)
+	if nextProcType != "" {
+		// 启动流水线的下一个流程
+		concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+			Name:             "note.procedure.complete.success.next_proc",
+			InheritCtxCancel: false,
+			LogOnError:       true,
+			Job: func(ctx context.Context) error {
+				curNote, err := m.noteBiz.GetNoteWithoutCache(ctx, noteId)
+				if err != nil {
+					return xerror.Wrapf(err, "procedure manager get note without cache failed").
+						WithExtra("note_id", noteId).
+						WithCtx(ctx)
+				}
+				proceed, err := m.RunPipeline(ctx, curNote, nextProcType)
+				if err != nil {
+					return xerror.Wrapf(err, "procedure manager run pipeline failed").
+						WithExtra("note_id", noteId).
+						WithExtra("next_stage", nextProcType).
+						WithCtx(ctx)
+				}
+				_ = proceed(ctx) // 继续后续流程
+
+				return nil
+			},
+		})
+	}
+
+	return nil
 }
 
 func (m *Manager) CompleteAssetSuccess(ctx context.Context, noteId int64, taskId string) error {
-	return m.Complete(ctx, noteId, taskId, model.ProcedureTypeAssetProcess, true)
+	return m.Complete(ctx, noteId, model.ProcedureTypeAssetProcess, taskId, true)
 }
 
 func (m *Manager) CompleteAssetFailure(ctx context.Context, noteId int64, taskId string) error {
-	return m.Complete(ctx, noteId, taskId, model.ProcedureTypeAssetProcess, false)
+	return m.Complete(ctx, noteId, model.ProcedureTypeAssetProcess, taskId, false)
 }
 
 // StartRetryLoop 启动后台重试循环
@@ -423,6 +497,8 @@ func (m *Manager) retrySlot(ctx context.Context, start, end int64) {
 		return
 	}
 
+	xlog.Msgf("procedure manager retry slot, range=[%d, %d), total=%d", start, end, len(totalRecords)).Infox(ctx)
+
 	// 按照protype分组执行
 	for _, record := range totalRecords {
 		r := record // capture
@@ -485,7 +561,28 @@ exec:
 		return
 	}
 	defer locker.ReleaseCtx(newCtx)
-	m.doRetry(newCtx, record)
+	// 拿到锁后再检查一遍记录状态
+	curRecord, err := m.noteProcedureBiz.GetRecord(ctx, record.NoteId, record.Protype)
+	if err != nil {
+		xlog.Msg("procedure manager get latest record failed, will use old record to retry").
+			Err(err).
+			Extras("note_id", record.NoteId, "protype", record.Protype, "record_id", record.Id).
+			Errorx(ctx)
+	}
+
+	if curRecord.Status != model.ProcessStatusProcessing {
+		xlog.Msg("procedure manager skip retry, record already handled").
+			Extras("note_id", record.NoteId, "protype", record.Protype, "status", curRecord.Status).
+			Infox(ctx)
+		return
+	}
+
+	if curRecord == nil {
+		// 拿不到最新的newRecord就用旧的重试
+		curRecord = record
+	}
+
+	m.doRetry(newCtx, curRecord)
 }
 
 func (m *Manager) shouldExit(ctx context.Context) (exit bool) {
@@ -522,5 +619,25 @@ func (m *Manager) doRetry(ctx context.Context, record *biz.ProcedureRecord) {
 			Err(err).
 			Extras("protype", record.Protype, "record_id", record.Id).
 			Errorx(ctx)
+	}
+}
+
+func (m *Manager) autoCompleteIfNeeded(
+	ctx context.Context,
+	noteId int64,
+	protype model.ProcedureType,
+	taskId string,
+) {
+	proc, ok := m.registry.Get(protype)
+	if !ok {
+		return
+	}
+	if proc, ok := proc.(AutoCompleter); ok {
+		success := proc.AutoComplete(ctx, noteId, taskId)
+		if success {
+			m.Complete(ctx, noteId, protype, taskId, true)
+		} else {
+			m.Complete(ctx, noteId, protype, taskId, false)
+		}
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/data"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/etcd"
+	"github.com/ryanreadbooks/whimer/note/internal/infra/kafka"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
@@ -26,6 +27,7 @@ func Init(c *config.Config) {
 		etcdCli = etcd.MustNew(c)
 		cache = redis.MustNewRedis(c.Redis)
 		dt = data.MustNew(c, cache)
+		kafka.Init(c)
 		dep.Init(c)
 	})
 }
@@ -41,6 +43,7 @@ func Cache() *redis.Redis {
 
 func Close() {
 	logx.Info("closing infra")
+	kafka.Close()
 	dt.Close()
 }
 

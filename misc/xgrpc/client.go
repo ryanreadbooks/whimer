@@ -88,6 +88,8 @@ func NewClientConnWithoutInterceptors(conf xconf.Discovery) (*grpc.ClientConn, e
 	return cli.Conn(), nil
 }
 
+var _ grpc.ClientConnInterface = &UnreadyClientConn{}
+
 type UnreadyClientConn struct {
 }
 

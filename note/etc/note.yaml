@@ -74,3 +74,8 @@ dev_callbacks:
 etcd:
   hosts: ${ENV_ETCD_HOSTS}
   key: /whimer/note/procedure/shard
+
+kafka:
+  brokers: ${ENV_KFK_BROKERS}
+  username: ${ENV_KFK_USERNAME}
+  password: ${ENV_KFK_PASSWORD}

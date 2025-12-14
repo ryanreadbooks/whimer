@@ -118,6 +118,9 @@ func (NoteAssetType) EnumDescriptor() ([]byte, []int) {
 	return file_v1_note_proto_rawDescGZIP(), []int{1}
 }
 
+// 笔记状态的值的顺序有特殊含义 不能改变 否则会影响状态升级的逻辑
+//
+// 枚举值小的状态表示状态更靠前
 type NoteState int32
 
 const (

@@ -484,8 +484,8 @@ func (b *NoteCreatorBiz) GetUserPublicPostedCount(ctx context.Context, uid int64
 	return cnt, nil
 }
 
-func (b *NoteCreatorBiz) setNoteState(ctx context.Context, noteId int64, state model.NoteState) error {
-	err := b.data.Note.UpdateState(ctx, noteId, state)
+func (b *NoteCreatorBiz) upgradeNoteState(ctx context.Context, noteId int64, state model.NoteState) error {
+	err := b.data.Note.UpgradeState(ctx, noteId, state)
 	if err != nil {
 		return xerror.Wrapf(err, "note dao update state failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
@@ -494,41 +494,41 @@ func (b *NoteCreatorBiz) setNoteState(ctx context.Context, noteId int64, state m
 }
 
 // 设置笔记状态为处理中
-func (b *NoteCreatorBiz) SetNoteStateProcessing(ctx context.Context, noteId int64) error {
-	return b.setNoteState(ctx, noteId, model.NoteStateProcessing)
+func (b *NoteCreatorBiz) TransferNoteStateToProcessing(ctx context.Context, noteId int64) error {
+	return b.upgradeNoteState(ctx, noteId, model.NoteStateProcessing)
 }
 
 // 设置笔记状态为处理完成
-func (b *NoteCreatorBiz) SetNoteStateProcessed(ctx context.Context, noteId int64) error {
-	return b.setNoteState(ctx, noteId, model.NoteStateProcessed)
+func (b *NoteCreatorBiz) TransferNoteStateToProcessed(ctx context.Context, noteId int64) error {
+	return b.upgradeNoteState(ctx, noteId, model.NoteStateProcessed)
 }
 
 // 设置笔记状态为处理失败
-func (b *NoteCreatorBiz) SetNoteStateProcessFailed(ctx context.Context, noteId int64) error {
-	return b.setNoteState(ctx, noteId, model.NoteStateProcessFailed)
+func (b *NoteCreatorBiz) TransferNoteStateToProcessFailed(ctx context.Context, noteId int64) error {
+	return b.upgradeNoteState(ctx, noteId, model.NoteStateProcessFailed)
 }
 
 // 设置笔记状态为审核中
-func (b *NoteCreatorBiz) SetNoteStateAuditing(ctx context.Context, noteId int64) error {
-	return b.setNoteState(ctx, noteId, model.NoteStateAuditing)
+func (b *NoteCreatorBiz) TransferNoteStateToAuditing(ctx context.Context, noteId int64) error {
+	return b.upgradeNoteState(ctx, noteId, model.NoteStateAuditing)
 }
 
 // 设置笔记状态为审核通过
-func (b *NoteCreatorBiz) SetNoteStateAuditPassed(ctx context.Context, noteId int64) error {
-	return b.setNoteState(ctx, noteId, model.NoteStateAuditPassed)
+func (b *NoteCreatorBiz) TransferNoteStateToAuditPassed(ctx context.Context, noteId int64) error {
+	return b.upgradeNoteState(ctx, noteId, model.NoteStateAuditPassed)
 }
 
 // 设置笔记状态为已发布
-func (b *NoteCreatorBiz) SetNoteStatePublished(ctx context.Context, noteId int64) error {
-	return b.setNoteState(ctx, noteId, model.NoteStatePublished)
+func (b *NoteCreatorBiz) TransferNoteStateToPublished(ctx context.Context, noteId int64) error {
+	return b.upgradeNoteState(ctx, noteId, model.NoteStatePublished)
 }
 
 // 设置笔记状态为审核不通过
-func (b *NoteCreatorBiz) SetNoteStateRejected(ctx context.Context, noteId int64) error {
-	return b.setNoteState(ctx, noteId, model.NoteStateRejected)
+func (b *NoteCreatorBiz) TransferNoteStateToRejected(ctx context.Context, noteId int64) error {
+	return b.upgradeNoteState(ctx, noteId, model.NoteStateRejected)
 }
 
 // 设置笔记状态为被封禁
-func (b *NoteCreatorBiz) SetNoteStateBanned(ctx context.Context, noteId int64) error {
-	return b.setNoteState(ctx, noteId, model.NoteStateBanned)
+func (b *NoteCreatorBiz) TransferNoteStateToBanned(ctx context.Context, noteId int64) error {
+	return b.upgradeNoteState(ctx, noteId, model.NoteStateBanned)
 }

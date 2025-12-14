@@ -3,51 +3,25 @@ package procedure
 import (
 	"fmt"
 
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
 
-type pipelineStage string
-
-const (
-	pipelineStageAssetProcess pipelineStage = "asset_process" // 资源处理
-	pipelineStageAudit        pipelineStage = "audit"         // 审核
-	pipelineStagePublish      pipelineStage = "publish"       // 发布
-)
-
-var (
-	pipelineStageMap = map[pipelineStage]model.ProcedureType{
-		pipelineStageAssetProcess: model.ProcedureTypeAssetProcess,
-		pipelineStageAudit:        model.ProcedureTypeAudit,
-		pipelineStagePublish:      model.ProcedureTypePublish,
-	}
-)
+// pipelineStage 流水线阶段
+type pipelineStage = model.ProcedureType
 
 // 流水线开始位置
-type PipelineStage struct {
-	pipelineStage
+func StartAtAssetProcess() pipelineStage {
+	return model.ProcedureTypeAssetProcess
 }
 
-func StartAtAssetProcess() PipelineStage {
-	return PipelineStage{
-		pipelineStageAssetProcess,
-	}
+func StartAtAudit() pipelineStage {
+	return model.ProcedureTypeAudit
 }
 
-func StartAtAudit() PipelineStage {
-	return PipelineStage{
-		pipelineStageAudit,
-	}
-}
-
-func StartAtPublish() PipelineStage {
-	return PipelineStage{
-		pipelineStagePublish,
-	}
-}
-
-func (p PipelineStage) String() string {
-	return string(p.pipelineStage)
+func StartAtPublish() pipelineStage {
+	return model.ProcedureTypePublish
 }
 
 var (
@@ -70,8 +44,8 @@ func (p *pipeline) first() model.ProcedureType {
 	return p.procSeqs[0]
 }
 
-func (p *pipeline) startAt(startAt PipelineStage) model.ProcedureType {
-	return pipelineStageMap[startAt.pipelineStage]
+func (p *pipeline) startAt(stage pipelineStage) model.ProcedureType {
+	return stage
 }
 
 func (p *pipeline) nextOf(procType model.ProcedureType) model.ProcedureType {
@@ -125,6 +99,8 @@ func (b *pipelineAssembler) assemble() (*pipeline, error) {
 		p.nextProcMap[b.procSeqs[i]] = b.procSeqs[i+1]
 	}
 
+	xlog.Msgf("pipeline assembled, %v, %v", b.procSeqs, p.nextProcMap).Info()
+
 	return p, nil
 }
 
@@ -137,7 +113,7 @@ func innerStandardPipeline(mgr *Manager) (*pipeline, error) {
 	assembler := newPipelineAssembler(mgr)
 	return assembler.
 		addProcedure(model.ProcedureTypeAssetProcess).
-		// addProcedure(model.ProcedureTypeAudit). // TODO 审核暂未实现
-		addProcedure(model.ProcedureTypePublish). // TODO 发布暂未实现
+		addProcedure(model.ProcedureTypeAudit). // TODO 审核暂未实现
+		addProcedure(model.ProcedureTypePublish).
 		assemble()
 }
