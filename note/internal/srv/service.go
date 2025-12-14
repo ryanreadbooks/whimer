@@ -6,6 +6,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/data"
+	"github.com/ryanreadbooks/whimer/note/internal/srv/procedure"
 )
 
 type Service struct {
@@ -21,7 +22,7 @@ type Service struct {
 }
 
 // 初始化一个service
-func NewService(c *config.Config, bizz *biz.Biz, dt *data.Data) *Service {
+func MustNewService(c *config.Config, bizz *biz.Biz, dt *data.Data) *Service {
 	rootCtx, rootCancel := context.WithCancel(context.Background())
 	s := &Service{
 		rootCtx:    rootCtx,
@@ -29,14 +30,18 @@ func NewService(c *config.Config, bizz *biz.Biz, dt *data.Data) *Service {
 		c:          c,
 	}
 
-	// 创建流程管理器（被 NoteCreatorSrv 和 NoteProcedureSrv 共用）
-	procedureMgr := NewProcedureManager(c, bizz)
+	// 笔记发布流程管理
+	procedureMgr, err := procedure.NewManager(c, bizz)
+	if err != nil {
+		panic(err)
+	}
 
 	// 各个子service初始化
 	s.NoteCreatorSrv = NewNoteCreatorSrv(s, bizz, procedureMgr)
 	s.NoteFeedSrv = NewNoteFeedSrv(s, bizz, dt)
 	s.NoteInteractSrv = NewNoteInteractSrv(s, bizz)
 	s.NoteProcedureSrv = NewNoteProcedureSrv(c, bizz, procedureMgr)
+
 	return s
 }
 

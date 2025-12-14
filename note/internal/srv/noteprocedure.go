@@ -5,6 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
+	"github.com/ryanreadbooks/whimer/note/internal/srv/procedure"
 )
 
 // 负责笔记状态流转
@@ -18,10 +19,14 @@ type NoteProcedureSrv struct {
 	noteCreatorBiz   *biz.NoteCreatorBiz
 
 	// 流程管理器
-	procedureMgr *ProcedureManager
+	procedureMgr *procedure.Manager
 }
 
-func NewNoteProcedureSrv(c *config.Config, biz *biz.Biz, procedureMgr *ProcedureManager) *NoteProcedureSrv {
+func NewNoteProcedureSrv(
+	c *config.Config,
+	biz *biz.Biz,
+	procedureMgr *procedure.Manager,
+) *NoteProcedureSrv {
 	return &NoteProcedureSrv{
 		c: c,
 
@@ -40,16 +45,16 @@ type HandleAssetProcessResultReq struct {
 	Success bool
 }
 
-// HandleAssetProcessResult 调度任务完成后回调处理逻辑
+// HandleAssetProcedureResult 调度任务完成后回调处理逻辑
 // 此处需要将状态标记为已成功并且进入下一流程
-func (s *NoteProcedureSrv) HandleAssetProcessResult(
+func (s *NoteProcedureSrv) HandleAssetProcedureResult(
 	ctx context.Context,
 	req *HandleAssetProcessResultReq,
 ) error {
 	if req.Success {
-		return s.procedureMgr.CompleteSuccess(ctx, req.NoteId, req.TaskId)
+		return s.procedureMgr.CompleteAssetSuccess(ctx, req.NoteId, req.TaskId)
 	} else {
-		return s.procedureMgr.CompleteFailure(ctx, req.NoteId, req.TaskId)
+		return s.procedureMgr.CompleteAssetFailure(ctx, req.NoteId, req.TaskId)
 	}
 }
 

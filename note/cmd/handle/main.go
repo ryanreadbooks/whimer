@@ -38,7 +38,7 @@ func main() {
 
 	// 创建 biz 层，注入 data 依赖
 	bizz := biz.New(dt)
-	svc := srv.NewService(&config.Conf, bizz, dt)
+	svc := srv.MustNewService(&config.Conf, bizz, dt)
 
 	var err error
 	switch *handleType {

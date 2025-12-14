@@ -28,6 +28,14 @@ const (
 
 type NoteState int8
 
+// 笔记状态流转:
+//
+//	Init ──▶ Processing ──▶ Processed ──▶ Auditing ──▶ AuditPassed ──▶ Published
+//	              │                           │                            │
+//	           处理失败                    审核不通过                       违规
+//	             ▼                           ▼                           ▼
+//	        ProcessFailed                 Rejected                      Banned
+//
 // 笔记状态
 const (
 	// 初始状态
@@ -75,5 +83,12 @@ const (
 type ProcedureType string
 
 const (
+	// 资源处理流程
 	ProcedureTypeAssetProcess ProcedureType = "asset_process"
+
+	// 审核流程（预留）
+	ProcedureTypeAudit ProcedureType = "audit"
+
+	// 发布流程
+	ProcedureTypePublish ProcedureType = "publish"
 )

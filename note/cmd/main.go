@@ -40,7 +40,7 @@ func main() {
 	bizz := biz.New(dt)
 
 	// 创建 service 层
-	svc := srv.NewService(&config.Conf, bizz, dt)
+	svc := srv.MustNewService(&config.Conf, bizz, dt)
 
 	grpcServer := grpc.Init(config.Conf.Grpc, svc)
 	httpServer := http.Init(config.Conf.Http, svc)

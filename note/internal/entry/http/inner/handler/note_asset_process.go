@@ -51,7 +51,7 @@ func (h *Handler) NoteAssetProcessCallback() http.HandlerFunc {
 		)
 
 		// 处理回调
-		err = h.Svc.NoteProcedureSrv.HandleAssetProcessResult(ctx, input)
+		err = h.Svc.NoteProcedureSrv.HandleAssetProcedureResult(ctx, input)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

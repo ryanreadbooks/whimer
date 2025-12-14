@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
+	"github.com/ryanreadbooks/whimer/note/internal/srv/procedure"
 )
 
 // type alias for convenience
@@ -26,10 +26,10 @@ type NoteCreatorSrv struct {
 	noteCreatorBiz   *biz.NoteCreatorBiz
 	noteInteractBiz  *biz.NoteInteractBiz
 
-	procedureMgr *ProcedureManager
+	procedureMgr *procedure.Manager
 }
 
-func NewNoteCreatorSrv(p *Service, biz *biz.Biz, procedureMgr *ProcedureManager) *NoteCreatorSrv {
+func NewNoteCreatorSrv(p *Service, biz *biz.Biz, procedureMgr *procedure.Manager) *NoteCreatorSrv {
 	return &NoteCreatorSrv{
 		parent:           p,
 		biz:              biz,
@@ -56,7 +56,10 @@ func (s *NoteCreatorSrv) Create(ctx context.Context, req *CreateNoteRequest) (in
 		}
 	}
 
-	var newNote *model.Note
+	var (
+		newNote *model.Note
+		proceed func() bool
+	)
 
 	// create note
 	err := s.biz.Tx(ctx, func(ctx context.Context) error {
@@ -66,8 +69,8 @@ func (s *NoteCreatorSrv) Create(ctx context.Context, req *CreateNoteRequest) (in
 			return xerror.Wrapf(errTx, "srv creator create note failed").WithCtx(ctx)
 		}
 
-		// 初始化流程记录 暂定最多重试3次
-		errTx = s.procedureMgr.Create(ctx, newNote, model.ProcedureTypeAssetProcess, 3)
+		// // 初始化流程记录
+		proceed, errTx = s.procedureMgr.BeginPipeline(ctx, newNote, procedure.StartAtAssetProcess())
 		if errTx != nil {
 			return xerror.Wrapf(errTx, "srv creator init procedure failed").WithCtx(ctx)
 		}
@@ -78,25 +81,8 @@ func (s *NoteCreatorSrv) Create(ctx context.Context, req *CreateNoteRequest) (in
 		return 0, xerror.Wrapf(err, "srv creator create note tx failed").WithCtx(ctx)
 	}
 
-	// 执行流程任务
-	newTaskId, err := s.procedureMgr.Execute(ctx, newNote)
-	if err != nil {
-		// 此处笔记已入库 只是调度任务失败 后台重试不返回错误 此处仅打日志 + 打点告警
-		xlog.Msg("srv creator execute procedure failed").
-			Err(err).
-			Extras("note_id", newNote.NoteId).
-			Errorx(ctx)
-	} else {
-		// 确认流程（回填taskId）
-		err = s.procedureMgr.Confirm(ctx, newNote.NoteId, newTaskId, model.ProcedureTypeAssetProcess)
-		if err != nil {
-			xlog.Msg("srv creator confirm procedure failed").
-				Err(err).
-				Extras("note_id", newNote.NoteId).
-				Extras("taskId", newTaskId).
-				Errorx(ctx)
-		}
-	}
+	// 继续执行流程任务
+	_ = proceed()
 
 	return newNote.NoteId, nil
 }
