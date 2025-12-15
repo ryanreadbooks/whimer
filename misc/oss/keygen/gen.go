@@ -79,7 +79,8 @@ func WithStringer(stringer Stringer) Option {
 
 func NewGenerator(opts ...Option) *Generator {
 	gen := &Generator{
-		stringer: RandomStringer{},
+		stringer:      RandomStringer{},
+		prependBucket: true,
 	}
 
 	for _, o := range opts {
@@ -147,4 +148,36 @@ func (g *Generator) Unwrap(s string) (bucket, key string, ok bool) {
 
 	key = strings.TrimPrefix(s, g.bucket+"/")
 	return g.bucket, key, true
+}
+
+// 检查s是否是由该生成器生成的
+func (g *Generator) Check(s string) (ok bool) {
+	if g.prependBucket {
+		if !strings.HasPrefix(s, g.bucket+"/") {
+			return false
+		}
+	}
+
+	s = strings.TrimPrefix(s, g.bucket+"/")
+
+	if g.prependPrefix {
+		if !strings.HasPrefix(s, g.prefix+"/") {
+			return false
+		}
+	}
+
+	return true
+}
+
+// 去除s中的bucket和prefix前缀 只返回key本身
+func (g *Generator) TrimBucketAndPrefix(s string) string {
+	if g.prependBucket {
+		s = strings.TrimPrefix(s, g.bucket+"/")
+	}
+
+	if g.prependPrefix {
+		s = strings.TrimPrefix(s, g.prefix+"/")
+	}
+
+	return s
 }

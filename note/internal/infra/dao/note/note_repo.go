@@ -56,12 +56,20 @@ func (n *NotePO) Values() []any {
 }
 
 func (n *NotePO) InsertValues() []any {
+	var (
+		ip []byte = n.Ip
+	)
+	if n.Ip == nil {
+		ip = []byte{}
+	}
+	
+
 	return []any{
 		n.Title,
 		n.Desc,
 		n.Privacy,
 		n.Owner,
-		n.Ip,
+		ip,
 		n.NoteType,
 		n.State,
 		n.CreateAt,

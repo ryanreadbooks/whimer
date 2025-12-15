@@ -23,8 +23,8 @@ type retryHelper struct {
 
 func newRetryHelper(bizz *biz.Biz) *retryHelper {
 	return &retryHelper{
-		txHelper: newTxHelper(bizz),
-		noteBiz:  bizz.Note,
+		txHelper:         newTxHelper(bizz),
+		noteBiz:          bizz.Note,
 		noteProcedureBiz: bizz.Procedure,
 	}
 }
@@ -42,8 +42,12 @@ func (h *retryHelper) retry(
 	}
 
 	// 检查是否允许重试
+	// 超过重试视为失败
 	if record.CurRetry >= record.MaxRetryCnt {
-		return nil
+		xlog.Msg("retry helper retry exhausted, mark as failed").
+			Extras("record_id", record.Id, "note_id", record.NoteId, "protype", record.Protype).
+			Infox(ctx)
+		return h.txHelper.txHandleFailure(ctx, record.NoteId, record.TaskId, record.Protype, onFailure)
 	}
 
 	// 不存在 taskId，重新执行任务

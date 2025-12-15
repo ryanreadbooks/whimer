@@ -10,14 +10,12 @@ import (
 type Processor struct {
 	ff      *FFmpeg
 	storage *storage.Storage
-	stream  bool
 }
 
-func NewProcessor(ff *FFmpeg, storage *storage.Storage, stream bool) *Processor {
+func NewProcessor(ff *FFmpeg, storage *storage.Storage) *Processor {
 	return &Processor{
 		ff:      ff,
 		storage: storage,
-		stream:  stream,
 	}
 }
 
@@ -48,48 +46,30 @@ type ProcessResult struct {
 func (p *Processor) ProcessSingle(ctx context.Context, req SingleProcessRequest) (*ProcessResult, error) {
 	opt := applyOptions(req.Options...)
 
-	mode := OutputModeFile
-	if p.stream {
-		mode = OutputModeStream
-	}
-
-	output, err := p.ff.Transcode(ctx, TranscodeInput{
+	reader, err := p.ff.Transcode(ctx, TranscodeInput{
 		InputURL: req.InputURL,
 		Option:   opt,
-	}, mode)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("transcode failed: %w", err)
 	}
 
-	// 落盘模式下，先 probe 获取实际参数，再上传
-	var probeResult *ProbeResult
-	if output.FilePath != "" {
-		probeResult, err = Probe(ctx, output.FilePath)
-		if err != nil {
-			if output.Cleanup != nil {
-				output.Cleanup()
-			}
-			return nil, fmt.Errorf("probe output failed: %w", err)
-		}
+	uploadErr := p.storage.UploadStream(ctx, req.Bucket, req.OutputKey, reader, "video/mp4")
+
+	closeErr := reader.Close() // block here
+	if closeErr != nil {
+		return nil, fmt.Errorf("ffmpeg failed: %w", closeErr)
+	}
+	if uploadErr != nil {
+		return nil, fmt.Errorf("upload failed: %w", uploadErr)
 	}
 
-	if output.Cleanup != nil {
-		defer output.Cleanup()
-	}
-
-	err = p.storage.UploadFromOutput(ctx, req.Bucket, req.OutputKey, output.FilePath, output.Reader, "video/mp4")
+	// 上传后 probe 获取实际参数
+	url := p.storage.GetObjectURL(req.Bucket, req.OutputKey)
+	probeResult, err := Probe(ctx, url)
 	if err != nil {
-		return nil, fmt.Errorf("upload failed: %w", err)
-	}
-
-	// 流式模式下，上传后再 probe（从存储获取）
-	if probeResult == nil {
-		url := p.storage.GetObjectURL(req.Bucket, req.OutputKey)
-		probeResult, err = Probe(ctx, url)
-		if err != nil {
-			// probe 失败不影响整体流程，返回空结果
-			return &ProcessResult{}, nil
-		}
+		// probe 失败不影响整体流程，返回空结果
+		return &ProcessResult{}, nil
 	}
 
 	return &ProcessResult{

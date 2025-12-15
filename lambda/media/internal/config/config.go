@@ -23,8 +23,4 @@ type Config struct {
 		BinPath string `json:"binPath"`
 		TempDir string `json:"tempDir"`
 	} `json:"ffmpeg"`
-
-	Video struct {
-		UseStream bool `json:"useStream"`
-	} `json:"video"`
 }

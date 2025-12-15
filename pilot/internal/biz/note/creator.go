@@ -13,6 +13,7 @@ import (
 	bizstorage "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/storage"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/note/model"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
+	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 	modelerr "github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
@@ -30,8 +31,23 @@ func (b *Biz) GetNote(ctx context.Context, noteId int64) (*notev1.NoteItem, erro
 	return curNote.GetNote(), nil
 }
 
+func (b *Biz) treatNoteVideoReq(req *notev1.CreateNoteRequest) {
+	// 视频需要特殊处理 req
+	// 比如： fildId = videos/note/cosmic/123.mp4
+	//  rawKey = 123.mp4
+	//  meta.PrefixSegment = note
+	//  targetId = video/note/123.mp4
+	if req.Basic.AssetType == notev1.NoteAssetType_VIDEO {
+		rawKey := b.storageBiz.TrimBucketAndPrefix(uploadresource.NoteVideo, req.Video.FileId)
+		meta := config.Conf.UploadResourceDefineMap[uploadresource.NoteVideo]
+		targetId := meta.Bucket + "/" + meta.PrefixSegment + "/" + rawKey
+		req.Video.TargetFileId = targetId
+	}
+}
+
 // CreateNote 创建笔记
 func (b *Biz) CreateNote(ctx context.Context, req *notev1.CreateNoteRequest) (*model.CreateNoteRes, error) {
+	b.treatNoteVideoReq(req)
 	resp, err := dep.NoteCreatorServer().CreateNote(ctx, req)
 	if err != nil {
 		return nil, err
@@ -42,6 +58,7 @@ func (b *Biz) CreateNote(ctx context.Context, req *notev1.CreateNoteRequest) (*m
 
 // UpdateNote 更新笔记
 func (b *Biz) UpdateNote(ctx context.Context, noteId imodel.NoteId, req *notev1.CreateNoteRequest) error {
+	b.treatNoteVideoReq(req)
 	_, err := dep.NoteCreatorServer().UpdateNote(ctx, &notev1.UpdateNoteRequest{
 		NoteId: int64(noteId),
 		Note:   req,
@@ -70,80 +87,132 @@ func (b *Biz) AfterNoteUpserted(ctx context.Context, note *notev1.NoteItem) {
 	b.AppendRecentContacts(ctx, note)
 }
 
-// MarkNoteImages 检查笔记图片
-func (b *Biz) MarkNoteImages(ctx context.Context, images []model.NoteImage) error {
-	var (
-		keys        = make([]string, 0, len(images))
-		bucket, key string
-		err         error
-	)
+// resourceChecker 资源检查器（可选）
+type resourceChecker func(ctx context.Context, bucket string, keys []string) error
 
-	for _, img := range images {
-		bucket, key, err = b.storageBiz.SeperateResource(uploadresource.NoteImage, img.FileId)
+// collectResourceKeys 收集资源的 bucket 和 keys
+func (b *Biz) collectResourceKeys(
+	resType uploadresource.Type,
+	fileIds []string,
+) (bucket string, keys []string, err error) {
+	keys = make([]string, 0, len(fileIds))
+	for _, fileId := range fileIds {
+		var key string
+		bucket, key, err = b.storageBiz.SeperateResource(resType, fileId)
+		if err != nil {
+			return "", nil, err
+		}
+		keys = append(keys, key)
+	}
+	return bucket, keys, nil
+}
+
+// checkAndMarkResources 检查并标记资源为激活状态
+func (b *Biz) checkAndMarkResources(
+	ctx context.Context,
+	resType uploadresource.Type,
+	fileIds []string,
+	checker resourceChecker,
+) error {
+	if len(fileIds) == 0 {
+		return nil
+	}
+
+	for _, fileId := range fileIds {
+		err := b.storageBiz.CheckFileIdValid(resType, fileId)
 		if err != nil {
 			return err
 		}
-		keys = append(keys, key)
+	}
+
+	bucket, keys, err := b.collectResourceKeys(resType, fileIds)
+	if err != nil {
+		return err
 	}
 
 	_, err = b.storageBiz.BatchCheckResourceExist(ctx, bucket, keys, true)
 	if err != nil {
 		if errors.Is(err, bizstorage.ErrResourceNotFound) {
-			err = modelerr.ErrResourceNotFound
+			return modelerr.ErrResourceNotFound
 		}
-	} else {
-		shouldTag := true
-		for _, key := range keys {
-			var (
-				content []byte
-				total   int64
-			)
-			content, total, err = b.storageBiz.GetResourceBytes(ctx, bucket, key, 32)
-			if err != nil {
-				if errors.Is(err, bizstorage.ErrResourceNotFound) {
-					err = modelerr.ErrResourceNotFound
-				}
-				shouldTag = false
-				break
-			}
-
-			if err = uploadresource.NoteImage.Check(content, total); err != nil {
-				shouldTag = false
-				break
-			}
-		}
-
-		if shouldTag {
-			b.storageBiz.BatchMarkResourceActive(ctx, bucket, keys, false)
-		}
+		return err
 	}
 
-	return err
-}
-
-func (b *Biz) UnmarkNoteImages(ctx context.Context, images []model.NoteImage) error {
-	var (
-		keys        = make([]string, 0, len(images))
-		bucket, key string
-		err         error
-	)
-
-	for _, img := range images {
-		bucket, key, err = b.storageBiz.SeperateResource(uploadresource.NoteImage, img.FileId)
-		if err != nil {
+	if checker != nil {
+		if err = checker(ctx, bucket, keys); err != nil {
 			return err
 		}
-		keys = append(keys, key)
 	}
-	b.storageBiz.BatchMarkResourceInactive(ctx, bucket, keys, false)
 
+	b.storageBiz.BatchMarkResourceActive(ctx, bucket, keys, false)
 	return nil
 }
 
-// CheckNoteVideo 检查笔记视频
-func (b *Biz) CheckNoteVideo(ctx context.Context) error {
-	// TODO
+// unmarkResources 取消标记资源
+func (b *Biz) unmarkResources(ctx context.Context, resType uploadresource.Type, fileIds []string) error {
+	if len(fileIds) == 0 {
+		return nil
+	}
+
+	bucket, keys, err := b.collectResourceKeys(resType, fileIds)
+	if err != nil {
+		return err
+	}
+
+	b.storageBiz.BatchMarkResourceInactive(ctx, bucket, keys, false)
 	return nil
+}
+
+// CheckAndMarkNoteImages 检查笔记图片
+func (b *Biz) CheckAndMarkNoteImages(ctx context.Context, images []model.NoteImage) error {
+	fileIds := make([]string, 0, len(images))
+	for _, img := range images {
+		fileIds = append(fileIds, img.FileId)
+	}
+
+	return b.checkAndMarkResources(ctx, uploadresource.NoteImage, fileIds, b.checkImageContent)
+}
+
+// checkImageContent 检查图片内容格式和大小
+func (b *Biz) checkImageContent(ctx context.Context, bucket string, keys []string) error {
+	for _, key := range keys {
+		content, total, err := b.storageBiz.GetResourceBytes(ctx, bucket, key, 32)
+		if err != nil {
+			if errors.Is(err, bizstorage.ErrResourceNotFound) {
+				return modelerr.ErrResourceNotFound
+			}
+			return err
+		}
+		if err = uploadresource.NoteImage.Check(content, total); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// UnmarkNoteImages 取消标记笔记图片
+func (b *Biz) UnmarkNoteImages(ctx context.Context, images []model.NoteImage) error {
+	fileIds := make([]string, 0, len(images))
+	for _, img := range images {
+		fileIds = append(fileIds, img.FileId)
+	}
+	return b.unmarkResources(ctx, uploadresource.NoteImage, fileIds)
+}
+
+// CheckAndMarkNoteVideo 检查笔记视频
+func (b *Biz) CheckAndMarkNoteVideo(ctx context.Context, video model.NoteVideo) error {
+	if video.FileId == "" {
+		return modelerr.ErrResourceNotFound
+	}
+	return b.checkAndMarkResources(ctx, uploadresource.NoteVideo, []string{video.FileId}, nil)
+}
+
+// UnmarkNoteVideo 取消标记笔记视频
+func (b *Biz) UnmarkNoteVideo(ctx context.Context, video model.NoteVideo) error {
+	if video.FileId == "" {
+		return nil
+	}
+	return b.unmarkResources(ctx, uploadresource.NoteVideo, []string{video.FileId})
 }
 
 // NotifyWhenAtUsers 笔记中@用户通知

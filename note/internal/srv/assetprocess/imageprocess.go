@@ -27,11 +27,16 @@ func newImageProcessor(biz *biz.Biz) Processor {
 // 处理笔记图片
 func (p *ImageProcessor) Process(ctx context.Context, note *model.Note) (string, error) {
 	// 注册任务+回调
-	callbackUrl := encodeCallbackUrl(config.Conf.DevCallbacks.NoteProcessCallback, note.NoteId)
+	callbackUrl := encodeCallbackUrl(
+		config.Conf.DevCallbacks.NoteProcessCallback,
+		note.NoteId,
+		map[string]string{
+			"asset_type": "image",
+		})
 	taskId, err := dep.GetConductProducer().Schedule(
 		ctx,
 		global.NoteImageProcessTaskType,
-		note,
+		"", // TODO 这里暂时不给参数
 		conductor.ScheduleOptions{
 			Namespace:   global.NoteProcessNamespace,
 			CallbackUrl: callbackUrl,

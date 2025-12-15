@@ -5,9 +5,10 @@ type AudioCodec string
 type OutputFormat string
 
 const (
-	VideoCodecH264 VideoCodec = "libx264" // H.264 编码，兼容性最好
-	VideoCodecH265 VideoCodec = "libx265" // H.265/HEVC 编码，压缩率更高但兼容性较差
-	VideoCodecCopy VideoCodec = "copy"    // 不重新编码，直接复制
+	VideoCodecH264 VideoCodec = "libx264"   // H.264 编码，兼容性最好
+	VideoCodecH265 VideoCodec = "libx265"   // H.265/HEVC 编码，压缩率更高但兼容性较差
+	VideoCodecAV1  VideoCodec = "libsvtav1" // AV1 编码 (SVT-AV1)，压缩率最高
+	VideoCodecCopy VideoCodec = "copy"      // 不重新编码，直接复制
 
 	AudioCodecAAC  AudioCodec = "aac"  // AAC 音频编码
 	AudioCodecCopy AudioCodec = "copy" // 不重新编码，直接复制

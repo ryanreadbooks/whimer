@@ -15,6 +15,7 @@ type Metadata struct {
 	PrependBucket bool   `json:"prepend_bucket,optional,default=true"`
 	PrependPrefix bool   `json:"prepend_prefix,optional"`
 	Stringer      string `json:"stringer,optional"`
+	PrefixSegment string `json:"prefix_segment,optional"`
 }
 
 func (m *Metadata) GetStringer() keygen.Stringer {

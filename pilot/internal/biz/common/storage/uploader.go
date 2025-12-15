@@ -16,6 +16,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/oss/policy/action"
 	"github.com/ryanreadbooks/whimer/misc/oss/policy/condition"
 	"github.com/ryanreadbooks/whimer/misc/oss/signer"
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	xhttputil "github.com/ryanreadbooks/whimer/misc/xhttp/util"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xstring"
@@ -135,4 +136,12 @@ func (u *uploader) getFileIds(cnt int32) []string {
 	}
 
 	return fileIds
+}
+
+func (u *uploader) CheckFileIdValid(fileId string) error {
+	if !u.keyGen.Check(fileId) {
+		return xerror.ErrArgs.Msg("资源格式错误")
+	}
+
+	return nil
 }

@@ -17,6 +17,28 @@ var (
 	DefaultPresets = []Preset{Preset1080p, Preset720p}
 )
 
+// AV1 编码推荐参数
+// Preset: 0-13，越小越慢质量越好，推荐 6-8 平衡速度与质量
+// CRF: 0-63，越小质量越高，推荐 30-35
+const (
+	AV1PresetFast   = "10" // 快速编码
+	AV1PresetMedium = "8"  // 平衡
+	AV1PresetSlow   = "6"  // 高质量
+
+	AV1CRFHigh   = 28 // 高质量
+	AV1CRFMedium = 35 // 默认质量
+	AV1CRFLow    = 42 // 低质量/小文件
+)
+
+// WithAV1Default 应用 AV1 默认编码参数
+func WithAV1Default() OptionFunc {
+	return func(o *Option) {
+		o.VideoCodec = VideoCodecAV1
+		o.Preset = AV1PresetMedium
+		o.CRF = AV1CRFMedium
+	}
+}
+
 // ToOptions 将预设转换为 OptionFunc 列表
 func (p Preset) ToOptions() []OptionFunc {
 	return []OptionFunc{

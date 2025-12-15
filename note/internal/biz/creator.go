@@ -65,6 +65,8 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *CreateNoteRequest)
 		UpdateAt: now,
 	}
 
+	newNote := convert.NoteFromDao(newNotePO)
+
 	var noteAssets []*notedao.AssetPO
 	switch req.Basic.NoteType {
 	case model.AssetTypeImage:
@@ -77,9 +79,37 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *CreateNoteRequest)
 				CreateAt:  now,
 				AssetMeta: imgMeta,
 			})
+			mmimg := &model.NoteImage{
+				Key:  img.FileId,
+				Type: int(model.AssetTypeImage),
+				Meta: model.NoteImageMeta{
+					Width:  img.Width,
+					Height: img.Height,
+					Format: img.Format,
+				},
+			}
+			mmimg.SetBucket(img.Bucket)
+			newNote.Images = append(newNote.Images, mmimg)
 		}
 	case model.AssetTypeVideo:
-		// TODO videos
+		noteAssets = formatNoteVideoAsset(req.Video)
+		newNote.Videos = &model.NoteVideo{
+			H264: &model.NoteVideoItem{
+				Key:   noteAssets[0].AssetKey,
+				Media: &model.NoteVideoMedia{},
+			},
+			H265: &model.NoteVideoItem{
+				Key:   noteAssets[1].AssetKey,
+				Media: &model.NoteVideoMedia{},
+			},
+			AV1: &model.NoteVideoItem{
+				Key:   noteAssets[2].AssetKey,
+				Media: &model.NoteVideoMedia{},
+			},
+		}
+		newNote.Videos.SetTargetBucket(req.Video.TargetBucket)
+		newNote.Videos.SetRawUrl(req.Video.FileId)
+		newNote.Videos.SetRawBucket(req.Video.Bucket)
 	}
 
 	var ext = notedao.ExtPO{
@@ -135,7 +165,8 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *CreateNoteRequest)
 		return nil, xerror.Wrapf(err, "biz create note failed").WithExtra("note", req).WithCtx(ctx)
 	}
 
-	newNote := convert.NoteFromDao(newNotePO)
+	// 回填noteId
+	newNote.NoteId = noteId
 
 	return newNote, nil
 }
@@ -165,7 +196,7 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *UpdateNoteRequest)
 		return global.ErrPermDenied.Msg("你不拥有该笔记")
 	}
 
-	newNote := &notedao.NotePO{
+	newNotePO := &notedao.NotePO{
 		Id:       noteId,
 		Title:    req.Basic.Title,
 		Desc:     req.Basic.Desc,
@@ -197,13 +228,13 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *UpdateNoteRequest)
 	}
 
 	// 先更新基础信息
-	err = b.data.Note.Update(ctx, newNote)
+	err = b.data.Note.Update(ctx, newNotePO)
 	if err != nil {
 		return xerror.Wrapf(err, "note dao update tx failed")
 	}
 
 	// 找出旧资源
-	oldAssets, err := b.data.NoteAsset.FindImageByNoteId(ctx, newNote.Id)
+	oldAssets, err := b.data.NoteAsset.FindImageByNoteId(ctx, newNotePO.Id)
 	if err != nil && !errors.Is(err, xsql.ErrNoRecord) {
 		return xerror.Wrapf(err, "noteasset dao find failed")
 	}
@@ -216,7 +247,7 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *UpdateNoteRequest)
 
 	// 随后删除旧资源
 	// 删除除了newAssetKeys之外的其它
-	err = b.data.NoteAsset.ExcludeDeleteImageByNoteId(ctx, newNote.Id, newAssetKeys)
+	err = b.data.NoteAsset.ExcludeDeleteImageByNoteId(ctx, newNotePO.Id, newAssetKeys)
 	if err != nil {
 		return xerror.Wrapf(err, "noteasset dao delete tx failed")
 	}
@@ -232,7 +263,7 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *UpdateNoteRequest)
 			newAssets = append(newAssets, &notedao.AssetPO{
 				AssetKey:  asset.AssetKey,
 				AssetType: model.AssetTypeImage,
-				NoteId:    newNote.Id,
+				NoteId:    newNotePO.Id,
 				CreateAt:  now,
 				AssetMeta: asset.AssetMeta,
 			})

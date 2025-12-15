@@ -95,9 +95,10 @@ upload_resource_define:
   - name: note_video
     meta:
       bucket: videos
-      prefix: note
+      prefix: note/cosmic
       prepend_bucket: true
       prepend_prefix: true
+      prefix_segment: note
   - name: comment_image
     meta:
       bucket: pics

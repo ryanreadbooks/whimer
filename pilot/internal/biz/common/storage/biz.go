@@ -41,6 +41,7 @@ func (b *Biz) getUploader(resource uploadresource.Type) (*uploader, error) {
 	return nil, modelerr.ErrUnsupportedResource
 }
 
+
 func (b *Biz) SeperateResource(resource uploadresource.Type, resourceId string) (bucket, key string, err error) {
 	uploader, err := b.getUploader(resource)
 	if err != nil {

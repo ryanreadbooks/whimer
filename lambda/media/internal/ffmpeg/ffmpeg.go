@@ -1,6 +1,7 @@
 package ffmpeg
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -9,13 +10,6 @@ import (
 	"path/filepath"
 
 	"github.com/google/uuid"
-)
-
-type OutputMode int
-
-const (
-	OutputModeFile   OutputMode = iota // 落盘模式
-	OutputModeStream                   // 流式模式
 )
 
 type FFmpeg struct {
@@ -52,42 +46,19 @@ type TranscodeInput struct {
 	Option   *Option
 }
 
-type TranscodeOutput struct {
-	Reader   io.ReadCloser // 流式模式使用
-	FilePath string        // 落盘模式使用
-	Cleanup  func()        // 清理临时文件
-}
-
-func (f *FFmpeg) Transcode(ctx context.Context, input TranscodeInput, mode OutputMode) (*TranscodeOutput, error) {
-	if mode == OutputModeStream {
-		return f.transcodeStream(ctx, input)
-	}
-	return f.transcodeFile(ctx, input)
-}
-
-func (f *FFmpeg) transcodeFile(ctx context.Context, input TranscodeInput) (*TranscodeOutput, error) {
-	tmpFile := filepath.Join(f.tempDir, uuid.New().String()+".mp4")
-	args := f.buildArgs(input.InputURL, input.Option, tmpFile)
+// Transcode 转码视频，输出到 stdout 流
+func (f *FFmpeg) Transcode(ctx context.Context, input TranscodeInput) (io.ReadCloser, error) {
+	args := f.buildArgs(input.InputURL, input.Option)
 
 	cmd := exec.CommandContext(ctx, f.binPath, args...)
-	cmd.Stderr = f.stderrTo
 
-	if err := cmd.Run(); err != nil {
-		os.Remove(tmpFile)
-		return nil, fmt.Errorf("ffmpeg transcode failed: %w", err)
+	// stderr 用于错误诊断
+	var stderrBuf bytes.Buffer
+	if f.stderrTo != nil {
+		cmd.Stderr = io.MultiWriter(f.stderrTo, &stderrBuf)
+	} else {
+		cmd.Stderr = &stderrBuf
 	}
-
-	return &TranscodeOutput{
-		FilePath: tmpFile,
-		Cleanup:  func() { os.Remove(tmpFile) },
-	}, nil
-}
-
-func (f *FFmpeg) transcodeStream(ctx context.Context, input TranscodeInput) (*TranscodeOutput, error) {
-	args := f.buildStreamArgs(input.InputURL, input.Option)
-
-	cmd := exec.CommandContext(ctx, f.binPath, args...)
-	cmd.Stderr = f.stderrTo
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -98,20 +69,10 @@ func (f *FFmpeg) transcodeStream(ctx context.Context, input TranscodeInput) (*Tr
 		return nil, fmt.Errorf("ffmpeg start failed: %w", err)
 	}
 
-	return &TranscodeOutput{
-		Reader: &cmdReader{ReadCloser: stdout, cmd: cmd},
-	}, nil
+	return &cmdReader{ReadCloser: stdout, cmd: cmd, stderr: &stderrBuf}, nil
 }
 
-func (f *FFmpeg) buildArgs(inputURL string, opt *Option, output string) []string {
-	args := []string{"-y", "-i", inputURL}
-	args = append(args, f.buildCommonArgs(opt)...)
-	args = append(args, "-movflags", "+faststart")
-	args = append(args, output)
-	return args
-}
-
-func (f *FFmpeg) buildStreamArgs(inputURL string, opt *Option) []string {
+func (f *FFmpeg) buildArgs(inputURL string, opt *Option) []string {
 	args := []string{"-y", "-i", inputURL}
 	args = append(args, f.buildCommonArgs(opt)...)
 	args = append(args, "-movflags", "frag_keyframe+empty_moov+default_base_moof")
@@ -125,15 +86,7 @@ func (f *FFmpeg) buildCommonArgs(opt *Option) []string {
 	// video
 	args = append(args, "-c:v", string(opt.VideoCodec))
 	if opt.VideoCodec != VideoCodecCopy {
-		if opt.Preset != "" {
-			args = append(args, "-preset", opt.Preset)
-		}
-		if opt.CRF > 0 {
-			args = append(args, "-crf", fmt.Sprintf("%d", opt.CRF))
-		}
-		if opt.VideoBitrate != "" {
-			args = append(args, "-b:v", opt.VideoBitrate)
-		}
+		args = append(args, f.buildVideoEncoderArgs(opt)...)
 		if opt.MaxHeight > 0 || opt.MaxWidth > 0 {
 			args = append(args, "-vf", f.buildScaleFilter(opt))
 		}
@@ -149,6 +102,38 @@ func (f *FFmpeg) buildCommonArgs(opt *Option) []string {
 	}
 
 	args = append(args, opt.ExtraArgs...)
+	return args
+}
+
+// buildVideoEncoderArgs 根据编码器构建特定参数
+func (f *FFmpeg) buildVideoEncoderArgs(opt *Option) []string {
+	var args []string
+
+	switch opt.VideoCodec {
+	case VideoCodecAV1:
+		// SVT-AV1 参数
+		if opt.Preset != "" {
+			args = append(args, "-preset", opt.Preset) // 0-13，数字越小越慢质量越好
+		}
+		if opt.CRF > 0 {
+			args = append(args, "-crf", fmt.Sprintf("%d", opt.CRF)) // 0-63，默认 35
+		}
+		if opt.VideoBitrate != "" {
+			args = append(args, "-b:v", opt.VideoBitrate)
+		}
+	default:
+		// H.264/H.265 参数
+		if opt.Preset != "" {
+			args = append(args, "-preset", opt.Preset)
+		}
+		if opt.CRF > 0 {
+			args = append(args, "-crf", fmt.Sprintf("%d", opt.CRF))
+		}
+		if opt.VideoBitrate != "" {
+			args = append(args, "-b:v", opt.VideoBitrate)
+		}
+	}
+
 	return args
 }
 
@@ -201,10 +186,20 @@ func (f *FFmpeg) ExtractThumbnail(ctx context.Context, inputURL string, atSecond
 
 type cmdReader struct {
 	io.ReadCloser
-	cmd *exec.Cmd
+	cmd    *exec.Cmd
+	stderr *bytes.Buffer
 }
 
 func (r *cmdReader) Close() error {
 	r.ReadCloser.Close()
-	return r.cmd.Wait()
+	err := r.cmd.Wait()
+	if err != nil && r.stderr != nil && r.stderr.Len() > 0 {
+		// 截取最后 500 字节的错误信息
+		stderrStr := r.stderr.String()
+		if len(stderrStr) > 500 {
+			stderrStr = "..." + stderrStr[len(stderrStr)-500:]
+		}
+		return fmt.Errorf("%w: %s", err, stderrStr)
+	}
+	return err
 }

@@ -26,11 +26,20 @@ type CreateNoteRequestImage struct {
 	Width  uint32 `json:"width"`
 	Height uint32 `json:"height"`
 	Format string `json:"format"`
+	Bucket string `json:"-"`
+}
+
+type CreateNoteRequestVideo struct {
+	FileId       string `json:"file_id"`
+	Bucket       string `json:"-"`
+	TargetFileId string `json:"target_file_id"`
+	TargetBucket string `json:"-"`
 }
 
 type CreateNoteRequest struct {
 	Basic   CreateNoteRequestBasic   `json:"basic"`
 	Images  []CreateNoteRequestImage `json:"images"`
+	Video   *CreateNoteRequestVideo  `json:"video,omitempty"`
 	TagIds  []int64                  `json:"tag_ids"`
 	AtUsers []*model.AtUser          `json:"at_users"`
 }
@@ -64,8 +73,9 @@ func (r *CreateNoteRequest) Validate() error {
 			return global.ErrArgs.Msg("至少需要包含一张照片")
 		}
 	case model.AssetTypeVideo:
-		// TODO
-		fallthrough
+		if r.Video == nil {
+			return global.ErrArgs.Msg("未包含视频")
+		}
 	default:
 		return global.ErrArgs.Msg("笔记资源类型不支持")
 	}

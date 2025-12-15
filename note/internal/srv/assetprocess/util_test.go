@@ -23,6 +23,6 @@ func TestGetCallbackUrl(t *testing.T) {
 func TestEncodeCallbackUrl(t *testing.T) {
 	rawUrl := "http://localhost:8090/api/v1/callback/devtest"
 	noteId := int64(100)
-	callbackUrl := encodeCallbackUrl(rawUrl, noteId)
+	callbackUrl := encodeCallbackUrl(rawUrl, noteId, nil)
 	t.Log(callbackUrl)
 }

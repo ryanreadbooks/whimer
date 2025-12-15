@@ -29,7 +29,8 @@ func (h *Handler) GetTempCreds() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		creds, err := h.storageBiz.RequestUploadTemporaryTicket(ctx,
+		creds, err := h.storageBiz.RequestUploadTemporaryTicket(
+			ctx,
 			bizstorage.RequestUploadTemporaryTicket{
 				Resource: uploadresource.Type(req.Resource),
 				Source:   req.Source,
@@ -61,4 +62,3 @@ type Req struct {
 	Key      string `form:"key"`
 	NumBytes int32  `form:"num_bytes,optional"`
 }
-

@@ -10,6 +10,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/tags"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 )
 
 const (
@@ -114,7 +115,7 @@ func (b *Biz) BatchMarkResourceInactive(ctx context.Context, bucket string, keys
 			xlog.Msg("batch mark resource inactive err").Err(err).Extras("bucket", bucket, "keys", keys).Errorx(ctx)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -168,4 +169,20 @@ func (b *Biz) GetResourceBytes(ctx context.Context, bucket, key string, numBytes
 		return nil, 0, xerror.Wrapf(err, "stat resp failed").WithExtras("bucket", bucket, "key", key).WithCtx(ctx)
 	}
 	return content, stat.Size, nil
+}
+
+func (b *Biz) CheckFileIdValid(resource uploadresource.Type, fileId string) error {
+	uploader, err := b.getUploader(resource)
+	if err != nil {
+		return err
+	}
+	return uploader.CheckFileIdValid(fileId)
+}
+
+func (b *Biz) TrimBucketAndPrefix(resource uploadresource.Type, fileId string) string {
+	uploader, err := b.getUploader(resource)
+	if err != nil {
+		return fileId
+	}
+	return uploader.keyGen.TrimBucketAndPrefix(fileId)
 }

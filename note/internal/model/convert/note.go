@@ -7,6 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
 
+// 只有基础字段 不包含image等需要额外设置的字段
 func NoteFromDao(d *notedao.NotePO) *model.Note {
 	n := &model.Note{}
 	if d == nil {

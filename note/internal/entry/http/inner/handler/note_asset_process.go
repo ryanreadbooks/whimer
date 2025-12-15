@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 
 	conductorsdk "github.com/ryanreadbooks/whimer/conductor/pkg/sdk/task"
@@ -27,6 +27,42 @@ type NoteAssetCallbackPayload struct {
 	CompletedAt int64  `json:"completed_at,omitempty,optional"`
 }
 
+type NoteVideoAssetCallbackOutput struct {
+	Outputs []VideoOutput `json:"outputs"`
+}
+
+type VideoOutput struct {
+	// Bucket 存储桶名称
+	Bucket string `json:"bucket"`
+	// Key 文件路径/键名
+	Key string `json:"key"`
+	// Info 输出视频的实际参数（通过 ffprobe 获取）
+	Info *VideoInfo `json:"info"`
+}
+
+type VideoInfo struct {
+	// Width 视频宽度（像素）
+	Width int `json:"width"`
+	// Height 视频高度（像素）
+	Height int `json:"height"`
+	// Duration 视频时长（秒）
+	Duration float64 `json:"duration"`
+	// Bitrate 总码率（bps）
+	Bitrate int64 `json:"bitrate"`
+	// Codec 视频编码器
+	Codec string `json:"codec"`
+	// Framerate 帧率
+	Framerate float64 `json:"framerate"`
+	// AudioCodec 音频编码器
+	AudioCodec string `json:"audio_codec"`
+	// AudioSampleRate 音频采样率（Hz）
+	AudioSampleRate int `json:"audio_sample_rate"`
+	// AudioChannels 音频声道数
+	AudioChannels int `json:"audio_channels"`
+	// AudioBitrate 音频码率（bps）
+	AudioBitrate int64 `json:"audio_bitrate"`
+}
+
 // NoteAssetProcessCallback 笔记处理流程回调
 func (h *Handler) NoteAssetProcessCallback() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -36,8 +72,15 @@ func (h *Handler) NoteAssetProcessCallback() http.HandlerFunc {
 			return
 		}
 
+		msg, _ := json.Marshal(req)
+		var output NoteVideoAssetCallbackOutput
+		err2 := json.Unmarshal(req.OutputArgs, &output)
+		if err2 == nil {
+			xlog.Msgf("video output args: %+v", output)
+		}
+
 		xlog.Msgf("note process callback received").
-			Extras("req", fmt.Sprintf("%+v", req)).
+			Extras("req", string(msg)).
 			Extras("taskId", req.TaskId).
 			Infox(r.Context())
 

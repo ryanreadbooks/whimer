@@ -11,13 +11,10 @@ worker:
 
 storage:
   endpoint: ${ENV_OSS_ENDPOINT}
-  accessKey: ${ENV_OSS_AK}
-  secretKey: ${ENV_OSS_SK}
+  ak: ${ENV_OSS_AK}
+  sk: ${ENV_OSS_SK}
   useSsl: false
 
 ffmpeg:
   binPath: ffmpeg
   tempDir: /tmp
-
-video:
-  useStream: true

@@ -6,12 +6,12 @@ import (
 	"unicode/utf8"
 
 	feedmodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/feed/model"
+	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 )
 
@@ -85,6 +85,7 @@ func (r CreateReqImageList) AsPb() []*notev1.CreateReqImage {
 			Width:  img.Width,
 			Height: img.Height,
 			Format: img.Format,
+			Bucket: config.Conf.GetUploadResourceBucket(uploadresource.NoteImage),
 		})
 	}
 
@@ -92,7 +93,16 @@ func (r CreateReqImageList) AsPb() []*notev1.CreateReqImage {
 }
 
 type CreateReqVideo struct {
-	// TODO
+	FileId string `json:"file_id"`
+}
+
+func (r *CreateReqVideo) AsPb() *notev1.CreateReqVideo {
+	return &notev1.CreateReqVideo{
+		FileId: r.FileId,
+		// TargetFileId: , target字段由后面的biz流程填充
+		FileBucket:       config.Conf.GetUploadResourceBucket(uploadresource.NoteVideo),
+		TargetFileBucket: config.Conf.GetUploadResourceBucket(uploadresource.NoteVideo),
+	}
 }
 
 func (r *CreateReqVideo) Validate() error {
@@ -195,6 +205,7 @@ func (r *CreateReq) AsPb() *notev1.CreateNoteRequest {
 		Images:  r.Images.AsPb(),
 		Tags:    &notev1.CreateReqTag{TagList: tagList},
 		AtUsers: AtUsersAsPb(r.AtUsers),
+		Video:   r.Video.AsPb(),
 	}
 }
 

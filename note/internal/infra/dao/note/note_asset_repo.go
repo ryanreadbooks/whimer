@@ -54,13 +54,19 @@ func (r *NoteAssetRepo) FindOne(ctx context.Context, id int64) (*AssetPO, error)
 }
 
 func (r *NoteAssetRepo) insert(ctx context.Context, asset *AssetPO) error {
+	var (
+		assetMeta []byte = asset.AssetMeta
+	)
+	if assetMeta == nil {
+		assetMeta = []byte{}
+	}
 	now := time.Now().Unix()
 	_, err := r.db.ExecCtx(ctx, sqlInsert,
 		asset.AssetKey,
 		asset.AssetType,
 		asset.NoteId,
 		now,
-		asset.AssetMeta)
+		assetMeta)
 
 	return xerror.Wrap(xsql.ConvertError(err))
 }
@@ -126,7 +132,11 @@ func (r *NoteAssetRepo) batchInsert(ctx context.Context, assets []*AssetPO) erro
 	var args []any = make([]any, 0, len(assets)*4)
 	for i, data := range assets {
 		builder.WriteString(tmpl)
-		args = append(args, data.AssetKey, data.AssetType, data.NoteId, data.CreateAt, data.AssetMeta)
+		var assetMeta []byte = data.AssetMeta
+		if assetMeta == nil {
+			assetMeta = []byte{}
+		}
+		args = append(args, data.AssetKey, data.AssetType, data.NoteId, data.CreateAt, assetMeta)
 		if i != len(assets)-1 {
 			builder.WriteByte(',')
 		}

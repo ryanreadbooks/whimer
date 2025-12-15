@@ -4,16 +4,37 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/worker"
 	"github.com/ryanreadbooks/whimer/lambda/media/internal/ffmpeg"
+	"github.com/ryanreadbooks/whimer/lambda/media/internal/storage"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+)
+
+// InputMode 输入模式
+type InputMode string
+
+const (
+	// InputModeURL 通过 URL 获取输入视频
+	InputModeURL InputMode = "url"
+	// InputModeS3 从 S3 兼容存储获取输入视频 (MinIO/AWS S3)
+	InputModeS3 InputMode = "s3"
 )
 
 // VideoProcessRequest 视频处理请求
 type VideoProcessRequest struct {
-	// InputURL 输入视频地址，支持 http/https/本地路径
-	InputURL string `json:"input_url"`
+	// InputMode 输入模式: url / s3，默认 url
+	InputMode InputMode `json:"input_mode,omitempty"`
+
+	// InputURL 输入视频地址 (input_mode=url 时使用)
+	InputURL string `json:"input_url,omitempty"`
+
+	// InputBucket 输入存储桶 (input_mode=s3 时使用)
+	InputBucket string `json:"input_bucket,omitempty"`
+
+	// InputKey 输入文件路径 (input_mode=s3 时使用)
+	InputKey string `json:"input_key,omitempty"`
 
 	// Outputs 输出配置列表，支持同时输出多个不同规格的视频
 	Outputs []OutputConfig `json:"outputs"`
@@ -36,7 +57,11 @@ type OutputConfig struct {
 
 // EncodeSettings 编码参数配置
 type EncodeSettings struct {
-	// VideoCodec 视频编码器: libx264(H.264), libx265(H.265), copy(不转码)
+	// VideoCodec 视频编码器:
+	//   - libx264: H.264，兼容性最好
+	//   - libx265: H.265/HEVC，压缩率更高
+	//   - libsvtav1: AV1，压缩率最高
+	//   - copy: 不转码
 	VideoCodec string `json:"video_codec,omitempty"`
 
 	// AudioCodec 音频编码器: aac, copy(不转码)
@@ -54,10 +79,14 @@ type EncodeSettings struct {
 	// MaxWidth 最大宽度（像素），保持宽高比缩放，不会放大
 	MaxWidth int `json:"max_width,omitempty"`
 
-	// Preset 编码速度预设: ultrafast/fast/medium/slow/veryslow，越慢压缩率越高
+	// Preset 编码速度预设:
+	//   - H.264/H.265: ultrafast/fast/medium/slow/veryslow，越慢压缩率越高
+	//   - AV1: 0-13 (数字字符串)，越小越慢质量越好，推荐 "6"-"10"
 	Preset string `json:"preset,omitempty"`
 
-	// CRF 质量因子 (0-51)，值越小质量越高，推荐 18-28，默认 23
+	// CRF 质量因子，值越小质量越高:
+	//   - H.264/H.265: 0-51，推荐 18-28，默认 23
+	//   - AV1: 0-63，推荐 28-42，默认 35
 	CRF int `json:"crf,omitempty"`
 
 	// Framerate 目标帧率，0 表示保持原帧率
@@ -144,10 +173,11 @@ type ThumbnailOutput struct {
 
 type VideoHandler struct {
 	processor *ffmpeg.Processor
+	storage   *storage.Storage
 }
 
-func NewVideoHandler(processor *ffmpeg.Processor) *VideoHandler {
-	return &VideoHandler{processor: processor}
+func NewVideoHandler(processor *ffmpeg.Processor, storage *storage.Storage) *VideoHandler {
+	return &VideoHandler{processor: processor, storage: storage}
 }
 
 func (h *VideoHandler) Handle(ctx context.Context, task *worker.Task) worker.Result {
@@ -165,17 +195,25 @@ func (h *VideoHandler) Handle(ctx context.Context, task *worker.Task) worker.Res
 	}
 
 	output, _ := json.Marshal(result)
-	return worker.Result{Output: string(output)}
+	return worker.Result{Output: json.RawMessage(output)}
 }
 
 func (h *VideoHandler) process(ctx context.Context, req *VideoProcessRequest) (*VideoProcessResponse, error) {
+	inputURL, err := h.resolveInputURL(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("resolve input url failed: %w", err)
+	}
+	if inputURL == "" {
+		return nil, fmt.Errorf("input url is empty")
+	}
+
 	resp := &VideoProcessResponse{}
 
 	for _, out := range req.Outputs {
 		opts := h.buildOptions(out.Settings)
-
+		// 这里会开进程处理
 		result, err := h.processor.ProcessSingle(ctx, ffmpeg.SingleProcessRequest{
-			InputURL:  req.InputURL,
+			InputURL:  inputURL,
 			Bucket:    out.Bucket,
 			OutputKey: out.OutputKey,
 			Options:   opts,
@@ -210,7 +248,7 @@ func (h *VideoHandler) process(ctx context.Context, req *VideoProcessRequest) (*
 		if err := h.processor.ExtractAndUploadThumbnail(
 			ctx,
 			req.Thumbnail.Bucket,
-			req.InputURL,
+			inputURL,
 			req.Thumbnail.OutputKey,
 			atSecond,
 		); err != nil {
@@ -225,6 +263,16 @@ func (h *VideoHandler) process(ctx context.Context, req *VideoProcessRequest) (*
 	}
 
 	return resp, nil
+}
+
+func (h *VideoHandler) resolveInputURL(ctx context.Context, req *VideoProcessRequest) (string, error) {
+	switch req.InputMode {
+	case InputModeS3:
+		// 生成 24小时有效的签名URL
+		return h.storage.GetPresignedURL(ctx, req.InputBucket, req.InputKey, 24*time.Hour)
+	default:
+		return req.InputURL, nil
+	}
 }
 
 func (h *VideoHandler) buildOptions(s *EncodeSettings) []ffmpeg.OptionFunc {
@@ -253,7 +301,8 @@ func (h *VideoHandler) buildOptions(s *EncodeSettings) []ffmpeg.OptionFunc {
 		opts = append(opts, ffmpeg.WithMaxWidth(s.MaxWidth))
 	}
 	if s.Preset != "" {
-		opts = append(opts, ffmpeg.WithPreset(s.Preset))
+		preset := convertPreset(s.VideoCodec, s.Preset)
+		opts = append(opts, ffmpeg.WithPreset(preset))
 	}
 	if s.CRF > 0 {
 		opts = append(opts, ffmpeg.WithCRF(s.CRF))
@@ -263,4 +312,31 @@ func (h *VideoHandler) buildOptions(s *EncodeSettings) []ffmpeg.OptionFunc {
 	}
 
 	return opts
+}
+
+// convertPreset 根据编码器转换 preset 参数
+// H.264/H.265: ultrafast/fast/medium/slow/veryslow
+// AV1 (libsvtav1): 0-13 (数字字符串)
+func convertPreset(codec, preset string) string {
+	if codec != string(ffmpeg.VideoCodecAV1) {
+		return preset
+	}
+
+	// AV1 preset 映射
+	av1Presets := map[string]string{
+		"ultrafast": "12",
+		"superfast": "11",
+		"veryfast":  "10",
+		"faster":    "9",
+		"fast":      "8",
+		"medium":    "7",
+		"slow":      "5",
+		"slower":    "3",
+		"veryslow":  "1",
+	}
+
+	if v, ok := av1Presets[preset]; ok {
+		return v
+	}
+	return preset
 }

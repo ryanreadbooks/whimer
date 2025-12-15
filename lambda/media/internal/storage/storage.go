@@ -3,17 +3,18 @@ package storage
 import (
 	"context"
 	"io"
-	"os"
+	"net/url"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 type Config struct {
-	Endpoint  string `json:"endpoint"`
-	AccessKey string `json:"accessKey"`
-	SecretKey string `json:"secretKey"`
-	UseSSL    bool   `json:"useSsl"`
+	Endpoint string `json:"endpoint"`
+	Ak       string `json:"ak"`
+	Sk       string `json:"sk"`
+	UseSSL   bool   `json:"useSsl"`
 }
 
 type Storage struct {
@@ -22,7 +23,7 @@ type Storage struct {
 
 func New(c Config) (*Storage, error) {
 	client, err := minio.New(c.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(c.AccessKey, c.SecretKey, ""),
+		Creds:  credentials.NewStaticV4(c.Ak, c.Sk, ""),
 		Secure: c.UseSSL,
 	})
 	if err != nil {
@@ -61,20 +62,11 @@ func (s *Storage) GetObjectURL(bucket, key string) string {
 	return s.client.EndpointURL().String() + "/" + bucket + "/" + key
 }
 
-func (s *Storage) UploadFromOutput(
-	ctx context.Context,
-	bucket, key string,
-	filePath string,
-	reader io.ReadCloser,
-	contentType string,
-) error {
-	if filePath != "" {
-		defer os.Remove(filePath)
-		return s.UploadFile(ctx, bucket, key, filePath, contentType)
+// GetPresignedURL 生成签名 URL，用于临时访问私有对象
+func (s *Storage) GetPresignedURL(ctx context.Context, bucket, key string, expires time.Duration) (string, error) {
+	presignedURL, err := s.client.PresignedGetObject(ctx, bucket, key, expires, url.Values{})
+	if err != nil {
+		return "", err
 	}
-	if reader != nil {
-		defer reader.Close()
-		return s.UploadStream(ctx, bucket, key, reader, contentType)
-	}
-	return nil
+	return presignedURL.String(), nil
 }

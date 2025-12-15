@@ -50,14 +50,6 @@ type ListLikedNotesReq struct {
 	Count  int32
 }
 
-// CreateNoteReq 创建笔记请求
-type CreateNoteReq struct {
-	Basic   *notev1.CreateReqBasic
-	Images  []*notev1.CreateReqImage
-	Tags    *notev1.CreateReqTag
-	AtUsers []*notev1.NoteAtUser
-}
-
 // CreateNoteRes 创建笔记响应
 type CreateNoteRes struct {
 	NoteId imodel.NoteId
@@ -118,4 +110,9 @@ func NoteImagesFromPbs(pbimgs []*notev1.NoteImage) []NoteImage {
 		images = append(images, NoteImageFromPb(pbimg))
 	}
 	return images
+}
+
+// 笔记视频
+type NoteVideo struct {
+	FileId string
 }

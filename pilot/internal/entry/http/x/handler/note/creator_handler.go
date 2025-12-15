@@ -30,7 +30,7 @@ func (h *Handler) handleAssetResource(ctx context.Context, req *CreateReq) (err 
 				Format: img.Format,
 			})
 		}
-		err = h.noteBiz.MarkNoteImages(ctx, images)
+		err = h.noteBiz.CheckAndMarkNoteImages(ctx, images)
 		rollback = func() {
 			concurrent.SimpleSafeGo(
 				ctx,
@@ -40,7 +40,16 @@ func (h *Handler) handleAssetResource(ctx context.Context, req *CreateReq) (err 
 				})
 		}
 	case model.NoteTypeVideo:
-		err = h.noteBiz.CheckNoteVideo(ctx)
+		video := notemodel.NoteVideo{FileId: req.Video.FileId}
+		err = h.noteBiz.CheckAndMarkNoteVideo(ctx, video)
+		rollback = func() {
+			concurrent.SimpleSafeGo(
+				ctx,
+				"note_create_fail_unmark_resources",
+				func(ctx context.Context) error {
+					return h.noteBiz.UnmarkNoteVideo(ctx, video)
+				})
+		}
 	}
 
 	return

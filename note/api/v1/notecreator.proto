@@ -34,10 +34,25 @@ message CreateReqBasic {
 }
 
 message CreateReqImage {
-  string file_id = 1;
-  uint32 width   = 2;
-  uint32 height  = 3;
-  string format  = 4;
+  string file_id = 1 [(buf.validate.field).string.min_len = 1];  // 完整的包含bucket name的fileId
+  uint32 width   = 2 [(buf.validate.field).uint32.gt = 0];
+  uint32 height  = 3 [(buf.validate.field).uint32.gt = 0];
+  string format  = 4 [(buf.validate.field).string.min_len = 1];
+  string bucket  = 5 [(buf.validate.field).string.min_len = 1];  // 额外传一个bucketname
+}
+
+message CreateReqVideo {
+  // 原始文件所处位置 完整的包含bucket的fileId
+  string file_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // file_id所属桶
+  string file_bucket = 2 [(buf.validate.field).string.min_len = 1];
+
+  // 目标文件所处位置 包含bucket
+  string target_file_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // target_file_id所属桶
+  string target_file_bucket = 4 [(buf.validate.field).string.min_len = 1];
 }
 
 message CreateReqTag {
@@ -49,6 +64,7 @@ message CreateNoteRequest {
   repeated CreateReqImage images   = 2;
   CreateReqTag            tags     = 3;
   repeated NoteAtUser     at_users = 4;
+  CreateReqVideo          video    = 5;
 }
 
 message CreateNoteResponse {

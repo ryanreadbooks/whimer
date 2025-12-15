@@ -62,6 +62,14 @@ type Config struct {
 	ImgProxyAuth imgproxy.Auth `json:"img_proxy_auth"`
 }
 
+func (c *Config) GetUploadResourceBucket(resource uploadresource.Type) string {
+	return c.UploadResourceDefineMap[resource].Bucket
+}
+
+func (c *Config) GetUploadResourcePrefix(resource uploadresource.Type) string {
+	return c.UploadResourceDefineMap[resource].Prefix
+}
+
 func (c *Config) Init() error {
 	err := c.ImgProxyAuth.Init()
 	if err != nil {

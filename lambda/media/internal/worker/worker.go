@@ -31,8 +31,8 @@ func NewWorker(c *config.Config) (*Worker, error) {
 	}
 	ff := ffmpeg.New(ffOpts...)
 
-	processor := ffmpeg.NewProcessor(ff, store, c.Video.UseStream)
-	videoHandler := NewVideoHandler(processor)
+	processor := ffmpeg.NewProcessor(ff, store)
+	videoHandler := NewVideoHandler(processor, store)
 
 	opts := worker.Options{
 		HostConf:    c.Conductor,

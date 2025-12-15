@@ -43,24 +43,36 @@ func (s *NoteCreatorServiceServer) IsNoteExist(ctx context.Context, in *notev1.I
 	return &notev1.IsNoteExistResponse{Exist: ok}, nil
 }
 
-// 创建笔记
-func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.CreateNoteRequest) (
-	*notev1.CreateNoteResponse, error) {
-	if in == nil {
-		return nil, global.ErrNilReq
+func convertToNoteAssets(in *notev1.CreateNoteRequest) ([]biz.CreateNoteRequestImage, *biz.CreateNoteRequestVideo) {
+	var (
+		images = make([]biz.CreateNoteRequestImage, 0, len(in.GetImages()))
+		video  *biz.CreateNoteRequestVideo
+	)
+	if in.Basic.GetAssetType() == notev1.NoteAssetType_IMAGE {
+		for _, img := range in.GetImages() {
+			images = append(images, biz.CreateNoteRequestImage{
+				FileId: img.GetFileId(),
+				Width:  img.GetWidth(),
+				Height: img.GetHeight(),
+				Format: img.GetFormat(),
+				Bucket: img.GetBucket(),
+			})
+		}
+	} else if in.Basic.GetAssetType() == notev1.NoteAssetType_VIDEO {
+		video = &biz.CreateNoteRequestVideo{
+			FileId:       in.GetVideo().GetFileId(),
+			TargetFileId: in.GetVideo().GetTargetFileId(),
+			Bucket:       in.GetVideo().GetFileBucket(),
+			TargetBucket: in.GetVideo().GetTargetFileBucket(),
+		}
 	}
 
-	images := make([]biz.CreateNoteRequestImage, 0, len(in.Images))
-	for _, img := range in.Images {
-		images = append(images, biz.CreateNoteRequestImage{
-			FileId: img.FileId,
-			Width:  img.Width,
-			Height: img.Height,
-			Format: img.Format,
-		})
-	}
+	return images, video
+}
 
-	var req = biz.CreateNoteRequest{
+func convertToNoteCreateReq(in *notev1.CreateNoteRequest) *biz.CreateNoteRequest {
+	images, video := convertToNoteAssets(in)
+	return &biz.CreateNoteRequest{
 		Basic: biz.CreateNoteRequestBasic{
 			Title:    in.Basic.Title,
 			Desc:     in.Basic.Desc,
@@ -70,14 +82,24 @@ func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.Cr
 		Images:  images,
 		TagIds:  in.GetTags().GetTagList(),
 		AtUsers: model.AtUsersFromPb(in.GetAtUsers()),
+		Video:   video,
+	}
+}
+
+// 创建笔记
+func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.CreateNoteRequest) (
+	*notev1.CreateNoteResponse, error) {
+	if in == nil {
+		return nil, global.ErrNilReq
 	}
 
+	var req = convertToNoteCreateReq(in)
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
 
 	// service to create note
-	noteId, err := s.Srv.NoteCreatorSrv.Create(ctx, &req)
+	noteId, err := s.Srv.NoteCreatorSrv.Create(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -92,29 +114,9 @@ func (s *NoteCreatorServiceServer) UpdateNote(ctx context.Context, in *notev1.Up
 		return nil, global.ErrNilReq
 	}
 
-	images := make([]biz.CreateNoteRequestImage, 0, len(in.Note.Images))
-	for _, img := range in.Note.Images {
-		images = append(images, biz.CreateNoteRequestImage{
-			FileId: img.FileId,
-			Width:  img.Width,
-			Height: img.Height,
-			Format: img.Format,
-		})
-	}
-
 	var req = biz.UpdateNoteRequest{
-		NoteId: in.NoteId,
-		CreateNoteRequest: biz.CreateNoteRequest{
-			Basic: biz.CreateNoteRequestBasic{
-				Title:    in.Note.Basic.Title,
-				Desc:     in.Note.Basic.Desc,
-				Privacy:  model.Privacy(in.Note.Basic.Privacy),
-				NoteType: model.NoteType(in.Note.Basic.AssetType),
-			},
-			Images:  images,
-			TagIds:  in.GetNote().GetTags().GetTagList(),
-			AtUsers: model.AtUsersFromPb(in.GetNote().GetAtUsers()),
-		},
+		NoteId:            in.NoteId,
+		CreateNoteRequest: *convertToNoteCreateReq(in.GetNote()),
 	}
 
 	if err := req.Validate(); err != nil {
