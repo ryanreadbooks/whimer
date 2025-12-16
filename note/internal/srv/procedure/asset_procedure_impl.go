@@ -2,12 +2,15 @@ package procedure
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 
 	conductor "github.com/ryanreadbooks/whimer/conductor/pkg/sdk/producer"
 	sdktask "github.com/ryanreadbooks/whimer/conductor/pkg/sdk/task"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
+	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 	"github.com/ryanreadbooks/whimer/note/internal/srv/assetprocess"
@@ -69,11 +72,12 @@ func (p *AssetProcedure) Execute(ctx context.Context, note *model.Note) (string,
 	return "", nil
 }
 
+// 返回的note只有basic信息 没有额外信息
 func (p *AssetProcedure) upgradeStateCheck(
 	ctx context.Context,
 	noteId int64,
 	state model.NoteState,
-) (abort bool) {
+) (note *model.Note, abort bool) {
 	note, err := p.noteBiz.GetNoteWithoutCache(ctx, noteId)
 	if err != nil {
 		xlog.Msg("asset procedure get note failed, try to update state without checking").
@@ -82,21 +86,26 @@ func (p *AssetProcedure) upgradeStateCheck(
 			Errorx(ctx)
 	}
 
-	// 已经有了最新状态了 可能已经被更新
-	if note != nil && note.State > state {
-		return true
+	if errors.Is(err, global.ErrNoteNotFound) {
+		return nil, true
 	}
 
-	return false
+	if note != nil && note.State > state {
+		// 已经有了最新状态了 可能已经被更新
+		return nil, true
+	}
+
+	return note, false
 }
 
 func (p *AssetProcedure) OnSuccess(
 	ctx context.Context,
 	noteId int64,
 	taskId string,
+	arg any,
 ) (bool, error) {
 	// 简单幂等保证
-	abort := p.upgradeStateCheck(ctx, noteId, model.NoteStateProcessed)
+	note, abort := p.upgradeStateCheck(ctx, noteId, model.NoteStateProcessed)
 	if abort {
 		return true, nil
 	}
@@ -107,8 +116,43 @@ func (p *AssetProcedure) OnSuccess(
 			WithCtx(ctx)
 	}
 
+	var state = make(map[string]bool)
+
+	// 如果视频资源此时需要更新视频资源的metadata
+	if note != nil && note.Type == model.AssetTypeVideo {
+		metadata, ok := arg.([]*model.VideoAssetMetadata)
+		if ok {
+			metaMap := make(map[string][]byte)
+			state["meta_type_asset"] = true
+			for _, meta := range metadata {
+				metaBytes, err := json.Marshal(meta.Info)
+				if err != nil {
+					xlog.Msg("asset procedure on success failed to marshal video asset metadata").
+						Err(err).
+						Extra("noteId", noteId).
+						Extra("meta", meta).
+						Errorx(ctx)
+					continue
+				}
+				metaMap[meta.Key] = metaBytes
+			}
+
+			// 更新video asset metadata
+			err := p.noteCreatorBiz.BatchUpdateAssetMeta(ctx, noteId, metaMap)
+			if err != nil {
+				// 次要信息 可以仅打印日志
+				xlog.Msg("asset procedure on success failed to batch update video asset metadata").
+					Err(err).
+					Extra("noteId", noteId).
+					Errorx(ctx)
+			} else {
+				state["meta_updated"] = true
+			}
+		}
+	}
+
 	xlog.Msg("asset procedure on success completed").
-		Extras("taskId", taskId, "noteId", noteId).
+		Extras("taskId", taskId, "noteId", noteId, "state", state).
 		Infox(ctx)
 
 	return true, nil
@@ -118,9 +162,10 @@ func (p *AssetProcedure) OnFailure(
 	ctx context.Context,
 	noteId int64,
 	taskId string,
+	arg any,
 ) (bool, error) {
 	// 简单幂等保证
-	abort := p.upgradeStateCheck(ctx, noteId, model.NoteStateProcessFailed)
+	_, abort := p.upgradeStateCheck(ctx, noteId, model.NoteStateProcessFailed)
 	if abort {
 		return true, nil
 	}
@@ -138,20 +183,20 @@ func (p *AssetProcedure) OnFailure(
 	return true, nil
 }
 
-func (p *AssetProcedure) PollResult(ctx context.Context, taskId string) (PollState, error) {
+func (p *AssetProcedure) PollResult(ctx context.Context, taskId string) (PollState, any, error) {
 	task, err := p.conductorProducer.GetTask(ctx, taskId)
 	if err != nil {
-		return PollStateRunning, xerror.Wrapf(err, "asset procedure poll result failed").
+		return PollStateRunning, nil, xerror.Wrapf(err, "asset procedure poll result failed").
 			WithExtra("task_id", taskId).
 			WithCtx(ctx)
 	}
 	switch task.State {
 	case sdktask.TaskStateSuccess:
-		return PollStateSuccess, nil
+		return PollStateSuccess, task.OutputArgs, nil
 	case sdktask.TaskStateFailure:
-		return PollStateFailure, nil
+		return PollStateFailure, task.OutputArgs, nil
 	default:
-		return PollStateRunning, nil
+		return PollStateRunning, nil, nil
 	}
 }
 
@@ -185,10 +230,10 @@ func (p *AssetProcedure) AutoComplete(
 	ctx context.Context,
 	note *model.Note,
 	taskId string,
-) (success, autoComplete bool) {
+) (success, autoComplete bool, arg any) {
 	if note.Type == model.AssetTypeImage {
-		return true, true
+		return true, true, nil
 	}
 
-	return false, false
+	return false, false, nil
 }

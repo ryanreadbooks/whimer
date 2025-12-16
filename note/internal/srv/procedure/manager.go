@@ -250,51 +250,46 @@ func (m *Manager) Confirm(
 	return nil
 }
 
+// CompleteResult 完成流程的入参
+type CompleteResult struct {
+	NoteId  int64
+	Protype model.ProcedureType
+	TaskId  string
+	Success bool
+	Arg     any
+}
+
 // Complete 完成流程（成功或失败）
-func (m *Manager) Complete(
-	ctx context.Context,
-	noteId int64,
-	protype model.ProcedureType,
-	taskId string,
-	success bool,
-) error {
-	proc, ok := m.registry.Get(protype)
+func (m *Manager) Complete(ctx context.Context, result *CompleteResult) error {
+	proc, ok := m.registry.Get(result.Protype)
 	if !ok {
-		return xerror.Wrap(ErrProcedureNotRegistered).WithExtra("protype", protype).WithCtx(ctx)
+		return xerror.Wrap(ErrProcedureNotRegistered).WithExtra("protype", result.Protype).WithCtx(ctx)
 	}
 
-	if success {
-		return m.handleSuccess(ctx, noteId, protype, taskId, proc)
+	if result.Success {
+		return m.handleSuccess(ctx, result, proc)
 	}
 
 	// 失败就不处理流水线流转
-	return m.handleFailure(ctx, noteId, protype, taskId, proc)
+	return m.handleFailure(ctx, result, proc)
 }
 
 func (m *Manager) handleFailure(
 	ctx context.Context,
-	noteId int64,
-	protype model.ProcedureType,
-	taskId string,
+	result *CompleteResult,
 	proc Procedure,
 ) error {
-	return m.txHelper.txHandleFailure(ctx, noteId, taskId, protype, proc.OnFailure)
+	return m.txHelper.txHandleFailure(ctx, result, proc.OnFailure)
 }
 
-func (m *Manager) handleSuccess(
-	ctx context.Context,
-	noteId int64,
-	protype model.ProcedureType,
-	taskId string,
-	proc Procedure,
-) error {
-	err := m.txHelper.txHandleSuccess(ctx, noteId, taskId, protype, proc.OnSuccess)
+func (m *Manager) handleSuccess(ctx context.Context, result *CompleteResult, proc Procedure) error {
+	err := m.txHelper.txHandleSuccess(ctx, result, proc.OnSuccess)
 	if err != nil {
 		return xerror.Wrap(err)
 	}
 
 	// 成功后需要将流水线流转到下一个流程
-	nextProcType := m.pipeline.nextOf(protype)
+	nextProcType := m.pipeline.nextOf(result.Protype)
 	if nextProcType != "" {
 		// 启动流水线的下一个流程
 		concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
@@ -302,16 +297,16 @@ func (m *Manager) handleSuccess(
 			InheritCtxCancel: false,
 			LogOnError:       true,
 			Job: func(ctx context.Context) error {
-				curNote, err := m.noteBiz.GetNoteWithoutCache(ctx, noteId)
+				curNote, err := m.noteBiz.GetNoteWithoutCache(ctx, result.NoteId)
 				if err != nil {
 					return xerror.Wrapf(err, "procedure manager get note without cache failed").
-						WithExtra("note_id", noteId).
+						WithExtra("note_id", result.NoteId).
 						WithCtx(ctx)
 				}
 				proceed, err := m.RunPipeline(ctx, curNote, nextProcType)
 				if err != nil {
 					return xerror.Wrapf(err, "procedure manager run pipeline failed").
-						WithExtra("note_id", noteId).
+						WithExtra("note_id", result.NoteId).
 						WithExtra("next_stage", nextProcType).
 						WithCtx(ctx)
 				}
@@ -325,12 +320,24 @@ func (m *Manager) handleSuccess(
 	return nil
 }
 
-func (m *Manager) CompleteAssetSuccess(ctx context.Context, noteId int64, taskId string) error {
-	return m.Complete(ctx, noteId, model.ProcedureTypeAssetProcess, taskId, true)
+func (m *Manager) CompleteAssetSuccess(ctx context.Context, noteId int64, taskId string, arg any) error {
+	return m.Complete(ctx, &CompleteResult{
+		NoteId:  noteId,
+		Protype: model.ProcedureTypeAssetProcess,
+		TaskId:  taskId,
+		Success: true,
+		Arg:     arg,
+	})
 }
 
-func (m *Manager) CompleteAssetFailure(ctx context.Context, noteId int64, taskId string) error {
-	return m.Complete(ctx, noteId, model.ProcedureTypeAssetProcess, taskId, false)
+func (m *Manager) CompleteAssetFailure(ctx context.Context, noteId int64, taskId string, arg any) error {
+	return m.Complete(ctx, &CompleteResult{
+		NoteId:  noteId,
+		Protype: model.ProcedureTypeAssetProcess,
+		TaskId:  taskId,
+		Success: false,
+		Arg:     arg,
+	})
 }
 
 // StartRetryLoop 启动后台重试循环
@@ -633,9 +640,15 @@ func (m *Manager) autoCompleteIfNeeded(
 		return
 	}
 	if proc, ok := proc.(AutoCompleter); ok {
-		success, autoComplete := proc.AutoComplete(ctx, note, taskId)
+		success, autoComplete, arg := proc.AutoComplete(ctx, note, taskId)
 		if autoComplete {
-			m.Complete(ctx, note.NoteId, protype, taskId, success)
+			m.Complete(ctx, &CompleteResult{
+				NoteId:  note.NoteId,
+				Protype: protype,
+				TaskId:  taskId,
+				Success: success,
+				Arg:     arg,
+			})
 		}
 	}
 }

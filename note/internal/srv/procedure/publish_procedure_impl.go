@@ -46,16 +46,16 @@ func (p *PublishProcedure) Execute(ctx context.Context, note *model.Note) (strin
 	return "", nil
 }
 
-func (p *PublishProcedure) OnSuccess(ctx context.Context, noteId int64, taskId string) (bool, error) {
+func (p *PublishProcedure) OnSuccess(ctx context.Context, noteId int64, taskId string, arg any) (bool, error) {
 	return false, nil
 }
 
-func (p *PublishProcedure) OnFailure(ctx context.Context, noteId int64, taskId string) (bool, error) {
+func (p *PublishProcedure) OnFailure(ctx context.Context, noteId int64, taskId string, arg any) (bool, error) {
 	return false, nil
 }
 
-func (p *PublishProcedure) PollResult(ctx context.Context, taskId string) (PollState, error) {
-	return PollStateSuccess, nil
+func (p *PublishProcedure) PollResult(ctx context.Context, taskId string) (PollState, any, error) {
+	return PollStateSuccess, nil, nil
 }
 
 func (p *PublishProcedure) Retry(ctx context.Context, record *biz.ProcedureRecord) error {

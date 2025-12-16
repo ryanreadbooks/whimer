@@ -47,7 +47,7 @@ func (p *AuditProcedure) Execute(ctx context.Context, note *model.Note) (string,
 	return "", nil
 }
 
-func (p *AuditProcedure) OnSuccess(ctx context.Context, noteId int64, taskId string) (bool, error) {
+func (p *AuditProcedure) OnSuccess(ctx context.Context, noteId int64, taskId string, arg any) (bool, error) {
 	// TODO 审核通过 设置状态为 AuditPassed
 	err := p.noteCreatorBiz.TransferNoteStateToAuditPassed(ctx, noteId)
 	if err != nil {
@@ -58,7 +58,7 @@ func (p *AuditProcedure) OnSuccess(ctx context.Context, noteId int64, taskId str
 	return true, nil
 }
 
-func (p *AuditProcedure) OnFailure(ctx context.Context, noteId int64, taskId string) (bool, error) {
+func (p *AuditProcedure) OnFailure(ctx context.Context, noteId int64, taskId string, arg any) (bool, error) {
 	// TODO 审核不通过 设置状态为 Rejected
 	err := p.noteCreatorBiz.TransferNoteStateToRejected(ctx, noteId)
 	if err != nil {
@@ -69,9 +69,9 @@ func (p *AuditProcedure) OnFailure(ctx context.Context, noteId int64, taskId str
 	return true, nil
 }
 
-func (p *AuditProcedure) PollResult(ctx context.Context, taskId string) (PollState, error) {
+func (p *AuditProcedure) PollResult(ctx context.Context, taskId string) (PollState, any, error) {
 	// TODO 轮询审核结果
-	return PollStateSuccess, nil
+	return PollStateSuccess, nil, nil
 }
 
 func (p *AuditProcedure) Retry(ctx context.Context, record *biz.ProcedureRecord) error {
@@ -86,6 +86,6 @@ func (p *AuditProcedure) AutoComplete(
 	ctx context.Context,
 	note *model.Note,
 	taskId string,
-) (success, autoComplete bool) {
-	return true, true
+) (success, autoComplete bool, arg any) {
+	return true, true, nil
 }

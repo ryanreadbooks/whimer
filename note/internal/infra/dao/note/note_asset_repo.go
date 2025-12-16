@@ -4,24 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	uslices "github.com/ryanreadbooks/whimer/misc/xslice"
+	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
-)
 
-// all sqls here
-const (
-	sqlFindAllById    = `SELECT id,asset_key,asset_type,note_id,create_at,asset_meta FROM note_asset WHERE id=?`
-	sqlInsert         = `INSERT INTO note_asset(asset_key,asset_type,note_id,create_at,asset_meta) VALUES (?,?,?,?,?)`
-	sqlDeleteByNoteId = `DELETE FROM note_asset WHERE note_id=?`
-	sqlBatchInsert    = `INSERT INTO note_asset(asset_key,asset_type,note_id,create_at,asset_meta) VALUES %s`
-	sqlFindByNoteIds  = `SELECT id,asset_key,asset_type,note_id,create_at,asset_meta FROM note_asset WHERE note_id in (%s)`
-
-	sqlFindImageByNoteId          = `SELECT id,asset_key,asset_type,note_id,create_at,asset_meta FROM note_asset WHERE note_id=? AND asset_type=1 FOR UPDATE`
-	sqlExcludeDeleteImageByNoteId = `DELETE FROM note_asset WHERE note_id=? AND asset_type=1`
+	"github.com/huandu/go-sqlbuilder"
 )
 
 // NoteAssetRepo 笔记资源数据库仓储 - 纯数据库操作
@@ -35,6 +24,10 @@ func NewNoteAssetRepo(db *xsql.DB) *NoteAssetRepo {
 	}
 }
 
+const (
+	assetTable = "note_asset"
+)
+
 type AssetPO struct {
 	Id        int64           `db:"id"`
 	AssetKey  string          `db:"asset_key"`  // 资源key 包含bucket name
@@ -44,122 +37,171 @@ type AssetPO struct {
 	AssetMeta []byte          `db:"asset_meta"` // 资源的元数据 存储格式为一个json字符串
 }
 
+func (p *AssetPO) Values() []any {
+	return []any{
+		p.Id,
+		p.AssetKey,
+		p.AssetType,
+		p.NoteId,
+		p.CreateAt,
+		p.AssetMeta,
+	}
+}
+
+var (
+	assetFields    = xsql.GetFieldSlice(&AssetPO{})
+	assetInsFields = xsql.GetFieldSlice(&AssetPO{}, "id")
+)
+
+func (p *AssetPO) InsertValues() []any {
+	var assetMeta []byte = p.AssetMeta
+	if assetMeta == nil {
+		assetMeta = []byte{}
+	}
+	return []any{
+		p.AssetKey,
+		p.AssetType,
+		p.NoteId,
+		p.CreateAt,
+		assetMeta,
+	}
+}
+
 func (r *NoteAssetRepo) FindOne(ctx context.Context, id int64) (*AssetPO, error) {
 	model := new(AssetPO)
-	err := r.db.QueryRowCtx(ctx, model, sqlFindAllById, id)
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select(assetFields...).From(assetTable).Where(sb.Equal("id", id))
+	sql, args := sb.Build()
+	err := r.db.QueryRowCtx(ctx, model, sql, args...)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
 	return model, nil
 }
 
-func (r *NoteAssetRepo) insert(ctx context.Context, asset *AssetPO) error {
-	var (
-		assetMeta []byte = asset.AssetMeta
-	)
-	if assetMeta == nil {
-		assetMeta = []byte{}
-	}
-	now := time.Now().Unix()
-	_, err := r.db.ExecCtx(ctx, sqlInsert,
-		asset.AssetKey,
-		asset.AssetType,
-		asset.NoteId,
-		now,
-		assetMeta)
-
-	return xerror.Wrap(xsql.ConvertError(err))
-}
-
+// 单条插入
 func (r *NoteAssetRepo) Insert(ctx context.Context, asset *AssetPO) error {
-	return r.insert(ctx, asset)
-}
+	ib := sqlbuilder.NewInsertBuilder()
+	ib.InsertInto(assetTable)
+	ib.Cols(assetInsFields...)
+	ib.Values(asset.Values()...)
+	sql, args := ib.Build()
 
-func (r *NoteAssetRepo) findImageByNoteId(ctx context.Context, noteId int64) ([]*AssetPO, error) {
-	res := make([]*AssetPO, 0)
-	err := r.db.QueryRowsCtx(ctx, &res, sqlFindImageByNoteId, noteId)
-	if err != nil {
-		return nil, xerror.Wrap(xsql.ConvertError(err))
-	}
-	return res, nil
-}
-
-func (r *NoteAssetRepo) FindImageByNoteId(ctx context.Context, noteId int64) ([]*AssetPO, error) {
-	return r.findImageByNoteId(ctx, noteId)
-}
-
-func (r *NoteAssetRepo) deleteByNoteId(ctx context.Context, noteId int64) error {
-	_, err := r.db.ExecCtx(ctx, sqlDeleteByNoteId, noteId)
-	return xerror.Wrap(xsql.ConvertError(err))
-}
-
-func (r *NoteAssetRepo) DeleteByNoteId(ctx context.Context, noteId int64) error {
-	return r.deleteByNoteId(ctx, noteId)
-}
-
-func (r *NoteAssetRepo) excludeDeleteImageByNoteId(ctx context.Context, noteId int64, assetKeys []string) error {
-	var alen = len(assetKeys)
-	var args []any = make([]any, 0, alen)
-	args = append(args, noteId)
-
-	query := sqlExcludeDeleteImageByNoteId
-	if alen != 0 {
-		var tmpl string
-		for i, ask := range assetKeys {
-			tmpl += "?"
-			args = append(args, ask)
-			if i != alen-1 {
-				tmpl += ","
-			}
-		}
-		query += fmt.Sprintf(" AND `asset_key` NOT IN (%s)", tmpl)
-	}
-	_, err := r.db.ExecCtx(ctx, query, args...)
+	_, err := r.db.ExecCtx(ctx, sql, args...)
 
 	return xerror.Wrap(xsql.ConvertError(err))
 }
-func (r *NoteAssetRepo) ExcludeDeleteImageByNoteId(ctx context.Context, noteId int64, assetKeys []string) error {
-	return r.excludeDeleteImageByNoteId(ctx, noteId, assetKeys)
-}
 
-func (r *NoteAssetRepo) batchInsert(ctx context.Context, assets []*AssetPO) error {
+// 批量插入
+func (r *NoteAssetRepo) BatchInsert(ctx context.Context, assets []*AssetPO) error {
 	if len(assets) == 0 {
 		return nil
 	}
 
-	tmpl := "(?, ?, ?, ?, ?)"
-	var builder strings.Builder
-	var args []any = make([]any, 0, len(assets)*4)
-	for i, data := range assets {
-		builder.WriteString(tmpl)
-		var assetMeta []byte = data.AssetMeta
-		if assetMeta == nil {
-			assetMeta = []byte{}
-		}
-		args = append(args, data.AssetKey, data.AssetType, data.NoteId, data.CreateAt, assetMeta)
-		if i != len(assets)-1 {
-			builder.WriteByte(',')
-		}
+	ib := sqlbuilder.NewInsertBuilder()
+	ib.InsertInto(assetTable)
+	ib.Cols(assetInsFields...)
+	for _, data := range assets {
+		ib.Values(data.InsertValues()...)
 	}
-
-	// insert into %s (%s) values (?,?,?,?,?),(?,?,?,?,?)
-	query := fmt.Sprintf(sqlBatchInsert, builder.String())
-	_, err := r.db.ExecCtx(ctx, query, args...)
+	sql, args := ib.Build()
+	_, err := r.db.ExecCtx(ctx, sql, args...)
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteAssetRepo) BatchInsert(ctx context.Context, assets []*AssetPO) error {
-	return r.batchInsert(ctx, assets)
-}
-func (r *NoteAssetRepo) FindByNoteIds(ctx context.Context, noteIds []int64) ([]*AssetPO, error) {
-	if len(noteIds) == 0 {
-		return []*AssetPO{}, nil
-	}
-	query := fmt.Sprintf(sqlFindByNoteIds, uslices.JoinInts(noteIds))
+func (r *NoteAssetRepo) FindByNoteIdForUpdate(ctx context.Context, noteId int64, assetType model.AssetType) ([]*AssetPO, error) {
 	res := make([]*AssetPO, 0)
-	err := r.db.QueryRowsCtx(ctx, &res, query)
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select(assetFields...).
+		From(assetTable).
+		Where(
+			sb.Equal("note_id", noteId),
+			sb.Equal("asset_type", assetType),
+		).ForUpdate()
+	sql, args := sb.Build()
+	err := r.db.QueryRowsCtx(ctx, &res, sql, args...)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
 	return res, nil
+}
+
+func (r *NoteAssetRepo) DeleteByNoteId(ctx context.Context, noteId int64) error {
+	sb := sqlbuilder.NewDeleteBuilder()
+	sb.DeleteFrom(assetTable)
+	sb.Where(sb.Equal("note_id", noteId))
+	sql, args := sb.Build()
+	_, err := r.db.ExecCtx(ctx, sql, args...)
+	return xerror.Wrap(xsql.ConvertError(err))
+}
+
+func (r *NoteAssetRepo) ExcludeDeleteByNoteId(ctx context.Context, noteId int64, assetKeys []string, assetType model.AssetType) error {
+	sb := sqlbuilder.NewDeleteBuilder()
+	sb.DeleteFrom(assetTable)
+	sb.Where(sb.Equal("note_id", noteId), sb.Equal("asset_type", assetType))
+	if len(assetKeys) != 0 {
+		sb.Where(sb.NotIn("asset_key", xslice.Any(assetKeys)...))
+	}
+
+	sql, args := sb.Build()
+	_, err := r.db.ExecCtx(ctx, sql, args...)
+	return xerror.Wrap(xsql.ConvertError(err))
+}
+
+func (r *NoteAssetRepo) FindByNoteIds(ctx context.Context, noteIds []int64) ([]*AssetPO, error) {
+	if len(noteIds) == 0 {
+		return []*AssetPO{}, nil
+	}
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select(assetFields...).From(assetTable).Where(sb.In("note_id", xslice.Any(noteIds)...))
+	sql, args := sb.Build()
+	res := make([]*AssetPO, 0)
+	err := r.db.QueryRowsCtx(ctx, &res, sql, args...)
+	if err != nil {
+		return nil, xerror.Wrap(xsql.ConvertError(err))
+	}
+	return res, nil
+}
+
+// 批量更新asset_meta
+func (r *NoteAssetRepo) BatchUpdateAssetMeta(ctx context.Context, noteId int64, metas map[string][]byte) error {
+	if len(metas) == 0 {
+		return nil
+	}
+
+	//	UPDATE note_asset SET asset_meta = CASE asset_key
+	//	  WHEN ? THEN ?
+	//	  WHEN ? THEN ?
+	//	  ELSE asset_meta
+	//	END
+	//	WHERE note_id = ? AND asset_key IN (?, ?)
+	var (
+		whens        []string
+		args         []any
+		placeholders []string
+		keys         []string // 保证顺序一致
+	)
+
+	for assetKey, assetMeta := range metas {
+		whens = append(whens, "WHEN ? THEN ?")
+		args = append(args, assetKey, assetMeta)
+		placeholders = append(placeholders, "?")
+		keys = append(keys, assetKey)
+	}
+
+	// 添加 note_id 和 asset_keys
+	args = append(args, noteId)
+	for _, key := range keys {
+		args = append(args, key)
+	}
+
+	sql := fmt.Sprintf(
+		"UPDATE %s SET asset_meta = CASE asset_key %s ELSE asset_meta END WHERE note_id = ? AND asset_key IN (%s)",
+		assetTable,
+		strings.Join(whens, " "),
+		strings.Join(placeholders, ", "),
+	)
+
+	_, err := r.db.ExecCtx(ctx, sql, args...)
+	return xerror.Wrap(xsql.ConvertError(err))
 }

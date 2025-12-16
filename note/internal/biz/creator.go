@@ -45,28 +45,8 @@ func isNoteExtValid(ext *notedao.ExtPO) bool {
 	return false
 }
 
-func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *CreateNoteRequest) (*model.Note, error) {
-	var (
-		uid    = metadata.Uid(ctx)
-		ip     = xnet.IpAsBytes(metadata.ClientIp(ctx))
-		noteId int64
-	)
-
+func assignNoteAssets(newNote *model.Note, req *CreateNoteRequest) []*notedao.AssetPO {
 	now := time.Now().Unix()
-	newNotePO := &notedao.NotePO{
-		Title:    req.Basic.Title,
-		Desc:     req.Basic.Desc,
-		Privacy:  req.Basic.Privacy,
-		NoteType: req.Basic.NoteType,
-		State:    model.NoteStateInit,
-		Owner:    uid,
-		Ip:       ip,
-		CreateAt: now,
-		UpdateAt: now,
-	}
-
-	newNote := convert.NoteFromDao(newNotePO)
-
 	var noteAssets []*notedao.AssetPO
 	switch req.Basic.NoteType {
 	case model.AssetTypeImage:
@@ -112,6 +92,31 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *CreateNoteRequest)
 		newNote.Videos.SetRawBucket(req.Video.Bucket)
 	}
 
+	return noteAssets
+}
+
+func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *CreateNoteRequest) (*model.Note, error) {
+	var (
+		uid    = metadata.Uid(ctx)
+		ip     = xnet.IpAsBytes(metadata.ClientIp(ctx))
+		noteId int64
+	)
+
+	now := time.Now().Unix()
+	newNotePO := &notedao.NotePO{
+		Title:    req.Basic.Title,
+		Desc:     req.Basic.Desc,
+		Privacy:  req.Basic.Privacy,
+		NoteType: req.Basic.NoteType,
+		State:    model.NoteStateInit,
+		Owner:    uid,
+		Ip:       ip,
+		CreateAt: now,
+		UpdateAt: now,
+	}
+
+	newNote := convert.NoteFromDao(newNotePO)
+	noteAssets := assignNoteAssets(newNote, req)
 	var ext = notedao.ExtPO{
 		AtUsers: json.RawMessage{},
 	}
@@ -131,7 +136,6 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *CreateNoteRequest)
 		for _, a := range noteAssets {
 			a.NoteId = noteId
 		}
-
 		// 插入笔记资源数据
 		errTx = b.data.NoteAsset.BatchInsert(ctx, noteAssets)
 		if errTx != nil {
@@ -202,7 +206,7 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *UpdateNoteRequest)
 		Desc:     req.Basic.Desc,
 		Privacy:  req.Basic.Privacy,
 		NoteType: oldNote.NoteType,
-		State:    model.NoteStateInit, // 更新后需要重新走流程
+		State:    model.NoteStateInit, // 更新后需要重新走流程 ? 还是可以在特定阶段重新开始
 		CreateAt: oldNote.CreateAt,
 		UpdateAt: now,
 		Owner:    oldNote.Owner,
@@ -247,7 +251,7 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *UpdateNoteRequest)
 
 	// 随后删除旧资源
 	// 删除除了newAssetKeys之外的其它
-	err = b.data.NoteAsset.ExcludeDeleteImageByNoteId(ctx, newNotePO.Id, newAssetKeys)
+	err = b.data.NoteAsset.DeleteImageByNoteIdExcept(ctx, newNotePO.Id, newAssetKeys)
 	if err != nil {
 		return xerror.Wrapf(err, "noteasset dao delete tx failed")
 	}
@@ -562,4 +566,13 @@ func (b *NoteCreatorBiz) TransferNoteStateToRejected(ctx context.Context, noteId
 // 设置笔记状态为被封禁
 func (b *NoteCreatorBiz) TransferNoteStateToBanned(ctx context.Context, noteId int64) error {
 	return b.upgradeNoteState(ctx, noteId, model.NoteStateBanned)
+}
+
+func (b *NoteCreatorBiz) BatchUpdateAssetMeta(ctx context.Context, noteId int64, metas map[string][]byte) error {
+	err := b.data.NoteAsset.BatchUpdateAssetMeta(ctx, noteId, metas)
+	if err != nil {
+		return xerror.Wrapf(err, "note asset dao failed to batch update asset meta").
+			WithExtra("noteId", noteId).WithCtx(ctx)
+	}
+	return nil
 }

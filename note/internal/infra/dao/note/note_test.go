@@ -14,6 +14,7 @@ import (
 var (
 	noteRepo    *NoteRepo
 	noteExtRepo *NoteExtRepo
+	noteAssetRepo *NoteAssetRepo
 	ctx         = context.TODO()
 	testDb      *xsql.DB
 )
@@ -30,6 +31,7 @@ func TestMain(m *testing.M) {
 	testDb = db
 	noteRepo = NewNoteRepo(db)
 	noteExtRepo = NewNoteExtRepo(db)
+	noteAssetRepo = NewNoteAssetRepo(db)
 	m.Run()
 }
 

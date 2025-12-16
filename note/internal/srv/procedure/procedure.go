@@ -42,21 +42,25 @@ type Procedure interface {
 	// 会在本地事务中执行
 	//
 	// 返回true表示需要更新记录状态
-	OnSuccess(ctx context.Context, noteId int64, taskId string) (bool, error)
+	//
+	// arg为执行结果
+	OnSuccess(ctx context.Context, noteId int64, taskId string, arg any) (bool, error)
 
 	// OnFailure 流程失败处理 更新笔记状态、记录状态等
 	//
 	// 会在本地事务中执行
 	//
 	// 返回true表示需要更新记录状态
-	OnFailure(ctx context.Context, noteId int64, taskId string) (bool, error)
+	//
+	// arg为执行结果 当因为重试次数满导致失败时传入的arg为nil
+	OnFailure(ctx context.Context, noteId int64, taskId string, arg any) (bool, error)
 
 	// PollResult 主动轮询任务结果
 	//
 	// 用于后台重试时检查已提交任务的状态
 	//
 	// 返回: PollStateSuccess/PollStateFailure/PollStateRunning
-	PollResult(ctx context.Context, taskId string) (PollState, error)
+	PollResult(ctx context.Context, taskId string) (PollState, any, error)
 
 	// Retry 重试流程
 	//
@@ -71,5 +75,5 @@ type AutoCompleter interface {
 	//
 	// success: true=OnSuccess, false=OnFailure
 	// autoComplete: true=自动完成, false=不需要自动完成
-	AutoComplete(ctx context.Context, note *model.Note, taskId string) (success, autoComplete bool)
+	AutoComplete(ctx context.Context, note *model.Note, taskId string) (success, autoComplete bool, arg any)
 }

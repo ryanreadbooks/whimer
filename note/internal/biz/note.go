@@ -41,6 +41,9 @@ func (b *NoteBiz) GetNoteType(ctx context.Context, noteId int64) (model.NoteType
 func (b *NoteBiz) GetNoteWithoutCache(ctx context.Context, noteId int64) (*model.Note, error) {
 	note, err := b.data.Note.FindOne(ctx, noteId, data.WithoutCache())
 	if err != nil {
+		if xsql.IsNoRecord(err) {
+			return nil, global.ErrNoteNotFound
+		}
 		return nil, xerror.Wrapf(err, "biz find one note failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
@@ -362,3 +365,4 @@ func (b *NoteBiz) BatchGetTag(ctx context.Context, tagIds []int64) (map[int64]*m
 
 	return res, nil
 }
+

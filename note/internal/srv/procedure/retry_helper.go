@@ -11,8 +11,8 @@ import (
 )
 
 type retryExecuteFunc func(ctx context.Context, note *model.Note) (taskId string, err error)
-type retryPollResultFunc func(ctx context.Context, taskId string) (PollState, error)
-type onCompleteFunc func(ctx context.Context, noteId int64, taskId string) (bool, error)
+type retryPollResultFunc func(ctx context.Context, taskId string) (PollState, any, error)
+type onCompleteFunc func(ctx context.Context, noteId int64, taskId string, arg any) (bool, error)
 
 // procedure的通用重试逻辑
 type retryHelper struct {
@@ -47,7 +47,13 @@ func (h *retryHelper) retry(
 		xlog.Msg("retry helper retry exhausted, mark as failed").
 			Extras("record_id", record.Id, "note_id", record.NoteId, "protype", record.Protype).
 			Infox(ctx)
-		return h.txHelper.txHandleFailure(ctx, record.NoteId, record.TaskId, record.Protype, onFailure)
+		return h.txHelper.txHandleFailure(ctx, &CompleteResult{
+			NoteId:  record.NoteId,
+			Protype: record.Protype,
+			TaskId:  record.TaskId,
+			Success: false,
+			Arg:     nil,
+		}, onFailure)
 	}
 
 	// 不存在 taskId，重新执行任务
@@ -60,7 +66,7 @@ func (h *retryHelper) pollAndComplete(
 	pollFn retryPollResultFunc,
 	onSuccess, onFailure onCompleteFunc,
 ) error {
-	state, err := pollFn(ctx, record.TaskId)
+	state, arg, err := pollFn(ctx, record.TaskId)
 	if err != nil {
 		xlog.Msg("retry helper poll result failed").
 			Err(err).
@@ -69,11 +75,19 @@ func (h *retryHelper) pollAndComplete(
 		return err
 	}
 
+	result := &CompleteResult{
+		NoteId:  record.NoteId,
+		Protype: record.Protype,
+		TaskId:  record.TaskId,
+		Success: state == PollStateSuccess,
+		Arg:     arg,
+	}
+
 	switch state {
 	case PollStateSuccess:
-		return h.txHelper.txHandleSuccess(ctx, record.NoteId, record.TaskId, record.Protype, onSuccess)
+		return h.txHelper.txHandleSuccess(ctx, result, onSuccess)
 	case PollStateFailure:
-		return h.txHelper.txHandleFailure(ctx, record.NoteId, record.TaskId, record.Protype, onFailure)
+		return h.txHelper.txHandleFailure(ctx, result, onFailure)
 	default:
 		// PollStateRunning: 任务仍在运行中，等待下次轮询
 		xlog.Msg("retry helper task still running, skip").
@@ -138,7 +152,13 @@ func (h *retryHelper) handleExecuteFailure(
 
 	// 最后一次重试仍失败，标记流程失败
 	if shouldMarkFailure {
-		return h.txHelper.txHandleFailure(ctx, record.NoteId, record.TaskId, record.Protype, onFailure)
+		return h.txHelper.txHandleFailure(ctx, &CompleteResult{
+			NoteId:  record.NoteId,
+			Protype: record.Protype,
+			TaskId:  record.TaskId,
+			Success: false,
+			Arg:     nil,
+		}, onFailure)
 	}
 
 	return nil

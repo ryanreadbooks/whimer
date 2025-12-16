@@ -5,6 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
+	"github.com/ryanreadbooks/whimer/note/internal/model"
 	"github.com/ryanreadbooks/whimer/note/internal/srv/procedure"
 )
 
@@ -40,21 +41,23 @@ func NewNoteProcedureSrv(
 }
 
 type HandleAssetProcessResultReq struct {
-	NoteId  int64
-	TaskId  string
-	Success bool
+	NoteId      int64
+	TaskId      string
+	Success     bool
+	VideoMetas  []*model.VideoAssetMetadata
+	ErrorOutput []byte
 }
 
-// HandleAssetProcedureResult 调度任务完成后回调处理逻辑
+// HandleCallbackAssetProcedureResult 调度任务完成后回调处理逻辑
 // 此处需要将状态标记为已成功并且进入下一流程
-func (s *NoteProcedureSrv) HandleAssetProcedureResult(
+func (s *NoteProcedureSrv) HandleCallbackAssetProcedureResult(
 	ctx context.Context,
 	req *HandleAssetProcessResultReq,
 ) error {
 	if req.Success {
-		return s.procedureMgr.CompleteAssetSuccess(ctx, req.NoteId, req.TaskId)
+		return s.procedureMgr.CompleteAssetSuccess(ctx, req.NoteId, req.TaskId, req.VideoMetas)
 	} else {
-		return s.procedureMgr.CompleteAssetFailure(ctx, req.NoteId, req.TaskId)
+		return s.procedureMgr.CompleteAssetFailure(ctx, req.NoteId, req.TaskId, req.ErrorOutput)
 	}
 }
 

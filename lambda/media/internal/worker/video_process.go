@@ -57,9 +57,9 @@ type OutputConfig struct {
 // 编码参数配置
 type EncodeSettings struct {
 	// VideoCodec 视频编码器:
-	//   - libx264: H.264，兼容性最好
-	//   - libx265: H.265/HEVC，压缩率更高
-	//   - libsvtav1: AV1，压缩率最高
+	//   - libx264: H.264
+	//   - libx265: H.265/HEVC
+	//   - libsvtav1: AV1
 	//   - copy: 不转码
 	VideoCodec string `json:"video_codec,omitempty"`
 
@@ -130,43 +130,43 @@ type VideoInfo struct {
 	// 视频宽度（像素）
 	Width int `json:"width"`
 
-	// Height 视频高度（像素）
+	// 视频高度（像素）
 	Height int `json:"height"`
 
-	// Duration 视频时长（秒）
+	// 视频时长（秒）
 	Duration float64 `json:"duration"`
 
-	// Bitrate 总码率（bps）
+	// 总码率（bps）
 	Bitrate int64 `json:"bitrate"`
 
-	// Codec 视频编码器
+	// 视频编码器
 	Codec string `json:"codec"`
 
-	// Framerate 帧率
+	// 帧率
 	Framerate float64 `json:"framerate"`
 
-	// AudioCodec 音频编码器
+	// 音频编码器
 	AudioCodec string `json:"audio_codec"`
 
-	// AudioSampleRate 音频采样率（Hz）
+	// 音频采样率（Hz）
 	AudioSampleRate int `json:"audio_sample_rate"`
 
-	// AudioChannels 音频声道数
+	// 音频声道数
 	AudioChannels int `json:"audio_channels"`
 
-	// AudioBitrate 音频码率（bps）
+	// 音频码率（bps）
 	AudioBitrate int64 `json:"audio_bitrate"`
 }
 
 // ThumbnailOutput 缩略图输出结果
 type ThumbnailOutput struct {
-	// Bucket 存储桶名称
+	// 存储桶名称
 	Bucket string `json:"bucket"`
 
-	// Key 文件路径/键名
+	// 文件路径/键名
 	Key string `json:"key"`
 
-	// AtSecond 截取时间点（秒）
+	// 截取时间点（秒）
 	AtSecond float64 `json:"at_second"`
 }
 

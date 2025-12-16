@@ -5,7 +5,6 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
-	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
 
 // 通用的tx逻辑
@@ -24,23 +23,21 @@ func newTxHelper(bizz *biz.Biz) *txHelper {
 
 func (h *txHelper) txHandleSuccess(
 	ctx context.Context,
-	noteId int64,
-	taskId string,
-	protype model.ProcedureType,
+	result *CompleteResult,
 	onSuccess onCompleteFunc,
 ) error {
 	err := h.bizz.Tx(ctx, func(ctx context.Context) error {
-		needUpdate, err := onSuccess(ctx, noteId, taskId)
+		needUpdate, err := onSuccess(ctx, result.NoteId, result.TaskId, result.Arg)
 		if err != nil {
 			return xerror.Wrapf(err, "tx helper on success failed").
-				WithExtras("note_id", noteId, "task_id", taskId).
+				WithExtras("note_id", result.NoteId, "task_id", result.TaskId).
 				WithCtx(ctx)
 		}
 
 		if needUpdate {
-			if err := h.noteProcedureBiz.MarkSuccess(ctx, noteId, protype); err != nil {
+			if err := h.noteProcedureBiz.MarkSuccess(ctx, result.NoteId, result.Protype); err != nil {
 				return xerror.Wrapf(err, "tx helper mark record success failed").
-					WithExtras("note_id", noteId, "task_id", taskId).
+					WithExtras("note_id", result.NoteId, "task_id", result.TaskId).
 					WithCtx(ctx)
 			}
 		}
@@ -56,23 +53,21 @@ func (h *txHelper) txHandleSuccess(
 
 func (h *txHelper) txHandleFailure(
 	ctx context.Context,
-	noteId int64,
-	taskId string,
-	protype model.ProcedureType,
+	result *CompleteResult,
 	onFailure onCompleteFunc,
 ) error {
 	err := h.bizz.Tx(ctx, func(ctx context.Context) error {
-		needUpdate, err := onFailure(ctx, noteId, taskId)
+		needUpdate, err := onFailure(ctx, result.NoteId, result.TaskId, result.Arg)
 		if err != nil {
 			return xerror.Wrapf(err, "tx helper on failure failed").
-				WithExtras("note_id", noteId, "task_id", taskId).
+				WithExtras("note_id", result.NoteId, "task_id", result.TaskId).
 				WithCtx(ctx)
 		}
 
 		if needUpdate {
-			if err := h.noteProcedureBiz.MarkFailed(ctx, noteId, protype); err != nil {
+			if err := h.noteProcedureBiz.MarkFailed(ctx, result.NoteId, result.Protype); err != nil {
 				return xerror.Wrapf(err, "tx helper mark record failed failed").
-					WithExtras("note_id", noteId, "task_id", taskId).
+					WithExtras("note_id", result.NoteId, "task_id", result.TaskId).
 					WithCtx(ctx)
 			}
 		}
