@@ -46,11 +46,11 @@ func (p *PublishProcedure) Execute(ctx context.Context, note *model.Note) (strin
 	return "", nil
 }
 
-func (p *PublishProcedure) OnSuccess(ctx context.Context, noteId int64, taskId string, arg any) (bool, error) {
+func (p *PublishProcedure) OnSuccess(ctx context.Context, result *ProcedureResult) (bool, error) {
 	return false, nil
 }
 
-func (p *PublishProcedure) OnFailure(ctx context.Context, noteId int64, taskId string, arg any) (bool, error) {
+func (p *PublishProcedure) OnFailure(ctx context.Context, result *ProcedureResult) (bool, error) {
 	return false, nil
 }
 

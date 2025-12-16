@@ -12,7 +12,7 @@ import (
 
 type retryExecuteFunc func(ctx context.Context, note *model.Note) (taskId string, err error)
 type retryPollResultFunc func(ctx context.Context, taskId string) (PollState, any, error)
-type onCompleteFunc func(ctx context.Context, noteId int64, taskId string, arg any) (bool, error)
+type onCompleteFunc func(ctx context.Context, result *ProcedureResult) (bool, error)
 
 // procedure的通用重试逻辑
 type retryHelper struct {

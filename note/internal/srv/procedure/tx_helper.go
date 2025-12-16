@@ -27,7 +27,11 @@ func (h *txHelper) txHandleSuccess(
 	onSuccess onCompleteFunc,
 ) error {
 	err := h.bizz.Tx(ctx, func(ctx context.Context) error {
-		needUpdate, err := onSuccess(ctx, result.NoteId, result.TaskId, result.Arg)
+		needUpdate, err := onSuccess(ctx, &ProcedureResult{
+			NoteId: result.NoteId,
+			TaskId: result.TaskId,
+			Arg:    result.Arg,
+		})
 		if err != nil {
 			return xerror.Wrapf(err, "tx helper on success failed").
 				WithExtras("note_id", result.NoteId, "task_id", result.TaskId).
@@ -57,7 +61,11 @@ func (h *txHelper) txHandleFailure(
 	onFailure onCompleteFunc,
 ) error {
 	err := h.bizz.Tx(ctx, func(ctx context.Context) error {
-		needUpdate, err := onFailure(ctx, result.NoteId, result.TaskId, result.Arg)
+		needUpdate, err := onFailure(ctx, &ProcedureResult{
+			NoteId: result.NoteId,
+			TaskId: result.TaskId,
+			Arg:    result.Arg,
+		})
 		if err != nil {
 			return xerror.Wrapf(err, "tx helper on failure failed").
 				WithExtras("note_id", result.NoteId, "task_id", result.TaskId).

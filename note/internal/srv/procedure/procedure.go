@@ -21,6 +21,12 @@ const (
 	PollStateFailure                  // 失败
 )
 
+type ProcedureResult struct {
+	NoteId int64
+	TaskId string
+	Arg    any
+}
+
 // Procedure 流程处理器接口
 // 每种流程类型（资源处理、审核等）需要实现该接口
 type Procedure interface {
@@ -42,9 +48,7 @@ type Procedure interface {
 	// 会在本地事务中执行
 	//
 	// 返回true表示需要更新记录状态
-	//
-	// arg为执行结果
-	OnSuccess(ctx context.Context, noteId int64, taskId string, arg any) (bool, error)
+	OnSuccess(ctx context.Context, result *ProcedureResult) (bool, error)
 
 	// OnFailure 流程失败处理 更新笔记状态、记录状态等
 	//
@@ -52,8 +56,8 @@ type Procedure interface {
 	//
 	// 返回true表示需要更新记录状态
 	//
-	// arg为执行结果 当因为重试次数满导致失败时传入的arg为nil
-	OnFailure(ctx context.Context, noteId int64, taskId string, arg any) (bool, error)
+	// 当因为重试次数满导致失败时传入的Arg为nil
+	OnFailure(ctx context.Context, result *ProcedureResult) (bool, error)
 
 	// PollResult 主动轮询任务结果
 	//

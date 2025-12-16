@@ -98,12 +98,9 @@ func (p *AssetProcedure) upgradeStateCheck(
 	return note, false
 }
 
-func (p *AssetProcedure) OnSuccess(
-	ctx context.Context,
-	noteId int64,
-	taskId string,
-	arg any,
-) (bool, error) {
+func (p *AssetProcedure) OnSuccess(ctx context.Context, result *ProcedureResult) (bool, error) {
+	noteId, taskId, arg := result.NoteId, result.TaskId, result.Arg
+
 	// 简单幂等保证
 	note, abort := p.upgradeStateCheck(ctx, noteId, model.NoteStateProcessed)
 	if abort {
@@ -158,12 +155,9 @@ func (p *AssetProcedure) OnSuccess(
 	return true, nil
 }
 
-func (p *AssetProcedure) OnFailure(
-	ctx context.Context,
-	noteId int64,
-	taskId string,
-	arg any,
-) (bool, error) {
+func (p *AssetProcedure) OnFailure(ctx context.Context, result *ProcedureResult) (bool, error) {
+	noteId, taskId := result.NoteId, result.TaskId
+
 	// 简单幂等保证
 	_, abort := p.upgradeStateCheck(ctx, noteId, model.NoteStateProcessFailed)
 	if abort {

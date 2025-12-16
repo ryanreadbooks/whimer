@@ -47,23 +47,23 @@ func (p *AuditProcedure) Execute(ctx context.Context, note *model.Note) (string,
 	return "", nil
 }
 
-func (p *AuditProcedure) OnSuccess(ctx context.Context, noteId int64, taskId string, arg any) (bool, error) {
+func (p *AuditProcedure) OnSuccess(ctx context.Context, result *ProcedureResult) (bool, error) {
 	// TODO 审核通过 设置状态为 AuditPassed
-	err := p.noteCreatorBiz.TransferNoteStateToAuditPassed(ctx, noteId)
+	err := p.noteCreatorBiz.TransferNoteStateToAuditPassed(ctx, result.NoteId)
 	if err != nil {
 		return false, xerror.Wrapf(err, "audit procedure set note state audit passed failed").
-			WithExtra("note_id", noteId).
+			WithExtra("note_id", result.NoteId).
 			WithCtx(ctx)
 	}
 	return true, nil
 }
 
-func (p *AuditProcedure) OnFailure(ctx context.Context, noteId int64, taskId string, arg any) (bool, error) {
+func (p *AuditProcedure) OnFailure(ctx context.Context, result *ProcedureResult) (bool, error) {
 	// TODO 审核不通过 设置状态为 Rejected
-	err := p.noteCreatorBiz.TransferNoteStateToRejected(ctx, noteId)
+	err := p.noteCreatorBiz.TransferNoteStateToRejected(ctx, result.NoteId)
 	if err != nil {
 		return false, xerror.Wrapf(err, "audit procedure set note state rejected failed").
-			WithExtra("note_id", noteId).
+			WithExtra("note_id", result.NoteId).
 			WithCtx(ctx)
 	}
 	return true, nil
