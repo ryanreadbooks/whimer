@@ -77,6 +77,7 @@ type CompleteTaskRequest struct {
 	Success    bool
 	OutputArgs []byte
 	ErrorMsg   []byte
+	Retryable  bool // 失败时是否可重试（由 worker 指定）
 }
 
 // CompleteTask Worker 完成任务上报
@@ -97,6 +98,18 @@ func (s *WorkerService) CompleteTask(ctx context.Context, req *CompleteTaskReque
 		return nil
 	}
 
+	// 失败、可重试、且还有重试次数时，放入重试队列，不触发回调
+	if !req.Success && req.Retryable && task.CanRetry() {
+		err = s.bizz.Tx(ctx, func(ctx context.Context) error {
+			return s.taskBiz.RetryTask(ctx, taskId)
+		})
+		if err != nil {
+			return xerror.Wrapf(err, "worker service retry task failed").WithCtx(ctx)
+		}
+		return nil
+	}
+
+	// 成功或最终失败（重试次数用尽），更新为终态
 	err = s.bizz.Tx(ctx, func(ctx context.Context) error {
 		return s.taskBiz.CompleteTask(ctx, taskId, req.Success, req.OutputArgs, req.ErrorMsg)
 	})
@@ -104,7 +117,7 @@ func (s *WorkerService) CompleteTask(ctx context.Context, req *CompleteTaskReque
 		return xerror.Wrapf(err, "worker service complete task failed").WithCtx(ctx)
 	}
 
-	// 触发回调（异步）
+	// 只有终态才触发回调
 	if task.CallbackUrl != "" {
 		state := model.TaskStateSuccess
 		if !req.Success {

@@ -69,9 +69,9 @@ func (p *AuditProcedure) OnFailure(ctx context.Context, noteId int64, taskId str
 	return true, nil
 }
 
-func (p *AuditProcedure) PollResult(ctx context.Context, taskId string) (bool, error) {
+func (p *AuditProcedure) PollResult(ctx context.Context, taskId string) (PollState, error) {
 	// TODO 轮询审核结果
-	return false, nil
+	return PollStateSuccess, nil
 }
 
 func (p *AuditProcedure) Retry(ctx context.Context, record *biz.ProcedureRecord) error {
@@ -82,6 +82,10 @@ func (p *AuditProcedure) Retry(ctx context.Context, record *biz.ProcedureRecord)
 // TODO audit未实现 这里先自动成功
 var _ AutoCompleter = (*AuditProcedure)(nil)
 
-func (p *AuditProcedure) AutoComplete(ctx context.Context, noteId int64, taskId string) (success bool) {
-	return true
+func (p *AuditProcedure) AutoComplete(
+	ctx context.Context,
+	note *model.Note,
+	taskId string,
+) (success, autoComplete bool) {
+	return true, true
 }

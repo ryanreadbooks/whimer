@@ -163,7 +163,7 @@ func (m *Manager) RunPipeline(
 			Extras(logExtras...).
 			Infox(ctx)
 
-		m.autoCompleteIfNeeded(ctx, note.NoteId, targetProcType, newTaskId)
+		m.autoCompleteIfNeeded(ctx, note, targetProcType, newTaskId)
 		return true
 	}
 
@@ -624,7 +624,7 @@ func (m *Manager) doRetry(ctx context.Context, record *biz.ProcedureRecord) {
 
 func (m *Manager) autoCompleteIfNeeded(
 	ctx context.Context,
-	noteId int64,
+	note *model.Note,
 	protype model.ProcedureType,
 	taskId string,
 ) {
@@ -633,11 +633,9 @@ func (m *Manager) autoCompleteIfNeeded(
 		return
 	}
 	if proc, ok := proc.(AutoCompleter); ok {
-		success := proc.AutoComplete(ctx, noteId, taskId)
-		if success {
-			m.Complete(ctx, noteId, protype, taskId, true)
-		} else {
-			m.Complete(ctx, noteId, protype, taskId, false)
+		success, autoComplete := proc.AutoComplete(ctx, note, taskId)
+		if autoComplete {
+			m.Complete(ctx, note.NoteId, protype, taskId, success)
 		}
 	}
 }

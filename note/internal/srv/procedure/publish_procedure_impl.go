@@ -54,8 +54,8 @@ func (p *PublishProcedure) OnFailure(ctx context.Context, noteId int64, taskId s
 	return false, nil
 }
 
-func (p *PublishProcedure) PollResult(ctx context.Context, taskId string) (bool, error) {
-	return false, nil
+func (p *PublishProcedure) PollResult(ctx context.Context, taskId string) (PollState, error) {
+	return PollStateSuccess, nil
 }
 
 func (p *PublishProcedure) Retry(ctx context.Context, record *biz.ProcedureRecord) error {

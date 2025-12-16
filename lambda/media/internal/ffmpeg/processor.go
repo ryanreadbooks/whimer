@@ -3,8 +3,10 @@ package ffmpeg
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ryanreadbooks/whimer/lambda/media/internal/storage"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 )
 
 type Processor struct {
@@ -64,11 +66,14 @@ func (p *Processor) ProcessSingle(ctx context.Context, req SingleProcessRequest)
 		return nil, fmt.Errorf("upload failed: %w", uploadErr)
 	}
 
-	// 上传后 probe 获取实际参数
-	url := p.storage.GetObjectURL(req.Bucket, req.OutputKey)
+	url, err := p.storage.GetPresignedURL(ctx, req.Bucket, req.OutputKey, time.Hour)
+	if err != nil {
+		xlog.Msg("get presigned url failed").Err(err).Errorx(ctx)
+		return &ProcessResult{}, nil
+	}
 	probeResult, err := Probe(ctx, url)
 	if err != nil {
-		// probe 失败不影响整体流程，返回空结果
+		xlog.Msg("probe failed").Err(err).Errorx(ctx)
 		return &ProcessResult{}, nil
 	}
 

@@ -95,12 +95,11 @@ func WithExtraArgs(args ...string) OptionFunc {
 // 默认使用 CRF 23 质量模式，自适应码率
 func defaultOption() *Option {
 	return &Option{
-		VideoCodec:   VideoCodecH264, // H.264 兼容性最好
-		AudioCodec:   AudioCodecAAC,  // AAC 音频
+		VideoCodec:   VideoCodecH264,
+		AudioCodec:   AudioCodecAAC,
 		OutputFormat: OutputFormatMP4,
-		AudioBitrate: "128k",
-		Preset:       "medium", // 速度与压缩率平衡
-		CRF:          23,       // 默认质量，自适应码率
+		Preset:       "medium",
+		CRF:          23,
 	}
 }
 

@@ -16,46 +16,45 @@ import (
 type InputMode string
 
 const (
-	// InputModeURL 通过 URL 获取输入视频
+	// 通过 URL 获取输入视频
 	InputModeURL InputMode = "url"
-	// InputModeS3 从 S3 兼容存储获取输入视频 (MinIO/AWS S3)
+	// s3 / minio
 	InputModeS3 InputMode = "s3"
 )
 
 // VideoProcessRequest 视频处理请求
 type VideoProcessRequest struct {
-	// InputMode 输入模式: url / s3，默认 url
+	// 输入模式: url / s3，默认 url
 	InputMode InputMode `json:"input_mode,omitempty"`
 
-	// InputURL 输入视频地址 (input_mode=url 时使用)
+	// 输入视频地址 (input_mode=url 时使用)
 	InputURL string `json:"input_url,omitempty"`
 
-	// InputBucket 输入存储桶 (input_mode=s3 时使用)
+	// 输入存储桶 (input_mode=s3 时使用)
 	InputBucket string `json:"input_bucket,omitempty"`
 
-	// InputKey 输入文件路径 (input_mode=s3 时使用)
+	// 输入文件路径 (input_mode=s3 时使用)
 	InputKey string `json:"input_key,omitempty"`
 
-	// Outputs 输出配置列表，支持同时输出多个不同规格的视频
+	// 输出配置列表，支持同时输出多个不同规格的视频
 	Outputs []OutputConfig `json:"outputs"`
 
-	// Thumbnail 缩略图配置，可选
+	// 缩略图配置，可选
 	Thumbnail *ThumbnailConfig `json:"thumbnail,omitempty"`
 }
 
-// OutputConfig 单个输出配置
 type OutputConfig struct {
-	// Bucket 输出存储桶名称
+	// 输出存储桶名称
 	Bucket string `json:"bucket"`
 
-	// OutputKey 输出文件路径/键名
+	// 输出文件路径/键名
 	OutputKey string `json:"output_key"`
 
-	// Settings 编码参数，不传则使用默认值 (H.264, CRF 23)
+	// 编码参数，不传则使用默认值 (H.264, CRF 23)
 	Settings *EncodeSettings `json:"settings,omitempty"`
 }
 
-// EncodeSettings 编码参数配置
+// 编码参数配置
 type EncodeSettings struct {
 	// VideoCodec 视频编码器:
 	//   - libx264: H.264，兼容性最好
@@ -64,19 +63,19 @@ type EncodeSettings struct {
 	//   - copy: 不转码
 	VideoCodec string `json:"video_codec,omitempty"`
 
-	// AudioCodec 音频编码器: aac, copy(不转码)
+	// 音频编码器: aac, copy(不转码)
 	AudioCodec string `json:"audio_codec,omitempty"`
 
-	// VideoBitrate 视频目标码率，如 "1500k", "2M"，CRF 模式下仅作参考
+	// 视频目标码率，如 "1500k", "2M"，CRF 模式下仅作参考
 	VideoBitrate string `json:"video_bitrate,omitempty"`
 
-	// AudioBitrate 音频码率，如 "128k", "192k"
+	// 音频码率，如 "128k", "192k"
 	AudioBitrate string `json:"audio_bitrate,omitempty"`
 
-	// MaxHeight 最大高度（像素），保持宽高比缩放，不会放大
+	// 最大高度（像素），保持宽高比缩放，不会放大
 	MaxHeight int `json:"max_height,omitempty"`
 
-	// MaxWidth 最大宽度（像素），保持宽高比缩放，不会放大
+	// 最大宽度（像素），保持宽高比缩放，不会放大
 	MaxWidth int `json:"max_width,omitempty"`
 
 	// Preset 编码速度预设:
@@ -84,51 +83,51 @@ type EncodeSettings struct {
 	//   - AV1: 0-13 (数字字符串)，越小越慢质量越好，推荐 "6"-"10"
 	Preset string `json:"preset,omitempty"`
 
-	// CRF 质量因子，值越小质量越高:
+	// 质量因子，值越小质量越高:
 	//   - H.264/H.265: 0-51，推荐 18-28，默认 23
 	//   - AV1: 0-63，推荐 28-42，默认 35
 	CRF int `json:"crf,omitempty"`
 
-	// Framerate 目标帧率，0 表示保持原帧率
+	// 目标帧率，0 表示保持原帧率
 	Framerate int `json:"framerate,omitempty"`
 }
 
-// ThumbnailConfig 缩略图配置
+// 缩略图配置
 type ThumbnailConfig struct {
-	// Bucket 输出存储桶名称
+	// 输出存储桶名称
 	Bucket string `json:"bucket"`
 
-	// OutputKey 输出文件路径/键名
+	// 输出文件路径/键名
 	OutputKey string `json:"output_key"`
 
-	// AtSecond 截取时间点（秒），默认 1.0 秒
+	// 截取时间点（秒），默认 1.0 秒
 	AtSecond float64 `json:"at_second,omitempty"`
 }
 
-// VideoProcessResponse 视频处理响应
+// 视频处理响应
 type VideoProcessResponse struct {
-	// Outputs 输出结果列表
+	// 输出结果列表
 	Outputs []VideoOutput `json:"outputs"`
 
-	// Thumbnail 缩略图结果
+	// 缩略图结果
 	Thumbnail *ThumbnailOutput `json:"thumbnail,omitempty"`
 }
 
-// VideoOutput 单个输出结果
+// 单个输出结果
 type VideoOutput struct {
-	// Bucket 存储桶名称
+	// 桶名称
 	Bucket string `json:"bucket"`
 
-	// Key 文件路径/键名
+	// key
 	Key string `json:"key"`
 
-	// Info 输出视频的实际参数（通过 ffprobe 获取）
+	// 输出视频的实际参数（通过 ffprobe 获取）
 	Info *VideoInfo `json:"info"`
 }
 
-// VideoInfo 输出视频的实际参数
+// 输出视频的实际参数
 type VideoInfo struct {
-	// Width 视频宽度（像素）
+	// 视频宽度（像素）
 	Width int `json:"width"`
 
 	// Height 视频高度（像素）
@@ -182,20 +181,19 @@ func NewVideoHandler(processor *ffmpeg.Processor, storage *storage.Storage) *Vid
 
 func (h *VideoHandler) Handle(ctx context.Context, task *worker.Task) worker.Result {
 	xlog.Msg("processing video task").Extra("taskId", task.Id).Infox(ctx)
-
 	var req VideoProcessRequest
 	if err := json.Unmarshal(task.InputArgs, &req); err != nil {
-		return worker.Result{Error: fmt.Errorf("invalid input: %w", err)}
+		return worker.NonRetryableResult(fmt.Errorf("invalid input: %w", err))
 	}
 
 	result, err := h.process(ctx, &req)
 	if err != nil {
 		xlog.Msg("video process failed").Err(err).Extra("taskId", task.Id).Errorx(ctx)
-		return worker.Result{Error: err}
+		return worker.NonRetryableResult(err)
 	}
 
 	output, _ := json.Marshal(result)
-	return worker.Result{Output: json.RawMessage(output)}
+	return worker.SuccessResult(json.RawMessage(output))
 }
 
 func (h *VideoHandler) process(ctx context.Context, req *VideoProcessRequest) (*VideoProcessResponse, error) {
@@ -301,8 +299,7 @@ func (h *VideoHandler) buildOptions(s *EncodeSettings) []ffmpeg.OptionFunc {
 		opts = append(opts, ffmpeg.WithMaxWidth(s.MaxWidth))
 	}
 	if s.Preset != "" {
-		preset := convertPreset(s.VideoCodec, s.Preset)
-		opts = append(opts, ffmpeg.WithPreset(preset))
+		opts = append(opts, ffmpeg.WithPreset(s.Preset))
 	}
 	if s.CRF > 0 {
 		opts = append(opts, ffmpeg.WithCRF(s.CRF))
@@ -312,31 +309,4 @@ func (h *VideoHandler) buildOptions(s *EncodeSettings) []ffmpeg.OptionFunc {
 	}
 
 	return opts
-}
-
-// convertPreset 根据编码器转换 preset 参数
-// H.264/H.265: ultrafast/fast/medium/slow/veryslow
-// AV1 (libsvtav1): 0-13 (数字字符串)
-func convertPreset(codec, preset string) string {
-	if codec != string(ffmpeg.VideoCodecAV1) {
-		return preset
-	}
-
-	// AV1 preset 映射
-	av1Presets := map[string]string{
-		"ultrafast": "12",
-		"superfast": "11",
-		"veryfast":  "10",
-		"faster":    "9",
-		"fast":      "8",
-		"medium":    "7",
-		"slow":      "5",
-		"slower":    "3",
-		"veryslow":  "1",
-	}
-
-	if v, ok := av1Presets[preset]; ok {
-		return v
-	}
-	return preset
 }

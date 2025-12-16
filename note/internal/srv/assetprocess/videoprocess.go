@@ -40,12 +40,14 @@ type videoProcessDest struct {
 }
 
 type EncodeSettings struct {
-	VideoCodec   string `json:"video_codec"`
-	AudioCodec   string `json:"audio_codec"`
-	VideoBitrate string `json:"video_bitrate"`
-	AudioBitrate string `json:"audio_bitrate"`
-	MaxHeight    int    `json:"max_height"`
-	MaxWidth     int    `json:"max_width"`
+	VideoCodec   string `json:"video_codec,omitempty"`
+	AudioCodec   string `json:"audio_codec,omitempty"`
+	VideoBitrate string `json:"video_bitrate,omitempty"`
+	AudioBitrate string `json:"audio_bitrate,omitempty"`
+	MaxHeight    int    `json:"max_height,omitempty"`
+	MaxWidth     int    `json:"max_width,omitempty"`
+	Preset       string `json:"preset,omitempty"`
+	CRF          int    `json:"crf,omitempty"`
 }
 
 func getVideoOutputAssets(note *model.Note) []*videoProcessDest {
@@ -57,6 +59,9 @@ func getVideoOutputAssets(note *model.Note) []*videoProcessDest {
 		OutputKey: note.Videos.H264.TrimBucket(),
 		Settings: &EncodeSettings{
 			VideoCodec: "libx264",
+			Preset:     "medium",
+			CRF:        26,
+			MaxHeight:  1080,
 		},
 	}
 	assets[1] = &videoProcessDest{
@@ -64,6 +69,9 @@ func getVideoOutputAssets(note *model.Note) []*videoProcessDest {
 		OutputKey: note.Videos.H265.TrimBucket(),
 		Settings: &EncodeSettings{
 			VideoCodec: "libx265",
+			Preset:     "medium",
+			CRF:        28,
+			MaxHeight:  1080,
 		},
 	}
 	assets[2] = &videoProcessDest{
@@ -71,6 +79,9 @@ func getVideoOutputAssets(note *model.Note) []*videoProcessDest {
 		OutputKey: note.Videos.AV1.TrimBucket(),
 		Settings: &EncodeSettings{
 			VideoCodec: "libsvtav1",
+			Preset:     "8",
+			CRF:        35,
+			MaxHeight:  1080,
 		},
 	}
 	return assets
@@ -101,7 +112,7 @@ func (p *VideoProcessor) Process(ctx context.Context, note *model.Note) (string,
 		conductor.ScheduleOptions{
 			Namespace:   global.NoteProcessNamespace,
 			CallbackUrl: callbackUrl,
-			MaxRetry:    5,
+			MaxRetry:    3,
 			ExpireAfter: time.Hour * 2,
 		},
 	)

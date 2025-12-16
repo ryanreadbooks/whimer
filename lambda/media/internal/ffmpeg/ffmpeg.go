@@ -113,7 +113,9 @@ func (f *FFmpeg) buildVideoEncoderArgs(opt *Option) []string {
 	case VideoCodecAV1:
 		// SVT-AV1 参数
 		if opt.Preset != "" {
-			args = append(args, "-preset", opt.Preset) // 0-13，数字越小越慢质量越好
+			// AV1 preset 需要是数字 0-13，转换字符串格式
+			preset := convertAV1Preset(opt.Preset)
+			args = append(args, "-preset", preset)
 		}
 		if opt.CRF > 0 {
 			args = append(args, "-crf", fmt.Sprintf("%d", opt.CRF)) // 0-63，默认 35
@@ -135,6 +137,30 @@ func (f *FFmpeg) buildVideoEncoderArgs(opt *Option) []string {
 	}
 
 	return args
+}
+
+// convertAV1Preset 将 H.264 风格的 preset 字符串转换为 AV1 数字格式
+func convertAV1Preset(preset string) string {
+	switch preset {
+	case "ultrafast":
+		return "12"
+	case "superfast", "veryfast":
+		return "11"
+	case "faster":
+		return "10"
+	case "fast":
+		return "9"
+	case "medium":
+		return "8"
+	case "slow":
+		return "6"
+	case "slower":
+		return "4"
+	case "veryslow":
+		return "2"
+	default:
+		return preset // 已经是数字格式，直接返回
+	}
 }
 
 // buildScaleFilter 构建缩放滤镜

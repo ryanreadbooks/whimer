@@ -47,6 +47,11 @@ message CompleteTaskRequest {
 
   // 失败日志
   bytes error_msg = 4;
+
+  // 失败时是否可重试（由 worker 指定）
+  // true: 可重试的错误（如超时、资源暂时不可用）
+  // false: 不可重试的错误（如参数错误、资源不存在）
+  bool retryable = 5;
 }
 
 message CompleteTaskResponse {}

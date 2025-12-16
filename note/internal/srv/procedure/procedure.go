@@ -12,6 +12,15 @@ var (
 	ErrProcedureNotRegistered = fmt.Errorf("procedure type not registered")
 )
 
+// PollState 轮询结果状态
+type PollState int
+
+const (
+	PollStateRunning PollState = iota // 运行中
+	PollStateSuccess                  // 成功
+	PollStateFailure                  // 失败
+)
+
 // Procedure 流程处理器接口
 // 每种流程类型（资源处理、审核等）需要实现该接口
 type Procedure interface {
@@ -46,8 +55,8 @@ type Procedure interface {
 	//
 	// 用于后台重试时检查已提交任务的状态
 	//
-	// 返回: success=true表示任务成功, success=false表示任务失败
-	PollResult(ctx context.Context, taskId string) (success bool, err error)
+	// 返回: PollStateSuccess/PollStateFailure/PollStateRunning
+	PollResult(ctx context.Context, taskId string) (PollState, error)
 
 	// Retry 重试流程
 	//
@@ -60,6 +69,7 @@ type AutoCompleter interface {
 	//
 	// 有些流程没有回调触发OnSuccess 需要手动调用完成
 	//
-	// true=OnSuccess, false=OnFailure
-	AutoComplete(ctx context.Context, noteId int64, taskId string) (success bool)
+	// success: true=OnSuccess, false=OnFailure
+	// autoComplete: true=自动完成, false=不需要自动完成
+	AutoComplete(ctx context.Context, note *model.Note, taskId string) (success, autoComplete bool)
 }

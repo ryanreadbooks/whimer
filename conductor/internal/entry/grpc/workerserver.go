@@ -90,6 +90,7 @@ func (s *WorkerServiceServer) CompleteTask(
 		Success:    in.Success,
 		OutputArgs: in.OutputArgs,
 		ErrorMsg:   in.ErrorMsg,
+		Retryable:  in.Retryable,
 	})
 	if err != nil {
 		return nil, err

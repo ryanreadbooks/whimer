@@ -245,31 +245,31 @@ func (d *TaskDao) UpdateComplete(
 
 // ListFailureTasks 查询失败状态且可重试的任务
 // 条件：max_retry_cnt = -1（无限重试）或 cur_retry_cnt < max_retry_cnt（未达上限）
-func (d *TaskDao) ListFailureTasks(
-	ctx context.Context,
-	shardStart, shardEnd int,
-	limit int32,
-	offset uuid.UUID,
-) ([]*TaskPO, error) {
-	sb := sqlbuilder.NewSelectBuilder()
-	sb.Select(taskPOFields...)
-	sb.From(taskPOTableName)
-	sb.Where(
-		sb.Equal("state", "failure"),
-		sb.GreaterEqualThan("task_type_shard", shardStart),
-		sb.LessThan("task_type_shard", shardEnd),
-		sb.GreaterThan("id", offset),
-		// 可重试条件：无限重试(-1) 或 当前重试次数未达上限
-		"(max_retry_cnt = -1 OR cur_retry_cnt < max_retry_cnt)",
-	)
-	sb.OrderByAsc("id")
-	sb.Limit(int(limit))
+// func (d *TaskDao) ListFailureTasks(
+// 	ctx context.Context,
+// 	shardStart, shardEnd int,
+// 	limit int32,
+// 	offset uuid.UUID,
+// ) ([]*TaskPO, error) {
+// 	sb := sqlbuilder.NewSelectBuilder()
+// 	sb.Select(taskPOFields...)
+// 	sb.From(taskPOTableName)
+// 	sb.Where(
+// 		sb.Equal("state", "failure"),
+// 		sb.GreaterEqualThan("task_type_shard", shardStart),
+// 		sb.LessThan("task_type_shard", shardEnd),
+// 		sb.GreaterThan("id", offset),
+// 		// 可重试条件：无限重试(-1) 或 当前重试次数未达上限
+// 		"(max_retry_cnt = -1 OR cur_retry_cnt < max_retry_cnt)",
+// 	)
+// 	sb.OrderByAsc("id")
+// 	sb.Limit(int(limit))
 
-	sql, args := sb.Build()
-	var pos []*TaskPO
-	err := d.db.QueryRowsCtx(ctx, &pos, sql, args...)
-	if err != nil {
-		return nil, xsql.ConvertError(err)
-	}
-	return pos, nil
-}
+// 	sql, args := sb.Build()
+// 	var pos []*TaskPO
+// 	err := d.db.QueryRowsCtx(ctx, &pos, sql, args...)
+// 	if err != nil {
+// 		return nil, xsql.ConvertError(err)
+// 	}
+// 	return pos, nil
+// }

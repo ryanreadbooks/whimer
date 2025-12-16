@@ -24,14 +24,12 @@ type scanState struct {
 	mu                 sync.RWMutex
 	initedOffset       uuid.UUID
 	pendingRetryOffset uuid.UUID
-	failureOffset      uuid.UUID
 }
 
 func newScanState() *scanState {
 	return &scanState{
 		initedOffset:       uuid.EmptyUUID(),
 		pendingRetryOffset: uuid.EmptyUUID(),
-		failureOffset:      uuid.EmptyUUID(),
 	}
 }
 
@@ -65,22 +63,6 @@ func (s *scanState) SetPendingRetryOffset(offset uuid.UUID) {
 
 func (s *scanState) ResetPendingRetry() {
 	s.SetPendingRetryOffset(uuid.EmptyUUID())
-}
-
-func (s *scanState) GetFailureOffset() uuid.UUID {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.failureOffset
-}
-
-func (s *scanState) SetFailureOffset(offset uuid.UUID) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.failureOffset = offset
-}
-
-func (s *scanState) ResetFailure() {
-	s.SetFailureOffset(uuid.EmptyUUID())
 }
 
 type ScanService struct {
@@ -131,16 +113,6 @@ func (s *ScanService) Start(ctx context.Context) {
 		InheritCtxCancel: true,
 		Job: func(ctx context.Context) error {
 			s.processLoop(ctx)
-			return nil
-		},
-	})
-
-	// 失败任务重试协程
-	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name:             "conductor.scan.retry",
-		InheritCtxCancel: true,
-		Job: func(ctx context.Context) error {
-			s.retryScanLoop(ctx)
 			return nil
 		},
 	})
@@ -311,90 +283,6 @@ func (s *ScanService) processTask(ctx context.Context, task *model.Task) {
 		Extras("taskId", task.Id.String(),
 			"taskType", task.TaskType,
 			"state", string(task.State)).
-		Infox(ctx)
-}
-
-// ========== 失败任务重试扫描 ==========
-
-func (s *ScanService) retryScanLoop(ctx context.Context) {
-	ticker := time.NewTicker(s.conf.ScanConfig.GetRetryInterval())
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-s.quitCh:
-			return
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			s.doRetryScan(ctx)
-		}
-	}
-}
-
-func (s *ScanService) doRetryScan(ctx context.Context) {
-	if !s.shardBiz.HasShard() {
-		return
-	}
-
-	shardRange := s.shardBiz.GetShardRange()
-	offset := s.state.GetFailureOffset()
-
-	tasks, err := s.taskBiz.GetFailureTasks(ctx,
-		shardRange.Start, shardRange.End,
-		defaultScanLimit, offset)
-	if err != nil {
-		xlog.Msg("scan failure tasks failed").
-			Extras("shardRange", shardRange.String(), "offset", offset.String()).
-			Err(err).
-			Errorx(ctx)
-		return
-	}
-
-	if len(tasks) == 0 {
-		s.state.ResetFailure()
-		return
-	}
-
-	for _, task := range tasks {
-		s.processFailureTask(ctx, task)
-	}
-
-	lastTask := tasks[len(tasks)-1]
-	s.state.SetFailureOffset(lastTask.Id)
-
-	xlog.Msg("scan retry batch completed").
-		Extras("shardRange", shardRange.String(),
-			"count", len(tasks),
-			"newOffset", lastTask.Id.String()).
-		Debugx(ctx)
-}
-
-func (s *ScanService) processFailureTask(ctx context.Context, task *model.Task) {
-	// 检查是否已过期，已过期则不重试，保持 failure 状态
-	now := time.Now().UnixMilli()
-	if task.IsExpired(now) {
-		xlog.Msg("task expired, skip retry").
-			Extras("taskId", task.Id.String()).
-			Debugx(ctx)
-		return
-	}
-
-	err := s.bizz.Tx(ctx, func(ctx context.Context) error {
-		return s.taskBiz.RetryTask(ctx, task.Id)
-	})
-	if err != nil {
-		xlog.Msg("retry task failed").
-			Extras("taskId", task.Id.String()).
-			Err(err).
-			Errorx(ctx)
-		return
-	}
-
-	xlog.Msg("task marked for retry").
-		Extras("taskId", task.Id.String(),
-			"curRetryCnt", task.CurRetryCnt+1,
-			"maxRetryCnt", task.MaxRetryCnt).
 		Infox(ctx)
 }
 

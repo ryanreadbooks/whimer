@@ -63,6 +63,10 @@ type Result struct {
 
 	// 错误信息（失败时设置）
 	Error error
+
+	// 失败时是否可重试（默认 false）
+	// 只有可重试的错误才会触发 conductor 的重试机制
+	Retryable bool
 }
 
 // Handler 任务处理函数
@@ -288,16 +292,16 @@ func (w *Worker) processTask(ctx context.Context, task *Task) {
 
 	if !ok {
 		xlog.Msg("no handler for task type").Extras("taskType", task.TaskType).Errorx(ctx)
-		w.completeTask(ctx, task.Id, nil, false, "no handler for task type")
+		w.completeTask(ctx, task.Id, nil, false, "no handler for task type", false)
 		return
 	}
 
 	result := w.safeExecute(ctx, task, handler)
 
 	if result.Error != nil {
-		w.completeTask(ctx, task.Id, result.Output, false, result.Error.Error())
+		w.completeTask(ctx, task.Id, result.Output, false, result.Error.Error(), result.Retryable)
 	} else {
-		w.completeTask(ctx, task.Id, result.Output, true, "")
+		w.completeTask(ctx, task.Id, result.Output, true, "", false)
 	}
 }
 
@@ -312,7 +316,14 @@ func (w *Worker) safeExecute(ctx context.Context, task *Task, handler Handler) (
 	return handler(ctx, task)
 }
 
-func (w *Worker) completeTask(ctx context.Context, taskId string, output any, success bool, errMsg string) {
+func (w *Worker) completeTask(
+	ctx context.Context,
+	taskId string,
+	output any,
+	success bool,
+	errMsg string,
+	retryable bool,
+) {
 	var outputArgs []byte
 	if output != nil {
 		outputArgs, _ = json.Marshal(output)
@@ -323,6 +334,7 @@ func (w *Worker) completeTask(ctx context.Context, taskId string, output any, su
 		OutputArgs: outputArgs,
 		Success:    success,
 		ErrorMsg:   []byte(errMsg),
+		Retryable:  retryable,
 	}
 
 	ctx = context.WithoutCancel(ctx)

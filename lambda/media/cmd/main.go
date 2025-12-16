@@ -18,6 +18,7 @@ func main() {
 	flag.Parse()
 
 	conf.MustLoad(*configFile, &config.Conf, conf.UseEnv())
+	config.MustInit()
 	logx.MustSetup(config.Conf.Log)
 	defer logx.Close()
 

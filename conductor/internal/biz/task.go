@@ -200,6 +200,10 @@ func (b *TaskBiz) CompleteTask(
 	state := model.TaskStateSuccess
 	if !success {
 		state = model.TaskStateFailure
+		// 失败时将 errorMsg 记录到 output_args
+		if len(errorMsg) > 0 {
+			outputArgs = errorMsg
+		}
 	}
 
 	err := b.taskDao.UpdateComplete(ctx, taskId, string(state), outputArgs, now)
@@ -233,25 +237,18 @@ func (b *TaskBiz) RetryTask(ctx context.Context, taskId uuid.UUID) error {
 			WithCtx(ctx)
 	}
 
-	return nil
-}
-
-// GetFailureTasks 获取失败状态的任务
-func (b *TaskBiz) GetFailureTasks(
-	ctx context.Context,
-	shardStart, shardEnd int,
-	limit int32,
-	offset uuid.UUID,
-) ([]*model.Task, error) {
-	pos, err := b.taskDao.ListFailureTasks(ctx, shardStart, shardEnd, limit, offset)
+	// 记录任务状态变更历史
+	taskHistoryPo := &dao.TaskHistoryPO{
+		TaskId: taskId,
+		State:  string(model.TaskStatePendingRetry),
+		Ctime:  now,
+	}
+	err = b.taskHistoryDao.Insert(ctx, taskHistoryPo)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "task biz get failure tasks failed").WithCtx(ctx)
+		return xerror.Wrapf(err, "task biz insert task history failed").WithCtx(ctx)
 	}
-	tasks := make([]*model.Task, 0, len(pos))
-	for _, taskPo := range pos {
-		tasks = append(tasks, model.TaskFromPO(taskPo))
-	}
-	return tasks, nil
+
+	return nil
 }
 
 // GetPendingRetryTasks 获取待重试状态的任务

@@ -1,6 +1,9 @@
 package config
 
 import (
+	"fmt"
+	"os/exec"
+
 	"github.com/ryanreadbooks/whimer/lambda/media/internal/storage"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -23,4 +26,12 @@ type Config struct {
 		BinPath string `json:"binPath"`
 		TempDir string `json:"tempDir"`
 	} `json:"ffmpeg"`
+}
+
+func MustInit() {
+	path, err := exec.LookPath(Conf.FFmpeg.BinPath)
+	if err != nil {
+		panic(fmt.Errorf("ffmpeg bin path %s not found or not executable: %w", Conf.FFmpeg.BinPath, err))
+	}
+	Conf.FFmpeg.BinPath = path
 }

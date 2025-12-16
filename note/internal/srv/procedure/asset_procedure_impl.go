@@ -54,14 +54,19 @@ func (p *AssetProcedure) PreStart(ctx context.Context, note *model.Note) (bool, 
 }
 
 func (p *AssetProcedure) Execute(ctx context.Context, note *model.Note) (string, error) {
-	processor := assetprocess.NewProcessor(note.Type, p.bizz)
-	taskId, err := processor.Process(ctx, note)
-	if err != nil {
-		return "", xerror.Wrapf(err, "asset procedure execute failed").
-			WithExtra("note_id", note.NoteId).
-			WithCtx(ctx)
+	if note.Type == model.AssetTypeVideo {
+		processor := assetprocess.NewProcessor(note.Type, p.bizz)
+		taskId, err := processor.Process(ctx, note)
+		if err != nil {
+			return "", xerror.Wrapf(err, "asset procedure execute failed").
+				WithExtra("note_id", note.NoteId).
+				WithCtx(ctx)
+		}
+		return taskId, nil
 	}
-	return taskId, nil
+
+	// 图片资源不处理
+	return "", nil
 }
 
 func (p *AssetProcedure) upgradeStateCheck(
@@ -133,14 +138,21 @@ func (p *AssetProcedure) OnFailure(
 	return true, nil
 }
 
-func (p *AssetProcedure) PollResult(ctx context.Context, taskId string) (bool, error) {
+func (p *AssetProcedure) PollResult(ctx context.Context, taskId string) (PollState, error) {
 	task, err := p.conductorProducer.GetTask(ctx, taskId)
 	if err != nil {
-		return false, xerror.Wrapf(err, "asset procedure poll result failed").
+		return PollStateRunning, xerror.Wrapf(err, "asset procedure poll result failed").
 			WithExtra("task_id", taskId).
 			WithCtx(ctx)
 	}
-	return task.State == sdktask.TaskStateSuccess, nil
+	switch task.State {
+	case sdktask.TaskStateSuccess:
+		return PollStateSuccess, nil
+	case sdktask.TaskStateFailure:
+		return PollStateFailure, nil
+	default:
+		return PollStateRunning, nil
+	}
 }
 
 func (p *AssetProcedure) Retry(ctx context.Context, record *biz.ProcedureRecord) error {
@@ -165,4 +177,18 @@ func (p *AssetProcedure) executeForRetry(ctx context.Context, note *model.Note) 
 		return "", err
 	}
 	return taskId, nil
+}
+
+var _ AutoCompleter = (*AssetProcedure)(nil)
+
+func (p *AssetProcedure) AutoComplete(
+	ctx context.Context,
+	note *model.Note,
+	taskId string,
+) (success, autoComplete bool) {
+	if note.Type == model.AssetTypeImage {
+		return true, true
+	}
+
+	return false, false
 }
