@@ -18,9 +18,9 @@ func NewProcedureRecordData(repo *notedao.ProcedureRecordRepo) *ProcedureRecordD
 	}
 }
 
-// Insert 插入流程记录
-func (d *ProcedureRecordData) Insert(ctx context.Context, record *notedao.ProcedureRecordPO) error {
-	return d.repo.Insert(ctx, record)
+// Upsert 插入流程记录
+func (d *ProcedureRecordData) Upsert(ctx context.Context, record *notedao.ProcedureRecordPO) error {
+	return d.repo.Upsert(ctx, record, true)
 }
 
 // UpdateTaskId 更新流程记录的任务ID
@@ -77,7 +77,15 @@ func (d *ProcedureRecordData) Get(
 	noteId int64,
 	protype model.ProcedureType,
 ) (*notedao.ProcedureRecordPO, error) {
-	return d.repo.Get(ctx, noteId, protype)
+	return d.repo.Get(ctx, noteId, protype, false)
+}
+
+func (d *ProcedureRecordData) GetForUpdate(
+	ctx context.Context,
+	noteId int64,
+	protype model.ProcedureType,
+) (*notedao.ProcedureRecordPO, error) {
+	return d.repo.Get(ctx, noteId, protype, true)
 }
 
 // Delete 删除流程记录

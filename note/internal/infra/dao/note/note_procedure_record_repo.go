@@ -58,9 +58,10 @@ func NewProcedureRecordRepo(db *xsql.DB) *ProcedureRecordRepo {
 	return &ProcedureRecordRepo{db: db}
 }
 
-func (d *ProcedureRecordRepo) Insert(
+func (d *ProcedureRecordRepo) Upsert(
 	ctx context.Context,
 	record *ProcedureRecordPO,
+	updateOnDup bool,
 ) error {
 	now := time.Now().Unix()
 	if record.Ctime == 0 {
@@ -68,12 +69,20 @@ func (d *ProcedureRecordRepo) Insert(
 	}
 	record.Utime = now
 
-	sb := sqlbuilder.NewInsertBuilder()
-	sb.InsertInto(procedureRecordTableName).
+	ib := sqlbuilder.NewInsertBuilder()
+	ib.InsertInto(procedureRecordTableName).
 		Cols(procedureRecordInsFields...).
 		Values(record.InsertValues()...)
+	if updateOnDup {
+		ib.SQL("ON DUPLICATE KEY UPDATE status=VALUES(status)," +
+			"ctime=VALUES(ctime), " +
+			"utime=VALUES(utime), " +
+			"cur_retry=VALUES(cur_retry), " +
+			"max_retry_cnt=VALUES(max_retry_cnt), " +
+			"next_check_time=VALUES(next_check_time)")
+	}
 
-	sql, args := sb.Build()
+	sql, args := ib.Build()
 	_, err := d.db.ExecCtx(ctx, sql, args...)
 	return xsql.ConvertError(err)
 }
@@ -175,6 +184,7 @@ func (d *ProcedureRecordRepo) Get(
 	ctx context.Context,
 	noteId int64,
 	protype model.ProcedureType,
+	forUpdate bool,
 ) (*ProcedureRecordPO, error) {
 	sb := sqlbuilder.NewSelectBuilder()
 	sb.Select(procedureRecordFields...).
@@ -183,6 +193,9 @@ func (d *ProcedureRecordRepo) Get(
 			sb.EQ("note_id", noteId),
 			sb.EQ("protype", protype),
 		)
+	if forUpdate {
+		sb.ForUpdate()
+	}
 
 	sql, args := sb.Build()
 	record := new(ProcedureRecordPO)

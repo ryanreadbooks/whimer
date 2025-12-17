@@ -89,26 +89,51 @@ func (s *NoteCreatorSrv) Create(ctx context.Context, req *CreateNoteRequest) (in
 
 // 更新笔记
 func (s *NoteCreatorSrv) Update(ctx context.Context, req *UpdateNoteRequest) error {
+	var (
+		newNote *model.Note
+		proceed func(ctx context.Context) bool
+	)
+
 	err := s.biz.Tx(ctx, func(ctx context.Context) error {
-		err := s.noteCreatorBiz.UpdateNote(ctx, req)
-		if err != nil {
-			return xerror.Wrapf(err, "srv creator update note failed").WithCtx(ctx)
+		var errTx error
+		newNote, errTx = s.noteCreatorBiz.UpdateNote(ctx, req)
+		if errTx != nil {
+			return xerror.Wrapf(errTx, "srv creator update note failed").WithCtx(ctx)
 		}
+
+		startAt := procedure.StartAtAssetProcess()
+		if newNote.State != model.NoteStateInit {
+			startAt = procedure.StartAtAudit()
+		}
+
+		proceed, errTx = s.procedureMgr.RunPipeline(ctx, newNote, startAt)
+		if errTx != nil {
+			return xerror.Wrapf(errTx, "srv creator init procedure failed").WithCtx(ctx)
+		}
+
 		return nil
 	})
 	if err != nil {
 		return xerror.Wrapf(err, "srv creator update note tx failed").WithCtx(ctx)
 	}
 
-	// TODO 重新走发布流程
-	// 1. 区分需要重新走哪些流程
+	// 继续后续流程
+	_ = proceed(ctx)
 
 	return nil
 }
 
 // 删除笔记
 func (s *NoteCreatorSrv) Delete(ctx context.Context, req *DeleteNoteRequest) error {
-	return s.noteCreatorBiz.DeleteNote(ctx, req)
+	// TODO 停掉正在进行的procedure处理
+	err := s.biz.Tx(ctx, func(ctx context.Context) error {
+		return s.noteCreatorBiz.DeleteNote(ctx, req)
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "srv creator delete note tx failed").WithCtx(ctx)
+	}
+
+	return nil
 }
 
 // 列出某用户所有笔记

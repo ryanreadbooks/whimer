@@ -20,10 +20,9 @@ var _ Procedure = (*AssetProcedure)(nil)
 
 // AssetProcedure 资源处理流程 负责笔记资源（图片、视频等）的处理
 type AssetProcedure struct {
-	bizz             *biz.Biz
-	noteBiz          *biz.NoteBiz
-	noteCreatorBiz   *biz.NoteCreatorBiz
-	noteProcedureBiz *biz.NoteProcedureBiz
+	bizz           *biz.Biz
+	noteBiz        *biz.NoteBiz
+	noteCreatorBiz *biz.NoteCreatorBiz
 
 	conductorProducer *conductor.Client
 
@@ -36,7 +35,6 @@ func NewAssetProcedure(bizz *biz.Biz) *AssetProcedure {
 		bizz:              bizz,
 		noteBiz:           bizz.Note,
 		noteCreatorBiz:    bizz.Creator,
-		noteProcedureBiz:  bizz.Procedure,
 		conductorProducer: dep.GetConductProducer(),
 		retryHelper:       newRetryHelper(bizz),
 	}
@@ -47,13 +45,18 @@ func (p *AssetProcedure) Type() model.ProcedureType {
 }
 
 func (p *AssetProcedure) PreStart(ctx context.Context, note *model.Note) (bool, error) {
-	err := p.noteCreatorBiz.TransferNoteStateToProcessing(ctx, note.NoteId)
-	if err != nil {
-		return false, xerror.Wrapf(err, "asset procedure set note state processing failed").
-			WithExtra("note_id", note.NoteId).
-			WithCtx(ctx)
+	// 如果是笔记更新场景 不需要更新资源key的情况下不需要重走资源流程
+	if note.State == model.NoteStateInit {
+		err := p.noteCreatorBiz.TransferNoteStateToProcessing(ctx, note.NoteId)
+		if err != nil {
+			return false, xerror.Wrapf(err, "asset procedure set note state processing failed").
+				WithExtra("note_id", note.NoteId).
+				WithCtx(ctx)
+		}
+		return true, nil
 	}
-	return true, nil
+
+	return false, nil
 }
 
 func (p *AssetProcedure) Execute(ctx context.Context, note *model.Note) (string, error) {

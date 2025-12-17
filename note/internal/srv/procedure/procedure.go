@@ -36,8 +36,6 @@ type Procedure interface {
 	// 流程开始前的初始化工作
 	//
 	// 返回doRecord=true表示需要该流程接下来会进行远程调用 需要创建本地调用记录
-	//
-	// 返回doRecord=false后, 后续的Execute失败时将不会触发重试机制
 	PreStart(ctx context.Context, note *model.Note) (doRecord bool, err error)
 
 	// Execute 执行流程任务 返回任务ID用于后续追踪

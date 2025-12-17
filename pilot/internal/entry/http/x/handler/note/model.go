@@ -97,6 +97,10 @@ type CreateReqVideo struct {
 }
 
 func (r *CreateReqVideo) AsPb() *notev1.CreateReqVideo {
+	if r == nil {
+		return nil
+	}
+
 	return &notev1.CreateReqVideo{
 		FileId: r.FileId,
 		// TargetFileId: , target字段由后面的biz流程填充

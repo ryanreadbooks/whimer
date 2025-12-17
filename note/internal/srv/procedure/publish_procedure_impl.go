@@ -41,8 +41,12 @@ func (p *PublishProcedure) PreStart(ctx context.Context, note *model.Note) (bool
 	return false, nil
 }
 
+// 广播笔记发布事件
 func (p *PublishProcedure) Execute(ctx context.Context, note *model.Note) (string, error) {
-	// TODO 通过kafka广播笔记发布的事件
+	if note.Privacy == model.PrivacyPrivate {
+		return "", nil
+	}
+
 	return "", nil
 }
 

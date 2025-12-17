@@ -8,6 +8,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/data"
+	"github.com/ryanreadbooks/whimer/note/internal/global"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
@@ -29,13 +30,26 @@ type CreateProcedureRecordReq struct {
 	MaxRetryCnt int
 }
 
+// 创建一条任务记录 如果存在且状态非处理中则更新
+//
+// 否则返回错误
 func (b *NoteProcedureBiz) CreateRecord(
 	ctx context.Context,
 	req *CreateProcedureRecordReq,
 ) error {
 	// 设定第一次检查时间
+	curRecord, err := b.data.ProcedureRecord.GetForUpdate(ctx, req.NoteId, req.Protype)
+	if err != nil {
+		return xerror.Wrapf(err, "biz get process record for update failed").
+			WithExtras("noteId", req.NoteId, "protype", req.Protype).
+			WithCtx(ctx)
+	}
+	if curRecord.Status == model.ProcessStatusProcessing {
+		return xerror.Wrap(global.ErrNoteProcessing)
+	}
+
 	nextCheckTime := time.Now().Add(config.Conf.RetryConfig.ProcedureRetry.TaskRegister.RetryInterval).Unix()
-	record := &notedao.ProcedureRecordPO{
+	newRecord := &notedao.ProcedureRecordPO{
 		NoteId:        req.NoteId,
 		Protype:       req.Protype,
 		TaskId:        req.TaskId,
@@ -44,7 +58,8 @@ func (b *NoteProcedureBiz) CreateRecord(
 		NextCheckTime: nextCheckTime,
 	}
 
-	err := b.data.ProcedureRecord.Insert(ctx, record)
+	// 任务已经处理完就直接覆盖
+	err = b.data.ProcedureRecord.Upsert(ctx, newRecord)
 	if err != nil {
 		return xerror.Wrapf(err, "biz create process record failed").
 			WithExtras("noteId", req.NoteId, "protype", req.Protype).

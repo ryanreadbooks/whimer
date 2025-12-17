@@ -43,6 +43,10 @@ func (d *NoteAssetData) FindImageByNoteId(ctx context.Context, noteId int64) ([]
 	return d.repo.FindByNoteIdForUpdate(ctx, noteId, model.AssetTypeImage)
 }
 
+func (d *NoteAssetData) FindVideoByNoteId(ctx context.Context, noteId int64) ([]*notedao.AssetPO, error) {
+	return d.repo.FindByNoteIdForUpdate(ctx, noteId, model.AssetTypeVideo)
+}
+
 // 删除笔记的所有资源
 func (d *NoteAssetData) DeleteByNoteId(ctx context.Context, noteId int64) error {
 	return d.repo.DeleteByNoteId(ctx, noteId)

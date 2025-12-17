@@ -41,10 +41,15 @@ func (d *NoteExtRepo) Upsert(ctx context.Context, ext *ExtPO) error {
 	}
 	ext.Utime = now
 
+	atUsers := json.RawMessage{}
+	if ext.AtUsers != nil {
+		atUsers = ext.AtUsers
+	}
+
 	const sql = "INSERT INTO note_ext(" + extFields + ") VALUES(?,?,?,?,?) " +
 		" ON DUPLICATE KEY UPDATE tags=VALUES(tags),at_users=VALUES(at_users),utime=VALUES(utime)"
 
-	_, err := d.db.ExecCtx(ctx, sql, ext.NoteId, ext.Tags, ext.AtUsers, ext.Ctime, ext.Utime)
+	_, err := d.db.ExecCtx(ctx, sql, ext.NoteId, ext.Tags, atUsers, ext.Ctime, ext.Utime)
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
