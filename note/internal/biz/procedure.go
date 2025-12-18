@@ -40,11 +40,15 @@ func (b *NoteProcedureBiz) CreateRecord(
 	// 设定第一次检查时间
 	curRecord, err := b.data.ProcedureRecord.GetForUpdate(ctx, req.NoteId, req.Protype)
 	if err != nil {
-		return xerror.Wrapf(err, "biz get process record for update failed").
-			WithExtras("noteId", req.NoteId, "protype", req.Protype).
-			WithCtx(ctx)
+		if !xsql.IsNoRecord(err) {
+			return xerror.Wrapf(err, "biz get process record for update failed").
+				WithExtras("noteId", req.NoteId, "protype", req.Protype).
+				WithCtx(ctx)
+		}
 	}
-	if curRecord.Status == model.ProcessStatusProcessing {
+
+	// record可能不存在 不存在就不需要检查状态
+	if curRecord != nil && curRecord.Status == model.ProcessStatusProcessing {
 		return xerror.Wrap(global.ErrNoteProcessing)
 	}
 

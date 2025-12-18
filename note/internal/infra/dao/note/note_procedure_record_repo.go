@@ -200,7 +200,7 @@ func (d *ProcedureRecordRepo) Get(
 	sql, args := sb.Build()
 	record := new(ProcedureRecordPO)
 	err := d.db.QueryRowCtx(ctx, record, sql, args...)
-	return record, xsql.ConvertError(err)
+	return nil, xsql.ConvertError(err)
 }
 
 func (d *ProcedureRecordRepo) Delete(
