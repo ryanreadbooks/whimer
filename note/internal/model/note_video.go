@@ -4,18 +4,36 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 )
 
 type NoteVideoMedia struct {
-	Width        int32  `json:"width"`
-	Height       int32  `json:"height"`
-	VideoCodec   string `json:"video_codec"`
-	VideoBitrate int32  `json:"video_bitrate"`
-	FrameRate    int32  `json:"frame_rate"`
-	Duration     int32  `json:"duration"`
-	Format       string `json:"format"`
-	AudioCodec   string `json:"audio_codec"`
-	AudioBitrate int32  `json:"audio_bitrate"`
+	Width        uint32  `json:"width"`
+	Height       uint32  `json:"height"`
+	VideoCodec   string  `json:"video_codec"`
+	Bitrate      int64   `json:"bitrate"`
+	FrameRate    float64 `json:"frame_rate"`
+	Duration     float64 `json:"duration"`
+	Format       string  `json:"format"`
+	AudioCodec   string  `json:"audio_codec"`
+	AudioBitrate int64   `json:"audio_bitrate"`
+}
+
+func (m *NoteVideoMedia) AsPb() *notev1.NoteVideoMeta {
+	if m == nil {
+		return nil
+	}
+	return &notev1.NoteVideoMeta{
+		Width:      m.Width,
+		Height:     m.Height,
+		Format:     m.Format,
+		Duration:   m.Duration,
+		Bitrate:    m.Bitrate,
+		Codec:      m.VideoCodec,
+		Framerate:  m.FrameRate,
+		AudioCodec: m.AudioCodec,
+	}
 }
 
 type NoteVideoItem struct {
@@ -44,8 +62,8 @@ func (v *NoteVideoItem) TrimBucket() string {
 		return ""
 	}
 
-	if strings.HasPrefix(v.Key, v.GetBucket()+"/") {
-		return strings.TrimPrefix(v.Key, v.GetBucket()+"/")
+	if after, ok := strings.CutPrefix(v.Key, v.GetBucket()+"/"); ok {
+		return after
 	}
 
 	return v.Key
@@ -61,9 +79,10 @@ const (
 
 // 笔记视频资源
 type NoteVideo struct {
-	H264 *NoteVideoItem `json:"h264,omitempty"`
-	H265 *NoteVideoItem `json:"h265,omitempty"`
-	AV1  *NoteVideoItem `json:"av1,omitempty"`
+	// H264  *NoteVideoItem   `json:"h264,omitempty"`
+	// H265  *NoteVideoItem   `json:"h265,omitempty"`
+	// AV1   *NoteVideoItem   `json:"av1,omitempty"`
+	Items []*NoteVideoItem `json:"items,omitempty"`
 
 	rawUrl    string `json:"-"` // 非必要字段 需要时填充
 	rawBucket string `json:"-"` // 非必要字段 需要时填充
@@ -101,9 +120,29 @@ func (v *NoteVideo) SetTargetBucket(bucket string) {
 	if v == nil {
 		return
 	}
-	v.H264.SetBucket(bucket)
-	v.H265.SetBucket(bucket)
-	v.AV1.SetBucket(bucket)
+	// v.H264.SetBucket(bucket)
+	// v.H265.SetBucket(bucket)
+	// v.AV1.SetBucket(bucket)
+	for _, item := range v.Items {
+		item.SetBucket(bucket)
+	}
+}
+
+func (v *NoteVideo) AsPb() []*notev1.NoteVideo {
+	if v == nil {
+		return nil
+	}
+
+	items := make([]*notev1.NoteVideo, 0, len(v.Items))
+	for _, item := range v.Items {
+		items = append(items, &notev1.NoteVideo{
+			Key:  item.Key,
+			Type: int32(notev1.NoteAssetType_VIDEO),
+			Meta: item.Media.AsPb(),
+		})
+	}
+
+	return items
 }
 
 func FormatNoteVideoKey(id string, suffix SupportedVideoSuffix) string {
@@ -117,11 +156,13 @@ func FormatNoteVideoKey(id string, suffix SupportedVideoSuffix) string {
 }
 
 // 视频的metadata
+//
+// 来自media处理的回调
 type VideoInfo struct {
 	// Width 视频宽度（像素）
-	Width int `json:"width"`
+	Width uint32 `json:"width"`
 	// Height 视频高度（像素）
-	Height int `json:"height"`
+	Height uint32 `json:"height"`
 	// Duration 视频时长（秒）
 	Duration float64 `json:"duration"`
 	// Bitrate 总码率（bps）
@@ -140,7 +181,7 @@ type VideoInfo struct {
 	AudioBitrate int64 `json:"audio_bitrate"`
 }
 
-type VideoAssetMetadata struct {
-	Key string
+type VideoAsset struct {
+	Key  string
 	Info *VideoInfo
 }

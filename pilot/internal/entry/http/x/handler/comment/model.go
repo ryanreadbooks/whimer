@@ -1,6 +1,8 @@
 package comment
 
-import "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/storage"
+import (
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+)
 
 type UploadTicket struct {
 	StoreKeys   []string `json:"store_keys"`
@@ -10,7 +12,7 @@ type UploadTicket struct {
 	Token       string   `json:"token"`
 }
 
-func newUploadTicket(t *storage.UploadTicket) *UploadTicket {
+func newUploadTicket(t *dep.UploadTicket) *UploadTicket {
 	return &UploadTicket{
 		StoreKeys:   t.FileIds,
 		CurrentTime: t.CurrentTime,

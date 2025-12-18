@@ -120,7 +120,7 @@ func (p *AssetProcedure) OnSuccess(ctx context.Context, result *ProcedureResult)
 
 	// 如果视频资源此时需要更新视频资源的metadata
 	if note != nil && note.Type == model.AssetTypeVideo {
-		metadata, ok := arg.([]*model.VideoAssetMetadata)
+		metadata, ok := arg.([]*model.VideoAsset)
 		if ok {
 			metaMap := make(map[string][]byte)
 			state["meta_type_asset"] = true

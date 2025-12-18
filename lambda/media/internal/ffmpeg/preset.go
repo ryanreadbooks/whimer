@@ -17,6 +17,94 @@ var (
 	DefaultPresets = []Preset{Preset1080p, Preset720p}
 )
 
+// 标准分辨率定义（长边像素）
+// 这些是业界通用的标准分辨率，兼容性最好
+const (
+	Resolution4K    = 3840 // 4K/2160p
+	Resolution1440p = 2560 // 1440p/2K
+	Resolution1080p = 1920 // 1080p/FHD
+	Resolution720p  = 1280 // 720p/HD
+	Resolution480p  = 854  // 480p/SD
+	Resolution360p  = 640  // 360p
+)
+
+// 标准分辨率列表（降序排列）
+var StandardResolutions = []int{
+	Resolution4K,
+	Resolution1440p,
+	Resolution1080p,
+	Resolution720p,
+	Resolution480p,
+	Resolution360p,
+}
+
+// IsStandardResolution 判断是否为标准分辨率
+// 允许 ±2% 的误差（考虑到一些设备/编码器的微小差异）
+func IsStandardResolution(width, height int) bool {
+	maxDim := width
+	if height > width {
+		maxDim = height
+	}
+
+	const tolerance = 0.02 // 2% 误差容忍度
+	for _, std := range StandardResolutions {
+		minVal := int(float64(std) * (1 - tolerance))
+		maxVal := int(float64(std) * (1 + tolerance))
+		if maxDim >= minVal && maxDim <= maxVal {
+			return true
+		}
+	}
+	return false
+}
+
+// RecommendedScaleTarget 根据源分辨率推荐缩放目标
+// 返回值：
+//   - targetMaxDim: 推荐缩放到的长边像素，0 表示不需要缩放
+//   - needsScale: 是否需要缩放
+//
+// 策略：
+//   - 标准分辨率（1080p/720p/480p等）：不处理，保持原样
+//   - 超过 1080p 的非标准分辨率：缩放到 1080p
+//   - 720p ~ 1080p 之间的非标准分辨率：缩放到 720p（兼容性最好）
+//   - 480p ~ 720p 之间的非标准分辨率：缩放到 720p
+//   - 小于 480p：不处理
+func RecommendedScaleTarget(width, height int) (targetMaxDim int, needsScale bool) {
+	// 标准分辨率不处理
+	if IsStandardResolution(width, height) {
+		return 0, false
+	}
+
+	maxDim := width
+	if height > width {
+		maxDim = height
+	}
+
+	// 根据当前分辨率决定缩放目标
+	switch {
+	case maxDim > Resolution1080p:
+		// 超过 1080p 的非标准分辨率，缩放到 1080p
+		return Resolution1080p, true
+	case maxDim > Resolution720p:
+		// 720p ~ 1080p 之间的非标准分辨率（如 1600x900, 1440x810）
+		// 缩放到 720p，因为 720p 兼容性最好，且避免产生非标准输出
+		return Resolution720p, true
+	case maxDim > Resolution480p:
+		// 480p ~ 720p 之间的非标准分辨率（如 960x540）
+		// 缩放到 720p（向上取整到标准分辨率会放大，所以保持或向下）
+		// 这里选择不缩放，保持原样，避免质量损失
+		return 0, false
+	default:
+		// 小于等于 480p，不处理
+		return 0, false
+	}
+}
+
+// NeedsScaleTo720p 判断是否需要缩放到 720p（兼容旧接口）
+func NeedsScaleTo720p(srcWidth, srcHeight int) bool {
+	target, needs := RecommendedScaleTarget(srcWidth, srcHeight)
+	return needs && target == Resolution720p
+}
+
 // AV1 编码推荐参数
 // Preset: 0-13，越小越慢质量越好，推荐 6-8 平衡速度与质量
 // CRF: 0-63，越小质量越高，推荐 30-35

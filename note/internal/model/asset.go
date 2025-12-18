@@ -35,15 +35,8 @@ func (r *AssetImageMeta) Bytes() []byte {
 	return c
 }
 
-type AssetPreviewEventMetadata struct {
-	Key         string `json:"key"`
-	Width       uint32 `json:"width"`
-	Height      uint32 `json:"height"`
-	ContentType string `json:"content_type"`
-}
-
-// kafka中消息
-type AssetPreviewEvent struct {
-	Preview AssetPreviewEventMetadata `json:"preview"` // 预览信息
-	Default AssetPreviewEventMetadata `json:"default"` // 原始信息
+func NewVideoInfoFromJson(s []byte) *VideoInfo {
+	var v VideoInfo
+	_ = json.Unmarshal(s, &v)
+	return &v
 }

@@ -237,6 +237,10 @@ func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 
 	// 组合notes和noteAssets
 	for _, note := range notes {
+		if note.Type == model.AssetTypeVideo {
+			note.Videos = &model.NoteVideo{}
+		}
+
 		for _, asset := range noteAssets {
 			switch note.Type {
 			case model.AssetTypeImage:
@@ -255,7 +259,23 @@ func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 					})
 				}
 			case model.AssetTypeVideo:
-				// TODO
+				videoMeta := model.NewVideoInfoFromJson(asset.AssetMeta)
+				if note.NoteId == asset.NoteId {
+					note.Videos.Items = append(note.Videos.Items, &model.NoteVideoItem{
+						Key: asset.AssetKey,
+						Media: &model.NoteVideoMedia{
+							Width:        videoMeta.Width,
+							Height:       videoMeta.Height,
+							VideoCodec:   videoMeta.Codec,
+							Bitrate:      videoMeta.Bitrate,
+							FrameRate:    videoMeta.Framerate,
+							Duration:     videoMeta.Duration,
+							Format:       "video/mp4",
+							AudioCodec:   videoMeta.AudioCodec,
+							AudioBitrate: videoMeta.AudioBitrate,
+						},
+					})
+				}
 			}
 		}
 
@@ -365,4 +385,3 @@ func (b *NoteBiz) BatchGetTag(ctx context.Context, tagIds []int64) (map[int64]*m
 
 	return res, nil
 }
-

@@ -55,8 +55,8 @@ func getVideoOutputAssets(note *model.Note) []*videoProcessDest {
 
 	assets := make([]*videoProcessDest, 3)
 	assets[0] = &videoProcessDest{
-		Bucket:    note.Videos.H264.GetBucket(),
-		OutputKey: note.Videos.H264.TrimBucket(),
+		Bucket:    note.Videos.Items[0].GetBucket(),
+		OutputKey: note.Videos.Items[0].TrimBucket(),
 		Settings: &EncodeSettings{
 			VideoCodec: "libx264",
 			Preset:     "medium",
@@ -65,8 +65,8 @@ func getVideoOutputAssets(note *model.Note) []*videoProcessDest {
 		},
 	}
 	assets[1] = &videoProcessDest{
-		Bucket:    note.Videos.H265.GetBucket(),
-		OutputKey: note.Videos.H265.TrimBucket(),
+		Bucket:    note.Videos.Items[1].GetBucket(),
+		OutputKey: note.Videos.Items[1].TrimBucket(),
 		Settings: &EncodeSettings{
 			VideoCodec: "libx265",
 			Preset:     "medium",
@@ -75,8 +75,8 @@ func getVideoOutputAssets(note *model.Note) []*videoProcessDest {
 		},
 	}
 	assets[2] = &videoProcessDest{
-		Bucket:    note.Videos.AV1.GetBucket(),
-		OutputKey: note.Videos.AV1.TrimBucket(),
+		Bucket:    note.Videos.Items[2].GetBucket(),
+		OutputKey: note.Videos.Items[2].TrimBucket(),
 		Settings: &EncodeSettings{
 			VideoCodec: "libsvtav1",
 			Preset:     "8",

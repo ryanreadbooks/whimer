@@ -1,13 +1,12 @@
-package storage
+package dep
 
 import (
 	"context"
 	"fmt"
+	"time"
 
-	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
-
+	"github.com/minio/minio-go/v7"
+	miniocreds "github.com/minio/minio-go/v7/pkg/credentials"
 	v7policy "github.com/minio/minio-go/v7/pkg/policy"
 	v7set "github.com/minio/minio-go/v7/pkg/set"
 	"github.com/ryanreadbooks/whimer/misc/oss/credentials"
@@ -20,12 +19,119 @@ import (
 	xhttputil "github.com/ryanreadbooks/whimer/misc/xhttp/util"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xstring"
+	"github.com/ryanreadbooks/whimer/pilot/internal/config"
+	modelerr "github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 )
+
+var (
+	uploaders *Uploaders
+)
+
+type Uploaders struct {
+	uploaders        map[uploadresource.Type]*uploader
+	ossClient        *minio.Client
+	displayOssClient *minio.Client
+	oss              *config.Oss
+}
+
+func initUploaders(c *config.Config) {
+	uploaders = &Uploaders{
+		uploaders:        make(map[uploadresource.Type]*uploader),
+		ossClient:        ossCli,
+		displayOssClient: displayOssCli,
+		oss:              &c.Oss,
+	}
+	for resourceType, metadata := range c.UploadResourceDefineMap {
+		uploaders.uploaders[resourceType] = newUploader(&c.UploadAuthSign, &c.Oss, resourceType, metadata)
+	}
+}
+
+func GetUploaders() *Uploaders {
+	return uploaders
+}
+
+func (u *Uploaders) GetUploader(resource uploadresource.Type) (*uploader, error) {
+	if uploader, ok := u.uploaders[resource]; ok {
+		return uploader, nil
+	}
+	return nil, modelerr.ErrUnsupportedResource
+}
+
+// 对外返回预签名url获取资源
+func (u *Uploaders) PresignGetUrl(ctx context.Context, resource uploadresource.Type, key string) (string, error) {
+	uploader, err := u.GetUploader(resource)
+	if err != nil {
+		return "", err
+	}
+	bucket := uploader.metadata.Bucket
+	_, rawKey, ok := uploader.keyGen.Unwrap(key)
+	if !ok {
+		return "", xerror.ErrArgs.Msg("资源格式错误")
+	}
+
+	presignedURL, err := u.displayOssClient.PresignedGetObject(ctx, bucket, rawKey, time.Hour, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return presignedURL.String(), nil
+}
+
+func (u *Uploaders) SeperateResource(resource uploadresource.Type, resourceId string) (bucket, key string, err error) {
+	uploader, err := u.GetUploader(resource)
+	if err != nil {
+		return
+	}
+	bucket, key, ok := uploader.keyGen.Unwrap(resourceId)
+	if !ok {
+		err = xerror.ErrArgs.Msg("资源格式错误")
+		return
+	}
+	return
+}
+
+func (u *Uploaders) GetBucket(resource uploadresource.Type) (string, error) {
+	uploader, err := u.GetUploader(resource)
+	if err != nil {
+		return "", err
+	}
+	return uploader.metadata.Bucket, nil
+}
+
+func (u *Uploaders) CheckFileIdValid(resource uploadresource.Type, fileId string) error {
+	uploader, err := u.GetUploader(resource)
+	if err != nil {
+		return err
+	}
+	return uploader.CheckFileIdValid(fileId)
+}
+
+// 去除 bucket 和 prefix
+func (u *Uploaders) TrimBucketAndPrefix(resource uploadresource.Type, fileId string) string {
+	uploader, err := u.GetUploader(resource)
+	if err != nil {
+		return fileId
+	}
+	return uploader.keyGen.TrimBucketAndPrefix(fileId)
+}
+
+func PresignGetUrl(ctx context.Context, resource uploadresource.Type, key string) (string, error) {
+	return uploaders.PresignGetUrl(ctx, resource, key)
+}
+
+func SeperateResource(resource uploadresource.Type, resourceId string) (bucket, key string, err error) {
+	return uploaders.SeperateResource(resource, resourceId)
+}
+
+func GetBucket(resource uploadresource.Type) (string, error) {
+	return uploaders.GetBucket(resource)
+}
 
 type uploader struct {
 	uploadSignConfig *config.UploadAuthSign
 	oss              *config.Oss
-	resourceType     uploadresource.Type // 配置类型来自配置文件
+	resourceType     uploadresource.Type
 	metadata         uploadresource.Metadata
 
 	keyGen      *keygen.Generator
@@ -108,7 +214,7 @@ type UploadTicket struct {
 	Token       string   `json:"token"`
 }
 
-func (u *uploader) generateUploadTicket(count int32, source string) (*UploadTicket, error) {
+func (u *uploader) GenerateUploadTicket(count int32, source string) (*UploadTicket, error) {
 	fileIds := make([]string, 0, count)
 	for range count {
 		fileIds = append(fileIds, u.keyGen.Gen())
@@ -117,7 +223,7 @@ func (u *uploader) generateUploadTicket(count int32, source string) (*UploadTick
 	res, err := u.signer.BatchGetUploadAuth(fileIds, string(u.resourceType))
 	if err != nil {
 		xlog.Msg("signer batch get upload auth failed").Err(err).Error()
-		return nil, errors.ErrServerSignFailure
+		return nil, modelerr.ErrServerSignFailure
 	}
 
 	return &UploadTicket{
@@ -129,12 +235,11 @@ func (u *uploader) generateUploadTicket(count int32, source string) (*UploadTick
 	}, nil
 }
 
-func (u *uploader) getFileIds(cnt int32) []string {
+func (u *uploader) GetFileIds(cnt int32) []string {
 	fileIds := make([]string, 0, cnt)
 	for range cnt {
 		fileIds = append(fileIds, u.keyGen.Gen())
 	}
-
 	return fileIds
 }
 
@@ -142,6 +247,18 @@ func (u *uploader) CheckFileIdValid(fileId string) error {
 	if !u.keyGen.Check(fileId) {
 		return xerror.ErrArgs.Msg("资源格式错误")
 	}
-
 	return nil
+}
+
+func (u *uploader) GetBucket() string {
+	return u.metadata.Bucket
+}
+
+func (u *uploader) GetUploadEndpoint() string {
+	return xhttputil.FormatHost(u.oss.UploadEndpoint, u.oss.UseSecure)
+}
+
+func (u *uploader) GetCredentials(ctx context.Context) (*miniocreds.Value, error) {
+	val, err := u.credentials.Get(ctx)
+	return &val, err
 }

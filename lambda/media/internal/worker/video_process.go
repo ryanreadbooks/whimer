@@ -54,7 +54,7 @@ type OutputConfig struct {
 	Settings *EncodeSettings `json:"settings,omitempty"`
 }
 
-// 编码参数配置
+// EncodeSettings 编码参数配置
 type EncodeSettings struct {
 	// VideoCodec 视频编码器:
 	//   - libx264: H.264
@@ -90,6 +90,15 @@ type EncodeSettings struct {
 
 	// 目标帧率，0 表示保持原帧率
 	Framerate int `json:"framerate,omitempty"`
+
+	// Auto720p 智能分辨率适配模式
+	// 开启后会自动检测源视频分辨率并智能决定是否缩放:
+	//   - 标准分辨率 (1080p/720p/480p等): 不处理，保持原样
+	//   - 超过 1080p 的非标准分辨率: 缩放到 1080p
+	//   - 720p ~ 1080p 之间的非标准分辨率: 缩放到 720p
+	//   - 小于 720p: 不处理
+	// 此选项会覆盖 MaxHeight/MaxWidth 设置
+	Auto720p bool `json:"auto_720p,omitempty"`
 }
 
 // 缩略图配置
@@ -205,10 +214,19 @@ func (h *VideoHandler) process(ctx context.Context, req *VideoProcessRequest) (*
 		return nil, fmt.Errorf("input url is empty")
 	}
 
+	// 预先 probe 获取源视频信息（用于 Auto720p 判断）
+	var srcProbe *ffmpeg.ProbeResult
+	if h.needsProbeForAuto720p(req.Outputs) {
+		srcProbe, err = ffmpeg.Probe(ctx, inputURL)
+		if err != nil {
+			xlog.Msg("probe source video failed, will skip auto720p optimization").Err(err).Infox(ctx)
+		}
+	}
+
 	resp := &VideoProcessResponse{}
 
 	for _, out := range req.Outputs {
-		opts := h.buildOptions(out.Settings)
+		opts := h.buildOptionsWithProbe(out.Settings, srcProbe)
 		// 这里会开进程处理
 		result, err := h.processor.ProcessSingle(ctx, ffmpeg.SingleProcessRequest{
 			InputURL:  inputURL,
@@ -273,7 +291,18 @@ func (h *VideoHandler) resolveInputURL(ctx context.Context, req *VideoProcessReq
 	}
 }
 
-func (h *VideoHandler) buildOptions(s *EncodeSettings) []ffmpeg.OptionFunc {
+// needsProbeForAuto720p 检查是否有任何输出配置启用了 Auto720p
+func (h *VideoHandler) needsProbeForAuto720p(outputs []OutputConfig) bool {
+	for _, out := range outputs {
+		if out.Settings != nil && out.Settings.Auto720p {
+			return true
+		}
+	}
+	return false
+}
+
+// buildOptionsWithProbe 根据 probe 结果和设置构建 ffmpeg 选项
+func (h *VideoHandler) buildOptionsWithProbe(s *EncodeSettings, probe *ffmpeg.ProbeResult) []ffmpeg.OptionFunc {
 	if s == nil {
 		return nil
 	}
@@ -292,12 +321,25 @@ func (h *VideoHandler) buildOptions(s *EncodeSettings) []ffmpeg.OptionFunc {
 	if s.AudioBitrate != "" {
 		opts = append(opts, ffmpeg.WithAudioBitrate(s.AudioBitrate))
 	}
-	if s.MaxHeight > 0 {
-		opts = append(opts, ffmpeg.WithMaxHeight(s.MaxHeight))
+
+	// Auto720p 智能缩放处理
+	if s.Auto720p && probe != nil {
+		// 根据源分辨率智能决定是否缩放
+		// - 标准分辨率（1080p/720p等）：不处理
+		// - 非标准分辨率：缩放到推荐的标准分辨率
+		if targetDim, needsScale := ffmpeg.RecommendedScaleTarget(probe.Width, probe.Height); needsScale {
+			opts = append(opts, ffmpeg.WithMaxHeight(targetDim))
+		}
+	} else {
+		// 非 Auto720p 模式，使用原有逻辑
+		if s.MaxHeight > 0 {
+			opts = append(opts, ffmpeg.WithMaxHeight(s.MaxHeight))
+		}
+		if s.MaxWidth > 0 {
+			opts = append(opts, ffmpeg.WithMaxWidth(s.MaxWidth))
+		}
 	}
-	if s.MaxWidth > 0 {
-		opts = append(opts, ffmpeg.WithMaxWidth(s.MaxWidth))
-	}
+
 	if s.Preset != "" {
 		opts = append(opts, ffmpeg.WithPreset(s.Preset))
 	}
@@ -309,4 +351,8 @@ func (h *VideoHandler) buildOptions(s *EncodeSettings) []ffmpeg.OptionFunc {
 	}
 
 	return opts
+}
+
+func (h *VideoHandler) buildOptions(s *EncodeSettings) []ffmpeg.OptionFunc {
+	return h.buildOptionsWithProbe(s, nil)
 }

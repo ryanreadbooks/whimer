@@ -46,6 +46,7 @@ func (i *Note) AsPb() *notev1.NoteItem {
 		Likes:    i.Likes,
 		Replies:  i.Replies,
 		Owner:    i.Owner,
+		Videos:   i.Videos.AsPb(),
 	}
 
 	// note tags
@@ -70,6 +71,7 @@ func (i *Note) AsFeedPb() *notev1.FeedNoteItem {
 		Likes:     i.Likes,
 		Author:    i.Owner,
 		Replies:   i.Replies,
+		Videos:    i.Videos.AsPb(),
 	}
 }
 

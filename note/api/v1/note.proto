@@ -75,6 +75,7 @@ message NoteItem {
   repeated NoteAtUser at_users  = 13;  // @人
   NoteAssetType       note_type = 14;  // 笔记类型 图片笔记或者视频笔记
   NoteState           state     = 15;  // 笔记状态
+  repeated NoteVideo  videos    = 16;
 }
 
 message NoteImageMeta {
@@ -87,6 +88,23 @@ message NoteImage {
   string        key  = 1;
   int32         type = 2;
   NoteImageMeta meta = 3;
+}
+
+message NoteVideo {
+  string        key  = 1;
+  int32         type = 2;  // 资源类型 恒为VIDEO
+  NoteVideoMeta meta = 3;
+}
+
+message NoteVideoMeta {
+  uint32 width       = 1;
+  uint32 height      = 2;
+  string format      = 3;
+  double duration    = 4;
+  int64  bitrate     = 5;
+  string codec       = 6;
+  double framerate   = 7;
+  string audio_codec = 8;
 }
 
 // 笔记信息的概览（一般用于首页，其它非创作者获取笔记的场景）
@@ -102,6 +120,7 @@ message FeedNoteItem {
   int64              updated_at = 9;
   string             ip         = 10;
   NoteAssetType      note_type  = 11;  // 笔记类型 图片笔记或者视频笔记
+  repeated NoteVideo videos     = 12;  // 笔记视频
 }
 
 message FeedNoteItemExt {

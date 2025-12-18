@@ -76,7 +76,7 @@ func (h *Handler) NoteAssetProcessCallback() http.HandlerFunc {
 					Errorx(ctx)
 			} else {
 				for _, item := range output.Outputs {
-					input.VideoMetas = append(input.VideoMetas, &model.VideoAssetMetadata{
+					input.Videos = append(input.Videos, &model.VideoAsset{
 						Key:  item.Bucket + "/" + item.Key,
 						Info: item.Info,
 					})

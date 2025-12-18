@@ -77,19 +77,15 @@ func assignNoteAssets(newNote *model.Note, req *CreateNoteRequest) []*notedao.As
 		for _, asset := range noteAssets {
 			asset.NoteId = newNote.NoteId
 		}
+		items := make([]*model.NoteVideoItem, 0, len(noteAssets))
+		for _, asset := range noteAssets {
+			items = append(items, &model.NoteVideoItem{
+				Key:   asset.AssetKey,
+				Media: &model.NoteVideoMedia{},
+			})
+		}
 		newNote.Videos = &model.NoteVideo{
-			H264: &model.NoteVideoItem{
-				Key:   noteAssets[0].AssetKey,
-				Media: &model.NoteVideoMedia{},
-			},
-			H265: &model.NoteVideoItem{
-				Key:   noteAssets[1].AssetKey,
-				Media: &model.NoteVideoMedia{},
-			},
-			AV1: &model.NoteVideoItem{
-				Key:   noteAssets[2].AssetKey,
-				Media: &model.NoteVideoMedia{},
-			},
+			Items: items,
 		}
 		newNote.Videos.SetTargetBucket(req.Video.TargetBucket)
 		newNote.Videos.SetRawUrl(req.Video.FileId)

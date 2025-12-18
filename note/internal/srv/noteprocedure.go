@@ -44,7 +44,7 @@ type HandleAssetProcessResultReq struct {
 	NoteId      int64
 	TaskId      string
 	Success     bool
-	VideoMetas  []*model.VideoAssetMetadata
+	Videos      []*model.VideoAsset
 	ErrorOutput []byte
 }
 
@@ -55,7 +55,7 @@ func (s *NoteProcedureSrv) HandleCallbackAssetProcedureResult(
 	req *HandleAssetProcessResultReq,
 ) error {
 	if req.Success {
-		return s.procedureMgr.CompleteAssetSuccess(ctx, req.NoteId, req.TaskId, req.VideoMetas)
+		return s.procedureMgr.CompleteAssetSuccess(ctx, req.NoteId, req.TaskId, req.Videos)
 	} else {
 		return s.procedureMgr.CompleteAssetFailure(ctx, req.NoteId, req.TaskId, req.ErrorOutput)
 	}

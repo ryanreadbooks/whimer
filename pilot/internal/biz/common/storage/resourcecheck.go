@@ -172,17 +172,9 @@ func (b *Biz) GetResourceBytes(ctx context.Context, bucket, key string, numBytes
 }
 
 func (b *Biz) CheckFileIdValid(resource uploadresource.Type, fileId string) error {
-	uploader, err := b.getUploader(resource)
-	if err != nil {
-		return err
-	}
-	return uploader.CheckFileIdValid(fileId)
+	return b.uploaders.CheckFileIdValid(resource, fileId)
 }
 
 func (b *Biz) TrimBucketAndPrefix(resource uploadresource.Type, fileId string) string {
-	uploader, err := b.getUploader(resource)
-	if err != nil {
-		return fileId
-	}
-	return uploader.keyGen.TrimBucketAndPrefix(fileId)
+	return b.uploaders.TrimBucketAndPrefix(resource, fileId)
 }

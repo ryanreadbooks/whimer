@@ -11,5 +11,6 @@ func Init(c *config.Config) {
 	InitSearch(c)
 	InitWsLink(c)
 	InitOss(c)
+	initUploaders(c)
 	InitConductor(c)
 }

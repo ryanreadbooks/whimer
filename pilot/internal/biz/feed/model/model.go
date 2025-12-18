@@ -19,6 +19,8 @@ type Interaction struct {
 
 type NoteItemImageList []*model.NoteItemImage
 
+type NoteItemVideoList []*model.NoteItemVideo
+
 type Author struct {
 	Uid      int64  `json:"uid"`
 	Nickname string `json:"nickname"`
@@ -41,6 +43,7 @@ type FeedNoteItem struct {
 	CreateAt int64             `json:"create_at"`
 	UpdateAt int64             `json:"update_at"`
 	Images   NoteItemImageList `json:"images"`
+	Videos   NoteItemVideoList `json:"videos"`
 	Likes    int64             `json:"likes"` // 笔记总点赞数
 	Ip       string            `json:"-"`
 	IpLoc    string            `json:"ip_loc"`
@@ -66,9 +69,23 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 		return nil
 	}
 
-	images := make(NoteItemImageList, 0, len(pb.Images))
-	for _, img := range pb.Images {
-		images = append(images, model.NewNoteImageFromPb(img, false))
+	var (
+		images NoteItemImageList
+		videos NoteItemVideoList
+	)
+
+	if len(pb.Images) > 0 {
+		images = make(NoteItemImageList, 0, len(pb.Images))
+		for _, img := range pb.Images {
+			images = append(images, model.NewNoteImageFromPb(img, false))
+		}
+	}
+
+	if len(pb.Videos) > 0 {
+		videos = make(NoteItemVideoList, 0, len(pb.Videos))
+		for _, video := range pb.Videos {
+			videos = append(videos, model.NewNoteVideoFromPb(video))
+		}
 	}
 
 	ctx := context.Background()
@@ -81,6 +98,7 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 		CreateAt: pb.CreatedAt,
 		UpdateAt: pb.UpdatedAt,
 		Images:   images,
+		Videos:   videos,
 		Likes:    pb.Likes,
 		Ip:       pb.Ip,
 		IpLoc:    ipLoc,
