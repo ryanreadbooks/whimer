@@ -3,6 +3,7 @@ package biz
 import (
 	"context"
 	"encoding/json"
+	"sort"
 	"time"
 
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
@@ -657,6 +658,13 @@ func (b *CommentBiz) PopulateCommentImages(ctx context.Context, items []*model.C
 		return xerror.Wrapf(err, "comment biz failed to batch get comment assets").
 			WithExtra("comment_ids", commentIds).
 			WithCtx(ctx)
+	}
+
+	// 按id排序
+	for _, assets := range assetsMap {
+		sort.Slice(assets, func(i, j int) bool {
+			return assets[i].Id < assets[j].Id
+		})
 	}
 
 	// 填充图片资源
