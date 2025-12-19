@@ -179,7 +179,7 @@ func newUploader(c *config.UploadAuthSign, oss *config.Oss,
 	stmt.Actions.Add(action.PutObject)
 	stmt.Actions.Add(action.ListMultipartUploadParts)
 	stmt.Actions.Add(action.AbortMultipartUpload)
-	stmt.Resources.Add(policy.GetSimpleResource(keyPrefix))
+	stmt.Resources.Add(policy.GetSimpleResource(keyPrefix)) // 只能上传到特定的桶和前缀
 	stmt.Conditions.Add(condition.StringEquals, commonConditionsMap)
 
 	p.AppendStatement(stmt)

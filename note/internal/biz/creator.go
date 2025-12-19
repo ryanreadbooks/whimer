@@ -45,7 +45,9 @@ func isNoteExtValid(ext *notedao.ExtPO) bool {
 	return false
 }
 
-func assignNoteAssets(newNote *model.Note, req *CreateNoteRequest) []*notedao.AssetPO {
+func assignNoteAssets(newNote *model.Note,
+	req *CreateNoteRequest,
+) []*notedao.AssetPO {
 	now := time.Now().Unix()
 	var noteAssets []*notedao.AssetPO
 	switch req.Basic.NoteType {
@@ -215,7 +217,7 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *UpdateNoteRequest)
 		Ip:       ip,
 	}
 	newNote := convert.NoteFromDao(newNotePO)
-	assetUpdated, err := b.updateNoteAssets(ctx, newNote, &req.CreateNoteRequest)
+	assetUpdated, err := b.handleNoteAssets(ctx, newNote, &req.CreateNoteRequest, true)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "biz update note assets failed")
 	}
@@ -239,15 +241,28 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *UpdateNoteRequest)
 	return newNote, nil
 }
 
-func (b *NoteCreatorBiz) updateNoteAssets(
+// 统一处理image和video资源处理逻辑
+func (b *NoteCreatorBiz) handleNoteAssets(
 	ctx context.Context,
 	newNote *model.Note,
 	req *CreateNoteRequest,
+	videoUpdate bool, // video更新场景 用来判断是否需要更新资源
 ) (bool, error) {
 	// 找出旧资源
 	oldAssetsPO, err := b.getOldNoteAssets(ctx, newNote.NoteId, newNote.Type)
 	if err != nil {
 		return false, xerror.Wrapf(err, "biz get old note assets failed")
+	}
+
+	hasOldAssets := len(oldAssetsPO) > 0
+	// 视频更新场景：没有传新的 fileId
+	if videoUpdate && req.Video.FileId == "" {
+		if !hasOldAssets {
+			// 没有旧资源，也没有新资源
+			return false, global.ErrVideoNoteAssetNotExist
+		}
+		// 有旧资源，不需要更新
+		return false, nil
 	}
 
 	newAssetsPO := assignNoteAssets(newNote, req)

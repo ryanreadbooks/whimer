@@ -97,6 +97,11 @@ func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.Cr
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
+	if req.Basic.NoteType == model.AssetTypeVideo {
+		if err := req.Video.Validate(); err != nil {
+			return nil, err
+		}
+	}
 
 	// service to create note
 	noteId, err := s.Srv.NoteCreatorSrv.Create(ctx, req)
@@ -122,6 +127,7 @@ func (s *NoteCreatorServiceServer) UpdateNote(ctx context.Context, in *notev1.Up
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
+	// 更新时允许视频fileId为空 表示不更新视频资源
 
 	err := s.Srv.NoteCreatorSrv.Update(ctx, &req)
 	if err != nil {

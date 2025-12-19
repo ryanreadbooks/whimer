@@ -36,6 +36,18 @@ type CreateNoteRequestVideo struct {
 	TargetBucket string `json:"-"`
 }
 
+func (r *CreateNoteRequestVideo) Validate() error {
+	if r == nil {
+		return global.ErrNilReq
+	}
+
+	if r.FileId == "" || r.TargetFileId == "" || r.Bucket == "" || r.TargetBucket == "" {
+		return global.ErrArgs.Msg("未指定视频资源")
+	}
+
+	return nil
+}
+
 type CreateNoteRequest struct {
 	Basic   CreateNoteRequestBasic   `json:"basic"`
 	Images  []CreateNoteRequestImage `json:"images"`

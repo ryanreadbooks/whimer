@@ -61,7 +61,12 @@ func (b *Biz) CheckResourceExist(ctx context.Context, bucket, key string) (bool,
 }
 
 // 检查oss中资源是否存在
-func (b *Biz) BatchCheckResourceExist(ctx context.Context, bucket string, keys []string, strict bool) (map[string]bool, error) {
+func (b *Biz) BatchCheckResourceExist(
+	ctx context.Context,
+	bucket string,
+	keys []string,
+	strict bool,
+) (map[string]bool, error) {
 	// gopool concurrent
 	res := make(map[string]bool, len(keys))
 	for _, key := range keys {

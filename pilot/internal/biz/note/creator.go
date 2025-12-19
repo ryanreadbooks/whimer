@@ -58,7 +58,9 @@ func (b *Biz) CreateNote(ctx context.Context, req *notev1.CreateNoteRequest) (*m
 
 // UpdateNote 更新笔记
 func (b *Biz) UpdateNote(ctx context.Context, noteId imodel.NoteId, req *notev1.CreateNoteRequest) error {
-	b.treatNoteVideoReq(req)
+	if req.Video != nil && req.Video.FileId != "" {
+		b.treatNoteVideoReq(req)
+	}
 	_, err := dep.NoteCreatorServer().UpdateNote(ctx, &notev1.UpdateNoteRequest{
 		NoteId: int64(noteId),
 		Note:   req,

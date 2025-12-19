@@ -23,10 +23,6 @@ func NewBiz(c *config.Config) *Biz {
 	}
 }
 
-func (b *Biz) PresignGetUrl(ctx context.Context, resource uploadresource.Type, key string) (string, error) {
-	return b.uploaders.PresignGetUrl(ctx, resource, key)
-}
-
 func (b *Biz) SeperateResource(resource uploadresource.Type, resourceId string) (bucket, key string, err error) {
 	return b.uploaders.SeperateResource(resource, resourceId)
 }

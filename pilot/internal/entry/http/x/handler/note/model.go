@@ -93,7 +93,7 @@ func (r CreateReqImageList) AsPb() []*notev1.CreateReqImage {
 }
 
 type CreateReqVideo struct {
-	FileId string `json:"file_id"`
+	FileId string `json:"file_id,optional"`
 }
 
 func (r *CreateReqVideo) AsPb() *notev1.CreateReqVideo {

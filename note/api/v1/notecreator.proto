@@ -43,16 +43,16 @@ message CreateReqImage {
 
 message CreateReqVideo {
   // 原始文件所处位置 完整的包含bucket的fileId
-  string file_id = 1 [(buf.validate.field).string.min_len = 1];
+  string file_id = 1;
 
   // file_id所属桶
-  string file_bucket = 2 [(buf.validate.field).string.min_len = 1];
+  string file_bucket = 2;
 
   // 目标文件所处位置 包含bucket
-  string target_file_id = 3 [(buf.validate.field).string.min_len = 1];
+  string target_file_id = 3;
 
   // target_file_id所属桶
-  string target_file_bucket = 4 [(buf.validate.field).string.min_len = 1];
+  string target_file_bucket = 4;
 }
 
 message CreateReqTag {

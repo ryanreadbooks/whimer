@@ -40,6 +40,11 @@ func (h *Handler) handleAssetResource(ctx context.Context, req *CreateReq) (err 
 				})
 		}
 	case model.NoteTypeVideo:
+		// 在更新场景 允许视频fileId为空
+		if req.Video.FileId == "" {
+			return
+		}
+
 		video := notemodel.NoteVideo{FileId: req.Video.FileId}
 		err = h.noteBiz.CheckAndMarkNoteVideo(ctx, video)
 		rollback = func() {
@@ -64,6 +69,13 @@ func (h *Handler) CreatorCreateNote() http.HandlerFunc {
 			return
 		}
 		ctx := r.Context()
+
+		if req.Basic.Type == model.NoteTypeVideo {
+			if req.Video == nil || req.Video.FileId == "" {
+				xhttp.Error(r, w, xerror.ErrArgs.Msg("未指定视频资源"))
+				return
+			}
+		}
 
 		// check every resource
 		err, rollback := h.handleAssetResource(ctx, req)
