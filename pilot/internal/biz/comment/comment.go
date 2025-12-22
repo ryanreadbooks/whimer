@@ -205,7 +205,7 @@ func (b *Biz) getSeekedComment(ctx context.Context, req *model.GetCommentsReq) (
 		}
 	}
 
-	if seekedComment != nil && seekedComment.GetRoot() != nil {
+	if seekedComment.GetRoot() != nil {
 		// extra user
 		userResp, err := dep.Userer().
 			BatchGetUser(ctx,
