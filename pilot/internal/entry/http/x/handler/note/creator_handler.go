@@ -10,7 +10,6 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	notemodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/note/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -216,27 +215,5 @@ func (h *Handler) CreatorGetNote() http.HandlerFunc {
 		result := model.NewAdminNoteItemFromPb(note)
 		h.noteBiz.AssignNoteExtra(ctx, []*model.AdminNoteItem{result})
 		xhttp.OkJson(w, result)
-	}
-}
-
-// Deprecated
-//
-// See: upload.GetTempCreds for newest usage
-func (h *Handler) CreatorUploadNoteAuthV2() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[UploadAuthReq](httpx.ParseForm, r)
-		if err != nil {
-			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
-			return
-		}
-
-		ctx := r.Context()
-		resp, err := h.storageBiz.RequestUploadTicket(ctx, uploadresource.NoteImage, req.Count, req.Source)
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		xhttp.OkJson(w, resp)
 	}
 }

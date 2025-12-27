@@ -23,7 +23,8 @@ func NewNoteAdminServiceServer(srv *srv.Service) *NoteCreatorServiceServer {
 }
 
 func (s *NoteCreatorServiceServer) IsUserOwnNote(ctx context.Context, in *notev1.IsUserOwnNoteRequest) (
-	*notev1.IsUserOwnNoteResponse, error) {
+	*notev1.IsUserOwnNoteResponse, error,
+) {
 	owner, err := s.Srv.NoteCreatorSrv.GetNoteOwner(ctx, in.NoteId)
 	if err != nil {
 		return nil, err
@@ -34,7 +35,8 @@ func (s *NoteCreatorServiceServer) IsUserOwnNote(ctx context.Context, in *notev1
 
 // 判断笔记是否存在
 func (s *NoteCreatorServiceServer) IsNoteExist(ctx context.Context, in *notev1.IsNoteExistRequest) (
-	*notev1.IsNoteExistResponse, error) {
+	*notev1.IsNoteExistResponse, error,
+) {
 	ok, err := s.Srv.NoteCreatorSrv.IsNoteExist(ctx, in.NoteId)
 	if err != nil {
 		return nil, err
@@ -64,6 +66,7 @@ func convertToNoteAssets(in *notev1.CreateNoteRequest) ([]biz.CreateNoteRequestI
 			TargetFileId: in.GetVideo().GetTargetFileId(),
 			Bucket:       in.GetVideo().GetFileBucket(),
 			TargetBucket: in.GetVideo().GetTargetFileBucket(),
+			CoverFileId:  in.GetVideo().GetCoverFileId(),
 		}
 	}
 
@@ -88,12 +91,13 @@ func convertToNoteCreateReq(in *notev1.CreateNoteRequest) *biz.CreateNoteRequest
 
 // 创建笔记
 func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.CreateNoteRequest) (
-	*notev1.CreateNoteResponse, error) {
+	*notev1.CreateNoteResponse, error,
+) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
 
-	var req = convertToNoteCreateReq(in)
+	req := convertToNoteCreateReq(in)
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
@@ -114,12 +118,13 @@ func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.Cr
 
 // 更新笔记
 func (s *NoteCreatorServiceServer) UpdateNote(ctx context.Context, in *notev1.UpdateNoteRequest) (
-	*notev1.UpdateNoteResponse, error) {
+	*notev1.UpdateNoteResponse, error,
+) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
 
-	var req = biz.UpdateNoteRequest{
+	req := biz.UpdateNoteRequest{
 		NoteId:            in.NoteId,
 		CreateNoteRequest: *convertToNoteCreateReq(in.GetNote()),
 	}
@@ -139,12 +144,13 @@ func (s *NoteCreatorServiceServer) UpdateNote(ctx context.Context, in *notev1.Up
 
 // 删除笔记
 func (s *NoteCreatorServiceServer) DeleteNote(ctx context.Context, in *notev1.DeleteNoteRequest) (
-	*notev1.DeleteNoteResponse, error) {
+	*notev1.DeleteNoteResponse, error,
+) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
 
-	var req = biz.DeleteNoteRequest{
+	req := biz.DeleteNoteRequest{
 		NoteId: in.NoteId,
 	}
 
@@ -162,7 +168,8 @@ func (s *NoteCreatorServiceServer) DeleteNote(ctx context.Context, in *notev1.De
 
 // 用于笔记作者获取笔记的详细信息
 func (s *NoteCreatorServiceServer) GetNote(ctx context.Context, in *notev1.GetNoteRequest) (
-	*notev1.GetNoteResponse, error) {
+	*notev1.GetNoteResponse, error,
+) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
@@ -181,7 +188,8 @@ func (s *NoteCreatorServiceServer) GetNote(ctx context.Context, in *notev1.GetNo
 
 // 列出笔记
 func (s *NoteCreatorServiceServer) ListNote(ctx context.Context, in *notev1.ListNoteRequest) (
-	*notev1.ListNoteResponse, error) {
+	*notev1.ListNoteResponse, error,
+) {
 	data, nextPage, err := s.Srv.NoteCreatorSrv.List(ctx, in.Cursor, in.Count)
 	if err != nil {
 		return nil, err
@@ -195,11 +203,13 @@ func (s *NoteCreatorServiceServer) ListNote(ctx context.Context, in *notev1.List
 	return &notev1.ListNoteResponse{
 		Items:      items,
 		NextCursor: nextPage.NextCursor,
-		HasNext:    nextPage.HasNext}, nil
+		HasNext:    nextPage.HasNext,
+	}, nil
 }
 
 func (s *NoteCreatorServiceServer) GetPostedCount(ctx context.Context, in *notev1.GetPostedCountRequest) (
-	*notev1.GetPostedCountResponse, error) {
+	*notev1.GetPostedCountResponse, error,
+) {
 	cnt, err := s.Srv.NoteCreatorSrv.GetPostedCount(ctx, in.Uid)
 	if err != nil {
 		return nil, err
@@ -209,7 +219,8 @@ func (s *NoteCreatorServiceServer) GetPostedCount(ctx context.Context, in *notev
 }
 
 func (s *NoteCreatorServiceServer) PageListNote(ctx context.Context,
-	in *notev1.PageListNoteRequest) (*notev1.PageListNoteResponse, error) {
+	in *notev1.PageListNoteRequest,
+) (*notev1.PageListNoteResponse, error) {
 	if in.Page <= 0 {
 		in.Page = 1
 	}
@@ -235,7 +246,6 @@ func (s *NoteCreatorServiceServer) PageListNote(ctx context.Context,
 func (s *NoteCreatorServiceServer) AddTag(ctx context.Context, in *notev1.AddTagRequest) (
 	*notev1.AddTagResponse, error,
 ) {
-
 	if in.Name == "" {
 		return nil, global.ErrArgs.Msg("标签名为空")
 	}

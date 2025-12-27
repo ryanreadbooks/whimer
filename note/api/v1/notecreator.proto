@@ -53,6 +53,9 @@ message CreateReqVideo {
 
   // target_file_id所属桶
   string target_file_bucket = 4;
+
+  // 封面fileId
+  string cover_file_id = 5;
 }
 
 message CreateReqTag {

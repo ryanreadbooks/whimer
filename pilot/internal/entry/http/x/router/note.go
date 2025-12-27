@@ -28,13 +28,6 @@ func regNoteRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 				v1g.Get("/get/:note_id", h.Note.CreatorGetNote())
 			}
 		}
-		{
-			v2g := noteCreatorGroup.Group("/v2")
-			{
-				// Deprecated
-				v2g.Get("/upload/auth", h.Note.CreatorUploadNoteAuthV2())
-			}
-		}
 
 		// /note/tag
 		noteTagGroup := noteGroup.Group("/tag", middleware.MustLogin())

@@ -178,14 +178,14 @@ func (b *Biz) CheckAndMarkNoteImages(ctx context.Context, images []model.NoteIma
 // checkImageContent 检查图片内容格式和大小
 func (b *Biz) checkImageContent(ctx context.Context, bucket string, keys []string) error {
 	for _, key := range keys {
-		content, total, err := b.storageBiz.GetResourceBytes(ctx, bucket, key, 32)
+		content, size, err := b.storageBiz.GetResourceBytes(ctx, bucket, key, 32)
 		if err != nil {
 			if errors.Is(err, bizstorage.ErrResourceNotFound) {
 				return modelerr.ErrResourceNotFound
 			}
 			return err
 		}
-		if err = uploadresource.NoteImage.Check(content, total); err != nil {
+		if err = uploadresource.NoteImage.Check(content, size); err != nil {
 			return err
 		}
 	}
@@ -201,12 +201,29 @@ func (b *Biz) UnmarkNoteImages(ctx context.Context, images []model.NoteImage) er
 	return b.unmarkResources(ctx, uploadresource.NoteImage, fileIds)
 }
 
+func (b *Biz) checkVideoContent(ctx context.Context, bucket string, keys []string) error {
+	for _, key := range keys {
+		content, size, err := b.storageBiz.GetResourceBytes(ctx, bucket, key, 32)
+		if err != nil {
+			if errors.Is(err, bizstorage.ErrResourceNotFound) {
+				return modelerr.ErrResourceNotFound
+			}
+			return err
+		}
+		if err = uploadresource.NoteVideo.Check(content, size); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // CheckAndMarkNoteVideo 检查笔记视频
 func (b *Biz) CheckAndMarkNoteVideo(ctx context.Context, video model.NoteVideo) error {
 	if video.FileId == "" {
 		return modelerr.ErrResourceNotFound
 	}
-	return b.checkAndMarkResources(ctx, uploadresource.NoteVideo, []string{video.FileId}, nil)
+	return b.checkAndMarkResources(ctx, uploadresource.NoteVideo, []string{video.FileId}, b.checkVideoContent)
 }
 
 // UnmarkNoteVideo 取消标记笔记视频

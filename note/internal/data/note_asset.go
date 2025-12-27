@@ -39,12 +39,12 @@ func (d *NoteAssetData) FindByNoteIds(ctx context.Context, noteIds []int64) ([]*
 }
 
 // 获取笔记的图片资源
-func (d *NoteAssetData) FindImageByNoteId(ctx context.Context, noteId int64) ([]*notedao.AssetPO, error) {
+func (d *NoteAssetData) FindImageNoteAssets(ctx context.Context, noteId int64) ([]*notedao.AssetPO, error) {
 	return d.repo.FindByNoteIdForUpdate(ctx, noteId, model.AssetTypeImage)
 }
 
-func (d *NoteAssetData) FindVideoByNoteId(ctx context.Context, noteId int64) ([]*notedao.AssetPO, error) {
-	return d.repo.FindByNoteIdForUpdate(ctx, noteId, model.AssetTypeVideo)
+func (d *NoteAssetData) FindVideoNoteAssets(ctx context.Context, noteId int64) ([]*notedao.AssetPO, error) {
+	return d.repo.FindByNoteIdForUpdate(ctx, noteId, model.AssetTypeVideo, model.AssetTypeImage)
 }
 
 // 删除笔记的所有资源

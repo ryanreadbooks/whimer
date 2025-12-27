@@ -24,15 +24,18 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 )
 
-var (
-	uploaders *Uploaders
+const (
+	postPolicyExpiration = time.Minute * 15
 )
+
+var uploaders *Uploaders
 
 type Uploaders struct {
 	uploaders        map[uploadresource.Type]*uploader
 	ossClient        *minio.Client
 	displayOssClient *minio.Client
-	oss              *config.Oss
+	uploadOssClient  *minio.Client
+	ossConfig        *config.Oss
 }
 
 func initUploaders(c *config.Config) {
@@ -40,10 +43,11 @@ func initUploaders(c *config.Config) {
 		uploaders:        make(map[uploadresource.Type]*uploader),
 		ossClient:        ossCli,
 		displayOssClient: displayOssCli,
-		oss:              &c.Oss,
+		uploadOssClient:  uploadOssCli,
+		ossConfig:        &c.Oss,
 	}
 	for resourceType, metadata := range c.UploadResourceDefineMap {
-		uploaders.uploaders[resourceType] = newUploader(&c.UploadAuthSign, &c.Oss, resourceType, metadata)
+		uploaders.uploaders[resourceType] = newUploader(&c.UploadAuthSign, &c.Oss, uploadOssCli, resourceType, metadata)
 	}
 }
 
@@ -130,8 +134,9 @@ func GetBucket(resource uploadresource.Type) (string, error) {
 
 type uploader struct {
 	uploadSignConfig *config.UploadAuthSign
-	oss              *config.Oss
-	resourceType     uploadresource.Type
+	ossConfig        *config.Oss
+	ossCli           *minio.Client
+	resourceType     uploadresource.Type // 当前uploader只负责一种资源的上传凭证申请
 	metadata         uploadresource.Metadata
 
 	keyGen      *keygen.Generator
@@ -139,11 +144,16 @@ type uploader struct {
 	signer      *signer.JwtUploadAuthSigner
 }
 
-func newUploader(c *config.UploadAuthSign, oss *config.Oss,
-	resource uploadresource.Type, metadata uploadresource.Metadata) *uploader {
+func newUploader(
+	c *config.UploadAuthSign,
+	ossConfig *config.Oss,
+	ossCli *minio.Client,
+	resource uploadresource.Type, metadata uploadresource.Metadata,
+) *uploader {
 	u := &uploader{
 		uploadSignConfig: c,
-		oss:              oss,
+		ossConfig:        ossConfig,
+		ossCli:           ossCli,
 		resourceType:     resource,
 		metadata:         metadata,
 	}
@@ -186,12 +196,12 @@ func newUploader(c *config.UploadAuthSign, oss *config.Oss,
 
 	xlog.Msgf("%s policy is %s", keyPrefix, p.String()).Info()
 
-	endpoint := xhttputil.FormatHost(oss.Endpoint, oss.UseSecure)
+	endpoint := xhttputil.FormatHost(ossConfig.Endpoint, ossConfig.UseSecure)
 	creds, err := credentials.NewSTSCredentials(credentials.Config{
 		Endpoint:        endpoint,
-		AccessKey:       oss.User,
-		SecretKey:       oss.Password,
-		DurationSeconds: oss.CredentialDurationSec,
+		AccessKey:       ossConfig.User,
+		SecretKey:       ossConfig.Password,
+		DurationSeconds: ossConfig.CredentialDurationSec,
 		Policy:          p.String(),
 	})
 	if err != nil {
@@ -214,6 +224,7 @@ type UploadTicket struct {
 	Token       string   `json:"token"`
 }
 
+// Should be deprecated in the future
 func (u *uploader) GenerateUploadTicket(count int32, source string) (*UploadTicket, error) {
 	fileIds := make([]string, 0, count)
 	for range count {
@@ -231,7 +242,7 @@ func (u *uploader) GenerateUploadTicket(count int32, source string) (*UploadTick
 		CurrentTime: res.CurrentTime,
 		ExpireTime:  res.ExpireTime,
 		Token:       res.Token,
-		UploadAddr:  u.oss.UploadEndpoint,
+		UploadAddr:  u.ossConfig.UploadEndpoint,
 	}, nil
 }
 
@@ -255,10 +266,47 @@ func (u *uploader) GetBucket() string {
 }
 
 func (u *uploader) GetUploadEndpoint() string {
-	return xhttputil.FormatHost(u.oss.UploadEndpoint, u.oss.UseSecure)
+	return xhttputil.FormatHost(u.ossConfig.UploadEndpoint, u.ossConfig.UseSecure)
 }
 
 func (u *uploader) GetCredentials(ctx context.Context) (*miniocreds.Value, error) {
 	val, err := u.credentials.Get(ctx)
 	return &val, err
+}
+
+type GetPostPolicyRequest struct {
+	ContentType string
+	Sha256      string
+}
+
+type GetPostPolicyResponse struct {
+	Url  string
+	Key  string
+	Form map[string]string
+}
+
+func (u *uploader) GetPostPolicy(ctx context.Context, req *GetPostPolicyRequest) (*GetPostPolicyResponse, error) {
+	p := minio.NewPostPolicy()
+	key := u.keyGen.Gen()
+	p.SetBucket(u.metadata.Bucket)
+	_, rawKey, ok := u.keyGen.Unwrap(key)
+	if !ok {
+		return nil, xerror.ErrInternal.Msg("key format error")
+	}
+	p.SetKey(rawKey)
+	p.SetContentType(req.ContentType)
+	p.SetExpires(time.Now().Add(postPolicyExpiration))
+	p.SetContentLengthRange(1, u.resourceType.PermitSize())
+	p.SetChecksum(minio.NewChecksumString(minio.ChecksumSHA256, req.Sha256))
+
+	url, form, err := u.ossCli.PresignedPostPolicy(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return &GetPostPolicyResponse{
+		Url:  url.String(),
+		Key:  key,
+		Form: form,
+	}, nil
 }

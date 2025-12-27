@@ -28,7 +28,9 @@ func (b *Biz) SeperateResource(resource uploadresource.Type, resourceId string) 
 }
 
 // Deprecated
-func (b *Biz) RequestUploadTicket(ctx context.Context, resource uploadresource.Type, cnt int32, source string) (*dep.UploadTicket, error) {
+func (b *Biz) RequestUploadTicket(ctx context.Context,
+	resource uploadresource.Type, cnt int32, source string,
+) (*dep.UploadTicket, error) {
 	uploader, err := b.uploaders.GetUploader(resource)
 	if err != nil {
 		return nil, err
@@ -42,14 +44,27 @@ func (b *Biz) RequestUploadTicket(ctx context.Context, resource uploadresource.T
 	return ticket, nil
 }
 
-type RequestUploadTemporaryTicket struct {
+type GetUploadTemporaryTicketRequest struct {
 	Resource uploadresource.Type
 	Count    int32
 	Source   string
 }
 
+type TemporaryCredentials struct {
+	FileIds      []string `json:"-"`
+	Bucket       string   `json:"-"`
+	AccessKey    string   `json:"tmp_access_key"`
+	SecretKey    string   `json:"tmp_secret_key"`
+	SessionToken string   `json:"session_token"`
+	ExpireAt     int64    `json:"expire_at"` // unix timestamp in second
+	UploadAddr   string   `json:"upload_addr"`
+}
+
 // 获取STS临时上传凭证
-func (b *Biz) RequestUploadTemporaryTicket(ctx context.Context, req RequestUploadTemporaryTicket) (*TemporaryCredentials, error) {
+func (b *Biz) GetUploadTemporaryTicket(
+	ctx context.Context,
+	req *GetUploadTemporaryTicketRequest,
+) (*TemporaryCredentials, error) {
 	uploader, err := b.uploaders.GetUploader(req.Resource)
 	if err != nil {
 		return nil, err
@@ -71,12 +86,41 @@ func (b *Biz) RequestUploadTemporaryTicket(ctx context.Context, req RequestUploa
 	}, nil
 }
 
-type TemporaryCredentials struct {
-	FileIds      []string `json:"-"`
-	Bucket       string   `json:"-"`
-	AccessKey    string   `json:"tmp_access_key"`
-	SecretKey    string   `json:"tmp_secret_key"`
-	SessionToken string   `json:"session_token"`
-	ExpireAt     int64    `json:"expire_at"` // unix timestamp in second
-	UploadAddr   string   `json:"upload_addr"`
+type GetPostPolicyUploadTicketRequest struct {
+	Resource uploadresource.Type
+	Sha256   string
+	Size     int64
+	MimeType string
+}
+
+type GetPostPolicyUploadTicketResponse struct {
+	FileId     string            `json:"file_id"`
+	UploadAddr string            `json:"upload_addr"`
+	Form       map[string]string `json:"form"`
+}
+
+// 获取post policy临时上传凭证
+func (b *Biz) GetPostPolicyUploadTicket(
+	ctx context.Context,
+	req *GetPostPolicyUploadTicketRequest,
+) (*GetPostPolicyUploadTicketResponse, error) {
+	uploader, err := b.uploaders.GetUploader(req.Resource)
+	if err != nil {
+		return nil, err
+	}
+
+	ppResp, err := uploader.GetPostPolicy(ctx, &dep.GetPostPolicyRequest{
+		ContentType: req.MimeType,
+		Sha256:      req.Sha256,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Post Policy 上传需要 POST 到 bucket 的根路径，key 通过 form 字段传递
+	return &GetPostPolicyUploadTicketResponse{
+		UploadAddr: ppResp.Url,
+		FileId:     ppResp.Key,
+		Form:       ppResp.Form,
+	}, nil
 }

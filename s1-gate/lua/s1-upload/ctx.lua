@@ -11,4 +11,14 @@ function _M.is_upload_request()
   return method_name == httpmethod.PUT or method_name == httpmethod.POST
 end
 
+function _M.is_put_upload_request()
+  local method_name = ngx.req.get_method():upper()
+  return method_name == httpmethod.PUT
+end
+
+function _M.is_post_upload_request()
+  local method_name = ngx.req.get_method():upper()
+  return method_name == httpmethod.POST
+end
+
 return _M

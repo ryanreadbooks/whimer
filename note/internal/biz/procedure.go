@@ -48,7 +48,7 @@ func (b *NoteProcedureBiz) CreateRecord(
 	}
 
 	// record可能不存在 不存在就不需要检查状态
-	if curRecord != nil && curRecord.Status == model.ProcessStatusProcessing {
+	if err == nil && curRecord != nil && curRecord.Status == model.ProcessStatusProcessing {
 		return xerror.Wrap(global.ErrNoteProcessing)
 	}
 
@@ -164,13 +164,15 @@ func (b *NoteProcedureBiz) MarkFailed(
 func (b *NoteProcedureBiz) GetRecord(
 	ctx context.Context,
 	noteId int64,
-	protype model.ProcedureType) (*ProcedureRecord, error) {
+	protype model.ProcedureType,
+) (*ProcedureRecord, error) {
 	record, err := b.data.ProcedureRecord.Get(ctx, noteId, protype)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "biz get process record failed").
 			WithExtras("noteId", noteId, "protype", protype).
 			WithCtx(ctx)
 	}
+
 	return ProcedureRecordFromPO(record), nil
 }
 
@@ -197,7 +199,8 @@ type ListProcessingRetryReq struct {
 // 获取最早的未执行完成的下次检查时间记录
 func (b *NoteProcedureBiz) GetEarliestScannedRecord(
 	ctx context.Context,
-	status model.ProcedureStatus) (*ProcedureRecord, error) {
+	status model.ProcedureStatus,
+) (*ProcedureRecord, error) {
 	record, err := b.data.ProcedureRecord.GetEarliestNextCheckTimeRecord(ctx, status)
 	if err != nil {
 		if xsql.IsNoRecord(err) {

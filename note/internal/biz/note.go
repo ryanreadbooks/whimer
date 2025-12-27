@@ -242,7 +242,7 @@ func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*mode
 		}
 
 		for _, asset := range noteAssets {
-			switch note.Type {
+			switch asset.AssetType {
 			case model.AssetTypeImage:
 				assetMeta := model.NewAssetImageMetaFromJson(asset.AssetMeta)
 				if note.NoteId == asset.NoteId {

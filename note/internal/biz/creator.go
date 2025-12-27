@@ -92,6 +92,16 @@ func assignNoteAssets(newNote *model.Note,
 		newNote.Videos.SetTargetBucket(req.Video.TargetBucket)
 		newNote.Videos.SetRawUrl(req.Video.FileId)
 		newNote.Videos.SetRawBucket(req.Video.Bucket)
+
+		// 加上视频封面
+		coverImage := &model.AssetImageMeta{}
+		noteAssets = append(noteAssets, &notedao.AssetPO{
+			NoteId:    newNote.NoteId,
+			AssetKey:  req.Video.CoverFileId,
+			AssetType: model.AssetTypeImage,
+			CreateAt:  now,
+			AssetMeta: coverImage.Bytes(),
+		})
 	}
 
 	return noteAssets
@@ -148,7 +158,6 @@ func (b *NoteCreatorBiz) CreateNote(ctx context.Context, req *CreateNoteRequest)
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, xerror.Wrapf(err, "biz create note failed").WithExtra("note", req).WithCtx(ctx)
 	}
@@ -256,7 +265,7 @@ func (b *NoteCreatorBiz) handleNoteAssets(
 
 	hasOldAssets := len(oldAssetsPO) > 0
 	// 视频更新场景：没有传新的 fileId
-	if videoUpdate && req.Video.FileId == "" {
+	if videoUpdate && req.Video.FileId == "" && req.Video.CoverFileId == "" {
 		if !hasOldAssets {
 			// 没有旧资源，也没有新资源
 			return false, global.ErrVideoNoteAssetNotExist
@@ -313,13 +322,13 @@ func (b *NoteCreatorBiz) getOldNoteAssets(
 ) ([]*notedao.AssetPO, error) {
 	switch noteType {
 	case model.AssetTypeImage:
-		assets, err := b.data.NoteAsset.FindImageByNoteId(ctx, noteId)
+		assets, err := b.data.NoteAsset.FindImageNoteAssets(ctx, noteId)
 		if err != nil && !errors.Is(err, xsql.ErrNoRecord) {
 			return nil, xerror.Wrapf(err, "noteasset dao find image assetsfailed")
 		}
 		return assets, nil
 	case model.AssetTypeVideo:
-		assets, err := b.data.NoteAsset.FindVideoByNoteId(ctx, noteId)
+		assets, err := b.data.NoteAsset.FindVideoNoteAssets(ctx, noteId)
 		if err != nil && !errors.Is(err, xsql.ErrNoRecord) {
 			return nil, xerror.Wrapf(err, "noteasset dao find video assets failed")
 		}
@@ -397,9 +406,7 @@ func (b *NoteCreatorBiz) CreatorGetNote(ctx context.Context, noteId int64) (*mod
 }
 
 func (b *NoteCreatorBiz) ListNote(ctx context.Context) (*model.Notes, error) {
-	var (
-		uid = metadata.Uid(ctx)
-	)
+	uid := metadata.Uid(ctx)
 
 	notes, err := b.data.Note.ListByOwner(ctx, uid)
 	if errors.Is(err, xsql.ErrNoRecord) {
@@ -467,9 +474,7 @@ func (b *NoteCreatorBiz) PageListNoteWithCursor(ctx context.Context, cursor int6
 
 // page从1开始
 func (b *NoteCreatorBiz) PageListNote(ctx context.Context, page, count int32) (*model.Notes, int64, error) {
-	var (
-		uid = metadata.Uid(ctx)
-	)
+	uid := metadata.Uid(ctx)
 
 	total, err := b.data.Note.GetPostedCountByOwner(ctx, uid)
 	if err != nil {

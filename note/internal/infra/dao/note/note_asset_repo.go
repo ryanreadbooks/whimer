@@ -8,6 +8,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
+	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 
 	"github.com/huandu/go-sqlbuilder"
@@ -109,14 +110,27 @@ func (r *NoteAssetRepo) BatchInsert(ctx context.Context, assets []*AssetPO) erro
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteAssetRepo) FindByNoteIdForUpdate(ctx context.Context, noteId int64, assetType model.AssetType) ([]*AssetPO, error) {
+func (r *NoteAssetRepo) FindByNoteIdForUpdate(ctx context.Context, noteId int64, assetType ...model.AssetType) ([]*AssetPO, error) {
+	assetTypes := xslice.Uniq(assetType)
+	if len(assetTypes) == 0 {
+		return nil, global.ErrArgs.Msg("asset type is required")
+	}
+
 	res := make([]*AssetPO, 0)
 	sb := sqlbuilder.NewSelectBuilder()
+
+	assetTypeConditions := ""
+	if len(assetTypes) == 1 {
+		assetTypeConditions = sb.Equal("asset_type", assetTypes[0])
+	} else {
+		assetTypeConditions = sb.In("asset_type", xslice.Any(assetTypes)...)
+	}
+
 	sb.Select(assetFields...).
 		From(assetTable).
 		Where(
 			sb.Equal("note_id", noteId),
-			sb.Equal("asset_type", assetType),
+			assetTypeConditions,
 		).ForUpdate()
 	sql, args := sb.Build()
 	err := r.db.QueryRowsCtx(ctx, &res, sql, args...)

@@ -14,6 +14,7 @@ import (
 var (
 	ossCli        *minio.Client
 	displayOssCli *minio.Client
+	uploadOssCli *minio.Client
 )
 
 // InitOss 初始化对象存储客户端
@@ -38,9 +39,20 @@ func InitOss(c *config.Config) {
 	if err != nil {
 		panic(fmt.Errorf("init display oss: %w", err))
 	}
+	uploadCli, err := minio.New(
+		strings.TrimPrefix(strings.TrimPrefix(c.Oss.UploadEndpoint, "https://"), "http://"),
+		&minio.Options{
+			Secure:    c.Oss.UseSecure,
+			Creds:     credentials.NewStaticV4(c.Oss.User, c.Oss.Password, ""),
+			Transport: xhttpctransport.SpanTracing(http.DefaultTransport),
+		})
+	if err != nil {
+		panic(fmt.Errorf("init upload oss: %w", err))
+	}
 
 	ossCli = cli
 	displayOssCli = displayCli
+	uploadOssCli = uploadCli
 }
 
 func OssClient() *minio.Client {

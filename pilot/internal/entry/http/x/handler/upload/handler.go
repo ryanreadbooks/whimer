@@ -20,7 +20,8 @@ func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
 	}
 }
 
-func (h *Handler) GetTempCreds() http.HandlerFunc {
+// 获取临时凭证
+func (h *Handler) GetTemporaryCreds() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req, err := xhttp.ParseValidateForm[GetTempCredsReq](r)
 		if err != nil {
@@ -29,9 +30,9 @@ func (h *Handler) GetTempCreds() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		creds, err := h.storageBiz.RequestUploadTemporaryTicket(
+		creds, err := h.storageBiz.GetUploadTemporaryTicket(
 			ctx,
-			bizstorage.RequestUploadTemporaryTicket{
+			&bizstorage.GetUploadTemporaryTicketRequest{
 				Resource: uploadresource.Type(req.Resource),
 				Source:   req.Source,
 				Count:    req.Count,
@@ -57,8 +58,28 @@ func (h *Handler) GetTempCreds() http.HandlerFunc {
 	}
 }
 
-type Req struct {
-	Bucket   string `form:"bucket"`
-	Key      string `form:"key"`
-	NumBytes int32  `form:"num_bytes,optional"`
+func (h *Handler) GetPostPolicyCreds() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidateForm[GetPostPolicyCredsReq](r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		ctx := r.Context()
+		resp, err := h.storageBiz.GetPostPolicyUploadTicket(
+			ctx,
+			&bizstorage.GetPostPolicyUploadTicketRequest{
+				Resource: uploadresource.Type(req.Resource),
+				Sha256:   req.Sha256,
+				Size:     req.Size,
+				MimeType: req.MimeType,
+			})
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, resp)
+	}
 }

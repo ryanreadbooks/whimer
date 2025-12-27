@@ -34,9 +34,10 @@ const (
 type Type string
 
 const (
-	NoteImage    Type = "note_image"
-	NoteVideo    Type = "note_video"
-	CommentImage Type = "comment_image"
+	NoteImage      Type = "note_image"
+	NoteVideo      Type = "note_video"
+	NoteVideoCover Type = "note_video_cover"
+	CommentImage   Type = "comment_image"
 )
 
 func (t Type) PermitSize() int64 {
@@ -45,6 +46,8 @@ func (t Type) PermitSize() int64 {
 		return 10 * mB
 	case NoteVideo:
 		return 500 * mB
+	case NoteVideoCover:
+		return 2 * mB
 	case CommentImage:
 		return 10 * mB
 	}
@@ -54,15 +57,15 @@ func (t Type) PermitSize() int64 {
 
 var (
 	allowedImageType = []string{"image/jpeg", "image/png", "image/webp"}
+	allowedVideoType = []string{"video/mp4"}
 )
 
 func (t Type) PermitContentType() []string {
 	switch t {
-	case NoteImage:
+	case NoteImage, CommentImage, NoteVideoCover:
 		return allowedImageType
 	case NoteVideo:
-	case CommentImage:
-		return allowedImageType
+		return allowedVideoType
 	}
 
 	return nil
@@ -81,22 +84,14 @@ func (t Type) Check(b []byte, total int64) error {
 
 var (
 	validType = map[Type]struct{}{
-		NoteImage:    {},
-		NoteVideo:    {},
-		CommentImage: {},
+		NoteImage:      {},
+		NoteVideo:      {},
+		CommentImage:   {},
+		NoteVideoCover: {},
 	}
 )
 
 func CheckValid(s string) bool {
 	_, ok := validType[Type(s)]
 	return ok
-}
-
-func IsNoteResource(s string) bool {
-	switch s {
-	case string(NoteImage), string(NoteVideo):
-		return true
-	}
-
-	return false
 }

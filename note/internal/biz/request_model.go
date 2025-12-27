@@ -34,6 +34,7 @@ type CreateNoteRequestVideo struct {
 	Bucket       string `json:"-"`
 	TargetFileId string `json:"target_file_id"`
 	TargetBucket string `json:"-"`
+	CoverFileId  string `json:"cover_file_id"`
 }
 
 func (r *CreateNoteRequestVideo) Validate() error {
@@ -43,6 +44,9 @@ func (r *CreateNoteRequestVideo) Validate() error {
 
 	if r.FileId == "" || r.TargetFileId == "" || r.Bucket == "" || r.TargetBucket == "" {
 		return global.ErrArgs.Msg("未指定视频资源")
+	}
+	if r.CoverFileId == "" {
+		return global.ErrArgs.Msg("未指定封面")
 	}
 
 	return nil

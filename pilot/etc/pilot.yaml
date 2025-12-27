@@ -98,7 +98,13 @@ upload_resource_define:
       prefix: note/cosmic
       prepend_bucket: true
       prepend_prefix: true
-      prefix_segment: note
+      prefix_segment: note # 取prefix开头的note
+  - name: note_video_cover
+    meta:
+      bucket: nota
+      prefix: cover
+      prepend_bucket: true
+      prepend_prefix: true
   - name: comment_image
     meta:
       bucket: pics

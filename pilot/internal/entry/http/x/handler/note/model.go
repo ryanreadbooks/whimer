@@ -93,7 +93,8 @@ func (r CreateReqImageList) AsPb() []*notev1.CreateReqImage {
 }
 
 type CreateReqVideo struct {
-	FileId string `json:"file_id,optional"`
+	FileId      string `json:"file_id,optional"`
+	CoverFileId string `json:"cover_file_id,optional"`
 }
 
 func (r *CreateReqVideo) AsPb() *notev1.CreateReqVideo {
@@ -106,6 +107,7 @@ func (r *CreateReqVideo) AsPb() *notev1.CreateReqVideo {
 		// TargetFileId: , target字段由后面的biz流程填充
 		FileBucket:       config.Conf.GetUploadResourceBucket(uploadresource.NoteVideo),
 		TargetFileBucket: config.Conf.GetUploadResourceBucket(uploadresource.NoteVideo),
+		CoverFileId:      r.CoverFileId,
 	}
 }
 
