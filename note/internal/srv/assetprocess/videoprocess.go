@@ -53,37 +53,35 @@ type EncodeSettings struct {
 func getVideoOutputAssets(note *model.Note) []*videoProcessDest {
 	// key中包含了bucket 这里要将bucket去掉
 
-	assets := make([]*videoProcessDest, 3)
-	assets[0] = &videoProcessDest{
-		Bucket:    note.Videos.Items[0].GetBucket(),
-		OutputKey: note.Videos.Items[0].TrimBucket(),
-		Settings: &EncodeSettings{
-			VideoCodec: "libx264",
-			Preset:     "medium",
-			CRF:        26,
-			MaxHeight:  1080,
-		},
+	assets := make([]*videoProcessDest, 0, 3)
+	for _, item := range note.Videos.Items {
+		codec := "libx264"
+		preset := "medium"
+		crf := 26
+		maxHeight := 1080
+		if strings.HasPrefix(item.Key, "_265.mp4") {
+			codec = "libx265"
+			preset = "medium"
+			crf = 28
+			maxHeight = 1080
+		} else if strings.HasPrefix(item.Key, "_av1.mp4") {
+			codec = "libsvtav1"
+			preset = "8"
+			crf = 35
+			maxHeight = 1080
+		}
+		assets = append(assets, &videoProcessDest{
+			Bucket:    item.GetBucket(),
+			OutputKey: item.TrimBucket(),
+			Settings: &EncodeSettings{
+				VideoCodec: codec,
+				Preset:     preset,
+				CRF:        crf,
+				MaxHeight:  maxHeight,
+			},
+		})
 	}
-	assets[1] = &videoProcessDest{
-		Bucket:    note.Videos.Items[1].GetBucket(),
-		OutputKey: note.Videos.Items[1].TrimBucket(),
-		Settings: &EncodeSettings{
-			VideoCodec: "libx265",
-			Preset:     "medium",
-			CRF:        28,
-			MaxHeight:  1080,
-		},
-	}
-	assets[2] = &videoProcessDest{
-		Bucket:    note.Videos.Items[2].GetBucket(),
-		OutputKey: note.Videos.Items[2].TrimBucket(),
-		Settings: &EncodeSettings{
-			VideoCodec: "libsvtav1",
-			Preset:     "8",
-			CRF:        35,
-			MaxHeight:  1080,
-		},
-	}
+
 	return assets
 }
 

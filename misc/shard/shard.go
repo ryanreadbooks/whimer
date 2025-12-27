@@ -21,6 +21,14 @@ type Shard struct {
 }
 
 func (s *Shard) Equal(other *Shard) bool {
+	if s == nil && other == nil {
+		return true
+	}
+
+	if s == nil || other == nil {
+		return false
+	}
+
 	for i := range s.Keys {
 		if s.Keys[i] != other.Keys[i] {
 			return false

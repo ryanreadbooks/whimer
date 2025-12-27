@@ -8,15 +8,16 @@ import (
 )
 
 func formatNoteVideoAsset(req *CreateNoteRequestVideo) []*notedao.AssetPO {
-	assets := make([]*notedao.AssetPO, 3)
+	cnt := 2
+	assets := make([]*notedao.AssetPO, 0, cnt)
 	now := time.Now().Unix()
 	// 此时暂时无法得知meta信息 需要后续处理完再回填进数据库中
 	// h264
-	assets[0] = &notedao.AssetPO{
+	assets = append(assets, &notedao.AssetPO{
 		AssetKey:  model.FormatNoteVideoKey(req.TargetFileId, model.SupportedVideoH264Suffix),
 		AssetType: model.AssetTypeVideo,
 		CreateAt:  now,
-	}
+	})
 
 	// // h265
 	// assets[1] = &notedao.AssetPO{
@@ -26,11 +27,11 @@ func formatNoteVideoAsset(req *CreateNoteRequestVideo) []*notedao.AssetPO {
 	// }
 
 	// av1
-	assets[1] = &notedao.AssetPO{
+	assets = append(assets, &notedao.AssetPO{
 		AssetKey:  model.FormatNoteVideoKey(req.TargetFileId, model.SupportedVideoAV1Suffix),
 		AssetType: model.AssetTypeVideo,
 		CreateAt:  now,
-	}
+	})
 
 	return assets
 }

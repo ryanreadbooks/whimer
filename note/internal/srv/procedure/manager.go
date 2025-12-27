@@ -122,6 +122,11 @@ func (m *Manager) RunPipeline(
 	note *model.Note,
 	startStage pipelineStage,
 ) (proceed func(ctx context.Context) bool, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = xerror.Wrapf(xerror.ErrInternalPanic, "%v", r)
+		}
+	}()
 	ppl := m.pipeline
 	targetProcType := ppl.startAt(startStage)
 	err = m.Create(ctx, note, targetProcType, defaultRetry)

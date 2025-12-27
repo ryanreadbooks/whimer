@@ -47,6 +47,7 @@ type TranscodeInput struct {
 }
 
 // Transcode 转码视频，输出到 stdout 流
+// 使用 fragmented MP4 格式，适合流式传输但浏览器渐进式下载支持较差
 func (f *FFmpeg) Transcode(ctx context.Context, input TranscodeInput) (io.ReadCloser, error) {
 	args := f.buildArgs(input.InputURL, input.Option)
 
@@ -72,11 +73,47 @@ func (f *FFmpeg) Transcode(ctx context.Context, input TranscodeInput) (io.ReadCl
 	return &cmdReader{ReadCloser: stdout, cmd: cmd, stderr: &stderrBuf}, nil
 }
 
+// TranscodeToFile 转码视频并输出到文件
+// 使用 faststart 优化，moov atom 在文件头，支持 HTTP 渐进式下载
+func (f *FFmpeg) TranscodeToFile(ctx context.Context, inputURL, outputPath string, opt *Option) error {
+	args := f.buildArgsForFile(inputURL, outputPath, opt)
+
+	cmd := exec.CommandContext(ctx, f.binPath, args...)
+
+	var stderrBuf bytes.Buffer
+	if f.stderrTo != nil {
+		cmd.Stderr = io.MultiWriter(f.stderrTo, &stderrBuf)
+	} else {
+		cmd.Stderr = &stderrBuf
+	}
+
+	if err := cmd.Run(); err != nil {
+		stderrStr := stderrBuf.String()
+		if len(stderrStr) > 500 {
+			stderrStr = "..." + stderrStr[len(stderrStr)-500:]
+		}
+		return fmt.Errorf("ffmpeg transcode to file failed: %w: %s", err, stderrStr)
+	}
+
+	return nil
+}
+
+// buildArgs 构建流式输出参数（输出到管道）
 func (f *FFmpeg) buildArgs(inputURL string, opt *Option) []string {
 	args := []string{"-y", "-i", inputURL}
 	args = append(args, f.buildCommonArgs(opt)...)
 	args = append(args, "-movflags", "frag_keyframe+empty_moov+default_base_moof")
 	args = append(args, "-f", string(opt.OutputFormat), "pipe:1")
+	return args
+}
+
+// buildArgsForFile 构建文件输出参数（使用 faststart 优化渐进式下载）
+func (f *FFmpeg) buildArgsForFile(inputURL, outputPath string, opt *Option) []string {
+	args := []string{"-y", "-i", inputURL}
+	args = append(args, f.buildCommonArgs(opt)...)
+	// faststart: 将 moov atom 移到文件开头，支持 HTTP 渐进式下载
+	args = append(args, "-movflags", "+faststart")
+	args = append(args, "-f", string(opt.OutputFormat), outputPath)
 	return args
 }
 

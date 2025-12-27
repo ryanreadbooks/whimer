@@ -3,8 +3,11 @@ package ffmpeg
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/ryanreadbooks/whimer/lambda/media/internal/storage"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 )
@@ -22,10 +25,11 @@ func NewProcessor(ff *FFmpeg, storage *storage.Storage) *Processor {
 }
 
 type SingleProcessRequest struct {
-	InputURL  string
-	Bucket    string
-	OutputKey string
-	Options   []OptionFunc
+	InputURL        string
+	Bucket          string
+	OutputKey       string
+	Options         []OptionFunc
+	UseStreamUpload bool // 是否使用流式上传，false（默认）使用临时文件+faststart，true 使用流式+fragmented MP4
 }
 
 // ProcessResult 转码结果，包含输出视频的实际参数
@@ -48,17 +52,30 @@ type ProcessResult struct {
 func (p *Processor) ProcessSingle(ctx context.Context, req SingleProcessRequest) (*ProcessResult, error) {
 	opt := applyOptions(req.Options...)
 
+	// 根据配置选择上传方式
+	if req.UseStreamUpload {
+		// 方式一：流式上传（fragmented MP4，适合流媒体场景）
+		return p.processWithStreamUpload(ctx, req.InputURL, req.Bucket, req.OutputKey, opt)
+	}
+
+	// 方式二（默认）：临时文件 + faststart（适合浏览器渐进式下载）
+	return p.processWithFileUpload(ctx, req.InputURL, req.Bucket, req.OutputKey, opt)
+}
+
+// processWithStreamUpload 流式上传方式：边转码边上传
+// 使用 fragmented MP4 格式，适合 HLS/DASH 流媒体场景
+func (p *Processor) processWithStreamUpload(ctx context.Context, inputURL, bucket, outputKey string, opt *Option) (*ProcessResult, error) {
 	reader, err := p.ff.Transcode(ctx, TranscodeInput{
-		InputURL: req.InputURL,
+		InputURL: inputURL,
 		Option:   opt,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("transcode failed: %w", err)
 	}
 
-	uploadErr := p.storage.UploadStream(ctx, req.Bucket, req.OutputKey, reader, "video/mp4")
+	uploadErr := p.storage.UploadStream(ctx, bucket, outputKey, reader, "video/mp4")
 
-	closeErr := reader.Close() // block here
+	closeErr := reader.Close() // block here, wait for ffmpeg to finish
 	if closeErr != nil {
 		return nil, fmt.Errorf("ffmpeg failed: %w", closeErr)
 	}
@@ -66,11 +83,48 @@ func (p *Processor) ProcessSingle(ctx context.Context, req SingleProcessRequest)
 		return nil, fmt.Errorf("upload failed: %w", uploadErr)
 	}
 
-	url, err := p.storage.GetPresignedURL(ctx, req.Bucket, req.OutputKey, time.Hour)
+	return p.getVideoMetadata(ctx, bucket, outputKey)
+}
+
+// processWithFileUpload 临时文件上传方式：先转码到文件，再上传
+// 使用 faststart 优化，moov atom 在文件头，支持浏览器渐进式下载
+func (p *Processor) processWithFileUpload(ctx context.Context, inputURL, bucket, outputKey string, opt *Option) (*ProcessResult, error) {
+	// 创建临时文件
+	tmpFile := filepath.Join(os.TempDir(), uuid.New().String()+".mp4")
+	
+	// 确保临时文件被删除
+	var uploadSuccess bool
+	defer func() {
+		if err := os.Remove(tmpFile); err != nil && !os.IsNotExist(err) {
+			xlog.Msg("failed to remove temp file").
+				Extra("file", tmpFile).
+				Extra("upload_success", uploadSuccess).
+				Err(err).Errorx(ctx)
+		}
+	}()
+
+	// 转码到临时文件（使用 faststart）
+	if err := p.ff.TranscodeToFile(ctx, inputURL, tmpFile, opt); err != nil {
+		return nil, fmt.Errorf("transcode failed: %w", err)
+	}
+
+	// 上传文件到存储
+	if err := p.storage.UploadFile(ctx, bucket, outputKey, tmpFile, "video/mp4"); err != nil {
+		return nil, fmt.Errorf("upload failed: %w", err)
+	}
+	uploadSuccess = true
+
+	return p.getVideoMetadata(ctx, bucket, outputKey)
+}
+
+// getVideoMetadata 获取已上传视频的元数据
+func (p *Processor) getVideoMetadata(ctx context.Context, bucket, outputKey string) (*ProcessResult, error) {
+	url, err := p.storage.GetPresignedURL(ctx, bucket, outputKey, time.Hour)
 	if err != nil {
 		xlog.Msg("get presigned url failed").Err(err).Errorx(ctx)
 		return &ProcessResult{}, nil
 	}
+
 	probeResult, err := Probe(ctx, url)
 	if err != nil {
 		xlog.Msg("probe failed").Err(err).Errorx(ctx)
