@@ -119,7 +119,14 @@ func (d *NoteData) GetNoteType(ctx context.Context, id int64) (model.NoteType, e
 
 // Insert 插入笔记
 func (d *NoteData) Insert(ctx context.Context, note *notedao.NotePO) (int64, error) {
-	return d.repo.Insert(ctx, note)
+	id, err := d.repo.Insert(ctx, note)
+	if err != nil {
+		return 0, xerror.Wrapf(err, "note dao insert failed")
+	}
+
+	d.delNoteRelatedCache(ctx, id, note.Owner)
+
+	return id, nil
 }
 
 func (d *NoteData) delNoteRelatedCache(ctx context.Context, noteId, ownerId int64) {
@@ -146,19 +153,13 @@ func (d *NoteData) Update(ctx context.Context, note *notedao.NotePO) error {
 
 // Delete 删除笔记，同时删除相关缓存
 func (d *NoteData) Delete(ctx context.Context, noteId int64) error {
-	// 先获取owner用于删除缓存
-	ownerId, err := d.repo.GetOwner(ctx, noteId)
-	if err != nil {
-		return xerror.Wrapf(err, "get owner failed")
-	}
-
 	// 删除笔记
-	err = d.repo.Delete(ctx, noteId)
+	err := d.repo.Delete(ctx, noteId)
 	if err != nil {
-		return err
+		return xerror.Wrapf(err, "note dao delete failed")
 	}
 
-	d.delNoteRelatedCache(ctx, noteId, ownerId)
+	d.delNoteCache(ctx, noteId)
 
 	return nil
 }
@@ -166,10 +167,13 @@ func (d *NoteData) Delete(ctx context.Context, noteId int64) error {
 func (d *NoteData) delNoteCache(ctx context.Context, noteId int64) {
 	concurrent.SafeGo(func() {
 		ctx := context.WithoutCancel(ctx)
-		if err := d.cache.DelNote(ctx, noteId); err != nil {
-			xlog.Msg("note data failed to del cache when updating state").
+		ownerId, err := d.repo.GetOwner(ctx, noteId)
+		if err != nil {
+			xlog.Msg("note data failed to get owner when deleting cache").
 				Extras("noteId", noteId).Err(err).Errorx(ctx)
 		}
+
+		d.cache.DelNoteRelatedCache(ctx, noteId, ownerId)
 	})
 }
 
@@ -219,7 +223,7 @@ func (d *NoteData) GetPostedCountByOwner(ctx context.Context, uid int64, opts ..
 	}
 
 	// 从数据库获取
-	cnt, err := d.repo.GetPostedCountByOwner(ctx, uid)
+	cnt, err := d.repo.Count(ctx, WithNoteOwnerEqual(uid), WithNoteStateEqual(model.NoteStatePublished))
 	if err != nil {
 		return 0, err
 	}
@@ -237,6 +241,10 @@ func (d *NoteData) GetPostedCountByOwner(ctx context.Context, uid int64, opts ..
 	return cnt, nil
 }
 
+func (d *NoteData) GetCountWithStateByOwner(ctx context.Context, uid int64, states ...model.NoteState) (int64, error) {
+	return d.repo.Count(ctx, WithNoteOwnerEqual(uid), WithNoteStateIn(states...))
+}
+
 // GetPublicPostedCountByOwner 获取用户公开发布的笔记数量，支持缓存选项
 func (d *NoteData) GetPublicPostedCountByOwner(ctx context.Context, uid int64, opts ...GetOptionFunc) (int64, error) {
 	opt := ApplyOptions(opts...)
@@ -249,7 +257,11 @@ func (d *NoteData) GetPublicPostedCountByOwner(ctx context.Context, uid int64, o
 	}
 
 	// 从数据库获取
-	cnt, err := d.repo.GetPublicPostedCountByOwner(ctx, uid)
+	cnt, err := d.repo.Count(ctx,
+		WithNoteOwnerEqual(uid),
+		WithNotePrivacyEqual(model.PrivacyPublic),
+		WithNoteStateEqual(model.NoteStatePublished),
+	)
 	if err != nil {
 		return 0, err
 	}
@@ -267,34 +279,33 @@ func (d *NoteData) GetPublicPostedCountByOwner(ctx context.Context, uid int64, o
 	return cnt, nil
 }
 
-// ListByOwner 获取用户的所有笔记
-func (d *NoteData) ListByOwner(ctx context.Context, uid int64) ([]*notedao.NotePO, error) {
-	return d.repo.ListByOwner(ctx, uid)
+// List 查询笔记列表（支持 conditions）
+func (d *NoteData) List(ctx context.Context, conds ...NoteCondition) ([]*notedao.NotePO, error) {
+	return d.repo.List(ctx, conds...)
 }
 
-// ListByOwnerByCursor 分页获取用户的笔记
-func (d *NoteData) ListByOwnerByCursor(ctx context.Context, uid int64, cursor int64, limit int32) ([]*notedao.NotePO, error) {
-	return d.repo.ListByOwnerByCursor(ctx, uid, cursor, limit)
+// ListByCursor 游标分页查询笔记（支持 conditions）
+func (d *NoteData) ListByCursor(ctx context.Context, cursor int64, limit int32, conds ...NoteCondition) ([]*notedao.NotePO, error) {
+	return d.repo.ListByCursor(ctx, cursor, limit, conds...)
 }
 
-// ListPublicByOwnerByCursor 分页获取用户的公开笔记
-func (d *NoteData) ListPublicByOwnerByCursor(ctx context.Context, uid int64, cursor int64, limit int32) ([]*notedao.NotePO, error) {
-	return d.repo.ListPublicByOwnerByCursor(ctx, uid, cursor, limit)
+// ListByPage 页码分页查询笔记（支持 conditions）
+func (d *NoteData) ListByPage(ctx context.Context, page, count int32, conds ...NoteCondition) ([]*notedao.NotePO, error) {
+	return d.repo.ListByPage(ctx, page, count, conds...)
 }
 
-// ListPublicByCursor 分页获取公开笔记
-func (d *NoteData) ListPublicByCursor(ctx context.Context, cursor int64, limit int32) ([]*notedao.NotePO, error) {
-	return d.repo.ListPublicByCursor(ctx, cursor, limit)
-}
-
-// PageListByOwner 分页获取用户的笔记
-func (d *NoteData) PageListByOwner(ctx context.Context, uid int64, page, count int32) ([]*notedao.NotePO, error) {
-	return d.repo.PageListByOwner(ctx, uid, page, count)
+// Count 统计笔记数量（支持 conditions）
+func (d *NoteData) Count(ctx context.Context, conds ...NoteCondition) (int64, error) {
+	return d.repo.Count(ctx, conds...)
 }
 
 // GetRecentPublicPosted 获取用户最近发布的公开笔记
 func (d *NoteData) GetRecentPublicPosted(ctx context.Context, uid int64, count int32) ([]*notedao.NotePO, error) {
-	return d.repo.GetRecentPublicPosted(ctx, uid, count)
+	return d.repo.ListByPage(ctx, 1, count,
+		WithNoteOwnerEqual(uid),
+		WithNotePrivacyEqual(model.PrivacyPublic),
+		WithNoteStateEqual(model.NoteStatePublished),
+	)
 }
 
 // GetPublicByCursor 按游标获取公开笔记
@@ -302,39 +313,25 @@ func (d *NoteData) GetPublicByCursor(ctx context.Context, id int64, count int) (
 	return d.repo.GetPublicByCursor(ctx, id, count)
 }
 
-// GetPrivateByCursor 按游标获取私有笔记
-func (d *NoteData) GetPrivateByCursor(ctx context.Context, id int64, count int) ([]*notedao.NotePO, error) {
-	return d.repo.GetPrivateByCursor(ctx, id, count)
-}
-
 // GetPublicLastId 获取最后一个公开笔记ID
 func (d *NoteData) GetPublicLastId(ctx context.Context) (int64, error) {
 	return d.repo.GetPublicLastId(ctx)
 }
 
-// GetPrivateLastId 获取最后一个私有笔记ID
-func (d *NoteData) GetPrivateLastId(ctx context.Context) (int64, error) {
-	return d.repo.GetPrivateLastId(ctx)
-}
-
 // GetPublicAll 获取所有公开笔记
 func (d *NoteData) GetPublicAll(ctx context.Context) ([]*notedao.NotePO, error) {
-	return d.repo.GetPublicAll(ctx)
-}
-
-// GetPrivateAll 获取所有私有笔记
-func (d *NoteData) GetPrivateAll(ctx context.Context) ([]*notedao.NotePO, error) {
-	return d.repo.GetPrivateAll(ctx)
+	return d.repo.List(ctx,
+		WithNotePrivacyEqual(model.PrivacyPublic),
+		WithNoteStateEqual(model.NoteStatePublished),
+	)
 }
 
 // GetPublicCount 获取公开笔记数量
 func (d *NoteData) GetPublicCount(ctx context.Context) (int64, error) {
-	return d.repo.GetPublicCount(ctx)
-}
-
-// GetPrivateCount 获取私有笔记数量
-func (d *NoteData) GetPrivateCount(ctx context.Context) (int64, error) {
-	return d.repo.GetPrivateCount(ctx)
+	return d.repo.Count(ctx,
+		WithNotePrivacyEqual(model.PrivacyPublic),
+		WithNoteStateEqual(model.NoteStatePublished),
+	)
 }
 
 // ConvertNotes 将dao层的NotePO转换为model层的Note

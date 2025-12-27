@@ -66,6 +66,42 @@ const (
 	NoteStateBanned = NoteState(v1.NoteState_BANNED)
 )
 
+// 对外暴露状态
+func NoteStateAsLifeCycleState(state NoteState) v1.NoteLifeCycleState {
+	switch state {
+	case NoteStatePublished:
+		return v1.NoteLifeCycleState_LIFE_CYCLE_STATE_PUBLISHED
+	case NoteStateBanned:
+		return v1.NoteLifeCycleState_LIFE_CYCLE_STATE_BANNED
+	case NoteStateProcessFailed, NoteStateRejected:
+		return v1.NoteLifeCycleState_LIFE_CYCLE_STATE_REJECTED
+	default:
+		return v1.NoteLifeCycleState_LIFE_CYCLE_STATE_AUDITING
+	}
+}
+
+func LifeCycleNotePublished() []NoteState {
+	return []NoteState{NoteStatePublished}
+}
+
+func LifeCycleNoteAuditing() []NoteState {
+	return []NoteState{
+		NoteStateInit,
+		NoteStateAuditing,
+		NoteStateProcessing,
+		NoteStateProcessed,
+		NoteStateAuditPassed,
+	}
+}
+
+func LifeCycleNoteRejected() []NoteState {
+	return []NoteState{NoteStateRejected, NoteStateProcessFailed}
+}
+
+func LifeCycleNoteBanned() []NoteState {
+	return []NoteState{NoteStateBanned}
+}
+
 type ProcedureStatus int8
 
 // 本地流程处理状态记录

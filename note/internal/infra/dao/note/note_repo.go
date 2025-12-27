@@ -56,13 +56,10 @@ func (n *NotePO) Values() []any {
 }
 
 func (n *NotePO) InsertValues() []any {
-	var (
-		ip []byte = n.Ip
-	)
+	var ip []byte = n.Ip
 	if n.Ip == nil {
 		ip = []byte{}
 	}
-	
 
 	return []any{
 		n.Title,
@@ -147,11 +144,18 @@ func (r *NoteRepo) BatchGet(ctx context.Context, ids []int64) ([]*NotePO, error)
 	return notes, nil
 }
 
-func (r *NoteRepo) ListByOwner(ctx context.Context, uid int64) ([]*NotePO, error) {
+// 必须带条件
+func (r *NoteRepo) List(ctx context.Context, conds ...NoteRepoCondition) ([]*NotePO, error) {
 	sb := sqlbuilder.NewSelectBuilder()
 	sb.Select(noteFields...)
 	sb.From(noteTableName)
-	sb.Where(sb.Equal("owner", uid))
+
+	nrc := &noteRepoCondition{
+		sb: sb,
+	}
+	for _, cond := range conds {
+		cond(nrc)
+	}
 
 	sql, args := sb.Build()
 	res := make([]*NotePO, 0)
@@ -162,89 +166,55 @@ func (r *NoteRepo) ListByOwner(ctx context.Context, uid int64) ([]*NotePO, error
 	return res, nil
 }
 
-func (r *NoteRepo) ListByOwnerByCursor(
-	ctx context.Context,
-	uid int64,
-	cursor int64,
-	limit int32) ([]*NotePO, error) {
+func (r *NoteRepo) ListByCursor(
+	ctx context.Context, cursor int64, limit int32,
+	conds ...NoteRepoCondition,
+) ([]*NotePO, error) {
 	sb := sqlbuilder.NewSelectBuilder()
 	sb.Select(noteFields...)
 	sb.From(noteTableName)
-	sb.Where(sb.Equal("owner", uid), sb.LessThan("id", cursor))
+	sb.Where(sb.LessThan("id", cursor))
+
+	nrc := &noteRepoCondition{
+		sb: sb,
+	}
+	for _, cond := range conds {
+		cond(nrc)
+	}
+
 	sb.OrderByDesc("create_at")
 	sb.OrderByDesc("id")
 	sb.Limit(int(limit))
 
 	sql, args := sb.Build()
-	res := make([]*NotePO, 0, limit)
+	res := make([]*NotePO, 0)
 	err := r.db.QueryRowsCtx(ctx, &res, sql, args...)
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
-
 	return res, nil
 }
 
-// ATTENTION: listing is in reverse order
-func (r *NoteRepo) ListPublicByOwnerByCursor(
-	ctx context.Context,
-	uid int64,
-	cursor int64,
-	limit int32,
+// ListByPage 分页查询笔记（支持 offset/limit 方式）
+func (r *NoteRepo) ListByPage(
+	ctx context.Context, page, count int32,
+	conds ...NoteRepoCondition,
 ) ([]*NotePO, error) {
 	sb := sqlbuilder.NewSelectBuilder()
-	sb.Select(noteFields...).
-		From(noteTableName).
-		Where(
-			sb.EQ("owner", uid),
-			sb.LessThan("id", cursor),
-			sb.EQ("privacy", model.PrivacyPublic),
-		).
-		OrderByDesc("create_at").OrderByDesc("id").
-		Limit(int(limit))
+	sb.Select(noteFields...)
+	sb.From(noteTableName)
 
-	sql, args := sb.Build()
-	res := make([]*NotePO, 0, limit)
-	err := r.db.QueryRowsCtx(ctx, &res, sql, args...)
-	if err != nil {
-		return nil, xerror.Wrap(xsql.ConvertError(err))
+	nrc := &noteRepoCondition{
+		sb: sb,
+	}
+	for _, cond := range conds {
+		cond(nrc)
 	}
 
-	return res, nil
-}
-
-// this is for job internal use. do not use this for biz purpose
-//
-// ATTENTION: listing is in reverse order
-func (r *NoteRepo) ListPublicByCursor(ctx context.Context, cursor int64, limit int32) ([]*NotePO, error) {
-	sb := sqlbuilder.NewSelectBuilder()
-	sb.Select(noteFields...).
-		From(noteTableName).
-		Where(
-			sb.LessThan("id", cursor),
-			sb.EQ("privacy", model.PrivacyPublic),
-		).
-		OrderByDesc("create_at").OrderByDesc("id").
-		Limit(int(limit))
-
-	sql, args := sb.Build()
-	res := make([]*NotePO, 0, limit)
-	err := r.db.QueryRowsCtx(ctx, &res, sql, args...)
-	if err != nil {
-		return nil, xerror.Wrap(xsql.ConvertError(err))
-	}
-
-	return res, nil
-}
-
-func (r *NoteRepo) PageListByOwner(ctx context.Context, uid int64, page, count int32) ([]*NotePO, error) {
-	sb := sqlbuilder.NewSelectBuilder()
-	sb.Select(noteFields...).
-		From(noteTableName).
-		Where(sb.EQ("owner", uid)).
-		OrderByDesc("create_at").OrderByDesc("id").
-		Offset(int((page - 1) * count)).
-		Limit(int(count))
+	sb.OrderByDesc("create_at")
+	sb.OrderByDesc("id")
+	sb.Offset(int((page - 1) * count))
+	sb.Limit(int(count))
 
 	sql, args := sb.Build()
 	res := make([]*NotePO, 0, count)
@@ -252,8 +222,26 @@ func (r *NoteRepo) PageListByOwner(ctx context.Context, uid int64, page, count i
 	if err != nil {
 		return nil, xerror.Wrap(xsql.ConvertError(err))
 	}
-
 	return res, nil
+}
+
+// Count 统计笔记数量（支持 conditions）
+func (r *NoteRepo) Count(ctx context.Context, conds ...NoteRepoCondition) (int64, error) {
+	sb := sqlbuilder.NewSelectBuilder()
+	sb.Select("COUNT(*)")
+	sb.From(noteTableName)
+
+	nrc := &noteRepoCondition{
+		sb: sb,
+	}
+	for _, cond := range conds {
+		cond(nrc)
+	}
+
+	sql, args := sb.Build()
+	var cnt int64
+	err := r.db.QueryRowCtx(ctx, &cnt, sql, args...)
+	return cnt, xerror.Wrap(xsql.ConvertError(err))
 }
 
 func (r *NoteRepo) Insert(ctx context.Context, note *NotePO) (int64, error) {
@@ -323,130 +311,52 @@ func (r *NoteRepo) Delete(ctx context.Context, noteId int64) error {
 }
 
 func (r *NoteRepo) GetPublicByCursor(ctx context.Context, id int64, count int) ([]*NotePO, error) {
-	return r.getByCursor(ctx, id, count, int8(model.PrivacyPublic))
+	return r.getByCursor(ctx, id, count, model.PrivacyPublic)
 }
 
 func (r *NoteRepo) GetPrivateByCursor(ctx context.Context, id int64, count int) ([]*NotePO, error) {
-	return r.getByCursor(ctx, id, count, int8(model.PrivacyPrivate))
+	return r.getByCursor(ctx, id, count, model.PrivacyPrivate)
 }
 
-func (r *NoteRepo) getByCursor(ctx context.Context, id int64, count int, privacy int8) ([]*NotePO, error) {
+func (r *NoteRepo) getByCursor(ctx context.Context, id int64, count int, privacy model.Privacy) ([]*NotePO, error) {
 	sb := sqlbuilder.NewSelectBuilder()
 	sb.Select(noteFields...).
 		From(noteTableName).
-		Where(sb.GreaterEqualThan("id", id), sb.EQ("privacy", privacy)).
-		Limit(count)
+		Where(sb.GreaterEqualThan("id", id), sb.EQ("privacy", privacy))
+	if privacy == model.PrivacyPublic {
+		sb.Where(sb.EQ("state", model.NoteStatePublished))
+	}
+
+	sb.Limit(count)
 
 	sql, args := sb.Build()
-	var res = make([]*NotePO, 0, count)
+	res := make([]*NotePO, 0, count)
 	err := r.db.QueryRowsCtx(ctx, &res, sql, args...)
 	return res, xerror.Wrap(xsql.ConvertError(err))
 }
 
 func (r *NoteRepo) GetPublicLastId(ctx context.Context) (int64, error) {
-	return r.getLastId(ctx, int8(model.PrivacyPublic))
+	return r.getLastId(ctx, model.PrivacyPublic)
 }
 
 func (r *NoteRepo) GetPrivateLastId(ctx context.Context) (int64, error) {
-	return r.getLastId(ctx, int8(model.PrivacyPrivate))
+	return r.getLastId(ctx, model.PrivacyPrivate)
 }
 
-func (r *NoteRepo) getLastId(ctx context.Context, privacy int8) (int64, error) {
+func (r *NoteRepo) getLastId(ctx context.Context, privacy model.Privacy) (int64, error) {
 	sb := sqlbuilder.NewSelectBuilder()
 	sb.Select("id").
 		From(noteTableName).
-		Where(sb.EQ("privacy", privacy)).
-		OrderByDesc("id").
-		Limit(1)
+		Where(sb.EQ("privacy", privacy))
+	if privacy == model.PrivacyPublic {
+		sb.Where(sb.EQ("state", model.NoteStatePublished))
+	}
+	sb.OrderByDesc("id").Limit(1)
 
 	sql, args := sb.Build()
 	var lastId int64
 	err := r.db.QueryRowCtx(ctx, &lastId, sql, args...)
 	return lastId, xerror.Wrap(xsql.ConvertError(err))
-}
-
-func (r *NoteRepo) getAllByPrivacy(ctx context.Context, privacy model.Privacy) ([]*NotePO, error) {
-	sb := sqlbuilder.NewSelectBuilder()
-	sb.Select(noteFields...).
-		From(noteTableName).
-		Where(sb.EQ("privacy", privacy))
-
-	sql, args := sb.Build()
-	var res = make([]*NotePO, 0, 16)
-	err := r.db.QueryRowsCtx(ctx, &res, sql, args...)
-	return res, xerror.Wrap(xsql.ConvertError(err))
-}
-
-func (r *NoteRepo) GetPublicAll(ctx context.Context) ([]*NotePO, error) {
-	return r.getAllByPrivacy(ctx, model.PrivacyPublic)
-}
-
-func (r *NoteRepo) GetPrivateAll(ctx context.Context) ([]*NotePO, error) {
-	return r.getAllByPrivacy(ctx, model.PrivacyPrivate)
-}
-
-func (r *NoteRepo) GetPublicCount(ctx context.Context) (int64, error) {
-	return r.getCountByPrivacy(ctx, model.PrivacyPublic)
-}
-
-func (r *NoteRepo) GetPrivateCount(ctx context.Context) (int64, error) {
-	return r.getCountByPrivacy(ctx, model.PrivacyPrivate)
-}
-
-func (r *NoteRepo) getCountByPrivacy(ctx context.Context, privacy model.Privacy) (int64, error) {
-	sb := sqlbuilder.NewSelectBuilder()
-	sb.Select("COUNT(*)").
-		From(noteTableName).
-		Where(sb.EQ("privacy", privacy))
-
-	sql, args := sb.Build()
-	var cnt int64
-	err := r.db.QueryRowCtx(ctx, &cnt, sql, args...)
-	return cnt, xerror.Wrap(xsql.ConvertError(err))
-}
-
-func (r *NoteRepo) GetPostedCountByOwner(ctx context.Context, uid int64) (int64, error) {
-	sb := sqlbuilder.NewSelectBuilder()
-	sb.Select("COUNT(*)").From(noteTableName).Where(sb.EQ("owner", uid))
-
-	sql, args := sb.Build()
-	var cnt int64
-	err := r.db.QueryRowCtx(ctx, &cnt, sql, args...)
-	if err != nil {
-		return 0, xerror.Wrap(xsql.ConvertError(err))
-	}
-
-	return cnt, nil
-}
-
-func (r *NoteRepo) GetPublicPostedCountByOwner(ctx context.Context, uid int64) (int64, error) {
-	sb := sqlbuilder.NewSelectBuilder()
-	sb.Select("COUNT(*)").
-		From(noteTableName).
-		Where(sb.EQ("owner", uid), sb.EQ("privacy", model.PrivacyPublic))
-
-	sql, args := sb.Build()
-	var cnt int64
-	err := r.db.QueryRowCtx(ctx, &cnt, sql, args...)
-	if err != nil {
-		return 0, xerror.Wrap(xsql.ConvertError(err))
-	}
-
-	return cnt, nil
-}
-
-func (r *NoteRepo) GetRecentPublicPosted(ctx context.Context, uid int64, count int32) ([]*NotePO, error) {
-	sb := sqlbuilder.NewSelectBuilder()
-	sb.Select(noteFields...).
-		From(noteTableName).
-		Where(sb.EQ("owner", uid), sb.EQ("privacy", model.PrivacyPublic)).
-		OrderByDesc("create_at").
-		Limit(int(count))
-
-	sql, args := sb.Build()
-	var res = make([]*NotePO, 0, count)
-	err := r.db.QueryRowsCtx(ctx, &res, sql, args...)
-	return res, xerror.Wrap(xsql.ConvertError(err))
 }
 
 func (r *NoteRepo) UpdateState(ctx context.Context, noteId int64, state model.NoteState) error {

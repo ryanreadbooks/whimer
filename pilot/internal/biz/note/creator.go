@@ -75,10 +75,11 @@ func (b *Biz) DeleteNote(ctx context.Context, noteId imodel.NoteId) error {
 }
 
 // PageListNotes 分页列出笔记
-func (b *Biz) PageListNotes(ctx context.Context, page, count int32) (*notev1.PageListNoteResponse, error) {
+func (b *Biz) PageListNotes(ctx context.Context, page, count int32, status model.NoteStatus) (*notev1.PageListNoteResponse, error) {
 	return dep.NoteCreatorServer().PageListNote(ctx, &notev1.PageListNoteRequest{
-		Page:  page,
-		Count: count,
+		Page:           page,
+		Count:          count,
+		LifeCycleState: model.NoteStatusAsPb(status),
 	})
 }
 

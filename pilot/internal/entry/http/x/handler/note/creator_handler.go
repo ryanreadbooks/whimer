@@ -183,7 +183,7 @@ func (h *Handler) CreatorPageListNotes() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		resp, err := h.noteBiz.PageListNotes(ctx, req.Page, req.Count)
+		resp, err := h.noteBiz.PageListNotes(ctx, req.Page, req.Count, notemodel.NoteStatus(req.Status))
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

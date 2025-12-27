@@ -11,6 +11,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/data"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
@@ -408,7 +409,7 @@ func (b *NoteCreatorBiz) CreatorGetNote(ctx context.Context, noteId int64) (*mod
 func (b *NoteCreatorBiz) ListNote(ctx context.Context) (*model.Notes, error) {
 	uid := metadata.Uid(ctx)
 
-	notes, err := b.data.Note.ListByOwner(ctx, uid)
+	notes, err := b.data.Note.List(ctx, data.WithNoteOwnerEqual(uid))
 	if errors.Is(err, xsql.ErrNoRecord) {
 		return &model.Notes{}, nil
 	}
@@ -438,7 +439,7 @@ func (b *NoteCreatorBiz) PageListNoteWithCursor(ctx context.Context, cursor int6
 	if cursor == 0 {
 		cursor = model.MaxCursor
 	}
-	notes, err := b.data.Note.ListByOwnerByCursor(ctx, uid, cursor, count)
+	notes, err := b.data.Note.ListByCursor(ctx, cursor, count, data.WithNoteOwnerEqual(uid))
 	if errors.Is(err, xsql.ErrNoRecord) {
 		return &model.Notes{}, nextPage, nil
 	}
@@ -473,19 +474,32 @@ func (b *NoteCreatorBiz) PageListNoteWithCursor(ctx context.Context, cursor int6
 }
 
 // page从1开始
-func (b *NoteCreatorBiz) PageListNote(ctx context.Context, page, count int32) (*model.Notes, int64, error) {
+func (b *NoteCreatorBiz) PageListNote(
+	ctx context.Context,
+	page, count int32,
+	lcState notev1.NoteLifeCycleState,
+) (*model.Notes, int64, error) {
 	uid := metadata.Uid(ctx)
 
-	total, err := b.data.Note.GetPostedCountByOwner(ctx, uid)
-	if err != nil {
-		if !errors.Is(err, xsql.ErrNoRecord) {
-			return nil, 0, xerror.Wrapf(err, "biz note count by owner failed").WithCtx(ctx)
-		}
+	var (
+		total int64
+		notes []*notedao.NotePO
+		err   error
+	)
 
-		return &model.Notes{}, 0, nil
+	switch lcState {
+	case notev1.NoteLifeCycleState_LIFE_CYCLE_STATE_PUBLISHED:
+		notes, total, err = b.pageListPublishedNote(ctx, uid, page, count)
+	case notev1.NoteLifeCycleState_LIFE_CYCLE_STATE_AUDITING:
+		notes, total, err = b.pageListAuditingNote(ctx, uid, page, count)
+	case notev1.NoteLifeCycleState_LIFE_CYCLE_STATE_REJECTED:
+		notes, total, err = b.pageListRejectedNote(ctx, uid, page, count)
+	case notev1.NoteLifeCycleState_LIFE_CYCLE_STATE_BANNED:
+		notes, total, err = b.pageListBannedNote(ctx, uid, page, count)
+	default:
+		return nil, 0, global.ErrArgs.Msg("invalid life cycle state")
 	}
 
-	notes, err := b.data.Note.PageListByOwner(ctx, uid, page, count)
 	if err != nil {
 		return nil, 0, xerror.Wrapf(err, "biz note page list failed").WithCtx(ctx)
 	}
@@ -501,6 +515,91 @@ func (b *NoteCreatorBiz) PageListNote(ctx context.Context, page, count int32) (*
 	}
 
 	return notesResp, total, nil
+}
+
+func (b *NoteCreatorBiz) pageListPublishedNote(
+	ctx context.Context, uid int64, page, count int32,
+) ([]*notedao.NotePO, int64, error) {
+	total, err := b.data.Note.GetPostedCountByOwner(ctx, uid)
+	if err != nil {
+		if !errors.Is(err, xsql.ErrNoRecord) {
+			return nil, 0, xerror.Wrapf(err, "biz note count by owner failed").WithCtx(ctx)
+		}
+
+		return []*notedao.NotePO{}, 0, nil
+	}
+
+	notes, err := b.data.Note.ListByPage(ctx, page, count,
+		data.WithNoteOwnerEqual(uid),
+		data.WithNoteStateIn(model.LifeCycleNotePublished()...))
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "biz note page list failed").WithCtx(ctx)
+	}
+
+	return notes, total, nil
+}
+
+// 审核中
+func (b *NoteCreatorBiz) pageListAuditingNote(
+	ctx context.Context, uid int64, page, count int32,
+) ([]*notedao.NotePO, int64, error) {
+	total, err := b.data.Note.GetCountWithStateByOwner(ctx, uid, model.LifeCycleNoteAuditing()...)
+	if err != nil {
+		if !errors.Is(err, xsql.ErrNoRecord) {
+			return nil, 0, xerror.Wrapf(err, "biz note count by owner failed").WithCtx(ctx)
+		}
+
+		return []*notedao.NotePO{}, 0, nil
+	}
+
+	notes, err := b.data.Note.ListByPage(ctx, page, count,
+		data.WithNoteOwnerEqual(uid),
+		data.WithNoteStateIn(model.LifeCycleNoteAuditing()...))
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "biz note page list failed").WithCtx(ctx)
+	}
+
+	return notes, total, nil
+}
+
+// 未通过
+//
+// 审核失败+资源处理失败都归为这一类
+func (b *NoteCreatorBiz) pageListRejectedNote(
+	ctx context.Context, uid int64, page, count int32,
+) ([]*notedao.NotePO, int64, error) {
+	total, err := b.data.Note.GetCountWithStateByOwner(ctx, uid, model.LifeCycleNoteRejected()...)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "biz note count by owner failed").WithCtx(ctx)
+	}
+
+	notes, err := b.data.Note.ListByPage(ctx, page, count,
+		data.WithNoteOwnerEqual(uid),
+		data.WithNoteStateIn(model.LifeCycleNoteRejected()...))
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "biz note page list failed").WithCtx(ctx)
+	}
+
+	return notes, total, nil
+}
+
+// 被banned
+func (b *NoteCreatorBiz) pageListBannedNote(
+	ctx context.Context, uid int64, page, count int32,
+) ([]*notedao.NotePO, int64, error) {
+	total, err := b.data.Note.GetCountWithStateByOwner(ctx, uid, model.LifeCycleNoteBanned()...)
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "biz note count by owner failed").WithCtx(ctx)
+	}
+
+	notes, err := b.data.Note.ListByPage(ctx, page, count,
+		data.WithNoteOwnerEqual(uid),
+		data.WithNoteStateIn(model.LifeCycleNoteBanned()...))
+	if err != nil {
+		return nil, 0, xerror.Wrapf(err, "biz note page list failed").WithCtx(ctx)
+	}
+
+	return notes, total, nil
 }
 
 // 新增笔记标签
@@ -557,43 +656,43 @@ func (b *NoteCreatorBiz) upgradeNoteState(ctx context.Context, noteId int64, sta
 }
 
 // 设置笔记状态为处理中
-func (b *NoteCreatorBiz) TransferNoteStateToProcessing(ctx context.Context, noteId int64) error {
-	return b.upgradeNoteState(ctx, noteId, model.NoteStateProcessing)
+func (b *NoteCreatorBiz) TransferNoteStateToProcessing(ctx context.Context, note *model.Note) error {
+	return b.upgradeNoteState(ctx, note.NoteId, model.NoteStateProcessing)
 }
 
 // 设置笔记状态为处理完成
-func (b *NoteCreatorBiz) TransferNoteStateToProcessed(ctx context.Context, noteId int64) error {
-	return b.upgradeNoteState(ctx, noteId, model.NoteStateProcessed)
+func (b *NoteCreatorBiz) TransferNoteStateToProcessed(ctx context.Context, note *model.Note) error {
+	return b.upgradeNoteState(ctx, note.NoteId, model.NoteStateProcessed)
 }
 
 // 设置笔记状态为处理失败
-func (b *NoteCreatorBiz) TransferNoteStateToProcessFailed(ctx context.Context, noteId int64) error {
-	return b.upgradeNoteState(ctx, noteId, model.NoteStateProcessFailed)
+func (b *NoteCreatorBiz) TransferNoteStateToProcessFailed(ctx context.Context, note *model.Note) error {
+	return b.upgradeNoteState(ctx, note.NoteId, model.NoteStateProcessFailed)
 }
 
 // 设置笔记状态为审核中
-func (b *NoteCreatorBiz) TransferNoteStateToAuditing(ctx context.Context, noteId int64) error {
-	return b.upgradeNoteState(ctx, noteId, model.NoteStateAuditing)
+func (b *NoteCreatorBiz) TransferNoteStateToAuditing(ctx context.Context, note *model.Note) error {
+	return b.upgradeNoteState(ctx, note.NoteId, model.NoteStateAuditing)
 }
 
 // 设置笔记状态为审核通过
-func (b *NoteCreatorBiz) TransferNoteStateToAuditPassed(ctx context.Context, noteId int64) error {
-	return b.upgradeNoteState(ctx, noteId, model.NoteStateAuditPassed)
+func (b *NoteCreatorBiz) TransferNoteStateToAuditPassed(ctx context.Context, note *model.Note) error {
+	return b.upgradeNoteState(ctx, note.NoteId, model.NoteStateAuditPassed)
 }
 
 // 设置笔记状态为已发布
-func (b *NoteCreatorBiz) TransferNoteStateToPublished(ctx context.Context, noteId int64) error {
-	return b.upgradeNoteState(ctx, noteId, model.NoteStatePublished)
+func (b *NoteCreatorBiz) TransferNoteStateToPublished(ctx context.Context, note *model.Note) error {
+	return b.upgradeNoteState(ctx, note.NoteId, model.NoteStatePublished)
 }
 
 // 设置笔记状态为审核不通过
-func (b *NoteCreatorBiz) TransferNoteStateToRejected(ctx context.Context, noteId int64) error {
-	return b.upgradeNoteState(ctx, noteId, model.NoteStateRejected)
+func (b *NoteCreatorBiz) TransferNoteStateToRejected(ctx context.Context, note *model.Note) error {
+	return b.upgradeNoteState(ctx, note.NoteId, model.NoteStateRejected)
 }
 
 // 设置笔记状态为被封禁
-func (b *NoteCreatorBiz) TransferNoteStateToBanned(ctx context.Context, noteId int64) error {
-	return b.upgradeNoteState(ctx, noteId, model.NoteStateBanned)
+func (b *NoteCreatorBiz) TransferNoteStateToBanned(ctx context.Context, note *model.Note) error {
+	return b.upgradeNoteState(ctx, note.NoteId, model.NoteStateBanned)
 }
 
 func (b *NoteCreatorBiz) BatchUpdateAssetMeta(ctx context.Context, noteId int64, metas map[string][]byte) error {

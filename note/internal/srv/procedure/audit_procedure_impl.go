@@ -2,9 +2,12 @@ package procedure
 
 import (
 	"context"
+	"errors"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
+	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
 
@@ -31,7 +34,7 @@ func (p *AuditProcedure) Type() model.ProcedureType {
 
 // 审核流程初始化
 func (p *AuditProcedure) PreStart(ctx context.Context, note *model.Note) (bool, error) {
-	err := p.noteCreatorBiz.TransferNoteStateToAuditing(ctx, note.NoteId)
+	err := p.noteCreatorBiz.TransferNoteStateToAuditing(ctx, note)
 	if err != nil {
 		return false, xerror.Wrapf(err, "audit procedure set note state auditing failed").
 			WithExtra("note_id", note.NoteId).
@@ -42,14 +45,55 @@ func (p *AuditProcedure) PreStart(ctx context.Context, note *model.Note) (bool, 
 	return false, nil
 }
 
+// 返回的note只有basic信息 没有额外信息
+func (p *AuditProcedure) upgradeStateCheck(
+	ctx context.Context,
+	noteId int64,
+	compareState model.NoteState,
+) (note *model.Note, abort bool) {
+	note, err := p.noteBiz.GetNoteWithoutCache(ctx, noteId)
+	if err != nil {
+		xlog.Msg("audit procedure get note failed, try to update state without checking").
+			Err(err).
+			Extras("noteId", noteId).
+			Errorx(ctx)
+	}
+
+	if errors.Is(err, global.ErrNoteNotFound) {
+		return nil, true
+	}
+
+	if note != nil && (note.State == model.NoteStateAuditPassed || note.State == model.NoteStateRejected) {
+		return nil, true
+	}
+
+	if note != nil && note.State > compareState {
+		// 已经有了最新状态了 可能已经被更新
+		return nil, true
+	}
+
+	return note, false
+}
+
 func (p *AuditProcedure) Execute(ctx context.Context, note *model.Note) (string, error) {
 	// TODO 调用审核系统
 	return "", nil
 }
 
 func (p *AuditProcedure) OnSuccess(ctx context.Context, result *ProcedureResult) (bool, error) {
-	// TODO 审核通过 设置状态为 AuditPassed
-	err := p.noteCreatorBiz.TransferNoteStateToAuditPassed(ctx, result.NoteId)
+	// 审核通过 设置状态为 AuditPassed
+	note, abort := p.upgradeStateCheck(ctx, result.NoteId, model.NoteStateAuditPassed)
+	if abort {
+		return true, nil
+	}
+
+	if note == nil {
+		note = &model.Note{
+			NoteId: result.NoteId,
+		}
+	}
+
+	err := p.noteCreatorBiz.TransferNoteStateToAuditPassed(ctx, note)
 	if err != nil {
 		return false, xerror.Wrapf(err, "audit procedure set note state audit passed failed").
 			WithExtra("note_id", result.NoteId).
@@ -59,8 +103,19 @@ func (p *AuditProcedure) OnSuccess(ctx context.Context, result *ProcedureResult)
 }
 
 func (p *AuditProcedure) OnFailure(ctx context.Context, result *ProcedureResult) (bool, error) {
-	// TODO 审核不通过 设置状态为 Rejected
-	err := p.noteCreatorBiz.TransferNoteStateToRejected(ctx, result.NoteId)
+	// 审核不通过 设置状态为 Rejected
+	note, abort := p.upgradeStateCheck(ctx, result.NoteId, model.NoteStateRejected)
+	if abort {
+		return true, nil
+	}
+
+	if note == nil {
+		note = &model.Note{
+			NoteId: result.NoteId,
+		}
+	}
+
+	err := p.noteCreatorBiz.TransferNoteStateToRejected(ctx, note)
 	if err != nil {
 		return false, xerror.Wrapf(err, "audit procedure set note state rejected failed").
 			WithExtra("note_id", result.NoteId).

@@ -115,9 +115,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 
 // 获取笔记详情 不包含private范围的笔记
 func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId int64) (*model.Note, error) {
-	var (
-		uid = metadata.Uid(ctx)
-	)
+	uid := metadata.Uid(ctx)
 
 	note, err := s.noteBiz.GetNote(ctx, noteId)
 	if err != nil {
@@ -126,6 +124,10 @@ func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId int64) (*model.N
 
 	if note.Privacy == model.PrivacyPrivate && note.Owner != uid {
 		return nil, global.ErrNoteNotPublic
+	}
+
+	if note.State != model.NoteStatePublished {
+		return nil, global.ErrNoteNotFound
 	}
 
 	res := &model.Notes{Items: []*model.Note{note}}
@@ -148,6 +150,8 @@ func (s *NoteFeedSrv) GetNoteAuthor(ctx context.Context, noteId int64) (int64, e
 
 // 批量获取笔记详情 不包含private范围的笔记
 func (s *NoteFeedSrv) BatchGetNoteDetail(ctx context.Context, noteIds []int64) (map[int64]*model.Note, error) {
+	operator := metadata.Uid(ctx)
+
 	notes, err := s.noteBiz.BatchGetNote(ctx, noteIds)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "batch get note failed").WithCtx(ctx)
@@ -158,8 +162,19 @@ func (s *NoteFeedSrv) BatchGetNoteDetail(ctx context.Context, noteIds []int64) (
 	}
 
 	// 过滤掉private的笔记
+	// 过滤掉未发布的笔记
 	pNotes := xmap.Filter(notes, func(k int64, v *model.Note) bool {
-		return v.Privacy == model.PrivacyPrivate
+		// 如果请求者不是笔记作者 则需要过滤掉private
+		// 并且还要过滤掉未发布的笔记
+		if operator != v.Owner && v.Privacy == model.PrivacyPrivate {
+			return true
+		}
+
+		if v.State != model.NoteStatePublished {
+			return true
+		}
+
+		return false
 	})
 
 	nns := &model.Notes{Items: xmap.Values(pNotes)}
@@ -194,7 +209,8 @@ func (s *NoteFeedSrv) GetUserRecentNotes(ctx context.Context, user int64, maxCou
 
 // 列出用户公开的笔记
 func (s *NoteFeedSrv) ListUserPublicNotes(ctx context.Context, user int64, cursor int64, count int32) (*model.Notes,
-	model.PageResult, error) {
+	model.PageResult, error,
+) {
 	result, page, err := s.noteBiz.ListUserPublicNote(ctx, user, cursor, count)
 	if err != nil {
 		return nil, page, xerror.Wrapf(err, "feed srv failed to lsit user public note")
@@ -223,16 +239,14 @@ func (s *NoteFeedSrv) GetUserPublicPostedCount(ctx context.Context, user int64) 
 }
 
 func (s *NoteFeedSrv) BatchCheckNoteExistence(ctx context.Context, noteIds []int64) (map[int64]bool, error) {
-	var (
-		reqUid = metadata.Uid(ctx)
-	)
+	reqUid := metadata.Uid(ctx)
 
 	notes, err := s.noteBiz.BatchGetNoteWithoutAsset(ctx, noteIds)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "note biz failed to batch get")
 	}
 
-	var result = make(map[int64]bool, len(notes))
+	result := make(map[int64]bool, len(notes))
 	for _, noteId := range noteIds {
 		if target, ok := notes[noteId]; ok {
 			// 如果笔记存在，公开笔记所有人都可访问，私有笔记只有所有者可访问

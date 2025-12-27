@@ -117,8 +117,9 @@ message GetPostedCountResponse {
 }
 
 message PageListNoteRequest {
-  int32 page  = 1;
-  int32 count = 2;
+  int32              page             = 1;
+  int32              count            = 2;
+  NoteLifeCycleState life_cycle_state = 3;
 }
 
 message PageListNoteResponse {

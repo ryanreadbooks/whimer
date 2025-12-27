@@ -13,6 +13,7 @@ require (
 	github.com/ryanreadbooks/whimer/misc v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/passport v0.0.0-00010101000000-000000000000
 	github.com/ryanreadbooks/whimer/search v0.0.0-00010101000000-000000000000
+	github.com/segmentio/kafka-go v0.4.49
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/zeromicro/go-zero v1.8.5
 	go.etcd.io/etcd/client/v3 v3.5.15
@@ -72,7 +73,6 @@ require (
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/redis/go-redis/v9 v9.11.0 // indirect
-	github.com/segmentio/kafka-go v0.4.49 // indirect
 	github.com/smarty/assertions v1.15.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/speps/go-hashids/v2 v2.0.1 // indirect

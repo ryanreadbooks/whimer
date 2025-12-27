@@ -53,6 +53,10 @@ func (s *NoteInteractSrv) LikeNote(ctx context.Context, in *notev1.LikeNoteReque
 		return nil, global.ErrNoteNotPublic
 	}
 
+	if note.State != model.NoteStatePublished { // 未发布的笔记不能点赞
+		return nil, global.ErrNoteNotFound
+	}
+
 	var op = biz.DoLike
 	if in.Operation == notev1.LikeNoteRequest_OPERATION_UNDO_LIKE {
 		op = biz.UnDoLike

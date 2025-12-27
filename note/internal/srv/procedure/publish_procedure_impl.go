@@ -31,7 +31,7 @@ func (p *PublishProcedure) Type() model.ProcedureType {
 
 // 发布流程
 func (p *PublishProcedure) PreStart(ctx context.Context, note *model.Note) (bool, error) {
-	err := p.noteCreatorBiz.TransferNoteStateToPublished(ctx, note.NoteId)
+	err := p.noteCreatorBiz.TransferNoteStateToPublished(ctx, note)
 	if err != nil {
 		return false, xerror.Wrapf(err, "publish procedure set note state published failed").
 			WithExtra("note_id", note.NoteId).

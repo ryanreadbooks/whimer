@@ -33,20 +33,21 @@ func (n *Note) AsSlice() []*Note {
 
 func (i *Note) AsPb() *notev1.NoteItem {
 	res := &notev1.NoteItem{
-		NoteId:   i.NoteId,
-		Title:    i.Title,
-		Desc:     i.Desc,
-		Privacy:  int32(i.Privacy),
-		State:    notev1.NoteState(i.State),
-		NoteType: notev1.NoteAssetType(i.Type),
-		CreateAt: i.CreateAt,
-		UpdateAt: i.UpdateAt,
-		Ip:       i.Ip,
-		Images:   i.Images.AsPb(),
-		Likes:    i.Likes,
-		Replies:  i.Replies,
-		Owner:    i.Owner,
-		Videos:   i.Videos.AsPb(),
+		NoteId:         i.NoteId,
+		Title:          i.Title,
+		Desc:           i.Desc,
+		Privacy:        int32(i.Privacy),
+		State:          notev1.NoteState(i.State),
+		NoteType:       notev1.NoteAssetType(i.Type),
+		CreateAt:       i.CreateAt,
+		UpdateAt:       i.UpdateAt,
+		Ip:             i.Ip,
+		Images:         i.Images.AsPb(),
+		Likes:          i.Likes,
+		Replies:        i.Replies,
+		Owner:          i.Owner,
+		Videos:         i.Videos.AsPb(),
+		LifeCycleState: NoteStateAsLifeCycleState(i.State),
 	}
 
 	// note tags

@@ -16,6 +16,23 @@ enum NoteAssetType {
   VIDEO                       = 2;
 }
 
+// 笔记生命周期状态
+enum NoteLifeCycleState {
+  NOTE_LIFE_CYCLE_STATE_UNSPECIFIED = 0;
+
+  // 已发布
+  LIFE_CYCLE_STATE_PUBLISHED = 1;
+
+  // 审核中
+  LIFE_CYCLE_STATE_AUDITING = 2;
+
+  // 审核未通过
+  LIFE_CYCLE_STATE_REJECTED = 3;
+
+  // 被锁定
+  LIFE_CYCLE_STATE_BANNED = 4;
+}
+
 // 笔记状态的值的顺序有特殊含义 不能改变 否则会影响状态升级的逻辑
 //
 // 枚举值小的状态表示状态更靠前
@@ -60,22 +77,23 @@ message NoteAtUser {
 
 // 笔记全量信息
 message NoteItem {
-  int64               note_id   = 1;
-  string              title     = 2;
-  string              desc      = 3;
-  int32               privacy   = 4;
-  int64               create_at = 5;
-  int64               update_at = 6;
-  repeated NoteImage  images    = 7;
-  int64               likes     = 8;   // 点赞数量
-  int64               replies   = 9;   //评论数量
-  repeated NoteTag    tags      = 10;  // 笔记的标签
-  int64               owner     = 11;
-  string              ip        = 12;
-  repeated NoteAtUser at_users  = 13;  // @人
-  NoteAssetType       note_type = 14;  // 笔记类型 图片笔记或者视频笔记
-  NoteState           state     = 15;  // 笔记状态
-  repeated NoteVideo  videos    = 16;
+  int64               note_id          = 1;
+  string              title            = 2;
+  string              desc             = 3;
+  int32               privacy          = 4;
+  int64               create_at        = 5;
+  int64               update_at        = 6;
+  repeated NoteImage  images           = 7;
+  int64               likes            = 8;   // 点赞数量
+  int64               replies          = 9;   //评论数量
+  repeated NoteTag    tags             = 10;  // 笔记的标签
+  int64               owner            = 11;
+  string              ip               = 12;
+  repeated NoteAtUser at_users         = 13;  // @人
+  NoteAssetType       note_type        = 14;  // 笔记类型 图片笔记或者视频笔记
+  NoteState           state            = 15;  // 笔记状态(内部状态)
+  repeated NoteVideo  videos           = 16;
+  NoteLifeCycleState  life_cycle_state = 17;  // 笔记生命周期状态(对外状态)
 }
 
 message NoteImageMeta {

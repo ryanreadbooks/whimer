@@ -12,6 +12,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/config"
 	"github.com/ryanreadbooks/whimer/note/internal/data"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/note/internal/model"
 	"github.com/ryanreadbooks/whimer/note/internal/model/convert"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
 	"github.com/ryanreadbooks/whimer/note/pkg/id"
@@ -32,7 +33,10 @@ func Handle(c *config.Config, bizz *biz.Biz, svc *srv.Service, dt *data.Data) er
 	var userMaps = make(map[int64]string)
 
 	for {
-		batchNotes, err := dt.Note.ListPublicByCursor(ctx, cursor, batchsize)
+		batchNotes, err := dt.Note.ListByCursor(ctx, cursor, batchsize,
+			data.WithNotePrivacyEqual(model.PrivacyPublic),
+			data.WithNoteStateEqual(model.NoteStatePublished),
+		)
 		if err != nil {
 			return fmt.Errorf("dao list public by cursor err: %w", err)
 		}

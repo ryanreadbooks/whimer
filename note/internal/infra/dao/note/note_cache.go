@@ -13,8 +13,7 @@ import (
 )
 
 const (
-	noteCacheKey = "note:note:%d"
-
+	noteCacheKey                   = "note:note:%d"
 	noteCountByOwnerCacheKey       = "note:count:uid:"        // note:count:uid:%d
 	notePublicCountByOwnerCacheKey = "note:public_count:uid:" // note:public_count:uid:%d
 )

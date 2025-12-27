@@ -227,7 +227,7 @@ func (s *NoteCreatorServiceServer) PageListNote(ctx context.Context,
 	if in.Count >= 20 {
 		in.Count = 20
 	}
-	data, total, err := s.Srv.NoteCreatorSrv.PageList(ctx, in.Page, in.Count)
+	data, total, err := s.Srv.NoteCreatorSrv.PageList(ctx, in.Page, in.Count, in.LifeCycleState)
 	if err != nil {
 		return nil, err
 	}

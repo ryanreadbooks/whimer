@@ -47,7 +47,7 @@ func (p *AssetProcedure) Type() model.ProcedureType {
 func (p *AssetProcedure) PreStart(ctx context.Context, note *model.Note) (bool, error) {
 	// 如果是笔记更新场景 不需要更新资源key的情况下不需要重走资源流程
 	if note.State == model.NoteStateInit {
-		err := p.noteCreatorBiz.TransferNoteStateToProcessing(ctx, note.NoteId)
+		err := p.noteCreatorBiz.TransferNoteStateToProcessing(ctx, note)
 		if err != nil {
 			return false, xerror.Wrapf(err, "asset procedure set note state processing failed").
 				WithExtra("note_id", note.NoteId).
@@ -79,7 +79,7 @@ func (p *AssetProcedure) Execute(ctx context.Context, note *model.Note) (string,
 func (p *AssetProcedure) upgradeStateCheck(
 	ctx context.Context,
 	noteId int64,
-	state model.NoteState,
+	compareState model.NoteState,
 ) (note *model.Note, abort bool) {
 	note, err := p.noteBiz.GetNoteWithoutCache(ctx, noteId)
 	if err != nil {
@@ -93,7 +93,7 @@ func (p *AssetProcedure) upgradeStateCheck(
 		return nil, true
 	}
 
-	if note != nil && note.State > state {
+	if note != nil && note.State > compareState {
 		// 已经有了最新状态了 可能已经被更新
 		return nil, true
 	}
@@ -110,7 +110,12 @@ func (p *AssetProcedure) OnSuccess(ctx context.Context, result *ProcedureResult)
 		return true, nil
 	}
 
-	if err := p.noteCreatorBiz.TransferNoteStateToProcessed(ctx, noteId); err != nil {
+	if note == nil {
+		note = &model.Note{
+			NoteId: noteId,
+		}
+	}
+	if err := p.noteCreatorBiz.TransferNoteStateToProcessed(ctx, note); err != nil {
 		return false, xerror.Wrapf(err, "asset procedure set note state processed failed").
 			WithExtra("noteId", noteId).
 			WithCtx(ctx)
@@ -162,12 +167,17 @@ func (p *AssetProcedure) OnFailure(ctx context.Context, result *ProcedureResult)
 	noteId, taskId := result.NoteId, result.TaskId
 
 	// 简单幂等保证
-	_, abort := p.upgradeStateCheck(ctx, noteId, model.NoteStateProcessFailed)
+	note, abort := p.upgradeStateCheck(ctx, noteId, model.NoteStateProcessFailed)
 	if abort {
 		return true, nil
 	}
 
-	if err := p.noteCreatorBiz.TransferNoteStateToProcessFailed(ctx, noteId); err != nil {
+	if note == nil {
+		note = &model.Note{
+			NoteId: noteId,
+		}
+	}
+	if err := p.noteCreatorBiz.TransferNoteStateToProcessFailed(ctx, note); err != nil {
 		return false, xerror.Wrapf(err, "asset procedure set note state failed failed").
 			WithExtra("noteId", noteId).
 			WithCtx(ctx)

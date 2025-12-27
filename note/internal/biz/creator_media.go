@@ -18,15 +18,15 @@ func formatNoteVideoAsset(req *CreateNoteRequestVideo) []*notedao.AssetPO {
 		CreateAt:  now,
 	}
 
-	// h265
-	assets[1] = &notedao.AssetPO{
-		AssetKey:  model.FormatNoteVideoKey(req.TargetFileId, model.SupportedVideoH265Suffix),
-		AssetType: model.AssetTypeVideo,
-		CreateAt:  now,
-	}
+	// // h265
+	// assets[1] = &notedao.AssetPO{
+	// 	AssetKey:  model.FormatNoteVideoKey(req.TargetFileId, model.SupportedVideoH265Suffix),
+	// 	AssetType: model.AssetTypeVideo,
+	// 	CreateAt:  now,
+	// }
 
 	// av1
-	assets[2] = &notedao.AssetPO{
+	assets[1] = &notedao.AssetPO{
 		AssetKey:  model.FormatNoteVideoKey(req.TargetFileId, model.SupportedVideoAV1Suffix),
 		AssetType: model.AssetTypeVideo,
 		CreateAt:  now,

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
@@ -149,8 +150,8 @@ func (s *NoteCreatorSrv) List(ctx context.Context, cursor int64, count int32) (*
 	return resp, nextPage, nil
 }
 
-func (s *NoteCreatorSrv) PageList(ctx context.Context, page, count int32) (*model.Notes, int64, error) {
-	resp, total, err := s.noteCreatorBiz.PageListNote(ctx, page, count)
+func (s *NoteCreatorSrv) PageList(ctx context.Context, page, count int32, lcState notev1.NoteLifeCycleState) (*model.Notes, int64, error) {
+	resp, total, err := s.noteCreatorBiz.PageListNote(ctx, page, count, lcState)
 	if err != nil {
 		return nil, 0, xerror.Wrapf(err, "srv creator page list note failed").WithCtx(ctx)
 	}

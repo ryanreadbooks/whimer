@@ -137,14 +137,18 @@ func (b *NoteBiz) GetUserRecentNote(ctx context.Context, uid int64, count int32)
 }
 
 func (b *NoteBiz) ListUserPublicNote(ctx context.Context, uid int64, cursor int64, count int32) (*model.Notes, model.PageResult, error) {
-	var nextPage = model.PageResult{}
+	nextPage := model.PageResult{}
 	if cursor == 0 {
 		cursor = model.MaxCursor
 	}
 
 	newCount := count + 1
 
-	notes, err := b.data.Note.ListPublicByOwnerByCursor(ctx, uid, cursor, newCount)
+	notes, err := b.data.Note.ListByCursor(ctx, cursor, newCount,
+		data.WithNoteOwnerEqual(uid),
+		data.WithNotePrivacyEqual(model.PrivacyPublic),
+		data.WithNoteStateEqual(model.NoteStatePublished),
+	)
 	if err != nil {
 		if xsql.IsNoRecord(err) {
 			return &model.Notes{}, nextPage, nil
@@ -220,11 +224,9 @@ func (b *NoteBiz) GetNoteOwner(ctx context.Context, noteId int64) (int64, error)
 
 // 组装笔记信息 笔记的资源数据
 func (b *NoteBiz) AssembleNotes(ctx context.Context, notes []*model.Note) (*model.Notes, error) {
-	var (
-		res model.Notes
-	)
+	var res model.Notes
 
-	var noteIds = make([]int64, 0, len(notes))
+	noteIds := make([]int64, 0, len(notes))
 	for _, n := range notes {
 		noteIds = append(noteIds, n.NoteId)
 	}
@@ -326,7 +328,7 @@ func (b *NoteBiz) AssembleNotesExt(ctx context.Context, notes []*model.Note) err
 	}
 
 	totalTagIds = xslice.Uniq(totalTagIds)
-	var tagMap = make(map[int64]*tagdao.Tag)
+	tagMap := make(map[int64]*tagdao.Tag)
 	// query tags
 	if len(totalTagIds) != 0 {
 		tags, err := b.data.Tag.BatchGetById(ctx, totalTagIds)

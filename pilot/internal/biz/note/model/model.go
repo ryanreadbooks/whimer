@@ -5,6 +5,29 @@ import (
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 )
 
+type NoteStatus string
+
+const (
+	NoteStatusPublished = "published"
+	NoteStatusAuditing  = "auditing"
+	NoteStatusRejected  = "rejected"
+	NoteStatusBanned    = "banned"
+)
+
+func NoteStatusAsPb(status NoteStatus) notev1.NoteLifeCycleState {
+	switch status {
+	case NoteStatusPublished:
+		return notev1.NoteLifeCycleState_LIFE_CYCLE_STATE_PUBLISHED
+	case NoteStatusAuditing:
+		return notev1.NoteLifeCycleState_LIFE_CYCLE_STATE_AUDITING
+	case NoteStatusRejected:
+		return notev1.NoteLifeCycleState_LIFE_CYCLE_STATE_REJECTED
+	case NoteStatusBanned:
+		return notev1.NoteLifeCycleState_LIFE_CYCLE_STATE_BANNED
+	}
+	return notev1.NoteLifeCycleState_LIFE_CYCLE_STATE_PUBLISHED
+}
+
 // LikeNoteReq 点赞笔记请求
 type LikeNoteReq struct {
 	NoteId imodel.NoteId

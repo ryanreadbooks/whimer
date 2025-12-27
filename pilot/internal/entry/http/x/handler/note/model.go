@@ -273,8 +273,9 @@ func (r *ListReq) Validate() error {
 }
 
 type PageListReq struct {
-	Page  int32 `form:"page,optional"`
-	Count int32 `form:"count,default=15"`
+	Page   int32  `form:"page,optional"`
+	Count  int32  `form:"count,default=15"`
+	Status string `form:"status,default=published"` // published, auditing, banned
 }
 
 func (r *PageListReq) Validate() error {
