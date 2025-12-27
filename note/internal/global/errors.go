@@ -13,13 +13,19 @@ const (
 	ErrNotFoundCode
 )
 
+// 400
 const (
 	_ = iota
 
 	ErrNoteNilReqCode = ErrInvalidArgsCode + iota
 	ErrNoteUnsupportedResourceCode
+	ErrNoteTypeCannotChangeCode
+	ErrTagNotFoundCode
+	ErrNoteProcessingCode
+	ErrVideoNoteAssetNotExistCode
 )
 
+// 5xx
 const (
 	_ = iota
 
@@ -30,12 +36,14 @@ const (
 	ErrNoteGetNoteLikesFailCode
 )
 
+// 404
 const (
 	_ = iota
 
 	ErrNoteNoteNotFoundCode = ErrNotFoundCode + iota
 )
 
+// 403
 const (
 	_ = iota
 
@@ -54,9 +62,13 @@ var (
 	ErrInternal   = ErrBizNoteInternal.Msg("笔记服务错误, 请稍后重试")
 	ErrPermDenied = ErrBizNoteDenied.Msg("你的操作权限不足")
 
-	// 通用错误
-	ErrNilReq              = ErrBizNoteArgs.ErrCode(ErrNoteNilReqCode).Msg("请求参数为空")
-	ErrUnsupportedResource = ErrBizNoteArgs.ErrCode(ErrNoteUnsupportedResourceCode).Msg("不支持的资源类型")
+	// 参数错误
+	ErrNilReq                 = ErrBizNoteArgs.ErrCode(ErrNoteNilReqCode).Msg("请求参数为空")
+	ErrUnsupportedResource    = ErrBizNoteArgs.ErrCode(ErrNoteUnsupportedResourceCode).Msg("不支持的资源类型")
+	ErrNoteTypeCannotChange   = ErrBizNoteArgs.ErrCode(ErrNoteTypeCannotChangeCode).Msg("不支持变更笔记类型")
+	ErrTagNotFound            = ErrBizNoteArgs.ErrCode(ErrTagNotFoundCode).Msg("标签不存在")
+	ErrNoteProcessing         = ErrBizNoteArgs.ErrCode(ErrNoteProcessingCode).Msg("笔记正在处理中")
+	ErrVideoNoteAssetNotExist = ErrBizNoteArgs.ErrCode(ErrVideoNoteAssetNotExistCode).Msg("未指定视频资源文件")
 
 	// 笔记操作失败
 	ErrInsertNoteFail   = ErrBizNoteInternal.ErrCode(ErrNoteInsertNoteFailCode).Msg("添加笔记失败")

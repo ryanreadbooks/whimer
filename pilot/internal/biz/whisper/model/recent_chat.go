@@ -1,6 +1,6 @@
 package model
 
-import usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
+import usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
 
 type RecentChat struct {
 	Uid         int64           `json:"-"`

@@ -6,9 +6,51 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 
 	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 )
+
+type NoteType string
+
+// 笔记类型
+const (
+	NoteTypeImage = "image"
+	NoteTypeVideo = "video"
+)
+
+var (
+	noteTypePbMapping = map[NoteType]notev1.NoteAssetType{
+		NoteTypeImage: notev1.NoteAssetType_IMAGE,
+		NoteTypeVideo: notev1.NoteAssetType_VIDEO,
+	}
+
+	noteTypePbReverseMapping = map[notev1.NoteAssetType]NoteType{
+		notev1.NoteAssetType_IMAGE: NoteTypeImage,
+		notev1.NoteAssetType_VIDEO: NoteTypeVideo,
+	}
+)
+
+func IsNoteTypeValid(t NoteType) bool {
+	_, ok := noteTypePbMapping[t]
+	return ok
+}
+
+func ConvertNoteTypeAsPb(n NoteType) notev1.NoteAssetType {
+	if t, ok := noteTypePbMapping[n]; ok {
+		return t
+	}
+	return notev1.NoteAssetType_NOTE_ASSET_TYPE_UNSPECIFIED
+}
+
+func ConvertNoteTypeFromPb(n notev1.NoteAssetType) NoteType {
+	if t, ok := noteTypePbReverseMapping[n]; ok {
+		return t
+	}
+
+	return ""
+}
 
 type NoteItemImageMeta struct {
 	Width  uint32 `json:"width"`
@@ -17,6 +59,7 @@ type NoteItemImageMeta struct {
 }
 
 type NoteItemImage struct {
+	Key      string            `json:"key,omitempty"`
 	Url      string            `json:"url"`
 	Type     int               `json:"type"`
 	Metadata NoteItemImageMeta `json:"metadata"`
@@ -24,6 +67,26 @@ type NoteItemImage struct {
 }
 
 type NoteItemImageList []*NoteItemImage
+
+type NoteItemVideo struct {
+	Key      string            `json:"-"`
+	Url      string            `json:"url"`
+	Type     int               `json:"type"`
+	Metadata NoteItemVideoMeta `json:"metadata"`
+}
+
+type NoteItemVideoMeta struct {
+	Width      uint32  `json:"width"`
+	Height     uint32  `json:"height"`
+	Format     string  `json:"format"`
+	Duration   float64 `json:"duration"`
+	Bitrate    int64   `json:"bitrate"`
+	Codec      string  `json:"codec"`
+	Framerate  float64 `json:"framerate"`
+	AudioCodec string  `json:"audio_codec"`
+}
+
+type NoteItemVideoList []*NoteItemVideo
 
 // 包含发起请求的用户和该笔记的交互记录
 type Interaction struct {
@@ -79,7 +142,9 @@ type AdminNoteItem struct {
 	UpdateAt int64             `json:"update_at"`
 	Ip       string            `json:"-"`
 	IpLoc    string            `json:"ip_loc"`
-	Images   NoteItemImageList `json:"images"`
+	Type     NoteType          `json:"type"`
+	Images   NoteItemImageList `json:"images,omitempty"`
+	Videos   NoteItemVideoList `json:"videos,omitempty"`
 	Likes    int64             `json:"likes"`
 	Replies  int64             `json:"replies"`
 	Interact Interaction       `json:"interact"`
@@ -104,25 +169,62 @@ func NewNoteImageItemUrlPrv(pbimg *notev1.NoteImage) string {
 
 	url := imgproxy.GetSignedUrl(
 		config.Conf.Oss.DisplayEndpointBucket(noteAssetBucket),
-		pbimg.Key,
+		pbimg.GetKey(),
 		config.Conf.ImgProxyAuth.GetKey(),
 		config.Conf.ImgProxyAuth.GetSalt(),
 		imgproxy.WithQuality("1"))
 	return url
 }
 
-func NewNoteImageFromPb(pbimg *notev1.NoteImage) *NoteItemImage {
+func NewNoteImageFromPb(pbimg *notev1.NoteImage, showKey bool) *NoteItemImage {
 	url := NewNoteImageItemUrl(pbimg)
 	urlPrv := NewNoteImageItemUrlPrv(pbimg)
 
-	return &NoteItemImage{
+	img := &NoteItemImage{
 		Url:    url,
-		Type:   int(pbimg.Type),
+		Type:   int(pbimg.GetType()),
 		UrlPrv: urlPrv,
 		Metadata: NoteItemImageMeta{
-			Width:  pbimg.Meta.Width,
-			Height: pbimg.Meta.Height,
-			Format: pbimg.Meta.Format,
+			Width:  pbimg.GetMeta().GetWidth(),
+			Height: pbimg.GetMeta().GetHeight(),
+			Format: pbimg.GetMeta().GetFormat(),
+		},
+	}
+	if showKey {
+		img.Key = pbimg.Key
+	}
+	return img
+}
+
+func NewNoteVideoUrl(pbvideo *notev1.NoteVideo) string {
+	// 应该要用s3预签名url
+	url, err := dep.PresignGetUrl(context.Background(), uploadresource.NoteVideo, pbvideo.GetKey())
+	if err != nil {
+		return ""
+	}
+
+	return url
+}
+
+func NewNoteVideoFromPb(pbvideo *notev1.NoteVideo) *NoteItemVideo {
+	if pbvideo == nil {
+		return nil
+	}
+
+	url := NewNoteVideoUrl(pbvideo)
+	return &NoteItemVideo{
+		Key:  pbvideo.GetKey(),
+		Url:  url,
+		Type: int(pbvideo.GetType()),
+		Metadata: NoteItemVideoMeta{
+			Width:      pbvideo.GetMeta().GetWidth(),
+			Height:     pbvideo.GetMeta().GetHeight(),
+			Format:     pbvideo.GetMeta().GetFormat(),
+			Duration:   pbvideo.GetMeta().GetDuration(),
+			Bitrate:    pbvideo.GetMeta().GetBitrate(),
+			Codec:      pbvideo.GetMeta().GetCodec(),
+			Framerate:  pbvideo.GetMeta().GetFramerate(),
+			AudioCodec: pbvideo.GetMeta().GetAudioCodec(),
 		},
 	}
 }
@@ -132,9 +234,23 @@ func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
 		return nil
 	}
 
-	images := make(NoteItemImageList, 0, len(pb.Images))
-	for _, pbimg := range pb.Images {
-		images = append(images, NewNoteImageFromPb(pbimg))
+	var (
+		images NoteItemImageList = make(NoteItemImageList, 0)
+		videos NoteItemVideoList
+	)
+
+	if len(pb.Images) > 0 {
+		images = make(NoteItemImageList, 0, len(pb.Images))
+		for _, pbimg := range pb.Images {
+			images = append(images, NewNoteImageFromPb(pbimg, true))
+		}
+	}
+
+	if len(pb.Videos) > 0 {
+		videos = make(NoteItemVideoList, 0, len(pb.Videos))
+		for _, pbvideo := range pb.Videos {
+			videos = append(videos, NewNoteVideoFromPb(pbvideo))
+		}
 	}
 
 	var tagList []*NoteTag = NoteTagsFromPbs(pb.GetTags())
@@ -147,9 +263,11 @@ func NewAdminNoteItemFromPb(pb *notev1.NoteItem) *AdminNoteItem {
 		Title:    pb.Title,
 		Desc:     pb.Desc,
 		Privacy:  int8(pb.Privacy),
+		Type:     ConvertNoteTypeFromPb(pb.NoteType),
 		CreateAt: pb.CreateAt,
 		UpdateAt: pb.UpdateAt,
 		Images:   images,
+		Videos:   videos,
 		Likes:    pb.Likes,
 		Replies:  pb.Replies,
 		TagList:  tagList,

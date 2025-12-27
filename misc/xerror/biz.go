@@ -1,9 +1,12 @@
 package xerror
 
 const (
-	BizNote     = 20000
-	BizPassport = 30000
-	BizComment  = 40000
-	BizCounter  = 50000
-	BizMsger    = 60000
+	BizNote      = 20000
+	BizPassport  = 30000
+	BizComment   = 40000
+	BizCounter   = 50000
+	BizMsger     = 60000
+	BizRelation  = 70000
+	BizWsLink    = 80000
+	BizConductor = 90000
 )

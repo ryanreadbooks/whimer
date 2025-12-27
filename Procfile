@@ -1,3 +1,5 @@
+conductor: cd conductor && go run cmd/main.go -f etc/conductor.yaml
+lambda-media: cd lambda/media && go run cmd/main.go -f etc/media.yaml
 passport: cd passport && go run cmd/main.go -f etc/passport.yaml
 counter: cd counter && go run cmd/main.go -f etc/counter.yaml
 note: cd note && go run cmd/main.go -f etc/note.yaml

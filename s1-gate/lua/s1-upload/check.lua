@@ -60,12 +60,8 @@ if req_method == httpmethod.PUT then
     resplib.make_403_err('invalid x-security-token subject')
     return
   end
-  -- if jwt_obj['payload']['jti'] ~= 'whm_ulas' then
-  --   resplib.make_403_err('invalid x-security-token id')
-  --   return
-  -- end
-  local access_key = jwt_obj['payload']['access_key'] or ''
 
+  local access_key = jwt_obj['payload']['access_key'] or ''
   local date = req_headers['X-Date'] or ''
   if #date == 0 then
     resplib.make_403_err('x-date is required in header')

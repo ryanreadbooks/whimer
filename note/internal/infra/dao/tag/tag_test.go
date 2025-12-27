@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	dao   *TagDao
+	repo  *TagRepo
 	cache *redis.Redis
 	ctx   = context.TODO()
 )
@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 		Host: "127.0.0.1:7542",
 		Type: "node",
 	})
-	dao = NewTagDao(xsql.New(conn), cache)
+	repo = NewTagRepo(xsql.New(conn))
 	m.Run()
 }
 
@@ -39,10 +39,10 @@ func TestInsert(t *testing.T) {
 		tag := Tag{
 			Name: "name",
 		}
-		id, err := dao.Create(ctx, &tag)
+		id, err := repo.Create(ctx, &tag)
 		So(err, ShouldBeNil)
 
-		got, err := dao.FindById(ctx, id)
+		got, err := repo.FindById(ctx, id)
 		So(err, ShouldBeNil)
 		So(got.Name, ShouldEqual, tag.Name)
 	})

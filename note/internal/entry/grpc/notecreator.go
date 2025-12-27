@@ -4,6 +4,7 @@ import (
 	"context"
 
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
@@ -22,7 +23,8 @@ func NewNoteAdminServiceServer(srv *srv.Service) *NoteCreatorServiceServer {
 }
 
 func (s *NoteCreatorServiceServer) IsUserOwnNote(ctx context.Context, in *notev1.IsUserOwnNoteRequest) (
-	*notev1.IsUserOwnNoteResponse, error) {
+	*notev1.IsUserOwnNoteResponse, error,
+) {
 	owner, err := s.Srv.NoteCreatorSrv.GetNoteOwner(ctx, in.NoteId)
 	if err != nil {
 		return nil, err
@@ -33,7 +35,8 @@ func (s *NoteCreatorServiceServer) IsUserOwnNote(ctx context.Context, in *notev1
 
 // 判断笔记是否存在
 func (s *NoteCreatorServiceServer) IsNoteExist(ctx context.Context, in *notev1.IsNoteExistRequest) (
-	*notev1.IsNoteExistResponse, error) {
+	*notev1.IsNoteExistResponse, error,
+) {
 	ok, err := s.Srv.NoteCreatorSrv.IsNoteExist(ctx, in.NoteId)
 	if err != nil {
 		return nil, err
@@ -42,40 +45,70 @@ func (s *NoteCreatorServiceServer) IsNoteExist(ctx context.Context, in *notev1.I
 	return &notev1.IsNoteExistResponse{Exist: ok}, nil
 }
 
-// 创建笔记
-func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.CreateNoteRequest) (
-	*notev1.CreateNoteResponse, error) {
-	if in == nil {
-		return nil, global.ErrNilReq
+func convertToNoteAssets(in *notev1.CreateNoteRequest) ([]biz.CreateNoteRequestImage, *biz.CreateNoteRequestVideo) {
+	var (
+		images = make([]biz.CreateNoteRequestImage, 0, len(in.GetImages()))
+		video  *biz.CreateNoteRequestVideo
+	)
+	if in.Basic.GetAssetType() == notev1.NoteAssetType_IMAGE {
+		for _, img := range in.GetImages() {
+			images = append(images, biz.CreateNoteRequestImage{
+				FileId: img.GetFileId(),
+				Width:  img.GetWidth(),
+				Height: img.GetHeight(),
+				Format: img.GetFormat(),
+				Bucket: img.GetBucket(),
+			})
+		}
+	} else if in.Basic.GetAssetType() == notev1.NoteAssetType_VIDEO {
+		video = &biz.CreateNoteRequestVideo{
+			FileId:       in.GetVideo().GetFileId(),
+			TargetFileId: in.GetVideo().GetTargetFileId(),
+			Bucket:       in.GetVideo().GetFileBucket(),
+			TargetBucket: in.GetVideo().GetTargetFileBucket(),
+			CoverFileId:  in.GetVideo().GetCoverFileId(),
+		}
 	}
 
-	images := make([]model.CreateNoteRequestImage, 0, len(in.Images))
-	for _, img := range in.Images {
-		images = append(images, model.CreateNoteRequestImage{
-			FileId: img.FileId,
-			Width:  img.Width,
-			Height: img.Height,
-			Format: img.Format,
-		})
-	}
+	return images, video
+}
 
-	var req = model.CreateNoteRequest{
-		Basic: model.CreateNoteRequestBasic{
-			Title:   in.Basic.Title,
-			Desc:    in.Basic.Desc,
-			Privacy: int8(in.Basic.Privacy),
+func convertToNoteCreateReq(in *notev1.CreateNoteRequest) *biz.CreateNoteRequest {
+	images, video := convertToNoteAssets(in)
+	return &biz.CreateNoteRequest{
+		Basic: biz.CreateNoteRequestBasic{
+			Title:    in.Basic.Title,
+			Desc:     in.Basic.Desc,
+			Privacy:  model.Privacy(in.Basic.Privacy),
+			NoteType: model.NoteType(in.Basic.AssetType),
 		},
 		Images:  images,
 		TagIds:  in.GetTags().GetTagList(),
 		AtUsers: model.AtUsersFromPb(in.GetAtUsers()),
+		Video:   video,
+	}
+}
+
+// 创建笔记
+func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.CreateNoteRequest) (
+	*notev1.CreateNoteResponse, error,
+) {
+	if in == nil {
+		return nil, global.ErrNilReq
 	}
 
+	req := convertToNoteCreateReq(in)
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
+	if req.Basic.NoteType == model.AssetTypeVideo {
+		if err := req.Video.Validate(); err != nil {
+			return nil, err
+		}
+	}
 
 	// service to create note
-	noteId, err := s.Srv.NoteCreatorSrv.Create(ctx, &req)
+	noteId, err := s.Srv.NoteCreatorSrv.Create(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -85,38 +118,21 @@ func (s *NoteCreatorServiceServer) CreateNote(ctx context.Context, in *notev1.Cr
 
 // 更新笔记
 func (s *NoteCreatorServiceServer) UpdateNote(ctx context.Context, in *notev1.UpdateNoteRequest) (
-	*notev1.UpdateNoteResponse, error) {
+	*notev1.UpdateNoteResponse, error,
+) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
 
-	images := make([]model.CreateNoteRequestImage, 0, len(in.Note.Images))
-	for _, img := range in.Note.Images {
-		images = append(images, model.CreateNoteRequestImage{
-			FileId: img.FileId,
-			Width:  img.Width,
-			Height: img.Height,
-			Format: img.Format,
-		})
-	}
-
-	var req = model.UpdateNoteRequest{
-		NoteId: in.NoteId,
-		CreateNoteRequest: model.CreateNoteRequest{
-			Basic: model.CreateNoteRequestBasic{
-				Title:   in.Note.Basic.Title,
-				Desc:    in.Note.Basic.Desc,
-				Privacy: int8(in.Note.Basic.Privacy),
-			},
-			Images:  images,
-			TagIds:  in.GetNote().GetTags().GetTagList(),
-			AtUsers: model.AtUsersFromPb(in.GetNote().GetAtUsers()),
-		},
+	req := biz.UpdateNoteRequest{
+		NoteId:            in.NoteId,
+		CreateNoteRequest: *convertToNoteCreateReq(in.GetNote()),
 	}
 
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
+	// 更新时允许视频fileId为空 表示不更新视频资源
 
 	err := s.Srv.NoteCreatorSrv.Update(ctx, &req)
 	if err != nil {
@@ -128,12 +144,13 @@ func (s *NoteCreatorServiceServer) UpdateNote(ctx context.Context, in *notev1.Up
 
 // 删除笔记
 func (s *NoteCreatorServiceServer) DeleteNote(ctx context.Context, in *notev1.DeleteNoteRequest) (
-	*notev1.DeleteNoteResponse, error) {
+	*notev1.DeleteNoteResponse, error,
+) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
 
-	var req = model.DeleteNoteRequest{
+	req := biz.DeleteNoteRequest{
 		NoteId: in.NoteId,
 	}
 
@@ -151,7 +168,8 @@ func (s *NoteCreatorServiceServer) DeleteNote(ctx context.Context, in *notev1.De
 
 // 用于笔记作者获取笔记的详细信息
 func (s *NoteCreatorServiceServer) GetNote(ctx context.Context, in *notev1.GetNoteRequest) (
-	*notev1.GetNoteResponse, error) {
+	*notev1.GetNoteResponse, error,
+) {
 	if in == nil {
 		return nil, global.ErrNilReq
 	}
@@ -170,7 +188,8 @@ func (s *NoteCreatorServiceServer) GetNote(ctx context.Context, in *notev1.GetNo
 
 // 列出笔记
 func (s *NoteCreatorServiceServer) ListNote(ctx context.Context, in *notev1.ListNoteRequest) (
-	*notev1.ListNoteResponse, error) {
+	*notev1.ListNoteResponse, error,
+) {
 	data, nextPage, err := s.Srv.NoteCreatorSrv.List(ctx, in.Cursor, in.Count)
 	if err != nil {
 		return nil, err
@@ -184,11 +203,13 @@ func (s *NoteCreatorServiceServer) ListNote(ctx context.Context, in *notev1.List
 	return &notev1.ListNoteResponse{
 		Items:      items,
 		NextCursor: nextPage.NextCursor,
-		HasNext:    nextPage.HasNext}, nil
+		HasNext:    nextPage.HasNext,
+	}, nil
 }
 
 func (s *NoteCreatorServiceServer) GetPostedCount(ctx context.Context, in *notev1.GetPostedCountRequest) (
-	*notev1.GetPostedCountResponse, error) {
+	*notev1.GetPostedCountResponse, error,
+) {
 	cnt, err := s.Srv.NoteCreatorSrv.GetPostedCount(ctx, in.Uid)
 	if err != nil {
 		return nil, err
@@ -198,14 +219,15 @@ func (s *NoteCreatorServiceServer) GetPostedCount(ctx context.Context, in *notev
 }
 
 func (s *NoteCreatorServiceServer) PageListNote(ctx context.Context,
-	in *notev1.PageListNoteRequest) (*notev1.PageListNoteResponse, error) {
+	in *notev1.PageListNoteRequest,
+) (*notev1.PageListNoteResponse, error) {
 	if in.Page <= 0 {
 		in.Page = 1
 	}
 	if in.Count >= 20 {
 		in.Count = 20
 	}
-	data, total, err := s.Srv.NoteCreatorSrv.PageList(ctx, in.Page, in.Count)
+	data, total, err := s.Srv.NoteCreatorSrv.PageList(ctx, in.Page, in.Count, in.LifeCycleState)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +246,6 @@ func (s *NoteCreatorServiceServer) PageListNote(ctx context.Context,
 func (s *NoteCreatorServiceServer) AddTag(ctx context.Context, in *notev1.AddTagRequest) (
 	*notev1.AddTagResponse, error,
 ) {
-
 	if in.Name == "" {
 		return nil, global.ErrArgs.Msg("标签名为空")
 	}

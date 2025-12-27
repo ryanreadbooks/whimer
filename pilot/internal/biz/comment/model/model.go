@@ -40,7 +40,7 @@ type CommentItemImage struct {
 func NewCommentItemImageUrl(pbimg *commentv1.CommentItemImage) string {
 	bucket := config.Conf.UploadResourceDefineMap["comment_image"].Bucket
 	return imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(bucket),
-		pbimg.Key,
+		pbimg.GetKey(),
 		config.Conf.ImgProxyAuth.GetKey(),
 		config.Conf.ImgProxyAuth.GetSalt(),
 		imgproxy.WithQuality("50"),
@@ -55,10 +55,10 @@ func NewCommentItemImageFromPb(pbimg *commentv1.CommentItemImage) *CommentItemIm
 	return &CommentItemImage{
 		Url: NewCommentItemImageUrl(pbimg),
 		Metadata: CommentItemImageMetadata{
-			Width:  pbimg.Meta.Width,
-			Height: pbimg.Meta.Height,
-			Format: pbimg.Meta.Format,
-			Type:   pbimg.Meta.Type,
+			Width:  pbimg.GetMeta().GetWidth(),
+			Height: pbimg.GetMeta().GetHeight(),
+			Format: pbimg.GetMeta().GetFormat(),
+			Type:   pbimg.GetMeta().GetType(),
 		},
 	}
 }

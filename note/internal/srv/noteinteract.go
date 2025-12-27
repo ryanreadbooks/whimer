@@ -18,11 +18,11 @@ import (
 type NoteInteractSrv struct {
 	Ctx *Service
 
-	noteBiz         biz.NoteBiz
-	noteInteractBiz biz.NoteInteractBiz
+	noteBiz         *biz.NoteBiz
+	noteInteractBiz *biz.NoteInteractBiz
 }
 
-func NewNoteInteractSrv(ctx *Service, biz biz.Biz) *NoteInteractSrv {
+func NewNoteInteractSrv(ctx *Service, biz *biz.Biz) *NoteInteractSrv {
 	s := &NoteInteractSrv{
 		Ctx:             ctx,
 		noteBiz:         biz.Note,
@@ -49,8 +49,12 @@ func (s *NoteInteractSrv) LikeNote(ctx context.Context, in *notev1.LikeNoteReque
 	}
 
 	// 非公开笔记 其它人不能点赞
-	if note.Privacy != global.PrivacyPublic && opUid != note.Owner {
+	if note.Privacy != model.PrivacyPublic && opUid != note.Owner {
 		return nil, global.ErrNoteNotPublic
+	}
+
+	if note.State != model.NoteStatePublished { // 未发布的笔记不能点赞
+		return nil, global.ErrNoteNotFound
 	}
 
 	var op = biz.DoLike
@@ -76,7 +80,7 @@ func (s *NoteInteractSrv) GetNoteLikes(ctx context.Context, noteId int64) (int64
 		return 0, xerror.Wrapf(err, "get public note failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
-	if note.Privacy != global.PrivacyPublic && uid != note.Owner {
+	if note.Privacy != model.PrivacyPublic && uid != note.Owner {
 		return 0, global.ErrNoteNotPublic
 	}
 
@@ -110,7 +114,7 @@ func (s *NoteInteractSrv) GetNoteInteraction(ctx context.Context, noteId int64) 
 		return nil, xerror.Wrapf(err, "get public note failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
-	if note.Privacy != global.PrivacyPublic && uid != note.Owner {
+	if note.Privacy != model.PrivacyPublic && uid != note.Owner {
 		return nil, global.ErrNoteNotPublic
 	}
 
@@ -129,14 +133,14 @@ func (s *NoteInteractSrv) PageListUserLikedNoteIds(ctx context.Context, in *note
 		pageRes = model.PageResultV2{}
 	)
 
-	resp, err := dep.GetCounter().PageGetUserRecord(ctx, 
+	resp, err := dep.GetCounter().PageGetUserRecord(ctx,
 		&counterv1.PageGetUserRecordRequest{
-		BizCode:  global.NoteLikeBizcode,
-		Uid:      in.Uid,
-		Cursor:   in.Cursor,
-		Count:    in.Count,
-		SortRule: counterv1.SortRule_SORT_RULE_DESC,
-	})
+			BizCode:  global.NoteLikeBizcode,
+			Uid:      in.Uid,
+			Cursor:   in.Cursor,
+			Count:    in.Count,
+			SortRule: counterv1.SortRule_SORT_RULE_DESC,
+		})
 	if err != nil {
 		return nil, pageRes, xerror.Wrapf(err, "counter page get user record failed").WithCtx(ctx)
 	}

@@ -3,7 +3,7 @@ package global
 import "github.com/ryanreadbooks/whimer/misc/xerror"
 
 const (
-	WsErrCode = 70000
+	WsErrCode = xerror.BizWsLink
 
 	// Wslink error groups
 

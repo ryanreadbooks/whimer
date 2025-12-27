@@ -1,0 +1,103 @@
+package assumerole
+
+import (
+	"context"
+	"sync"
+
+	"github.com/minio/minio-go/v7/pkg/credentials"
+)
+
+type Provider interface {
+	// Retrieve returns nil if it successfully retrieved the value.
+	// Error is returned if the value were not obtainable, or empty.
+	Retrieve(ctx context.Context) (credentials.Value, error)
+
+	// IsExpired returns if the credentials are no longer valid, and need
+	// to be retrieved.
+	IsExpired() bool
+}
+
+// Credentials - A container for synchronous safe retrieval of credentials Value.
+// Credentials will cache the credentials value until they expire. Once the value
+// expires the next Get will attempt to retrieve valid credentials.
+//
+// Credentials is safe to use across multiple goroutines and will manage the
+// synchronous state so the Providers do not need to implement their own
+// synchronization.
+//
+// The first Credentials.Get() will always call Provider.Retrieve() to get the
+// first instance of the credentials Value. All calls to Get() after that
+// will return the cached credentials Value until IsExpired() returns true.
+type Credentials struct {
+	mu sync.Mutex
+
+	creds        credentials.Value
+	forceRefresh bool
+	provider     Provider
+}
+
+// New returns a pointer to a new Credentials with the provider set.
+func New(provider Provider) *Credentials {
+	return &Credentials{
+		provider:     provider,
+		forceRefresh: true,
+	}
+}
+
+// Get returns the credentials value, or error if the credentials Value failed
+// to be retrieved.
+//
+// Will return the cached credentials Value if it has not expired. If the
+// credentials Value has expired the Provider's Retrieve() will be called
+// to refresh the credentials.
+//
+// If Credentials.Expire() was called the credentials Value will be force
+// expired, and the next call to Get() will cause them to be refreshed.
+func (c *Credentials) Get(ctx context.Context) (credentials.Value, error) {
+	if c == nil {
+		return credentials.Value{}, nil
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.isExpired() {
+		creds, err := c.provider.Retrieve(ctx)
+		if err != nil {
+			return credentials.Value{}, err
+		}
+		c.creds = creds
+		c.forceRefresh = false
+	}
+
+	return c.creds, nil
+}
+
+// Expire expires the credentials and forces them to be retrieved on the
+// next call to Get().
+//
+// This will override the Provider's expired state, and force Credentials
+// to call the Provider's Retrieve().
+func (c *Credentials) Expire() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.forceRefresh = true
+}
+
+// IsExpired returns if the credentials are no longer valid, and need
+// to be refreshed.
+//
+// If the Credentials were forced to be expired with Expire() this will
+// reflect that override.
+func (c *Credentials) IsExpired() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.isExpired()
+}
+
+// isExpired helper method wrapping the definition of expired credentials.
+func (c *Credentials) isExpired() bool {
+	return c.forceRefresh || c.provider.IsExpired()
+}

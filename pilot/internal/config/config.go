@@ -23,14 +23,22 @@ type Config struct {
 	Redis redis.RedisConf `json:"redis"`
 	Log   logx.LogConf    `json:"log"`
 
+	MySql struct {
+		User   string `json:"user"`
+		Pass   string `json:"pass"`
+		Addr   string `json:"addr"`
+		DbName string `json:"db_name"`
+	} `json:"mysql"`
+
 	Backend struct {
-		Note     xconf.Discovery `json:"note"`
-		Comment  xconf.Discovery `json:"comment"`
-		Passport xconf.Discovery `json:"passport"`
-		Relation xconf.Discovery `json:"relation"`
-		Msger    xconf.Discovery `json:"msger"`
-		Search   xconf.Discovery `json:"search"`
-		WsLink   xconf.Discovery `json:"wslink"`
+		Note      xconf.Discovery `json:"note"`
+		Comment   xconf.Discovery `json:"comment"`
+		Passport  xconf.Discovery `json:"passport"`
+		Relation  xconf.Discovery `json:"relation"`
+		Msger     xconf.Discovery `json:"msger"`
+		Search    xconf.Discovery `json:"search"`
+		WsLink    xconf.Discovery `json:"wslink"`
+		Conductor xconf.Discovery `json:"conductor"`
 	} `json:"backend"`
 
 	Obfuscate struct {
@@ -52,6 +60,14 @@ type Config struct {
 	Oss Oss `json:"oss"`
 
 	ImgProxyAuth imgproxy.Auth `json:"img_proxy_auth"`
+}
+
+func (c *Config) GetUploadResourceBucket(resource uploadresource.Type) string {
+	return c.UploadResourceDefineMap[resource].Bucket
+}
+
+func (c *Config) GetUploadResourcePrefix(resource uploadresource.Type) string {
+	return c.UploadResourceDefineMap[resource].Prefix
 }
 
 func (c *Config) Init() error {
@@ -100,10 +116,14 @@ type UploadResourceDefineItem struct {
 type UploadResourceDefineMap map[uploadresource.Type]uploadresource.Metadata // string is resourceType
 
 type Oss struct {
-	Endpoint        string `json:"endpoint"`
-	Location        string `json:"location"`
-	DisplayEndpoint string `json:"display_endpoint"`
-	UploadEndpoint  string `json:"upload_endpoint"`
+	UseSecure             bool   `json:"use_secure"`
+	Endpoint              string `json:"endpoint"`
+	Location              string `json:"location"`
+	User                  string `json:"user"`
+	Password              string `json:"password"`
+	CredentialDurationSec int    `json:"credential_duration_sec"`
+	DisplayEndpoint       string `json:"display_endpoint"`
+	UploadEndpoint        string `json:"upload_endpoint"`
 }
 
 func (c *Oss) DisplayEndpointBucket(bucket string) string {
