@@ -303,7 +303,7 @@ func (b *NoteCreatorBiz) handleNoteAssets(
 
 	if len(oldAssetsPO) > 0 {
 		// 随后删除旧资源 除了newAssetKeys之外的其它
-		err = b.data.NoteAsset.DeleteImageByNoteIdExcept(ctx, newNote.NoteId, newAssetKeys)
+		err = b.data.NoteAsset.DeleteByNoteIdExcept(ctx, newNote.NoteId, newAssetKeys)
 		if err != nil {
 			return false, xerror.Wrapf(err, "noteasset dao delete tx failed")
 		}

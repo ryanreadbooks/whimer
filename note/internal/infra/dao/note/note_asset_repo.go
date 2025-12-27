@@ -149,10 +149,15 @@ func (r *NoteAssetRepo) DeleteByNoteId(ctx context.Context, noteId int64) error 
 	return xerror.Wrap(xsql.ConvertError(err))
 }
 
-func (r *NoteAssetRepo) ExcludeDeleteByNoteId(ctx context.Context, noteId int64, assetKeys []string, assetType model.AssetType) error {
+func (r *NoteAssetRepo) ExcludeDeleteByNoteId(
+	ctx context.Context,
+	noteId int64,
+	assetKeys []string,
+) error {
+
 	sb := sqlbuilder.NewDeleteBuilder()
 	sb.DeleteFrom(assetTable)
-	sb.Where(sb.Equal("note_id", noteId), sb.Equal("asset_type", assetType))
+	sb.Where(sb.Equal("note_id", noteId))
 	if len(assetKeys) != 0 {
 		sb.Where(sb.NotIn("asset_key", xslice.Any(assetKeys)...))
 	}

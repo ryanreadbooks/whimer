@@ -52,9 +52,9 @@ func (d *NoteAssetData) DeleteByNoteId(ctx context.Context, noteId int64) error 
 	return d.repo.DeleteByNoteId(ctx, noteId)
 }
 
-// 删除笔记的图片资源（排除指定的key）
-func (d *NoteAssetData) DeleteImageByNoteIdExcept(ctx context.Context, noteId int64, assetKeys []string) error {
-	return d.repo.ExcludeDeleteByNoteId(ctx, noteId, assetKeys, model.AssetTypeImage)
+// 删除笔记的资源（排除指定的key）
+func (d *NoteAssetData) DeleteByNoteIdExcept(ctx context.Context, noteId int64, assetKeys []string) error {
+	return d.repo.ExcludeDeleteByNoteId(ctx, noteId, assetKeys)
 }
 
 // 批量更新资源元数据
