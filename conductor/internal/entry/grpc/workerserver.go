@@ -6,6 +6,7 @@ import (
 	taskv1 "github.com/ryanreadbooks/whimer/conductor/api/task/v1"
 	workerservice "github.com/ryanreadbooks/whimer/conductor/api/workerservice/v1"
 	"github.com/ryanreadbooks/whimer/conductor/internal/service"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type WorkerServiceServer struct {
@@ -97,4 +98,29 @@ func (s *WorkerServiceServer) CompleteTask(
 	}
 
 	return &workerservice.CompleteTaskResponse{}, nil
+}
+
+// ReportTask Worker 上报当前任务进度
+func (s *WorkerServiceServer) ReportTask(
+	ctx context.Context,
+	in *workerservice.ReportTaskRequest,
+) (*workerservice.ReportTaskResponse, error) {
+	resp, err := s.srv.WorkerService.ReportTask(ctx, &service.ReportTaskRequest{
+		TaskId:   in.TaskId,
+		Progress: in.Progress,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	pbResp := &workerservice.ReportTaskResponse{
+		Aborted: resp.Aborted,
+	}
+
+	// 仅当任务未被终止时，返回建议的下次上报时间
+	if !resp.Aborted && !resp.NextReportTime.IsZero() {
+		pbResp.NextReportTime = timestamppb.New(resp.NextReportTime)
+	}
+
+	return pbResp, nil
 }

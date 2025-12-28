@@ -22,6 +22,7 @@ const (
 	WorkerService_LongPoll_FullMethodName     = "/conductor.api.workerservice.v1.WorkerService/LongPoll"
 	WorkerService_AcceptTask_FullMethodName   = "/conductor.api.workerservice.v1.WorkerService/AcceptTask"
 	WorkerService_CompleteTask_FullMethodName = "/conductor.api.workerservice.v1.WorkerService/CompleteTask"
+	WorkerService_ReportTask_FullMethodName   = "/conductor.api.workerservice.v1.WorkerService/ReportTask"
 )
 
 // WorkerServiceClient is the client API for WorkerService service.
@@ -34,6 +35,8 @@ type WorkerServiceClient interface {
 	AcceptTask(ctx context.Context, in *AcceptTaskRequest, opts ...grpc.CallOption) (*AcceptTaskResponse, error)
 	// worker完成任务上报
 	CompleteTask(ctx context.Context, in *CompleteTaskRequest, opts ...grpc.CallOption) (*CompleteTaskResponse, error)
+	// worker上报当前任务进度
+	ReportTask(ctx context.Context, in *ReportTaskRequest, opts ...grpc.CallOption) (*ReportTaskResponse, error)
 }
 
 type workerServiceClient struct {
@@ -74,6 +77,16 @@ func (c *workerServiceClient) CompleteTask(ctx context.Context, in *CompleteTask
 	return out, nil
 }
 
+func (c *workerServiceClient) ReportTask(ctx context.Context, in *ReportTaskRequest, opts ...grpc.CallOption) (*ReportTaskResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReportTaskResponse)
+	err := c.cc.Invoke(ctx, WorkerService_ReportTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WorkerServiceServer is the server API for WorkerService service.
 // All implementations must embed UnimplementedWorkerServiceServer
 // for forward compatibility.
@@ -84,6 +97,8 @@ type WorkerServiceServer interface {
 	AcceptTask(context.Context, *AcceptTaskRequest) (*AcceptTaskResponse, error)
 	// worker完成任务上报
 	CompleteTask(context.Context, *CompleteTaskRequest) (*CompleteTaskResponse, error)
+	// worker上报当前任务进度
+	ReportTask(context.Context, *ReportTaskRequest) (*ReportTaskResponse, error)
 	mustEmbedUnimplementedWorkerServiceServer()
 }
 
@@ -102,6 +117,9 @@ func (UnimplementedWorkerServiceServer) AcceptTask(context.Context, *AcceptTaskR
 }
 func (UnimplementedWorkerServiceServer) CompleteTask(context.Context, *CompleteTaskRequest) (*CompleteTaskResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CompleteTask not implemented")
+}
+func (UnimplementedWorkerServiceServer) ReportTask(context.Context, *ReportTaskRequest) (*ReportTaskResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReportTask not implemented")
 }
 func (UnimplementedWorkerServiceServer) mustEmbedUnimplementedWorkerServiceServer() {}
 func (UnimplementedWorkerServiceServer) testEmbeddedByValue()                       {}
@@ -178,6 +196,24 @@ func _WorkerService_CompleteTask_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkerService_ReportTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReportTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkerServiceServer).ReportTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkerService_ReportTask_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkerServiceServer).ReportTask(ctx, req.(*ReportTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkerService_ServiceDesc is the grpc.ServiceDesc for WorkerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -196,6 +232,10 @@ var WorkerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CompleteTask",
 			Handler:    _WorkerService_CompleteTask_Handler,
+		},
+		{
+			MethodName: "ReportTask",
+			Handler:    _WorkerService_ReportTask_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

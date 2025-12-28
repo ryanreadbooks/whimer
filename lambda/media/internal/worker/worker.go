@@ -48,7 +48,8 @@ func NewWorker(c *config.Config) (*Worker, error) {
 	}
 
 	w.RegisterHandler(TaskTypeImageProcess, HandleImageProcess)
-	w.RegisterHandler(TaskTypeVideoProcess, videoHandler.Handle)
+	// 视频处理使用 TaskHandler，支持进度上报和中断检测
+	w.RegisterTaskHandler(TaskTypeVideoProcess, videoHandler.Handle)
 
 	return &Worker{
 		w:            w,

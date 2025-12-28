@@ -80,6 +80,41 @@ type CompleteTaskRequest struct {
 	Retryable  bool // 失败时是否可重试（由 worker 指定）
 }
 
+type ReportTaskRequest struct {
+	TaskId   string
+	Progress int64
+}
+
+type ReportTaskResponse struct {
+	Aborted        bool
+	NextReportTime time.Time // 建议下次上报时间（仅当未 aborted 时有效）
+}
+
+const defaultReportInterval = 10 * time.Second
+
+// ReportTask Worker 上报当前任务进度
+func (s *WorkerService) ReportTask(ctx context.Context, req *ReportTaskRequest) (*ReportTaskResponse, error) {
+	taskId, err := uuid.ParseString(req.TaskId)
+	if err != nil {
+		return nil, xerror.ErrArgs.Msg("invalid task id")
+	}
+
+	task, err := s.taskBiz.GetTask(ctx, taskId)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "worker service report task failed").WithCtx(ctx)
+	}
+
+	aborted := task.State == model.TaskStateAborted
+	resp := &ReportTaskResponse{Aborted: aborted}
+
+	// 如果任务未被终止，返回建议的下次上报时间
+	if !aborted {
+		resp.NextReportTime = time.Now().Add(defaultReportInterval)
+	}
+
+	return resp, nil
+}
+
 // CompleteTask Worker 完成任务上报
 func (s *WorkerService) CompleteTask(ctx context.Context, req *CompleteTaskRequest) error {
 	taskId, err := uuid.ParseString(req.TaskId)

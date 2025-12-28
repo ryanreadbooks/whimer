@@ -164,15 +164,30 @@ func (d *NoteData) Delete(ctx context.Context, noteId int64) error {
 	return nil
 }
 
-func (d *NoteData) delNoteCache(ctx context.Context, noteId int64) {
+func (d *NoteData) DeleteNote(ctx context.Context, po *notedao.NotePO) error {
+	err := d.repo.Delete(ctx, po.Id)
+	if err != nil {
+		return xerror.Wrapf(err, "note dao delete failed")
+	}
+
 	concurrent.SafeGo(func() {
 		ctx := context.WithoutCancel(ctx)
-		ownerId, err := d.repo.GetOwner(ctx, noteId)
-		if err != nil {
-			xlog.Msg("note data failed to get owner when deleting cache").
-				Extras("noteId", noteId).Err(err).Errorx(ctx)
-		}
+		d.cache.DelNoteRelatedCache(ctx, po.Id, po.Owner)
+	})
 
+	return nil
+}
+
+func (d *NoteData) delNoteCache(ctx context.Context, noteId int64) {
+	// 同步调用获取owner
+	ownerId, err := d.repo.GetOwner(ctx, noteId)
+	if err != nil {
+		xlog.Msg("note data failed to get owner when deleting cache").
+			Extras("noteId", noteId).Err(err).Errorx(ctx)
+	}
+
+	concurrent.SafeGo(func() {
+		ctx := context.WithoutCancel(ctx)
 		d.cache.DelNoteRelatedCache(ctx, noteId, ownerId)
 	})
 }

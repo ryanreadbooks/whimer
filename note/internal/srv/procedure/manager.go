@@ -297,15 +297,31 @@ func (m *Manager) Abort(ctx context.Context,
 	return nil
 }
 
-func (m *Manager) GetTaskId(ctx context.Context, noteId int64, proctype model.ProcedureType) (string, error) {
+func (m *Manager) GetTask(
+	ctx context.Context,
+	noteId int64,
+	proctype model.ProcedureType,
+) (*biz.ProcedureRecord, error) {
 	record, err := m.noteProcedureBiz.GetRecord(ctx, noteId, proctype)
 	if err != nil {
-		return "", xerror.Wrapf(err, "procedure manager get record failed").
+		return nil, xerror.Wrapf(err, "procedure manager get record failed").
 			WithExtras("note_id", noteId, "proctype", proctype).
 			WithCtx(ctx)
 	}
 
-	return record.TaskId, nil
+	return record, nil
+}
+
+// 取消任务 标记为失败
+func (m *Manager) CancelTask(ctx context.Context, noteId int64, proctype model.ProcedureType) error {
+	err := m.noteProcedureBiz.MarkFailed(ctx, noteId, proctype)
+	if err != nil {
+		return xerror.Wrapf(err, "procedure manager cancel task failed").
+			WithExtras("note_id", noteId, "proctype", proctype).
+			WithCtx(ctx)
+	}
+
+	return nil
 }
 
 // CompleteResult 完成流程的入参

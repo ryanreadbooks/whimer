@@ -115,13 +115,22 @@ func (s *NoteCreatorSrv) Update(ctx context.Context, req *UpdateNoteRequest) err
 		if model.IsNoteStateConsideredAsAuditing(oldNoteCore.State) {
 			abortCurrent = true
 			curProcStage = model.MapNoteStateToProcedureType(oldNoteCore.State)
-			curTaskId, errTx = s.procedureMgr.GetTaskId(ctx, newNote.NoteId, curProcStage)
+			curTask, errTx := s.procedureMgr.GetTask(ctx, newNote.NoteId, curProcStage)
 			if errTx != nil {
 				// log but not return error
 				xlog.Msg("srv creator get task id failed").
 					Err(errTx).
 					Extras("note_id", newNote.NoteId, "proctype", curProcStage).
 					Errorx(ctx)
+			}
+			if curTask != nil {
+				curTaskId = curTask.TaskId
+			}
+
+			// 取消不了就认为整体流程都失败
+			errTx = s.procedureMgr.CancelTask(ctx, newNote.NoteId, curProcStage)
+			if errTx != nil {
+				return xerror.Wrapf(errTx, "srv creator cancel task failed").WithCtx(ctx)
 			}
 		}
 
@@ -176,7 +185,7 @@ func (s *NoteCreatorSrv) Delete(ctx context.Context, req *DeleteNoteRequest) err
 			return xerror.Wrapf(errTx, "srv create delete note failed").WithCtx(ctx)
 		}
 
-		curTaskId, errTx = s.procedureMgr.GetTaskId(ctx, old.NoteId,
+		curTask, errTx := s.procedureMgr.GetTask(ctx, old.NoteId,
 			model.MapNoteStateToProcedureType(old.State))
 		if errTx != nil {
 			if errors.Is(errTx, global.ErrNoteProcedureNotFound) {
@@ -185,6 +194,9 @@ func (s *NoteCreatorSrv) Delete(ctx context.Context, req *DeleteNoteRequest) err
 			return xerror.Wrapf(errTx, "srv creator get task id failed").WithCtx(ctx)
 		}
 
+		if curTask != nil {
+			curTaskId = curTask.TaskId
+		}
 		curProcStage = model.MapNoteStateToProcedureType(old.State)
 		oldNote = model.NoteFromNoteCore(old)
 

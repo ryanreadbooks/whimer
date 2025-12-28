@@ -8,70 +8,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	taskv1 "github.com/ryanreadbooks/whimer/conductor/api/task/v1"
 	workerv1 "github.com/ryanreadbooks/whimer/conductor/api/worker/v1"
 	workerservice "github.com/ryanreadbooks/whimer/conductor/api/workerservice/v1"
+	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
-
-// Task 任务上下文
-type Task struct {
-	Id          string
-	Namespace   string
-	TaskType    string
-	InputArgs   []byte
-	CallbackUrl string
-	MaxRetryCnt int64
-	ExpireTime  int64
-	Ctime       int64
-	TraceId     string
-}
-
-// UnmarshalInput 反序列化输入参数
-func (t *Task) UnmarshalInput(v any) error {
-	if len(t.InputArgs) == 0 {
-		return nil
-	}
-	return json.Unmarshal(t.InputArgs, v)
-}
-
-func taskFromProto(t *taskv1.Task) *Task {
-	if t == nil {
-		return nil
-	}
-	return &Task{
-		Id:          t.Id,
-		Namespace:   t.Namespace,
-		TaskType:    t.TaskType,
-		InputArgs:   t.InputArgs,
-		CallbackUrl: t.CallbackUrl,
-		MaxRetryCnt: t.MaxRetryCnt,
-		ExpireTime:  t.ExpireTime,
-		Ctime:       t.Ctime,
-		TraceId:     t.TraceId,
-	}
-}
-
-// Result 任务执行结果
-type Result struct {
-	// 输出数据（可选）
-	Output any
-
-	// 错误信息（失败时设置）
-	Error error
-
-	// 失败时是否可重试（默认 false）
-	// 只有可重试的错误才会触发 conductor 的重试机制
-	Retryable bool
-}
-
-// Handler 任务处理函数
-// 返回 Result 表示任务结果
-type Handler func(ctx context.Context, task *Task) Result
 
 // Options Worker 配置
 type Options struct {
@@ -88,6 +33,10 @@ type Options struct {
 
 	// 上报重试配置
 	ReportRetry RetryOptions
+
+	// 心跳上报间隔（默认 10s）
+	// 用于定期检测任务是否被终止
+	HeartbeatInterval time.Duration
 }
 
 // RetryOptions 重试配置
@@ -104,16 +53,19 @@ type RetryOptions struct {
 
 // Worker 任务执行器
 type Worker struct {
-	opts     Options
-	client   workerservice.WorkerServiceClient
-	handlers map[string]Handler
-	mu       sync.RWMutex
+	opts         Options
+	client       workerservice.WorkerServiceClient
+	handlers     map[string]Handler
+	taskHandlers map[string]TaskHandler // 带上下文的处理函数
+	mu           sync.RWMutex
 
 	quitCh   chan struct{}
 	doneCh   chan struct{}
 	cancel   context.CancelFunc
 	stopping atomic.Bool
 }
+
+const defaultHeartbeatInterval = 10 * time.Second
 
 // New 创建 Worker
 func New(opts Options) (*Worker, error) {
@@ -132,12 +84,16 @@ func New(opts Options) (*Worker, error) {
 	if opts.ReportRetry.Multiplier <= 0 {
 		opts.ReportRetry.Multiplier = 2
 	}
+	if opts.HeartbeatInterval <= 0 {
+		opts.HeartbeatInterval = defaultHeartbeatInterval
+	}
 
 	w := &Worker{
-		opts:     opts,
-		handlers: make(map[string]Handler),
-		quitCh:   make(chan struct{}),
-		doneCh:   make(chan struct{}),
+		opts:         opts,
+		handlers:     make(map[string]Handler),
+		taskHandlers: make(map[string]TaskHandler),
+		quitCh:       make(chan struct{}),
+		doneCh:       make(chan struct{}),
 	}
 
 	client := xgrpc.NewRecoverableClient(
@@ -154,18 +110,33 @@ func New(opts Options) (*Worker, error) {
 	return w, nil
 }
 
-// RegisterHandler 注册任务处理函数
+// RegisterHandler 注册任务处理函数（简单模式）
 func (w *Worker) RegisterHandler(taskType string, handler Handler) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.handlers[taskType] = handler
 }
 
+// RegisterTaskHandler 注册任务处理函数（带上下文模式）
+// 支持进度上报和终止信号检测
+func (w *Worker) RegisterTaskHandler(taskType string, handler TaskHandler) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.taskHandlers[taskType] = handler
+}
+
 // Run 启动 Worker（阻塞运行）
 func (w *Worker) Run(ctx context.Context) error {
 	w.mu.RLock()
-	taskTypes := make([]string, 0, len(w.handlers))
+	taskTypeSet := make(map[string]struct{})
 	for taskType := range w.handlers {
+		taskTypeSet[taskType] = struct{}{}
+	}
+	for taskType := range w.taskHandlers {
+		taskTypeSet[taskType] = struct{}{}
+	}
+	taskTypes := make([]string, 0, len(taskTypeSet))
+	for taskType := range taskTypeSet {
 		taskTypes = append(taskTypes, taskType)
 	}
 	w.mu.RUnlock()
@@ -182,15 +153,11 @@ func (w *Worker) Run(ctx context.Context) error {
 
 	for _, taskType := range taskTypes {
 		wg.Add(1)
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					xlog.Msg("poll loop panic").Extras("taskType", taskType, "panic", r).Errorx(ctx)
-				}
-				wg.Done()
-			}()
+		concurrent.SimpleSafeGo(ctx, "conductor.worker.poll_loop", func(ctx context.Context) error {
+			defer wg.Done()
 			w.pollLoop(ctx, taskType, sem)
-		}()
+			return nil
+		})
 	}
 
 	wg.Wait()
@@ -245,15 +212,11 @@ func (w *Worker) pollLoop(ctx context.Context, taskType string, sem chan struct{
 			continue
 		}
 
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					xlog.Msg("process task panic").Extras("taskId", task.Id, "panic", r).Errorx(ctx)
-				}
-				<-sem
-			}()
+		concurrent.SimpleSafeGo(ctx, "conductor.worker.process_task", func(ctx context.Context) error {
+			defer func() { <-sem }()
 			w.processTask(ctx, task)
-		}()
+			return nil
+		})
 	}
 }
 
@@ -287,16 +250,36 @@ func (w *Worker) processTask(ctx context.Context, task *Task) {
 	}
 
 	w.mu.RLock()
-	handler, ok := w.handlers[task.TaskType]
+	handler, hasHandler := w.handlers[task.TaskType]
+	taskHandler, hasTaskHandler := w.taskHandlers[task.TaskType]
 	w.mu.RUnlock()
 
-	if !ok {
+	if !hasHandler && !hasTaskHandler {
 		xlog.Msg("no handler for task type").Extras("taskType", task.TaskType).Errorx(ctx)
 		w.completeTask(ctx, task.Id, nil, false, "no handler for task type", false)
 		return
 	}
 
-	result := w.safeExecute(ctx, task, handler)
+	// AcceptTask 成功后立即启动心跳上报，检测任务是否被终止
+	tc := newTaskContext(ctx, task, w, w.opts.HeartbeatInterval)
+	tc.startHeartbeat()
+	defer tc.stop()
+
+	var result Result
+
+	// 优先使用 TaskHandler（支持进度上报和终止检测）
+	if hasTaskHandler {
+		result = w.safeExecuteWithContext(tc, taskHandler)
+	} else {
+		// 简单 Handler 也使用 TaskContext 的 context，支持终止信号
+		result = w.safeExecute(tc.Context(), task, handler)
+	}
+
+	// 如果任务被终止，不上报结果（服务端已知状态）
+	if tc.IsAborted() {
+		xlog.Msg("task aborted, skip complete").Extras("taskId", task.Id).Infox(ctx)
+		return
+	}
 
 	if result.Error != nil {
 		w.completeTask(ctx, task.Id, result.Output, false, result.Error.Error(), result.Retryable)
@@ -314,6 +297,32 @@ func (w *Worker) safeExecute(ctx context.Context, task *Task, handler Handler) (
 	}()
 
 	return handler(ctx, task)
+}
+
+func (w *Worker) safeExecuteWithContext(tc TaskContext, handler TaskHandler) (result Result) {
+	defer func() {
+		if r := recover(); r != nil {
+			xlog.Msg("handler panic").Extras("taskId", tc.Task().Id, "panic", r).Errorx(tc.Context())
+			result = Result{Error: &panicError{v: r}}
+		}
+	}()
+
+	return handler(tc)
+}
+
+// reportTaskProgress 上报任务进度，返回是否需要终止
+func (w *Worker) reportTaskProgress(ctx context.Context, taskId string, progress int64) bool {
+	resp, err := w.client.ReportTask(ctx, &workerservice.ReportTaskRequest{
+		TaskId:   taskId,
+		Progress: progress,
+	})
+	if err != nil {
+		// 上报失败时不终止任务，只记录日志
+		xlog.Msg("report task progress failed").Extras("taskId", taskId).Err(err).Infox(ctx)
+		return false
+	}
+
+	return resp.Aborted
 }
 
 func (w *Worker) completeTask(

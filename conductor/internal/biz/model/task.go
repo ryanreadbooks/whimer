@@ -32,12 +32,16 @@ func (s TaskState) IsTerminal() bool {
 }
 
 // ExternalState 对外展示的状态，只有三种：success, failure, running
-// 内部的 inited, pending_retry, dispatched, running, aborted, expired 都归为 running
+// success: success
+// 
+// failure: failure, aborted, expired
+// 
+// running: inited, pending_retry, dispatched, running
 func (s TaskState) ExternalState() TaskState {
 	switch s {
 	case TaskStateSuccess:
 		return TaskStateSuccess
-	case TaskStateFailure:
+	case TaskStateFailure, TaskStateAborted, TaskStateExpired:
 		return TaskStateFailure
 	default:
 		return TaskStateRunning

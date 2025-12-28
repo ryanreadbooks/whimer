@@ -357,19 +357,19 @@ func (b *NoteCreatorBiz) DeleteNote(ctx context.Context, req *DeleteNoteRequest)
 		return nil, global.ErrNotNoteOwner
 	}
 
-	err = b.data.Note.Delete(ctx, noteId)
+	err = b.data.Note.DeleteNote(ctx, queried)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "dao delete note basic tx failed")
+		return nil, xerror.Wrapf(err, "data delete note failed")
 	}
 
 	err = b.data.NoteAsset.DeleteByNoteId(ctx, noteId)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "dao delete note asset tx failed")
+		return nil, xerror.Wrapf(err, "data delete note asset failed")
 	}
 
 	err = b.data.NoteExt.Delete(ctx, noteId)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "dao delete note ext tx failed")
+		return nil, xerror.Wrapf(err, "data delete note ext failed")
 	}
 
 	return convert.NoteCoreFromDao(queried), nil

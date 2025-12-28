@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/worker"
@@ -188,15 +189,31 @@ func NewVideoHandler(processor *ffmpeg.Processor, storage *storage.Storage) *Vid
 	return &VideoHandler{processor: processor, storage: storage}
 }
 
-func (h *VideoHandler) Handle(ctx context.Context, task *worker.Task) worker.Result {
+// Handle 处理视频任务，支持进度上报和中断检测
+func (h *VideoHandler) Handle(tc worker.TaskContext) worker.Result {
+	ctx := tc.Context()
+	task := tc.Task()
+
 	xlog.Msg("processing video task").Extra("taskId", task.Id).Infox(ctx)
+
 	var req VideoProcessRequest
 	if err := json.Unmarshal(task.InputArgs, &req); err != nil {
 		return worker.NonRetryableResult(fmt.Errorf("invalid input: %w", err))
 	}
 
-	result, err := h.process(ctx, &req)
+	// 设置进度提供者，用于心跳自动上报进度
+	var progress atomic.Int64
+	tc.SetProgressProvider(worker.ProgressFunc(func() int64 {
+		return progress.Load()
+	}))
+
+	result, err := h.process(ctx, &req, tc, &progress)
 	if err != nil {
+		// 如果是任务被中断，返回特定错误
+		if tc.IsAborted() {
+			xlog.Msg("video task aborted").Extra("taskId", task.Id).Infox(ctx)
+			return worker.Result{Error: worker.ErrTaskAborted}
+		}
 		xlog.Msg("video process failed").Err(err).Extra("taskId", task.Id).Errorx(ctx)
 		return worker.NonRetryableResult(err)
 	}
@@ -205,7 +222,17 @@ func (h *VideoHandler) Handle(ctx context.Context, task *worker.Task) worker.Res
 	return worker.SuccessResult(json.RawMessage(output))
 }
 
-func (h *VideoHandler) process(ctx context.Context, req *VideoProcessRequest) (*VideoProcessResponse, error) {
+func (h *VideoHandler) process(
+	ctx context.Context,
+	req *VideoProcessRequest,
+	tc worker.TaskContext,
+	progress *atomic.Int64,
+) (*VideoProcessResponse, error) {
+	// 检查是否已中断
+	if tc.IsAborted() {
+		return nil, worker.ErrTaskAborted
+	}
+
 	inputURL, err := h.resolveInputURL(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("resolve input url failed: %w", err)
@@ -213,6 +240,13 @@ func (h *VideoHandler) process(ctx context.Context, req *VideoProcessRequest) (*
 	if inputURL == "" {
 		return nil, fmt.Errorf("input url is empty")
 	}
+
+	// 计算总步骤数用于进度计算
+	totalSteps := len(req.Outputs)
+	if req.Thumbnail != nil && req.Thumbnail.OutputKey != "" {
+		totalSteps++
+	}
+	currentStep := 0
 
 	// 预先 probe 获取源视频信息（用于 Auto720p 判断）
 	var srcProbe *ffmpeg.ProbeResult
@@ -226,6 +260,11 @@ func (h *VideoHandler) process(ctx context.Context, req *VideoProcessRequest) (*
 	resp := &VideoProcessResponse{}
 
 	for _, out := range req.Outputs {
+		// 每个输出前检查是否中断
+		if tc.IsAborted() {
+			return nil, worker.ErrTaskAborted
+		}
+
 		opts := h.buildOptionsWithProbe(out.Settings, srcProbe)
 		// 这里会开进程处理
 		result, err := h.processor.ProcessSingle(ctx, ffmpeg.SingleProcessRequest{
@@ -235,6 +274,10 @@ func (h *VideoHandler) process(ctx context.Context, req *VideoProcessRequest) (*
 			Options:   opts,
 		})
 		if err != nil {
+			// context 取消时返回中断错误
+			if ctx.Err() != nil {
+				return nil, worker.ErrTaskAborted
+			}
 			return nil, fmt.Errorf("process %s failed: %w", out.OutputKey, err)
 		}
 
@@ -254,9 +297,18 @@ func (h *VideoHandler) process(ctx context.Context, req *VideoProcessRequest) (*
 				AudioBitrate:    result.AudioBitrate,
 			},
 		})
+
+		// 更新进度
+		currentStep++
+		progress.Store(int64(currentStep * 100 / totalSteps))
 	}
 
 	if req.Thumbnail != nil && req.Thumbnail.OutputKey != "" {
+		// 缩略图前检查是否中断
+		if tc.IsAborted() {
+			return nil, worker.ErrTaskAborted
+		}
+
 		atSecond := req.Thumbnail.AtSecond
 		if atSecond <= 0 {
 			atSecond = 1.0
@@ -276,8 +328,14 @@ func (h *VideoHandler) process(ctx context.Context, req *VideoProcessRequest) (*
 				AtSecond: atSecond,
 			}
 		}
+
+		// 更新进度
+		currentStep++
+		progress.Store(int64(currentStep * 100 / totalSteps))
 	}
 
+	// 完成
+	progress.Store(100)
 	return resp, nil
 }
 
