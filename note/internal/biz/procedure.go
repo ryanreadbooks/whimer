@@ -49,7 +49,7 @@ func (b *NoteProcedureBiz) CreateRecord(
 	}
 
 	// record可能不存在 不存在就不需要检查状态
-	if err == nil && curRecord != nil && curRecord.Status == model.ProcessStatusProcessing {
+	if err == nil && curRecord != nil && curRecord.Status == model.ProcedureStatusProcessing {
 		return xerror.Wrap(global.ErrNoteProcessing)
 	}
 
@@ -58,7 +58,7 @@ func (b *NoteProcedureBiz) CreateRecord(
 		NoteId:        req.NoteId,
 		Protype:       req.Protype,
 		TaskId:        req.TaskId,
-		Status:        model.ProcessStatusProcessing,
+		Status:        model.ProcedureStatusProcessing,
 		MaxRetryCnt:   req.MaxRetryCnt,
 		NextCheckTime: nextCheckTime,
 		Params:        req.Params,
@@ -152,7 +152,7 @@ func (b *NoteProcedureBiz) MarkSuccess(
 	noteId int64,
 	protype model.ProcedureType,
 ) error {
-	return b.UpdateStatus(ctx, noteId, protype, model.ProcessStatusSuccess)
+	return b.UpdateStatus(ctx, noteId, protype, model.ProcedureStatusSuccess)
 }
 
 func (b *NoteProcedureBiz) MarkFailed(
@@ -160,7 +160,7 @@ func (b *NoteProcedureBiz) MarkFailed(
 	noteId int64,
 	protype model.ProcedureType,
 ) error {
-	return b.UpdateStatus(ctx, noteId, protype, model.ProcessStatusFailed)
+	return b.UpdateStatus(ctx, noteId, protype, model.ProcedureStatusFailed)
 }
 
 func (b *NoteProcedureBiz) GetRecord(
@@ -170,6 +170,9 @@ func (b *NoteProcedureBiz) GetRecord(
 ) (*ProcedureRecord, error) {
 	record, err := b.data.ProcedureRecord.Get(ctx, noteId, protype)
 	if err != nil {
+		if xsql.IsNoRecord(err) {
+			return nil, global.ErrNoteProcedureNotFound
+		}
 		return nil, xerror.Wrapf(err, "biz get process record failed").
 			WithExtras("noteId", noteId, "protype", protype).
 			WithCtx(ctx)

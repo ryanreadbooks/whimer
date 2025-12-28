@@ -65,3 +65,7 @@ func (p *PublishProcedure) PollResult(ctx context.Context, taskId string) (PollS
 func (p *PublishProcedure) Retry(ctx context.Context, record *biz.ProcedureRecord) error {
 	return nil
 }
+
+func (p *PublishProcedure) Abort(ctx context.Context, note *model.Note, taskId string) error {
+	return nil
+}

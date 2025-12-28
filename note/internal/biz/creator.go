@@ -189,7 +189,7 @@ func (b *NoteCreatorBiz) upsertNoteExt(ctx context.Context, noteId int64, req *C
 }
 
 // 更新笔记
-func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *UpdateNoteRequest) (*model.Note, error) {
+func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *UpdateNoteRequest) (*model.Note, *model.NoteCore, error) {
 	var (
 		uid = metadata.Uid(ctx)
 		ip  = xnet.IpAsBytes(metadata.ClientIp(ctx))
@@ -199,19 +199,19 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *UpdateNoteRequest)
 	noteId := req.NoteId
 	oldNote, err := b.data.Note.FindOneForUpdate(ctx, noteId) // lock record for update
 	if errors.Is(err, xsql.ErrNoRecord) {
-		return nil, global.ErrNoteNotFound
+		return nil, nil, global.ErrNoteNotFound
 	}
 	if err != nil {
-		return nil, xerror.Wrapf(err, "biz find one note failed").WithExtra("note", req).WithCtx(ctx)
+		return nil, nil, xerror.Wrapf(err, "biz find one note failed").WithExtra("note", req).WithCtx(ctx)
 	}
 
 	if oldNote.NoteType != req.Basic.NoteType {
-		return nil, global.ErrNoteTypeCannotChange
+		return nil, nil, global.ErrNoteTypeCannotChange
 	}
 
 	// 确保更新者uid和笔记作者uid相同
 	if uid != oldNote.Owner {
-		return nil, global.ErrNotNoteOwner
+		return nil, nil, global.ErrNotNoteOwner
 	}
 
 	newNotePO := &notedao.NotePO{
@@ -229,7 +229,7 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *UpdateNoteRequest)
 	newNote := convert.NoteFromDao(newNotePO)
 	assetUpdated, err := b.handleNoteAssets(ctx, newNote, &req.CreateNoteRequest, true)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "biz update note assets failed")
+		return nil, nil, xerror.Wrapf(err, "biz update note assets failed")
 	}
 	if !assetUpdated {
 		// 资源没有变 就不需要重新走资源处理流程 直接从审核阶段开始
@@ -240,15 +240,15 @@ func (b *NoteCreatorBiz) UpdateNote(ctx context.Context, req *UpdateNoteRequest)
 	// 更新基础信息
 	err = b.data.Note.Update(ctx, newNotePO)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "note dao update tx failed")
+		return nil, nil, xerror.Wrapf(err, "note dao update tx failed")
 	}
 
 	// ext处理
 	if err = b.upsertNoteExt(ctx, oldNote.Id, &req.CreateNoteRequest); err != nil {
-		return nil, xerror.Wrapf(err, "noteext dao upsert tx failed when updating note")
+		return nil, nil, xerror.Wrapf(err, "noteext dao upsert tx failed when updating note")
 	}
 
-	return newNote, nil
+	return newNote, convert.NoteCoreFromDao(oldNote), nil
 }
 
 // 统一处理image和video资源处理逻辑
@@ -339,7 +339,7 @@ func (b *NoteCreatorBiz) getOldNoteAssets(
 	}
 }
 
-func (b *NoteCreatorBiz) DeleteNote(ctx context.Context, req *DeleteNoteRequest) error {
+func (b *NoteCreatorBiz) DeleteNote(ctx context.Context, req *DeleteNoteRequest) (*model.NoteCore, error) {
 	var (
 		uid    int64 = metadata.Uid(ctx)
 		noteId       = req.NoteId
@@ -347,32 +347,32 @@ func (b *NoteCreatorBiz) DeleteNote(ctx context.Context, req *DeleteNoteRequest)
 
 	queried, err := b.data.Note.FindOneForUpdate(ctx, noteId) // lock record here
 	if errors.Is(err, xsql.ErrNoRecord) {
-		return global.ErrNoteNotFound
+		return nil, global.ErrNoteNotFound
 	}
 	if err != nil {
-		return xerror.Wrapf(err, "repo find one note failed").WithExtra("req", req).WithCtx(ctx)
+		return nil, xerror.Wrapf(err, "repo find one note failed").WithExtra("req", req).WithCtx(ctx)
 	}
 
 	if uid != queried.Owner {
-		return global.ErrNotNoteOwner
+		return nil, global.ErrNotNoteOwner
 	}
 
 	err = b.data.Note.Delete(ctx, noteId)
 	if err != nil {
-		return xerror.Wrapf(err, "dao delete note basic tx failed")
+		return nil, xerror.Wrapf(err, "dao delete note basic tx failed")
 	}
 
 	err = b.data.NoteAsset.DeleteByNoteId(ctx, noteId)
 	if err != nil {
-		return xerror.Wrapf(err, "dao delete note asset tx failed")
+		return nil, xerror.Wrapf(err, "dao delete note asset tx failed")
 	}
 
 	err = b.data.NoteExt.Delete(ctx, noteId)
 	if err != nil {
-		return xerror.Wrapf(err, "dao delete note ext tx failed")
+		return nil, xerror.Wrapf(err, "dao delete note ext tx failed")
 	}
 
-	return nil
+	return convert.NoteCoreFromDao(queried), nil
 }
 
 func (b *NoteCreatorBiz) CreatorGetNote(ctx context.Context, noteId int64) (*model.Note, error) {

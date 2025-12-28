@@ -4,6 +4,56 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 )
 
+// 笔记基础字段
+type NoteCore struct {
+	NoteId   int64     `json:"note_id"`
+	Title    string    `json:"title"`
+	Desc     string    `json:"desc"`
+	Privacy  Privacy   `json:"privacy,omitempty"`
+	Type     NoteType  `json:"type"`
+	State    NoteState `json:"state"` // 笔记状态
+	CreateAt int64     `json:"create_at,omitempty"`
+	UpdateAt int64     `json:"update_at,omitempty"`
+	Ip       string    `json:"ip"`
+	Owner    int64     `json:"-"`
+}
+
+func NoteCoreFromNote(n *Note) *NoteCore {
+	if n == nil {
+		return &NoteCore{}
+	}
+	return &NoteCore{
+		NoteId:   n.NoteId,
+		Title:    n.Title,
+		Desc:     n.Desc,
+		Privacy:  n.Privacy,
+		Type:     n.Type,
+		State:    n.State,
+		CreateAt: n.CreateAt,
+		UpdateAt: n.UpdateAt,
+		Ip:       n.Ip,
+		Owner:    n.Owner,
+	}
+}
+
+func NoteFromNoteCore(c *NoteCore) *Note {
+	if c == nil {
+		return &Note{}
+	}
+	return &Note{
+		NoteId:   c.NoteId,
+		Title:    c.Title,
+		Desc:     c.Desc,
+		Privacy:  c.Privacy,
+		Type:     c.Type,
+		State:    c.State,
+		CreateAt: c.CreateAt,
+		UpdateAt: c.UpdateAt,
+		Ip:       c.Ip,
+		Owner:    c.Owner,
+	}
+}
+
 type Note struct {
 	NoteId   int64         `json:"note_id"`
 	Title    string        `json:"title"`

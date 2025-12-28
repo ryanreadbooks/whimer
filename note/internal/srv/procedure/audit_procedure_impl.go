@@ -144,3 +144,7 @@ func (p *AuditProcedure) AutoComplete(
 ) (success, autoComplete bool, arg any) {
 	return true, true, nil
 }
+
+func (p *AuditProcedure) Abort(ctx context.Context, note *model.Note, taskId string) error {
+	return nil
+}

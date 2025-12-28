@@ -2,8 +2,10 @@ package srv
 
 import (
 	"context"
+	"errors"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
@@ -71,7 +73,10 @@ func (s *NoteCreatorSrv) Create(ctx context.Context, req *CreateNoteRequest) (in
 		}
 
 		// 初始化流程记录
-		proceed, errTx = s.procedureMgr.RunPipeline(ctx, newNote, procedure.StartAtAssetProcess())
+		proceed, errTx = s.procedureMgr.RunPipeline(ctx, &procedure.RunPipelineParam{
+			Note:       newNote,
+			StartStage: procedure.StartAtAssetProcess(),
+		})
 		if errTx != nil {
 			return xerror.Wrapf(errTx, "srv creator init procedure failed").WithCtx(ctx)
 		}
@@ -91,15 +96,33 @@ func (s *NoteCreatorSrv) Create(ctx context.Context, req *CreateNoteRequest) (in
 // 更新笔记
 func (s *NoteCreatorSrv) Update(ctx context.Context, req *UpdateNoteRequest) error {
 	var (
-		newNote *model.Note
-		proceed func(ctx context.Context) bool
+		newNote      *model.Note
+		proceed      func(ctx context.Context) bool
+		oldNoteCore  *model.NoteCore
+		abortCurrent bool
+		curTaskId    string
+		curProcStage model.ProcedureType
 	)
 
 	err := s.biz.Tx(ctx, func(ctx context.Context) error {
 		var errTx error
-		newNote, errTx = s.noteCreatorBiz.UpdateNote(ctx, req)
+		newNote, oldNoteCore, errTx = s.noteCreatorBiz.UpdateNote(ctx, req)
 		if errTx != nil {
 			return xerror.Wrapf(errTx, "srv creator update note failed").WithCtx(ctx)
+		}
+
+		// 某些笔记状态下执行更新操作时需要中断正在处理的流程
+		if model.IsNoteStateConsideredAsAuditing(oldNoteCore.State) {
+			abortCurrent = true
+			curProcStage = model.MapNoteStateToProcedureType(oldNoteCore.State)
+			curTaskId, errTx = s.procedureMgr.GetTaskId(ctx, newNote.NoteId, curProcStage)
+			if errTx != nil {
+				// log but not return error
+				xlog.Msg("srv creator get task id failed").
+					Err(errTx).
+					Extras("note_id", newNote.NoteId, "proctype", curProcStage).
+					Errorx(ctx)
+			}
 		}
 
 		startAt := procedure.StartAtAssetProcess()
@@ -107,7 +130,10 @@ func (s *NoteCreatorSrv) Update(ctx context.Context, req *UpdateNoteRequest) err
 			startAt = procedure.StartAtAudit()
 		}
 
-		proceed, errTx = s.procedureMgr.RunPipeline(ctx, newNote, startAt)
+		proceed, errTx = s.procedureMgr.RunPipeline(ctx, &procedure.RunPipelineParam{
+			Note:       newNote,
+			StartStage: startAt,
+		})
 		if errTx != nil {
 			return xerror.Wrapf(errTx, "srv creator init procedure failed").WithCtx(ctx)
 		}
@@ -118,6 +144,17 @@ func (s *NoteCreatorSrv) Update(ctx context.Context, req *UpdateNoteRequest) err
 		return xerror.Wrapf(err, "srv creator update note tx failed").WithCtx(ctx)
 	}
 
+	if abortCurrent && curProcStage != "" && curTaskId != "" {
+		// 有必要时终止当前流程
+		err = s.procedureMgr.Abort(ctx, newNote, curProcStage, curTaskId)
+		if err != nil {
+			xlog.Msg("srv creator abort procedure failed").
+				Err(err).
+				Extras("note_id", newNote.NoteId, "proctype", curProcStage, "task_id", curTaskId).
+				Errorx(ctx)
+		}
+	}
+
 	// 继续后续流程
 	_ = proceed(ctx)
 
@@ -126,12 +163,46 @@ func (s *NoteCreatorSrv) Update(ctx context.Context, req *UpdateNoteRequest) err
 
 // 删除笔记
 func (s *NoteCreatorSrv) Delete(ctx context.Context, req *DeleteNoteRequest) error {
-	// TODO 停掉正在进行的procedure处理
+	var (
+		oldNote      *model.Note
+		curTaskId    string
+		curProcStage model.ProcedureType
+	)
+
 	err := s.biz.Tx(ctx, func(ctx context.Context) error {
-		return s.noteCreatorBiz.DeleteNote(ctx, req)
+		var errTx error
+		old, errTx := s.noteCreatorBiz.DeleteNote(ctx, req)
+		if errTx != nil {
+			return xerror.Wrapf(errTx, "srv create delete note failed").WithCtx(ctx)
+		}
+
+		curTaskId, errTx = s.procedureMgr.GetTaskId(ctx, old.NoteId,
+			model.MapNoteStateToProcedureType(old.State))
+		if errTx != nil {
+			if errors.Is(errTx, global.ErrNoteProcedureNotFound) {
+				return nil
+			}
+			return xerror.Wrapf(errTx, "srv creator get task id failed").WithCtx(ctx)
+		}
+
+		curProcStage = model.MapNoteStateToProcedureType(old.State)
+		oldNote = model.NoteFromNoteCore(old)
+
+		return nil
 	})
 	if err != nil {
 		return xerror.Wrapf(err, "srv creator delete note tx failed").WithCtx(ctx)
+	}
+
+	// 删除笔记成功 此时abort掉现有procedure
+	if curTaskId != "" && curProcStage != "" {
+		err = s.procedureMgr.Abort(ctx, oldNote, curProcStage, curTaskId)
+		if err != nil {
+			xlog.Msg("srv creator abort procedure failed").
+				Err(err).
+				Extras("note_id", oldNote.NoteId, "proctype", curProcStage, "task_id", curTaskId).
+				Errorx(ctx)
+		}
 	}
 
 	return nil

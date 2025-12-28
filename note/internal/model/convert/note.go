@@ -27,6 +27,24 @@ func NoteFromDao(d *notedao.NotePO) *model.Note {
 	return n
 }
 
+func NoteCoreFromDao(d *notedao.NotePO) *model.NoteCore {
+	n := &model.NoteCore{}
+	if d == nil {
+		return n
+	}
+	n.NoteId = d.Id
+	n.Title = d.Title
+	n.Desc = d.Desc
+	n.Privacy = d.Privacy
+	n.Type = d.NoteType
+	n.State = d.State
+	n.CreateAt = d.CreateAt
+	n.UpdateAt = d.UpdateAt
+	n.Ip = xnet.BytesIpAsString(d.Ip)
+	n.Owner = d.Owner
+	return n
+}
+
 func NoteSliceFromDao(ds []*notedao.NotePO) []*model.Note {
 	notes := make([]*model.Note, 0, len(ds))
 	for _, n := range ds {

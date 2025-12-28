@@ -41,6 +41,7 @@ const (
 	_ = iota
 
 	ErrNoteNoteNotFoundCode = ErrNotFoundCode + iota
+	ErrNoteProcedureNoteFoundCode
 )
 
 // 403
@@ -71,12 +72,13 @@ var (
 	ErrVideoNoteAssetNotExist = ErrBizNoteArgs.ErrCode(ErrVideoNoteAssetNotExistCode).Msg("未指定视频资源文件")
 
 	// 笔记操作失败
-	ErrInsertNoteFail   = ErrBizNoteInternal.ErrCode(ErrNoteInsertNoteFailCode).Msg("添加笔记失败")
-	ErrNoteNotFound     = ErrNotFound.ErrCode(ErrNoteNoteNotFoundCode).Msg("笔记不存在")
-	ErrUpdateNoteFail   = ErrBizNoteInternal.ErrCode(ErrNoteUpdateNoteFailCode).Msg("更新笔记失败")
-	ErrDeleteNoteFail   = ErrBizNoteInternal.ErrCode(ErrNoteDeleteNoteFailCode).Msg("删除笔记失败")
-	ErrGetNoteFail      = ErrBizNoteInternal.ErrCode(ErrNoteGetNoteFailCode).Msg("获取笔记失败")
-	ErrGetNoteLikesFail = ErrBizNoteInternal.ErrCode(ErrNoteGetNoteLikesFailCode).Msg("获取点赞数据失败")
-	ErrNotNoteOwner     = ErrBizNoteDenied.ErrCode(ErrNoteNotNoteOwnerCode).Msg("你不拥有该笔记")
-	ErrNoteNotPublic    = ErrBizNoteDenied.ErrCode(ErrNoteNoteNotPublicCode).Msg("笔记非公开")
+	ErrInsertNoteFail        = ErrBizNoteInternal.ErrCode(ErrNoteInsertNoteFailCode).Msg("添加笔记失败")
+	ErrNoteNotFound          = ErrNotFound.ErrCode(ErrNoteNoteNotFoundCode).Msg("笔记不存在")
+	ErrNoteProcedureNotFound = ErrNotFound.ErrCode(ErrNoteProcedureNoteFoundCode).Msg("笔记流程不存在")
+	ErrUpdateNoteFail        = ErrBizNoteInternal.ErrCode(ErrNoteUpdateNoteFailCode).Msg("更新笔记失败")
+	ErrDeleteNoteFail        = ErrBizNoteInternal.ErrCode(ErrNoteDeleteNoteFailCode).Msg("删除笔记失败")
+	ErrGetNoteFail           = ErrBizNoteInternal.ErrCode(ErrNoteGetNoteFailCode).Msg("获取笔记失败")
+	ErrGetNoteLikesFail      = ErrBizNoteInternal.ErrCode(ErrNoteGetNoteLikesFailCode).Msg("获取点赞数据失败")
+	ErrNotNoteOwner          = ErrBizNoteDenied.ErrCode(ErrNoteNotNoteOwnerCode).Msg("你不拥有该笔记")
+	ErrNoteNotPublic         = ErrBizNoteDenied.ErrCode(ErrNoteNoteNotPublicCode).Msg("笔记非公开")
 )

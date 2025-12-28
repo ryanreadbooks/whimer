@@ -197,6 +197,21 @@ func (p *AssetProcedure) OnFailure(ctx context.Context, result *ProcedureResult)
 	return true, nil
 }
 
+func (p *AssetProcedure) Abort(ctx context.Context, note *model.Note, taskId string) error {
+	if note.Type != model.AssetTypeVideo {
+		return nil
+	}
+
+	err := p.conductorProducer.AbortTask(ctx, taskId)
+	if err != nil {
+		return xerror.Wrapf(err, "asset procedure abort task failed").
+			WithExtra("task_id", taskId).
+			WithCtx(ctx)
+	}
+
+	return nil
+}
+
 func (p *AssetProcedure) PollResult(ctx context.Context, taskId string) (PollState, any, error) {
 	task, err := p.conductorProducer.GetTask(ctx, taskId)
 	if err != nil {

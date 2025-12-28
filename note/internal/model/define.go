@@ -1,6 +1,10 @@
 package model
 
-import v1 "github.com/ryanreadbooks/whimer/note/api/v1"
+import (
+	"slices"
+
+	v1 "github.com/ryanreadbooks/whimer/note/api/v1"
+)
 
 type Privacy int8
 
@@ -102,18 +106,34 @@ func LifeCycleNoteBanned() []NoteState {
 	return []NoteState{NoteStateBanned}
 }
 
+func IsNoteStateConsideredAsPublished(state NoteState) bool {
+	return slices.Contains(LifeCycleNotePublished(), state)
+}
+
+func IsNoteStateConsideredAsAuditing(state NoteState) bool {
+	return slices.Contains(LifeCycleNoteAuditing(), state)
+}
+
+func IsNoteStateConsideredAsRejected(state NoteState) bool {
+	return slices.Contains(LifeCycleNoteRejected(), state)
+}
+
+func IsNoteStateConsideredAsBanned(state NoteState) bool {
+	return state == NoteStateBanned
+}
+
 type ProcedureStatus int8
 
 // 本地流程处理状态记录
 const (
 	// 处理中
-	ProcessStatusProcessing ProcedureStatus = 0
+	ProcedureStatusProcessing ProcedureStatus = 0
 
 	// 处理成功
-	ProcessStatusSuccess ProcedureStatus = 1
+	ProcedureStatusSuccess ProcedureStatus = 1
 
 	// 处理失败
-	ProcessStatusFailed ProcedureStatus = 2
+	ProcedureStatusFailed ProcedureStatus = 2
 )
 
 type ProcedureType string
@@ -128,3 +148,19 @@ const (
 	// 发布流程
 	ProcedureTypePublish ProcedureType = "publish"
 )
+
+// 流程对应笔记状态
+//
+// 用以判断当前笔记流程进行到哪一步 用于中断正在进行的流程
+func MapNoteStateToProcedureType(state NoteState) ProcedureType {
+	switch state {
+	case NoteStateInit, NoteStateProcessing, NoteStateProcessFailed:
+		return ProcedureTypeAssetProcess
+	case NoteStateProcessed, NoteStateAuditing, NoteStateRejected:
+		return ProcedureTypeAudit
+	case NoteStateAuditPassed, NoteStatePublished, NoteStateBanned:
+		return ProcedureTypePublish
+	}
+
+	return ""
+}

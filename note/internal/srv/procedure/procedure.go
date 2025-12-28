@@ -39,6 +39,10 @@ type Procedure interface {
 	// Execute 执行流程任务 返回任务ID用于后续追踪
 	Execute(ctx context.Context, note *model.Note) (taskId string, err error)
 
+
+	// 中断执行任务
+	Abort(ctx context.Context, note *model.Note, taskId string) error
+
 	// OnSuccess 流程成功处理 更新笔记状态、记录状态等
 	//
 	// 会在本地事务中执行

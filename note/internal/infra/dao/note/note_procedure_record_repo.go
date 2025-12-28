@@ -175,7 +175,7 @@ func (d *ProcedureRecordRepo) UpdateRetry(
 		)
 	if markFailure {
 		sb.Set(
-			sb.Assign("status", model.ProcessStatusFailed),
+			sb.Assign("status", model.ProcedureStatusFailed),
 		)
 	}
 

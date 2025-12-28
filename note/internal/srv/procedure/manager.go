@@ -111,6 +111,11 @@ func (m *Manager) selectPool(protype model.ProcedureType) *ants.Pool {
 	return m.pools[idx]
 }
 
+type RunPipelineParam struct {
+	Note       *model.Note
+	StartStage pipelineStage
+}
+
 // 从某个流程节点开始运行流水线
 //
 // 返回值:
@@ -119,8 +124,7 @@ func (m *Manager) selectPool(protype model.ProcedureType) *ants.Pool {
 //	如果流程中设置了自动成功 则自动调用OnSuccess
 func (m *Manager) RunPipeline(
 	ctx context.Context,
-	note *model.Note,
-	startStage pipelineStage,
+	param *RunPipelineParam,
 ) (proceed func(ctx context.Context) bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -128,15 +132,15 @@ func (m *Manager) RunPipeline(
 		}
 	}()
 	ppl := m.pipeline
-	targetProcType := ppl.startAt(startStage)
+	procType := ppl.startAt(param.StartStage)
 	// 本地执行记录
-	err = m.Create(ctx, note, targetProcType, defaultRetry)
+	_, err = m.Create(ctx, param.Note, procType, defaultRetry)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "procedure manager run pipeline failed").
-			WithExtras("note_id", note.NoteId, "ppltype", startStage).WithCtx(ctx)
+			WithExtras("note_id", param.Note.NoteId, "ppltype", param.StartStage).WithCtx(ctx)
 	}
 
-	return m.pipelineProceed(note, targetProcType), nil
+	return m.pipelineProceed(param.Note, procType), nil
 }
 
 // 外部需要调用此函数来继续执行后续流程
@@ -189,42 +193,44 @@ func (m *Manager) Create(
 	note *model.Note,
 	protype model.ProcedureType,
 	maxRetryCnt int,
-) error {
+) (Procedure, error) {
 	proc, ok := m.registry.Get(protype)
 	if !ok {
-		return xerror.Wrap(ErrProcedureNotRegistered).WithExtra("protype", protype).WithCtx(ctx)
+		return nil, xerror.Wrap(ErrProcedureNotRegistered).WithExtra("protype", protype).WithCtx(ctx)
 	}
 
 	// 流程初始化
 	doRecord, err := proc.PreStart(ctx, note)
 	if err != nil {
-		return xerror.Wrapf(err, "procedure manager pre start failed").
+		return nil, xerror.Wrapf(err, "procedure manager pre start failed").
 			WithExtras("note_id", note.NoteId, "protype", protype).
 			WithCtx(ctx)
 	}
 
-	if doRecord {
-		var params []byte
-		if paramProvider, ok := any(proc).(ProcedureParamProvider); ok {
-			params = paramProvider.Provide(note)
-		}
-
-		// taskId 先留空后续再填充
-		err = m.noteProcedureBiz.CreateRecord(ctx, &biz.CreateProcedureRecordReq{
-			NoteId:      note.NoteId,
-			Protype:     protype,
-			TaskId:      "",
-			MaxRetryCnt: maxRetryCnt,
-			Params:      params,
-		})
-		if err != nil {
-			return xerror.Wrapf(err, "procedure manager create record failed").
-				WithExtra("note_id", note.NoteId).
-				WithCtx(ctx)
-		}
+	if !doRecord {
+		return proc, nil
 	}
 
-	return nil
+	var params []byte
+	if paramProvider, ok := any(proc).(ProcedureParamProvider); ok {
+		params = paramProvider.Provide(note)
+	}
+
+	// taskId 先留空后续再填充
+	err = m.noteProcedureBiz.CreateRecord(ctx, &biz.CreateProcedureRecordReq{
+		NoteId:      note.NoteId,
+		Protype:     protype,
+		TaskId:      "",
+		MaxRetryCnt: maxRetryCnt,
+		Params:      params,
+	})
+	if err != nil {
+		return nil, xerror.Wrapf(err, "procedure manager create record failed").
+			WithExtra("note_id", note.NoteId).
+			WithCtx(ctx)
+	}
+
+	return proc, nil
 }
 
 // Execute 执行流程
@@ -233,17 +239,17 @@ func (m *Manager) Create(
 func (m *Manager) Execute(
 	ctx context.Context,
 	note *model.Note,
-	protype model.ProcedureType,
+	proctype model.ProcedureType,
 ) (string, error) {
-	proc, ok := m.registry.Get(protype)
+	proc, ok := m.registry.Get(proctype)
 	if !ok {
-		return "", xerror.Wrap(ErrProcedureNotRegistered).WithExtra("protype", protype).WithCtx(ctx)
+		return "", xerror.Wrap(ErrProcedureNotRegistered).WithExtra("proctype", proctype).WithCtx(ctx)
 	}
 
 	taskId, err := proc.Execute(ctx, note)
 	if err != nil {
 		return "", xerror.Wrapf(err, "procedure manager execute failed").
-			WithExtras("note_id", note.NoteId, "protype", protype).
+			WithExtras("note_id", note.NoteId, "protype", proctype).
 			WithCtx(ctx)
 	}
 
@@ -265,6 +271,41 @@ func (m *Manager) Confirm(
 	}
 
 	return nil
+}
+
+// 终止某个流程
+func (m *Manager) Abort(ctx context.Context,
+	note *model.Note,
+	proctype model.ProcedureType,
+	taskId string,
+) error {
+	proc, ok := m.registry.Get(proctype)
+	if !ok {
+		return xerror.Wrap(ErrProcedureNotRegistered).WithExtra("proctype", proctype).WithCtx(ctx)
+	}
+
+	err := proc.Abort(ctx, note, taskId)
+	if err != nil {
+		return xerror.Wrapf(err, "procedure manager abort failed").
+			WithExtras(
+				"note_id", note.NoteId,
+				"proctype", proctype,
+				"task_id", taskId).
+			WithCtx(ctx)
+	}
+
+	return nil
+}
+
+func (m *Manager) GetTaskId(ctx context.Context, noteId int64, proctype model.ProcedureType) (string, error) {
+	record, err := m.noteProcedureBiz.GetRecord(ctx, noteId, proctype)
+	if err != nil {
+		return "", xerror.Wrapf(err, "procedure manager get record failed").
+			WithExtras("note_id", noteId, "proctype", proctype).
+			WithCtx(ctx)
+	}
+
+	return record.TaskId, nil
 }
 
 // CompleteResult 完成流程的入参
@@ -320,7 +361,10 @@ func (m *Manager) handleSuccess(ctx context.Context, result *CompleteResult, pro
 						WithExtra("note_id", result.NoteId).
 						WithCtx(ctx)
 				}
-				proceed, err := m.RunPipeline(ctx, curNote, nextProcType)
+				proceed, err := m.RunPipeline(ctx, &RunPipelineParam{
+					Note:       curNote,
+					StartStage: nextProcType,
+				})
 				if err != nil {
 					return xerror.Wrapf(err, "procedure manager run pipeline failed").
 						WithExtra("note_id", result.NoteId).
@@ -426,7 +470,7 @@ func (m *Manager) scanAndRetry(ctx context.Context) {
 			maxFutureSec,
 		)
 
-		targetStatus = model.ProcessStatusProcessing
+		targetStatus = model.ProcedureStatusProcessing
 	)
 
 	// 获取最早的一条记录
@@ -491,7 +535,7 @@ func (m *Manager) retrySlot(ctx context.Context, start, end int64) {
 
 		// 拿出当前分片的所有待检查任务
 		req := &biz.ListRangeScannedRecordsReq{
-			Status:     model.ProcessStatusProcessing,
+			Status:     model.ProcedureStatusProcessing,
 			RangeStart: start,
 			RangeEnd:   end,
 			OffsetId:   lastId,
@@ -595,7 +639,7 @@ exec:
 			Errorx(ctx)
 	}
 
-	if curRecord.Status != model.ProcessStatusProcessing {
+	if curRecord.Status != model.ProcedureStatusProcessing {
 		xlog.Msg("procedure manager skip retry, record already handled").
 			Extras("note_id", record.NoteId, "protype", record.Protype, "status", curRecord.Status).
 			Infox(ctx)
