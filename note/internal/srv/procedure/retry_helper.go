@@ -10,8 +10,13 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
 
-type retryExecuteFunc func(ctx context.Context, note *model.Note) (taskId string, err error)
+// 重试函数定义 
+// 
+// params为创建任务时的自定义参数
+type retryExecuteFunc func(ctx context.Context, note *model.Note, params []byte) (taskId string, err error)
+
 type retryPollResultFunc func(ctx context.Context, taskId string) (PollState, any, error)
+
 type onCompleteFunc func(ctx context.Context, result *ProcedureResult) (bool, error)
 
 // procedure的通用重试逻辑
@@ -117,17 +122,17 @@ func (h *retryHelper) reExecute(
 	retryInterval := config.Conf.RetryConfig.ProcedureRetry.TaskRegister.RetryInterval
 	nextCheckTime := time.Now().Add(retryInterval)
 
-	// 执行任务
-	taskId, err := execFn(ctx, note)
+	// 重试 执行任务
+	taskId, err := execFn(ctx, note, record.Params)
 	if err != nil {
-		return h.handleExecuteFailure(ctx, record, nextCheckTime, onFailure)
+		return h.handleReExecuteFailure(ctx, record, nextCheckTime, onFailure)
 	}
 
-	return h.handleExecuteSuccess(ctx, record, taskId, nextCheckTime)
+	return h.handleReExecuteSuccess(ctx, record, taskId, nextCheckTime)
 }
 
 // 远程任务还是出错，则更新重试计数
-func (h *retryHelper) handleExecuteFailure(
+func (h *retryHelper) handleReExecuteFailure(
 	ctx context.Context,
 	record *biz.ProcedureRecord,
 	nextCheckTime time.Time,
@@ -165,7 +170,7 @@ func (h *retryHelper) handleExecuteFailure(
 }
 
 // 远程任务执行成功
-func (h *retryHelper) handleExecuteSuccess(
+func (h *retryHelper) handleReExecuteSuccess(
 	ctx context.Context,
 	record *biz.ProcedureRecord,
 	taskId string,

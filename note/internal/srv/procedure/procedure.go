@@ -8,9 +8,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
 
-var (
-	ErrProcedureNotRegistered = fmt.Errorf("procedure type not registered")
-)
+var ErrProcedureNotRegistered = fmt.Errorf("procedure type not registered")
 
 // PollState 轮询结果状态
 type PollState int
@@ -70,6 +68,7 @@ type Procedure interface {
 	Retry(ctx context.Context, record *biz.ProcedureRecord) error
 }
 
+// 实现此接口的流程会在本地流程完成后自动标记完成
 type AutoCompleter interface {
 	// 自动完成
 	//
@@ -78,4 +77,12 @@ type AutoCompleter interface {
 	// success: true=OnSuccess, false=OnFailure
 	// autoComplete: true=自动完成, false=不需要自动完成
 	AutoComplete(ctx context.Context, note *model.Note, taskId string) (success, autoComplete bool, arg any)
+}
+
+// 实现此接口以提供创建本地流程的参数
+type ProcedureParamProvider interface {
+	// 提供参数 该参数会被保存以便后续重试时使用
+	//
+	// 参数的序列化和反序列化由各流程自行负责
+	Provide(note *model.Note) []byte
 }

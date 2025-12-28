@@ -28,6 +28,7 @@ type CreateProcedureRecordReq struct {
 	Protype     model.ProcedureType
 	TaskId      string
 	MaxRetryCnt int
+	Params      []byte // 自定义调用参数
 }
 
 // 创建一条任务记录 如果存在且状态非处理中则更新
@@ -60,9 +61,10 @@ func (b *NoteProcedureBiz) CreateRecord(
 		Status:        model.ProcessStatusProcessing,
 		MaxRetryCnt:   req.MaxRetryCnt,
 		NextCheckTime: nextCheckTime,
+		Params:        req.Params,
 	}
 
-	// 任务已经处理完就直接覆盖
+	// 任务已经处理完就直接覆盖 taskId也可以覆盖 给新的任务用
 	err = b.data.ProcedureRecord.Upsert(ctx, newRecord)
 	if err != nil {
 		return xerror.Wrapf(err, "biz create process record failed").

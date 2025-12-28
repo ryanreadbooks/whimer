@@ -129,14 +129,22 @@ func (m *Manager) RunPipeline(
 	}()
 	ppl := m.pipeline
 	targetProcType := ppl.startAt(startStage)
+	// 本地执行记录
 	err = m.Create(ctx, note, targetProcType, defaultRetry)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "procedure manager run pipeline failed").
 			WithExtras("note_id", note.NoteId, "ppltype", startStage).WithCtx(ctx)
 	}
 
-	// 外部需要调用此函数来继续执行后续流程
-	proceed = func(ctx context.Context) bool {
+	return m.pipelineProceed(note, targetProcType), nil
+}
+
+// 外部需要调用此函数来继续执行后续流程
+func (m *Manager) pipelineProceed(
+	note *model.Note,
+	targetProcType model.ProcedureType,
+) func(context.Context) bool {
+	return func(ctx context.Context) bool {
 		// 任务开始执行 一般涉及对外调用 错误仅打日志 后续有重试机制
 		newTaskId, err := m.Execute(ctx, note, targetProcType)
 		logExtras := []any{"note_id", note.NoteId, "protype", targetProcType, "task_id", newTaskId}
@@ -171,8 +179,6 @@ func (m *Manager) RunPipeline(
 		m.autoCompleteIfNeeded(ctx, note, targetProcType, newTaskId)
 		return true
 	}
-
-	return proceed, nil
 }
 
 // Create 初始化流程
@@ -198,12 +204,18 @@ func (m *Manager) Create(
 	}
 
 	if doRecord {
+		var params []byte
+		if paramProvider, ok := any(proc).(ProcedureParamProvider); ok {
+			params = paramProvider.Provide(note)
+		}
+
 		// taskId 先留空后续再填充
 		err = m.noteProcedureBiz.CreateRecord(ctx, &biz.CreateProcedureRecordReq{
 			NoteId:      note.NoteId,
 			Protype:     protype,
 			TaskId:      "",
 			MaxRetryCnt: maxRetryCnt,
+			Params:      params,
 		})
 		if err != nil {
 			return xerror.Wrapf(err, "procedure manager create record failed").
@@ -528,6 +540,7 @@ func (m *Manager) retrySlot(ctx context.Context, start, end int64) {
 	}
 }
 
+// 真正重试逻辑
 func (m *Manager) retryRecord(ctx context.Context, record *biz.ProcedureRecord) {
 	exit := m.shouldExit(ctx)
 	if exit {

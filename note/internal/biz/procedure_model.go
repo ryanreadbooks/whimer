@@ -18,6 +18,7 @@ type ProcedureRecord struct {
 	CurRetry      int
 	MaxRetryCnt   int
 	NextCheckTime int64
+	Params        []byte
 }
 
 func (r *ProcedureRecord) GetLockKey() string {
@@ -36,5 +37,6 @@ func ProcedureRecordFromPO(po *notedao.ProcedureRecordPO) *ProcedureRecord {
 		CurRetry:      po.CurRetry,
 		MaxRetryCnt:   po.MaxRetryCnt,
 		NextCheckTime: po.NextCheckTime,
+		Params:        po.Params,
 	}
 }

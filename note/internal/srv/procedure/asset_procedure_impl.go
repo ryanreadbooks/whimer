@@ -1,9 +1,12 @@
 package procedure
 
 import (
+	"bytes"
+	"compress/zlib"
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 
 	conductor "github.com/ryanreadbooks/whimer/conductor/pkg/sdk/producer"
 	sdktask "github.com/ryanreadbooks/whimer/conductor/pkg/sdk/task"
@@ -16,7 +19,11 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/srv/assetprocess"
 )
 
-var _ Procedure = (*AssetProcedure)(nil)
+var (
+	_ Procedure              = (*AssetProcedure)(nil)
+	_ AutoCompleter          = (*AssetProcedure)(nil)
+	_ ProcedureParamProvider = (*AssetProcedure)(nil)
+)
 
 // AssetProcedure 资源处理流程 负责笔记资源（图片、视频等）的处理
 type AssetProcedure struct {
@@ -121,7 +128,7 @@ func (p *AssetProcedure) OnSuccess(ctx context.Context, result *ProcedureResult)
 			WithCtx(ctx)
 	}
 
-	var state = make(map[string]bool)
+	state := make(map[string]bool)
 
 	// 如果视频资源此时需要更新视频资源的metadata
 	if note != nil && note.Type == model.AssetTypeVideo {
@@ -218,8 +225,20 @@ func (p *AssetProcedure) Retry(ctx context.Context, record *biz.ProcedureRecord)
 	)
 }
 
-func (p *AssetProcedure) executeForRetry(ctx context.Context, note *model.Note) (string, error) {
+// 受到重试调度 重新执行远程任务
+func (p *AssetProcedure) executeForRetry(ctx context.Context, note *model.Note, params []byte) (string, error) {
 	processor := assetprocess.NewProcessor(note.Type, p.bizz)
+	if note.Videos == nil {
+		var err error
+		note.Videos, err = p.deserializeVideoParam(params)
+		if err != nil {
+			// 无法重建videos请求资源 直接失败
+			return "", xerror.Wrapf(err, "asset procedure retry deserialize video param failed").
+				WithExtra("note_id", note.NoteId).
+				WithCtx(ctx)
+		}
+	}
+
 	taskId, err := processor.Process(ctx, note)
 	if err != nil {
 		xlog.Msg("asset procedure retry process failed").
@@ -231,8 +250,6 @@ func (p *AssetProcedure) executeForRetry(ctx context.Context, note *model.Note) 
 	return taskId, nil
 }
 
-var _ AutoCompleter = (*AssetProcedure)(nil)
-
 func (p *AssetProcedure) AutoComplete(
 	ctx context.Context,
 	note *model.Note,
@@ -243,4 +260,83 @@ func (p *AssetProcedure) AutoComplete(
 	}
 
 	return false, false, nil
+}
+
+func (p *AssetProcedure) Provide(note *model.Note) []byte {
+	if note.Type == model.AssetTypeVideo {
+		// 保存原始视频的参数 比如key等
+		return p.serializeVideoParam(note.Videos)
+	}
+
+	return nil
+}
+
+type assetVideoParam struct {
+	RawUrl    string                 `json:"raw_url"`
+	RawBucket string                 `json:"raw_bucket"`
+	Items     []*assetVideoParamItem `json:"items"`
+}
+
+type assetVideoParamItem struct {
+	Key    string `json:"key"`
+	Bucket string `json:"bucket"`
+}
+
+func (p *AssetProcedure) serializeVideoParam(video *model.NoteVideo) []byte {
+	param := &assetVideoParam{
+		RawUrl:    video.GetRawUrl(),
+		RawBucket: video.GetRawBucket(),
+	}
+	for _, item := range video.Items {
+		param.Items = append(param.Items, &assetVideoParamItem{
+			Key:    item.Key,
+			Bucket: item.GetBucket(),
+		})
+	}
+	paramBytes, err := json.Marshal(param)
+	if err != nil {
+		return nil
+	}
+
+	buf := bytes.NewBuffer(make([]byte, 0, len(paramBytes)))
+	zw := zlib.NewWriter(buf)
+	if _, err = zw.Write(paramBytes); err != nil {
+		xlog.Msg("asset procedure serialize video param failed to write").Err(err).Error()
+		return nil
+	}
+	if err = zw.Close(); err != nil {
+		xlog.Msg("asset procedure serialize video param failed to close").Err(err).Error()
+		return nil
+	}
+	return buf.Bytes()
+}
+
+func (p *AssetProcedure) deserializeVideoParam(input []byte) (*model.NoteVideo, error) {
+	gr, err := zlib.NewReader(bytes.NewReader(input))
+	if err != nil {
+		return nil, xerror.Wrap(err)
+	}
+	defer gr.Close()
+	paramBytes, err := io.ReadAll(gr)
+	if err != nil {
+		return nil, xerror.Wrap(err)
+	}
+
+	var param assetVideoParam
+	err = json.Unmarshal(paramBytes, &param)
+	if err != nil {
+		return nil, xerror.Wrap(err)
+	}
+	video := &model.NoteVideo{}
+	video.SetRawUrl(param.RawUrl)
+	video.SetRawBucket(param.RawBucket)
+	for _, item := range param.Items {
+		vi := &model.NoteVideoItem{
+			Key: item.Key,
+		}
+		vi.SetBucket(item.Bucket)
+		video.Items = append(video.Items, vi)
+	}
+
+	return video, nil
 }

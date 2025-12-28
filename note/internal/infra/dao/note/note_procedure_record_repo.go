@@ -29,6 +29,7 @@ type ProcedureRecordPO struct {
 	CurRetry      int                   `db:"cur_retry"`
 	MaxRetryCnt   int                   `db:"max_retry_cnt"`
 	NextCheckTime int64                 `db:"next_check_time"` // unix second
+	Params        []byte                `db:"params"`          // 调用参数
 }
 
 func (ProcedureRecordPO) TableName() string {
@@ -36,6 +37,10 @@ func (ProcedureRecordPO) TableName() string {
 }
 
 func (p *ProcedureRecordPO) InsertValues() []any {
+	params := p.Params
+	if params == nil {
+		params = []byte{}
+	}
 	return []any{
 		p.NoteId,
 		p.Protype,
@@ -46,6 +51,7 @@ func (p *ProcedureRecordPO) InsertValues() []any {
 		p.CurRetry,
 		p.MaxRetryCnt,
 		p.NextCheckTime,
+		params,
 	}
 }
 
@@ -74,12 +80,15 @@ func (d *ProcedureRecordRepo) Upsert(
 		Cols(procedureRecordInsFields...).
 		Values(record.InsertValues()...)
 	if updateOnDup {
-		ib.SQL("ON DUPLICATE KEY UPDATE status=VALUES(status)," +
+		ib.SQL("ON DUPLICATE KEY UPDATE " +
+			"task_id=VALUES(task_id)," +
+			"status=VALUES(status)," +
 			"ctime=VALUES(ctime), " +
 			"utime=VALUES(utime), " +
 			"cur_retry=VALUES(cur_retry), " +
 			"max_retry_cnt=VALUES(max_retry_cnt), " +
-			"next_check_time=VALUES(next_check_time)")
+			"next_check_time=VALUES(next_check_time), " +
+			"params=VALUES(params)")
 	}
 
 	sql, args := ib.Build()
