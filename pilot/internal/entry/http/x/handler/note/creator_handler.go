@@ -190,7 +190,9 @@ func (h *Handler) CreatorPageListNotes() http.HandlerFunc {
 		}
 
 		result := NewPageListResFromPb(resp)
-		h.noteBiz.AssignNoteExtra(ctx, result.Items)
+		if len(result.Items) > 0 {
+			h.noteBiz.AssignNoteExtra(ctx, result.Items)
+		}
 
 		xhttp.OkJson(w, result)
 	}

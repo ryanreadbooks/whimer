@@ -111,6 +111,10 @@ func (c *Cache) GetCount(ctx context.Context, bizCode int32, oid int64) (int64, 
 
 func (c *Cache) BatchGetCount(ctx context.Context, keys []CacheKey) (map[CacheKey]int64, error) {
 	cacheKeys := batchGetCacheKeys(keys)
+	if len(cacheKeys) == 0 {
+		return map[CacheKey]int64{}, nil
+	}
+
 	resp, err := c.c.MgetCtx(ctx, cacheKeys...)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "mget failed")

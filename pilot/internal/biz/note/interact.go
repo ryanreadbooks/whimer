@@ -18,6 +18,10 @@ import (
 
 // AssignNoteExtra 设置笔记的额外信息（点赞、评论状态）
 func (b *Biz) AssignNoteExtra(ctx context.Context, notes []*imodel.AdminNoteItem) {
+	if len(notes) == 0 {
+		return
+	}
+
 	var (
 		noteIds      = make([]int64, 0, len(notes))
 		oidLiked     = make(map[int64]bool)
