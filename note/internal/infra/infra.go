@@ -22,13 +22,13 @@ var (
 	etcdCli *etcd.Client
 )
 
-func Init(c *config.Config) {
+func Init(conf *config.Config) {
 	once.Do(func() {
-		etcdCli = etcd.MustNew(c)
-		cache = redis.MustNewRedis(c.Redis)
-		dt = data.MustNew(c, cache)
-		kafka.Init(c)
-		dep.Init(c)
+		etcdCli = etcd.MustNew(conf)
+		cache = redis.MustNewRedis(conf.Redis)
+		kafka.Init(conf)
+		dt = data.MustNew(conf, cache, kafka.GetPublisher())
+		dep.Init(conf)
 	})
 }
 

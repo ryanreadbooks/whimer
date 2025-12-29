@@ -3,8 +3,10 @@ package data
 import (
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
+	"github.com/ryanreadbooks/whimer/note/internal/data/event"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 	tagdao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/tag"
+	infrakafka "github.com/ryanreadbooks/whimer/note/internal/infra/kafka"
 
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -15,16 +17,19 @@ import (
 type Data struct {
 	db    *xsql.DB
 	cache *redis.Redis
+	kafka *infrakafka.Publisher
 
 	Note            *NoteData
 	NoteAsset       *NoteAssetData
 	NoteExt         *NoteExtData
 	ProcedureRecord *ProcedureRecordData
 	Tag             *TagData
+
+	NoteEventBus *event.NoteEventBus
 }
 
 // MustNew 创建Data实例
-func MustNew(c *config.Config, cache *redis.Redis) *Data {
+func MustNew(c *config.Config, cache *redis.Redis, publisher *infrakafka.Publisher) *Data {
 	sqlx.DisableStmtLog()
 
 	conn := sqlx.NewMysql(xsql.GetDsn(
@@ -57,13 +62,19 @@ func MustNew(c *config.Config, cache *redis.Redis) *Data {
 	tagCache := tagdao.NewTagCache(cache)
 
 	return &Data{
-		db:              db,
-		cache:           cache,
+		db:    db,
+		cache: cache,
+		kafka: publisher,
+
+		// 数据库相关
 		Note:            NewNoteData(noteRepo, noteCache),
 		NoteAsset:       NewNoteAssetData(noteAssetRepo),
 		NoteExt:         NewNoteExtData(noteExtRepo),
 		ProcedureRecord: NewProcedureRecordData(procedureRecordRepo),
 		Tag:             NewTagData(tagRepo, tagCache),
+
+		// 消息队列相关
+		NoteEventBus:    event.NewNoteEventBus(publisher),
 	}
 }
 

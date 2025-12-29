@@ -60,6 +60,7 @@ type Note struct {
 	Desc     string        `json:"desc"`
 	Privacy  Privacy       `json:"privacy,omitempty"`
 	Type     NoteType      `json:"type"`
+	Owner    int64         `json:"-"`     // unexported to user
 	State    NoteState     `json:"state"` // 笔记状态
 	CreateAt int64         `json:"create_at,omitempty"`
 	UpdateAt int64         `json:"update_at,omitempty"`
@@ -72,9 +73,6 @@ type Note struct {
 	// ext字段
 	Tags    []*NoteTag `json:"tags,omitempty"`
 	AtUsers []*AtUser  `json:"at_users,omitempty"`
-
-	// unexported to user
-	Owner int64 `json:"-"`
 }
 
 func (n *Note) AsSlice() []*Note {

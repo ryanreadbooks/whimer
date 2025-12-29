@@ -8,6 +8,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/ryanreadbooks/whimer/misc/xkq/kafka"
+	pkgid "github.com/ryanreadbooks/whimer/note/pkg/id"
 
 	"github.com/zeromicro/go-zero/core/discov"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -65,6 +66,9 @@ func (c *Config) Init() error {
 	if err != nil {
 		return fmt.Errorf("dev_callbacks.note_process_callback is not a valid url: %w", err)
 	}
+
+	pkgid.InitNoteIdObfuscate(c.Obfuscate.Note.Options()...)
+	pkgid.InitTagIdObfuscate(c.Obfuscate.Tag.Options()...)
 
 	return nil
 }

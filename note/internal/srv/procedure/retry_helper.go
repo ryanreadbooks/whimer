@@ -7,15 +7,16 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
-	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
 
-// 重试函数定义 
-// 
+// 重试函数定义
+//
 // params为创建任务时的自定义参数
-type retryExecuteFunc func(ctx context.Context, note *model.Note, params []byte) (taskId string, err error)
+//
+// 返回新的taskId
+type retryExecuteFunc func(ctx context.Context, record *biz.ProcedureRecord) (string, error)
 
-type retryPollResultFunc func(ctx context.Context, taskId string) (PollState, any, error)
+type retryPollResultFunc func(ctx context.Context, record *biz.ProcedureRecord) (PollState, any, error)
 
 type onCompleteFunc func(ctx context.Context, result *ProcedureResult) (bool, error)
 
@@ -34,6 +35,14 @@ func newRetryHelper(bizz *biz.Biz) *retryHelper {
 	}
 }
 
+func newRetryHelper2(bizz *biz.Biz, txHelper *txHelper) *retryHelper {
+	return &retryHelper{
+		txHelper:         txHelper,
+		noteBiz:          bizz.Note,
+		noteProcedureBiz: bizz.Procedure,
+	}
+}
+
 func (h *retryHelper) retry(
 	ctx context.Context,
 	record *biz.ProcedureRecord,
@@ -46,8 +55,7 @@ func (h *retryHelper) retry(
 		return h.pollAndComplete(ctx, record, pollFn, onSuccess, onFailure)
 	}
 
-	// 检查是否允许重试
-	// 超过重试视为失败
+	// 检查是否允许重试 超过重试视为失败
 	if record.CurRetry >= record.MaxRetryCnt {
 		xlog.Msg("retry helper retry exhausted, mark as failed").
 			Extras("record_id", record.Id, "note_id", record.NoteId, "protype", record.Protype).
@@ -71,7 +79,7 @@ func (h *retryHelper) pollAndComplete(
 	pollFn retryPollResultFunc,
 	onSuccess, onFailure onCompleteFunc,
 ) error {
-	state, arg, err := pollFn(ctx, record.TaskId)
+	state, arg, err := pollFn(ctx, record)
 	if err != nil {
 		xlog.Msg("retry helper poll result failed").
 			Err(err).
@@ -105,25 +113,15 @@ func (h *retryHelper) pollAndComplete(
 func (h *retryHelper) reExecute(
 	ctx context.Context,
 	record *biz.ProcedureRecord,
-	execFn retryExecuteFunc,
+	reExecFn retryExecuteFunc,
 	onFailure onCompleteFunc,
 ) error {
-	// 获取笔记原始信息
-	note, err := h.noteBiz.GetNoteWithoutCache(ctx, record.NoteId)
-	if err != nil {
-		xlog.Msg("retry helper get note failed").
-			Err(err).
-			Extras("record_id", record.Id, "note_id", record.NoteId).
-			Errorx(ctx)
-		return err
-	}
-
 	// 计算下次检查时间
 	retryInterval := config.Conf.RetryConfig.ProcedureRetry.TaskRegister.RetryInterval
 	nextCheckTime := time.Now().Add(retryInterval)
 
 	// 重试 执行任务
-	taskId, err := execFn(ctx, note, record.Params)
+	taskId, err := reExecFn(ctx, record)
 	if err != nil {
 		return h.handleReExecuteFailure(ctx, record, nextCheckTime, onFailure)
 	}

@@ -51,7 +51,8 @@ type Manager struct {
 	noteProcedureBiz *biz.NoteProcedureBiz
 	noteCreatorBiz   *biz.NoteCreatorBiz
 
-	txHelper *txHelper
+	retryHelper *retryHelper
+	txHelper    *txHelper
 
 	// 协程池组，按 protype hash 选择
 	pools []*ants.Pool
@@ -77,6 +78,8 @@ func NewManager(c *config.Config, bizz *biz.Biz) (*Manager, error) {
 	registry.Register(NewAuditProcedure(bizz))
 	registry.Register(NewPublishProcedure(bizz))
 
+	txHelper := newTxHelper(bizz)
+	retryHelper := newRetryHelper2(bizz, txHelper)
 	m := &Manager{
 		c: c,
 
@@ -87,7 +90,8 @@ func NewManager(c *config.Config, bizz *biz.Biz) (*Manager, error) {
 		noteBiz:          bizz.Note,
 		noteProcedureBiz: bizz.Procedure,
 		noteCreatorBiz:   bizz.Creator,
-		txHelper:         newTxHelper(bizz),
+		retryHelper:      retryHelper,
+		txHelper:         txHelper,
 
 		pools:  pools,
 		quitCh: make(chan struct{}),
@@ -200,7 +204,7 @@ func (m *Manager) Create(
 	}
 
 	// 流程初始化
-	doRecord, err := proc.PreStart(ctx, note)
+	doRecord, err := proc.BeforeExecute(ctx, note)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "procedure manager pre start failed").
 			WithExtras("note_id", note.NoteId, "protype", protype).
@@ -284,7 +288,7 @@ func (m *Manager) Abort(ctx context.Context,
 		return xerror.Wrap(ErrProcedureNotRegistered).WithExtra("proctype", proctype).WithCtx(ctx)
 	}
 
-	err := proc.Abort(ctx, note, taskId)
+	err := proc.ObAbort(ctx, note, taskId)
 	if err != nil {
 		return xerror.Wrapf(err, "procedure manager abort failed").
 			WithExtras(
@@ -371,7 +375,7 @@ func (m *Manager) handleSuccess(ctx context.Context, result *CompleteResult, pro
 			InheritCtxCancel: false,
 			LogOnError:       true,
 			Job: func(ctx context.Context) error {
-				curNote, err := m.noteBiz.GetNoteWithoutCache(ctx, result.NoteId)
+				curNote, err := m.noteBiz.GetNoteCoreWithoutCache(ctx, result.NoteId)
 				if err != nil {
 					return xerror.Wrapf(err, "procedure manager get note without cache failed").
 						WithExtra("note_id", result.NoteId).
@@ -549,7 +553,7 @@ func (m *Manager) retrySlot(ctx context.Context, start, end int64) {
 			return
 		}
 
-		// 拿出当前分片的所有待检查任务
+		// 拿出当前分片的所有待检查任务 只检查status=Processing的任务
 		req := &biz.ListRangeScannedRecordsReq{
 			Status:     model.ProcedureStatusProcessing,
 			RangeStart: start,
@@ -699,7 +703,14 @@ func (m *Manager) doRetry(ctx context.Context, record *biz.ProcedureRecord) {
 		return
 	}
 
-	if err := proc.Retry(ctx, record); err != nil {
+	if err := m.retryHelper.retry(
+		ctx,
+		record,
+		proc.PollResult,
+		proc.Retry,
+		proc.OnSuccess,
+		proc.OnFailure,
+	); err != nil {
 		xlog.Msg("procedure manager retry failed").
 			Err(err).
 			Extras("protype", record.Protype, "record_id", record.Id).

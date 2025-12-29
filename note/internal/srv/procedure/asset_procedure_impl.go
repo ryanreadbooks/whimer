@@ -32,9 +32,6 @@ type AssetProcedure struct {
 	noteCreatorBiz *biz.NoteCreatorBiz
 
 	conductorProducer *conductor.Client
-
-	// 重试通用逻辑
-	retryHelper *retryHelper
 }
 
 func NewAssetProcedure(bizz *biz.Biz) *AssetProcedure {
@@ -43,7 +40,6 @@ func NewAssetProcedure(bizz *biz.Biz) *AssetProcedure {
 		noteBiz:           bizz.Note,
 		noteCreatorBiz:    bizz.Creator,
 		conductorProducer: dep.GetConductProducer(),
-		retryHelper:       newRetryHelper(bizz),
 	}
 }
 
@@ -51,7 +47,7 @@ func (p *AssetProcedure) Type() model.ProcedureType {
 	return model.ProcedureTypeAssetProcess
 }
 
-func (p *AssetProcedure) PreStart(ctx context.Context, note *model.Note) (bool, error) {
+func (p *AssetProcedure) BeforeExecute(ctx context.Context, note *model.Note) (bool, error) {
 	// 如果是笔记更新场景 不需要更新资源key的情况下不需要重走资源流程
 	if note.State == model.NoteStateInit {
 		err := p.noteCreatorBiz.TransferNoteStateToProcessing(ctx, note)
@@ -88,7 +84,7 @@ func (p *AssetProcedure) upgradeStateCheck(
 	noteId int64,
 	compareState model.NoteState,
 ) (note *model.Note, abort bool) {
-	note, err := p.noteBiz.GetNoteWithoutCache(ctx, noteId)
+	note, err := p.noteBiz.GetNoteCoreWithoutCache(ctx, noteId)
 	if err != nil {
 		xlog.Msg("asset procedure get note failed, try to update state without checking").
 			Err(err).
@@ -197,7 +193,7 @@ func (p *AssetProcedure) OnFailure(ctx context.Context, result *ProcedureResult)
 	return true, nil
 }
 
-func (p *AssetProcedure) Abort(ctx context.Context, note *model.Note, taskId string) error {
+func (p *AssetProcedure) ObAbort(ctx context.Context, note *model.Note, taskId string) error {
 	if note.Type != model.AssetTypeVideo {
 		return nil
 	}
@@ -212,7 +208,8 @@ func (p *AssetProcedure) Abort(ctx context.Context, note *model.Note, taskId str
 	return nil
 }
 
-func (p *AssetProcedure) PollResult(ctx context.Context, taskId string) (PollState, any, error) {
+func (p *AssetProcedure) PollResult(ctx context.Context, record *biz.ProcedureRecord) (PollState, any, error) {
+	taskId := record.TaskId
 	task, err := p.conductorProducer.GetTask(ctx, taskId)
 	if err != nil {
 		return PollStateRunning, nil, xerror.Wrapf(err, "asset procedure poll result failed").
@@ -229,15 +226,18 @@ func (p *AssetProcedure) PollResult(ctx context.Context, taskId string) (PollSta
 	}
 }
 
-func (p *AssetProcedure) Retry(ctx context.Context, record *biz.ProcedureRecord) error {
-	return p.retryHelper.retry(
-		ctx,
-		record,
-		p.PollResult,
-		p.executeForRetry,
-		p.OnSuccess,
-		p.OnFailure,
-	)
+func (p *AssetProcedure) Retry(ctx context.Context, record *biz.ProcedureRecord) (string, error) {
+	// 获取笔记原始信息
+	note, err := p.noteBiz.GetNoteCoreWithoutCache(ctx, record.NoteId)
+	if err != nil {
+		xlog.Msg("asset procedure retry get note failed").
+			Err(err).
+			Extras("record_id", record.Id, "note_id", record.NoteId).
+			Errorx(ctx)
+		return "", err
+	}
+
+	return p.executeForRetry(ctx, note, record.Params)
 }
 
 // 受到重试调度 重新执行远程任务

@@ -38,7 +38,7 @@ func (b *NoteBiz) GetNoteType(ctx context.Context, noteId int64) (model.NoteType
 	return noteType, nil
 }
 
-func (b *NoteBiz) GetNoteWithoutCache(ctx context.Context, noteId int64) (*model.Note, error) {
+func (b *NoteBiz) GetNoteCoreWithoutCache(ctx context.Context, noteId int64) (*model.Note, error) {
 	note, err := b.data.Note.FindOne(ctx, noteId, data.WithoutCache())
 	if err != nil {
 		if xsql.IsNoRecord(err) {

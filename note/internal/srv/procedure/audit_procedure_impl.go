@@ -11,7 +11,10 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 )
 
-var _ Procedure = (*AuditProcedure)(nil)
+var (
+	_ Procedure     = (*AuditProcedure)(nil)
+	_ AutoCompleter = (*AuditProcedure)(nil) // TODO audit未实现 这里先自动成功
+)
 
 // 笔记审核
 //
@@ -33,7 +36,7 @@ func (p *AuditProcedure) Type() model.ProcedureType {
 }
 
 // 审核流程初始化
-func (p *AuditProcedure) PreStart(ctx context.Context, note *model.Note) (bool, error) {
+func (p *AuditProcedure) BeforeExecute(ctx context.Context, note *model.Note) (bool, error) {
 	err := p.noteCreatorBiz.TransferNoteStateToAuditing(ctx, note)
 	if err != nil {
 		return false, xerror.Wrapf(err, "audit procedure set note state auditing failed").
@@ -51,7 +54,7 @@ func (p *AuditProcedure) upgradeStateCheck(
 	noteId int64,
 	compareState model.NoteState,
 ) (note *model.Note, abort bool) {
-	note, err := p.noteBiz.GetNoteWithoutCache(ctx, noteId)
+	note, err := p.noteBiz.GetNoteCoreWithoutCache(ctx, noteId)
 	if err != nil {
 		xlog.Msg("audit procedure get note failed, try to update state without checking").
 			Err(err).
@@ -102,6 +105,7 @@ func (p *AuditProcedure) OnSuccess(ctx context.Context, result *ProcedureResult)
 	return true, nil
 }
 
+// TODO 失败是审核失败 不是审核不通过
 func (p *AuditProcedure) OnFailure(ctx context.Context, result *ProcedureResult) (bool, error) {
 	// 审核不通过 设置状态为 Rejected
 	note, abort := p.upgradeStateCheck(ctx, result.NoteId, model.NoteStateRejected)
@@ -124,18 +128,19 @@ func (p *AuditProcedure) OnFailure(ctx context.Context, result *ProcedureResult)
 	return true, nil
 }
 
-func (p *AuditProcedure) PollResult(ctx context.Context, taskId string) (PollState, any, error) {
+func (p *AuditProcedure) ObAbort(ctx context.Context, note *model.Note, taskId string) error {
+	return nil
+}
+
+func (p *AuditProcedure) PollResult(ctx context.Context, record *biz.ProcedureRecord) (PollState, any, error) {
 	// TODO 轮询审核结果
 	return PollStateSuccess, nil, nil
 }
 
-func (p *AuditProcedure) Retry(ctx context.Context, record *biz.ProcedureRecord) error {
+func (p *AuditProcedure) Retry(ctx context.Context, record *biz.ProcedureRecord) (string, error) {
 	// TODO 重试审核
-	return nil
+	return "", nil
 }
-
-// TODO audit未实现 这里先自动成功
-var _ AutoCompleter = (*AuditProcedure)(nil)
 
 func (p *AuditProcedure) AutoComplete(
 	ctx context.Context,
@@ -143,8 +148,4 @@ func (p *AuditProcedure) AutoComplete(
 	taskId string,
 ) (success, autoComplete bool, arg any) {
 	return true, true, nil
-}
-
-func (p *AuditProcedure) Abort(ctx context.Context, note *model.Note, taskId string) error {
-	return nil
 }

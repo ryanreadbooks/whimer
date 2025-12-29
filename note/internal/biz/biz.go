@@ -33,3 +33,7 @@ func New(dt *data.Data) *Biz {
 func (b *Biz) Tx(ctx context.Context, fn func(ctx context.Context) error) error {
 	return b.data.DB().Transact(ctx, fn)
 }
+
+func (b *Biz) Data() *data.Data {
+	return b.data
+}

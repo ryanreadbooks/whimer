@@ -46,9 +46,8 @@ func isNoteExtValid(ext *notedao.ExtPO) bool {
 	return false
 }
 
-func assignNoteAssets(newNote *model.Note,
-	req *CreateNoteRequest,
-) []*notedao.AssetPO {
+// 给newNote补上asset资源数据 但是有些asset资源(比如video)是异步生成的所以此处是不完整的
+func assignNoteAssets(newNote *model.Note, req *CreateNoteRequest) []*notedao.AssetPO {
 	now := time.Now().Unix()
 	var noteAssets []*notedao.AssetPO
 	switch req.Basic.NoteType {
