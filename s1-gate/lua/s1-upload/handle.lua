@@ -1,9 +1,9 @@
 local ctx = require('s1-upload.ctx')
 local helper = require('s1-upload.handle_helper')
-local httpc = require('resty.http').new()
 local resplib = require('common.resp')
 local httpmethod = require('http.method')
 local envlib = require('common.env')
+local httpclient = require('resty.http').new()
 
 ngx.log(ngx.DEBUG, 's1-upload.handle is working...')
 
@@ -22,7 +22,7 @@ if ctx.is_upload_request() then                             -- the request is a 
   -- calculate aws v4 signature headers for heading object
   local head_headers = helper.get_oss_auth_header(httpmethod.HEAD, oss_host, obj_key, oss_location)
 
-  local ok, err, session = httpc:connect({
+  local ok, err, session = httpclient:connect({
     scheme = 'http',
     host = oss_host,
     port = oss_port,
@@ -42,7 +42,7 @@ if ctx.is_upload_request() then                             -- the request is a 
 
   -- we should check object existence first to prevent duplication
   local head_res
-  head_res, err = httpc:request({
+  head_res, err = httpclient:request({
     path = obj_key,
     method = httpmethod.HEAD,
     headers = head_headers,
@@ -74,7 +74,7 @@ if ctx.is_upload_request() then                             -- the request is a 
   local res
   local body = table.concat({ req_body.header, req_body.rest })
 
-  res, err = httpc:request({
+  res, err = httpclient:request({
     path = obj_key,
     method = httpmethod.PUT,
     body = body,

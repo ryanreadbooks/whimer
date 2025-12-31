@@ -8,6 +8,7 @@ import (
 	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/note/internal/data"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
@@ -20,22 +21,22 @@ const (
 
 // 笔记互动相关功能
 type NoteInteractBiz struct {
-	NoteBiz
+	data *data.Data
+	note *NoteBiz
 }
 
-func NewNoteInteractBiz() NoteInteractBiz {
-	b := NoteInteractBiz{}
-
-	return b
+func NewNoteInteractBiz(dt *data.Data, note *NoteBiz) *NoteInteractBiz {
+	return &NoteInteractBiz{
+		data: dt,
+		note: note,
+	}
 }
 
 // 点赞笔记
 func (b *NoteInteractBiz) LikeNote(ctx context.Context, uid int64, noteId int64, operation int) error {
-	var (
-		err error
-	)
+	var err error
 
-	ok, err := b.IsNoteExist(ctx, noteId)
+	ok, err := b.note.IsNoteExist(ctx, noteId)
 	if err != nil {
 		return xerror.Wrapf(err, "GetNoteInteraction check note exists failed")
 	}
@@ -71,7 +72,7 @@ func (b *NoteInteractBiz) LikeNote(ctx context.Context, uid int64, noteId int64,
 
 // 获取用户是否点赞过笔记
 func (b *NoteInteractBiz) CheckUserLikeStatus(ctx context.Context, uid int64, noteId int64) (bool, error) {
-	ok, err := b.IsNoteExist(ctx, noteId)
+	ok, err := b.note.IsNoteExist(ctx, noteId)
 	if err != nil {
 		return false, xerror.Wrapf(err, "GetNoteInteraction check note exists failed")
 	}
@@ -98,9 +99,9 @@ func (b *NoteInteractBiz) CheckUserLikeStatus(ctx context.Context, uid int64, no
 // 批量获取用户是否点赞过笔记
 // 批量查找就不检查noteId是否存在
 func (b *NoteInteractBiz) BatchCheckUserLikeStatus(ctx context.Context, uidNoteIds map[int64][]int64) (
-	map[int64][]*model.LikeStatus, error) {
-
-	var req = make(map[int64]*counterv1.ObjectList)
+	map[int64][]*model.LikeStatus, error,
+) {
+	req := make(map[int64]*counterv1.ObjectList)
 	for uid, noteIds := range uidNoteIds {
 		req[uid] = &counterv1.ObjectList{
 			Oids: noteIds,
@@ -114,7 +115,7 @@ func (b *NoteInteractBiz) BatchCheckUserLikeStatus(ctx context.Context, uidNoteI
 		return nil, xerror.Wrapf(err, "note interact biz failed to batch like status").WithCtx(ctx)
 	}
 
-	var result = make(map[int64][]*model.LikeStatus, len(resp.GetResults()))
+	result := make(map[int64][]*model.LikeStatus, len(resp.GetResults()))
 	for uid, noteIds := range uidNoteIds {
 		likeRecords := resp.GetResults()[uid]
 		for _, noteId := range noteIds {
@@ -141,6 +142,8 @@ func (b *NoteInteractBiz) AssignNoteLikes(ctx context.Context, batch *model.Note
 		notes   = batch.Items
 		noteIds = make([]int64, 0, len(notes))
 		reqs    = make([]*counterv1.GetSummaryRequest, 0, len(notes))
+		resp    *counterv1.BatchGetSummaryResponse
+		err     error
 	)
 
 	for _, note := range notes {
@@ -151,17 +154,19 @@ func (b *NoteInteractBiz) AssignNoteLikes(ctx context.Context, batch *model.Note
 		})
 	}
 
-	// 获取点赞数量
-	resp, err := dep.GetCounter().BatchGetSummary(ctx,
-		&counterv1.BatchGetSummaryRequest{
-			Requests: reqs,
-		})
-	if err != nil {
-		// 仅打印日志不返回error
-		xlog.Msg("counter failed to batch get summary").
-			Err(err).
-			Extra("note_ids", noteIds).
-			Infox(ctx)
+	if len(reqs) > 0 {
+		// 获取点赞数量
+		resp, err = dep.GetCounter().BatchGetSummary(ctx,
+			&counterv1.BatchGetSummaryRequest{
+				Requests: reqs,
+			})
+		if err != nil {
+			// 仅打印日志不返回error
+			xlog.Msg("counter failed to batch get summary").
+				Err(err).
+				Extra("note_ids", noteIds).
+				Infox(ctx)
+		}
 	}
 
 	if resp != nil {
@@ -182,7 +187,7 @@ func (b *NoteInteractBiz) AssignNoteLikes(ctx context.Context, batch *model.Note
 
 // 获取笔记点赞数量
 func (b *NoteInteractBiz) GetNoteLikes(ctx context.Context, noteId int64) (int64, error) {
-	ok, err := b.IsNoteExist(ctx, noteId)
+	ok, err := b.note.IsNoteExist(ctx, noteId)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "GetNoteInteraction check note exists failed")
 	}
@@ -204,7 +209,7 @@ func (b *NoteInteractBiz) GetNoteLikes(ctx context.Context, noteId int64) (int64
 
 // 获取笔记评论数量
 func (b *NoteInteractBiz) GetNoteReplyCount(ctx context.Context, noteId int64) (int64, error) {
-	ok, err := b.IsNoteExist(ctx, noteId)
+	ok, err := b.note.IsNoteExist(ctx, noteId)
 	if err != nil {
 		return 0, xerror.Wrapf(err, "GetNoteInteraction check note exists failed")
 	}
@@ -225,9 +230,7 @@ func (b *NoteInteractBiz) GetNoteReplyCount(ctx context.Context, noteId int64) (
 
 // 获取笔记的评论信息并填充
 func (b *NoteInteractBiz) AssignNoteReplies(ctx context.Context, batch *model.Notes) (*model.Notes, error) {
-	var (
-		noteIds = batch.GetIds()
-	)
+	noteIds := batch.GetIds()
 
 	resp, err := dep.GetCommenter().BatchCountComment(ctx, &commentv1.BatchCountCommentRequest{
 		Oids: noteIds,

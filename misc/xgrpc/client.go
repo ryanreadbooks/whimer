@@ -73,6 +73,23 @@ func NewClientConn(conf xconf.Discovery) (*grpc.ClientConn, error) {
 	return cli.Conn(), nil
 }
 
+func NewClientConnWithoutInterceptors(conf xconf.Discovery) (*grpc.ClientConn, error) {
+	cli, err := zrpc.NewClient(
+		conf.AsZrpcClientConf(),
+		zrpc.WithDialOption(grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff:           backoff.DefaultConfig,
+			MinConnectTimeout: 8 * time.Second,
+		})),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return cli.Conn(), nil
+}
+
+var _ grpc.ClientConnInterface = &UnreadyClientConn{}
+
 type UnreadyClientConn struct {
 }
 
@@ -125,9 +142,27 @@ func RetryConnectConnInBackground(c xconf.Discovery, connect func(cc grpc.Client
 	})
 }
 
-func NewRecoverableClient[T any](c xconf.Discovery, getter func(grpc.ClientConnInterface) T, fallback func(T)) T {
-	var cc grpc.ClientConnInterface
-	cc, err := NewClientConn(c)
+func NewRecoverableClient[T any](c xconf.Discovery,
+	getter func(grpc.ClientConnInterface) T,
+	fallback func(T),
+	options ...ClientOption) T {
+
+	option := defaultClientOption()
+	for _, o := range options {
+		o(option)
+	}
+
+	var (
+		cc  grpc.ClientConnInterface
+		err error
+	)
+
+	if option.withoutDefaultInterceptor {
+		cc, err = NewClientConnWithoutInterceptors(c)
+	} else {
+		cc, err = NewClientConn(c)
+	}
+
 	var res T
 	if err != nil {
 		logx.Infof("can not init grpc client %v", reflect.TypeOf(res))

@@ -2,8 +2,6 @@ package model
 
 import (
 	"encoding/json"
-
-	"github.com/ryanreadbooks/whimer/misc/utils"
 )
 
 type AssetImageMeta struct {
@@ -21,9 +19,9 @@ func NewAssetImageMeta(w, h uint32, format string) *AssetImageMeta {
 	}
 }
 
-func NewAssetImageMetaFromJson(s string) AssetImageMeta {
+func NewAssetImageMetaFromJson(s []byte) AssetImageMeta {
 	var a AssetImageMeta
-	_ = json.Unmarshal(utils.StringToBytes(s), &a)
+	_ = json.Unmarshal(s, &a)
 	return a
 }
 
@@ -32,15 +30,13 @@ func (r *AssetImageMeta) String() string {
 	return string(c)
 }
 
-type AssetPreviewEventMetadata struct {
-	Key         string `json:"key"`
-	Width       uint32 `json:"width"`
-	Height      uint32 `json:"height"`
-	ContentType string `json:"content_type"`
+func (r *AssetImageMeta) Bytes() []byte {
+	c, _ := json.Marshal(r)
+	return c
 }
 
-// kafka中消息
-type AssetPreviewEvent struct {
-	Preview AssetPreviewEventMetadata `json:"preview"` // 预览信息
-	Default AssetPreviewEventMetadata `json:"default"` // 原始信息
+func NewVideoInfoFromJson(s []byte) *VideoInfo {
+	var v VideoInfo
+	_ = json.Unmarshal(s, &v)
+	return &v
 }

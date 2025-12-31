@@ -9,6 +9,7 @@ modules:
   - path: msger/api
   - path: wslink/api
   - path: search/api
+  - path: conductor/api
   - path: apiextension
 lint:
   use:

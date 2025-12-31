@@ -23,7 +23,7 @@ type JwtUploadAuthSigner struct {
 	c *JwtSignConfig
 }
 
-type STSUploadAuthClaim struct {
+type UploadAuthClaim struct {
 	jwtv5.RegisteredClaims
 
 	AccessKey string   `json:"access_key"`
@@ -31,8 +31,8 @@ type STSUploadAuthClaim struct {
 	Resource  string   `json:"resource"`
 }
 
-func newSTSUploadAuthClaim(c *JwtSignConfig, fileIds []string, resource string, now, expireAt time.Time) (
-	*STSUploadAuthClaim, error) {
+func newUploadAuthClaim(c *JwtSignConfig, fileIds []string, resource string, now, expireAt time.Time) (
+	*UploadAuthClaim, error) {
 	akb := make([]byte, 16)
 	_, err := rand.Read(akb)
 	if err != nil {
@@ -44,7 +44,7 @@ func newSTSUploadAuthClaim(c *JwtSignConfig, fileIds []string, resource string, 
 	akb = hash.Sum(nil)
 	ak := hex.EncodeToString(akb)
 
-	return &STSUploadAuthClaim{
+	return &UploadAuthClaim{
 		AccessKey: ak,
 		FileIds:   fileIds,
 		Resource:  resource,
@@ -79,7 +79,7 @@ func (s *JwtUploadAuthSigner) BatchGetUploadAuth(fileIds []string, resource stri
 
 	now := time.Now()
 	expireAt := now.Add(s.c.JwtDuration)
-	claim, err := newSTSUploadAuthClaim(s.c, fileIds, resource, now, expireAt)
+	claim, err := newUploadAuthClaim(s.c, fileIds, resource, now, expireAt)
 	if err != nil {
 		return res, err
 	}

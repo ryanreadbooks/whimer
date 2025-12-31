@@ -2,6 +2,7 @@ package dep
 
 import (
 	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
+	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/producer"
 	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
@@ -10,10 +11,11 @@ import (
 )
 
 var (
-	counter     counterv1.CounterServiceClient // 计数服务
-	commenter   commentv1.CommentServiceClient // 评论服务
-	searchdocer searchv1.DocumentServiceClient // 搜索服务
-	userer      userv1.UserServiceClient
+	counter         counterv1.CounterServiceClient // 计数服务
+	commenter       commentv1.CommentServiceClient // 评论服务
+	searchdocer     searchv1.DocumentServiceClient // 搜索服务
+	userer          userv1.UserServiceClient
+	conductProducer *producer.Client
 )
 
 func Init(c *config.Config) {
@@ -30,6 +32,10 @@ func Init(c *config.Config) {
 	userer = xgrpc.NewRecoverableClient(c.External.Grpc.Passport,
 		userv1.NewUserServiceClient, func(cc userv1.UserServiceClient) { userer = cc })
 
+	conductProducer, _ = producer.New(producer.ClientOptions{
+		HostConf:  c.External.Grpc.Conductor,
+		Namespace: "note",
+	})
 }
 
 func GetCounter() counterv1.CounterServiceClient {
@@ -46,4 +52,8 @@ func GetSearchDocer() searchv1.DocumentServiceClient {
 
 func GetUserer() userv1.UserServiceClient {
 	return userer
+}
+
+func GetConductProducer() *producer.Client {
+	return conductProducer
 }

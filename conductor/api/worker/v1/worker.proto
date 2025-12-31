@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+import "buf/validate/validate.proto";
+import "protobuf/options/option.proto";
+
+package conductor.api.worker.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/conductor/api/worker/v1;worker";
+
+enum WorkerState {
+  WORKER_STATE_UNKNOWN = 0;
+  WORKER_STATE_READY   = 1;
+  WORKER_STATE_BUSY    = 2;
+  WORKER_STATE_ERROR   = 3;
+}
+
+message Worker {
+  // worker id 可选
+  string id = 1;
+
+  // worker能力描述
+  WorkerAbility ability = 2;
+
+  // worker状态
+  WorkerMetadata metadata = 3;
+
+  WorkerState state = 4;
+}
+
+message WorkerAbility {
+  // worker提供的服务类型名
+  string task_type = 1;
+
+  // worker提供的服务描述 可选
+  string task_description = 2;
+}
+
+// worker 元数据
+message WorkerMetadata {
+  string ip = 1;
+
+  // 当前cpu使用率
+  float cpu_usage = 2;
+
+  // 当前内存使用率
+  float mem_usage = 3;
+}

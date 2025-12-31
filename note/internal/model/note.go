@@ -1,103 +1,117 @@
 package model
 
 import (
-	"github.com/ryanreadbooks/whimer/misc/xnet"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
-	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 )
 
-type NoteImageMeta struct {
-	Width  uint32 `json:"width"`
-	Height uint32 `json:"height"`
-	Format string `json:"format"`
+// 笔记基础字段
+type NoteCore struct {
+	NoteId   int64     `json:"note_id"`
+	Title    string    `json:"title"`
+	Desc     string    `json:"desc"`
+	Privacy  Privacy   `json:"privacy,omitempty"`
+	Type     NoteType  `json:"type"`
+	State    NoteState `json:"state"` // 笔记状态
+	CreateAt int64     `json:"create_at,omitempty"`
+	UpdateAt int64     `json:"update_at,omitempty"`
+	Ip       string    `json:"ip"`
+	Owner    int64     `json:"-"`
 }
 
-type NoteImage struct {
-	Key  string        `json:"url"`
-	Type int           `json:"type"`
-	Meta NoteImageMeta `json:"meta"`
+func (n *NoteCore) IsPublic() bool {
+	return n.Privacy == PrivacyPublic
 }
 
-type NoteImageList []*NoteImage
+func (n *NoteCore) IsPrivate() bool {
+	return n.Privacy == PrivacyPrivate
+}
 
-func (l NoteImageList) AsPb() []*notev1.NoteImage {
-	images := make([]*notev1.NoteImage, 0, len(l))
-	for _, img := range l {
-		images = append(images, &notev1.NoteImage{
-			Key:  img.Key,
-			Type: int32(img.Type),
-			Meta: &notev1.NoteImageMeta{
-				Width:  img.Meta.Width,
-				Height: img.Meta.Height,
-				Format: img.Meta.Format,
-			},
-		})
+func NoteCoreFromNote(n *Note) *NoteCore {
+	if n == nil {
+		return &NoteCore{}
 	}
-	return images
+	return &NoteCore{
+		NoteId:   n.NoteId,
+		Title:    n.Title,
+		Desc:     n.Desc,
+		Privacy:  n.Privacy,
+		Type:     n.Type,
+		State:    n.State,
+		CreateAt: n.CreateAt,
+		UpdateAt: n.UpdateAt,
+		Ip:       n.Ip,
+		Owner:    n.Owner,
+	}
+}
+
+func NoteFromNoteCore(c *NoteCore) *Note {
+	if c == nil {
+		return &Note{}
+	}
+	return &Note{
+		NoteId:   c.NoteId,
+		Title:    c.Title,
+		Desc:     c.Desc,
+		Privacy:  c.Privacy,
+		Type:     c.Type,
+		State:    c.State,
+		CreateAt: c.CreateAt,
+		UpdateAt: c.UpdateAt,
+		Ip:       c.Ip,
+		Owner:    c.Owner,
+	}
 }
 
 type Note struct {
 	NoteId   int64         `json:"note_id"`
 	Title    string        `json:"title"`
 	Desc     string        `json:"desc"`
-	Privacy  int8          `json:"privacy,omitempty"`
-	CreateAt int64         `json:"create_at,omitempty"`
-	UpdateAt int64         `json:"update_at,omitempty"`
+	Privacy  Privacy       `json:"privacy,omitempty"`
+	Type     NoteType      `json:"type"`
+	Owner    int64         `json:"-"`                   // unexported to user
+	State    NoteState     `json:"state"`               // 笔记状态
+	CreateAt int64         `json:"create_at,omitempty"` // 笔记创建时间
+	UpdateAt int64         `json:"update_at,omitempty"` // 笔记更新时间
 	Ip       string        `json:"ip"`
 	Images   NoteImageList `json:"images"`
+	Videos   *NoteVideo    `json:"videos"`  // 包含多种编码的视频资源
 	Likes    int64         `json:"likes"`   // 点赞数
 	Replies  int64         `json:"replies"` // 评论数
 
 	// ext字段
 	Tags    []*NoteTag `json:"tags,omitempty"`
 	AtUsers []*AtUser  `json:"at_users,omitempty"`
+}
 
-	// unexported to user
-	Owner int64 `json:"-"`
+func (n *Note) IsPublic() bool {
+	return n.Privacy == PrivacyPublic
+}
+
+func (n *Note) IsPrivate() bool {
+	return n.Privacy == PrivacyPrivate
 }
 
 func (n *Note) AsSlice() []*Note {
 	return []*Note{n}
 }
 
-func NoteFromDao(d *notedao.Note) *Note {
-	n := &Note{}
-	if d == nil {
-		return n
-	}
-	n.NoteId = d.Id
-	n.Title = d.Title
-	n.Desc = d.Desc
-	n.Privacy = d.Privacy
-	n.CreateAt = d.CreateAt
-	n.UpdateAt = d.UpdateAt
-	n.Ip = xnet.BytesIpAsString(d.Ip)
-	n.Owner = d.Owner
-
-	return n
-}
-
-func NoteSliceFromDao(ds []*notedao.Note) []*Note {
-	notes := make([]*Note, 0, len(ds))
-	for _, n := range ds {
-		notes = append(notes, NoteFromDao(n))
-	}
-	return notes
-}
-
 func (i *Note) AsPb() *notev1.NoteItem {
 	res := &notev1.NoteItem{
-		NoteId:   i.NoteId,
-		Title:    i.Title,
-		Desc:     i.Desc,
-		Privacy:  int32(i.Privacy),
-		CreateAt: i.CreateAt,
-		UpdateAt: i.UpdateAt,
-		Ip:       i.Ip,
-		Images:   i.Images.AsPb(),
-		Likes:    i.Likes,
-		Replies:  i.Replies,
-		Owner:    i.Owner,
+		NoteId:         i.NoteId,
+		Title:          i.Title,
+		Desc:           i.Desc,
+		Privacy:        int32(i.Privacy),
+		State:          notev1.NoteState(i.State),
+		NoteType:       notev1.NoteAssetType(i.Type),
+		CreateAt:       i.CreateAt,
+		UpdateAt:       i.UpdateAt,
+		Ip:             i.Ip,
+		Images:         i.Images.AsPb(),
+		Likes:          i.Likes,
+		Replies:        i.Replies,
+		Owner:          i.Owner,
+		Videos:         i.Videos.AsPb(),
+		LifeCycleState: NoteStateAsLifeCycleState(i.State),
 	}
 
 	// note tags
@@ -114,6 +128,7 @@ func (i *Note) AsFeedPb() *notev1.FeedNoteItem {
 		NoteId:    i.NoteId,
 		Title:     i.Title,
 		Desc:      i.Desc,
+		NoteType:  notev1.NoteAssetType(i.Type),
 		CreatedAt: i.CreateAt,
 		UpdatedAt: i.UpdateAt,
 		Images:    i.Images.AsPb(),
@@ -121,6 +136,7 @@ func (i *Note) AsFeedPb() *notev1.FeedNoteItem {
 		Likes:     i.Likes,
 		Author:    i.Owner,
 		Replies:   i.Replies,
+		Videos:    i.Videos.AsPb(),
 	}
 }
 
@@ -143,10 +159,6 @@ func PbFeedNoteItemsFromNotes(ns *Notes) []*notev1.FeedNoteItem {
 	}
 
 	return items
-}
-
-type GetNoteReq struct {
-	NoteId int64 `path:"note_id"`
 }
 
 // 每个用户和笔记的交互情况

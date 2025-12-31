@@ -2,6 +2,7 @@ package errors
 
 import "github.com/ryanreadbooks/whimer/misc/xerror"
 
+// 400
 var (
 	ErrNoteNotFound          = xerror.ErrArgs.Msg("笔记不存在")
 	ErrTagNotFound           = xerror.ErrArgs.Msg("标签不存在")
@@ -13,5 +14,15 @@ var (
 	ErrChatNotExists         = xerror.ErrArgs.Msg("会话不存在")
 	ErrChatMsgNotExists      = xerror.ErrArgs.Msg("消息不存在")
 	ErrUnsupportedResource   = xerror.ErrArgs.Msg("不支持的资源类型")
-	ErrServerSignFailure     = xerror.ErrInternal.Msg("服务器签名失败")
+	ErrResourceNotFound      = xerror.ErrArgs.Msg("资源不存在")
+)
+
+// 5xx
+var (
+	ErrServerSignFailure = xerror.ErrInternal.Msg("服务器签名失败")
+)
+
+// 403
+var (
+	ErrLikesHistoryHidden = xerror.ErrPermission.Msg("用户隐藏了点赞记录")
 )

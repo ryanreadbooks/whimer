@@ -15,25 +15,28 @@ const (
 	CodeDuplicate          = 10008
 	CodeTooLong            = 10009
 	CodeServerSigningFail  = 10010
+	CodeResourceNotFound   = 10011
 	CodeInternalPanic      = 19000
 	CodeOther              = 19999
 )
 
 // 常用错误
 var (
-	Success               = NewError(http.StatusOK, CodeOk, "成功")
-	ErrInvalidArgs        = NewError(BadRequest, CodeInvalidParam, "参数出错了(；一_一)")
-	ErrArgs               = ErrInvalidArgs
-	ErrNilArg             = ErrArgs.Msg("参数为空")
-	ErrNotLogin           = NewError(Unauthorized, CodeUnauthorized, "请先登录一下吧~(≧▽≦)")
-	ErrPermission         = NewError(Forbidden, CodeForbidden, "需要特殊通行证")
-	ErrNotFound           = NewError(NotFound, CodeNotFound, "找不到你要的资源")
-	ErrInternal           = NewError(InternalServerError, CodeInternal, "服务器被怪兽踢烂了(ノ｀Д´)ノ")
-	ErrDepNotReady        = NewError(InternalServerError, CodeInternal, "服务未就绪")
-	ErrInternalPanic      = NewError(InternalServerError, CodeInternalPanic, "服务器炸掉了")
-	ErrDuplicate          = NewError(InternalServerError, CodeDuplicate, "资源重复")
-	ErrDataTooLong        = NewError(InternalServerError, CodeTooLong, "数据超长")
-	ErrServerSigning      = NewError(InternalServerError, CodeServerSigningFail, "服务器签名失败")
+	Success             = NewError(http.StatusOK, CodeOk, "成功")
+	ErrInvalidArgs      = NewError(BadRequest, CodeInvalidParam, "参数出错了(；一_一)")
+	ErrArgs             = ErrInvalidArgs
+	ErrNilArg           = ErrArgs.Msg("参数为空")
+	ErrNotLogin         = NewError(Unauthorized, CodeUnauthorized, "请先登录一下吧~(≧▽≦)")
+	ErrPermission       = NewError(Forbidden, CodeForbidden, "需要特殊通行证")
+	ErrNotFound         = NewError(NotFound, CodeNotFound, "找不到你要的资源")
+	ErrInternal         = NewError(InternalServerError, CodeInternal, "服务器被怪兽踢烂了(ノ｀Д´)ノ")
+	ErrDepNotReady      = NewError(InternalServerError, CodeInternal, "服务未就绪")
+	ErrInternalPanic    = NewError(InternalServerError, CodeInternalPanic, "服务器炸掉了")
+	ErrDuplicate        = NewError(InternalServerError, CodeDuplicate, "资源重复")
+	ErrDataTooLong      = NewError(InternalServerError, CodeTooLong, "数据超长")
+	ErrServerSigning    = NewError(InternalServerError, CodeServerSigningFail, "服务器签名失败")
+	ErrResourceNotFound = NewError(NotFound, CodeResourceNotFound, "资源不存在")
+
 	ErrCsrf               = NewError(Forbidden, CodeCsrfFailed, "CSRF校验失败")
 	ErrServiceUnavailable = NewError(ServiceUnavailable, CodeServiceUnavailable, "服务暂不可用")
 	ErrOther              = NewError(InternalServerError, CodeOther, "服务错误")

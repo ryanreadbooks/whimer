@@ -1,0 +1,20 @@
+log:
+  serviceName: lambda-media
+  stat: false
+
+conductor:
+  hosts: ${ENV_ETCD_HOSTS}
+  key: whimer.conductor.rpc
+
+worker:
+  concurrency: 2
+
+storage:
+  endpoint: ${ENV_OSS_ENDPOINT}
+  ak: ${ENV_OSS_AK}
+  sk: ${ENV_OSS_SK}
+  useSsl: false
+
+ffmpeg:
+  binPath: ffmpeg
+  tempDir: /tmp
