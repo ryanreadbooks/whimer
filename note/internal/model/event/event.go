@@ -25,12 +25,13 @@ const (
 
 // 笔记成功发布事件
 type NotePublishedEventData struct {
-	NoteId string `json:"note_id"`
-	// TODO 其它字段
+	Note *Note `json:"note"`
 }
 
 // 笔记删除事件
-type NoteDeletedEventData struct{}
+type NoteDeletedEventData struct{
+	Note *Note `json:"note"`
+}
 
 // 笔记审核拒绝事件
 type NoteRejectedEventData struct{}
@@ -46,7 +47,7 @@ type NoteCommentedEventData struct{}
 
 type NoteEvent struct {
 	Type      EventType `json:"type"`      // 事件类型
-	NoteId    string    `json:"note_id"`   // 笔记id 对外暴露为混淆字符串类型
+	NoteId    string    `json:"note_id"`   // 笔记id 可用于对外暴露为混淆字符串类型
 	Timestamp int64     `json:"timestamp"` // 事件时间戳 unix milisecond
 	Payload   any       `json:"payload"`   // 事件payload
 }

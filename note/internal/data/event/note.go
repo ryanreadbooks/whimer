@@ -29,15 +29,15 @@ func NewNoteEventBus(pub *infrakfk.Publisher) *NoteEventBus {
 	}
 }
 
-// 笔记发布
-func (e *NoteEventBus) NotePublished(ctx context.Context, note *model.Note) error {
+func (e *NoteEventBus) makeNoteEvent(ctx context.Context,
+	note *model.Note,
+	eventType eventmodel.EventType,
+	payload any,
+) (string, []byte, error) {
 	now := time.Now()
-	// TODO 按照note生成payload
-	payload := &eventmodel.NotePublishedEventData{}
-
 	noteId := pkgid.NoteId(note.NoteId).String()
 	evt := &eventmodel.NoteEvent{
-		Type:      eventmodel.NotePublished,
+		Type:      eventType,
 		NoteId:    noteId,
 		Timestamp: now.UnixMilli(),
 		Payload:   payload,
@@ -45,7 +45,24 @@ func (e *NoteEventBus) NotePublished(ctx context.Context, note *model.Note) erro
 
 	evtBytes, err := json.Marshal(evt)
 	if err != nil {
-		return xerror.Wrapf(err, "note event bus note published failed to marshal event").
+		return "", nil, xerror.Wrapf(err, "note event bus make note event failed to marshal event").
+			WithExtra("note_id", note.NoteId).
+			WithCtx(ctx)
+	}
+
+	return noteId, evtBytes, nil
+}
+
+// 笔记发布
+func (e *NoteEventBus) NotePublished(ctx context.Context, note *model.Note) error {
+	noteId, evtBytes, err := e.makeNoteEvent(ctx,
+		note,
+		eventmodel.NotePublished,
+		&eventmodel.NotePublishedEventData{
+			Note: modelNoteToEventNote(note),
+		})
+	if err != nil {
+		return xerror.Wrapf(err, "note event bus note published failed to make note event").
 			WithExtra("note_id", note.NoteId).
 			WithCtx(ctx)
 	}
@@ -54,10 +71,36 @@ func (e *NoteEventBus) NotePublished(ctx context.Context, note *model.Note) erro
 		Topic: NoteEventTopic,
 		Key:   []byte(noteId),
 		Value: evtBytes,
-		Time:  now,
 	})
 	if err != nil {
 		return xerror.Wrapf(err, "note event bus note published failed to write message").
+			WithExtra("note_id", note.NoteId).
+			WithCtx(ctx)
+	}
+
+	return nil
+}
+
+func (e *NoteEventBus) NoteDeleted(ctx context.Context, note *model.Note) error {
+	noteId, evtBytes, err := e.makeNoteEvent(ctx,
+		note,
+		eventmodel.NoteDeleted,
+		&eventmodel.NoteDeletedEventData{
+			Note: modelNoteToEventNote(note),
+		})
+	if err != nil {
+		return xerror.Wrapf(err, "note event bus note deleted failed to make note event").
+			WithExtra("note_id", note.NoteId).
+			WithCtx(ctx)
+	}
+
+	err = e.pub.Writer().WriteMessages(ctx, kafka.Message{
+		Topic: NoteEventTopic,
+		Key:   []byte(noteId),
+		Value: evtBytes,
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "note event bus note deleted failed to write message").
 			WithExtra("note_id", note.NoteId).
 			WithCtx(ctx)
 	}

@@ -19,9 +19,26 @@ const (
 
 type NoteType int8
 
+func (t NoteType) String() string {
+	switch t {
+	case NoteTypeImage:
+		return "image"
+	case NoteTypeVideo:
+		return "video"
+	default:
+		return ""
+	}
+}
+
 type AssetType = NoteType
 
 // 笔记资源类型
+const (
+	NoteTypeImage = NoteType(v1.NoteAssetType_IMAGE)
+
+	NoteTypeVideo = NoteType(v1.NoteAssetType_VIDEO)
+)
+
 const (
 	// 图片
 	AssetTypeImage = NoteType(v1.NoteAssetType_IMAGE)

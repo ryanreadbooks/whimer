@@ -118,6 +118,7 @@ func (m *Manager) selectPool(protype model.ProcedureType) *ants.Pool {
 type RunPipelineParam struct {
 	Note       *model.Note
 	StartStage pipelineStage
+	Extra      any
 }
 
 // 从某个流程节点开始运行流水线
@@ -138,24 +139,24 @@ func (m *Manager) RunPipeline(
 	ppl := m.pipeline
 	procType := ppl.startAt(param.StartStage)
 	// 本地执行记录
-	_, err = m.Create(ctx, param.Note, procType, defaultRetry)
+	_, procParam, err := m.Create(ctx, param, procType, defaultRetry)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "procedure manager run pipeline failed").
 			WithExtras("note_id", param.Note.NoteId, "ppltype", param.StartStage).WithCtx(ctx)
 	}
 
-	return m.pipelineProceed(param.Note, procType), nil
+	return m.pipelineProceed(procParam, procType), nil
 }
 
 // 外部需要调用此函数来继续执行后续流程
 func (m *Manager) pipelineProceed(
-	note *model.Note,
+	param *ProcedureParam,
 	targetProcType model.ProcedureType,
 ) func(context.Context) bool {
 	return func(ctx context.Context) bool {
 		// 任务开始执行 一般涉及对外调用 错误仅打日志 后续有重试机制
-		newTaskId, err := m.Execute(ctx, note, targetProcType)
-		logExtras := []any{"note_id", note.NoteId, "protype", targetProcType, "task_id", newTaskId}
+		newTaskId, err := m.Execute(ctx, param, targetProcType)
+		logExtras := []any{"note_id", param.Note.NoteId, "protype", targetProcType, "task_id", newTaskId}
 		if err != nil {
 			xlog.Msg("procedure manager execute failed").
 				Err(err).
@@ -166,7 +167,7 @@ func (m *Manager) pipelineProceed(
 
 		if newTaskId != "" {
 			// 确认任务创建成功既可（回填taskId）错误仅打日志 后续有重试机制
-			err = m.Confirm(ctx, note.NoteId, targetProcType, newTaskId)
+			err = m.Confirm(ctx, param.Note.NoteId, targetProcType, newTaskId)
 			if err != nil {
 				xlog.Msg("procedure manager confirm failed").
 					Err(err).
@@ -184,7 +185,7 @@ func (m *Manager) pipelineProceed(
 			Extras(logExtras...).
 			Infox(ctx)
 
-		m.autoCompleteIfNeeded(ctx, note, targetProcType, newTaskId)
+		m.autoCompleteIfNeeded(ctx, param, targetProcType, newTaskId)
 		return true
 	}
 }
@@ -194,47 +195,52 @@ func (m *Manager) pipelineProceed(
 // 创建流程记录并标记笔记状态为处理中, 应该作为本地事务的一部分
 func (m *Manager) Create(
 	ctx context.Context,
-	note *model.Note,
+	param *RunPipelineParam,
 	protype model.ProcedureType,
 	maxRetryCnt int,
-) (Procedure, error) {
+) (Procedure, *ProcedureParam, error) {
 	proc, ok := m.registry.Get(protype)
 	if !ok {
-		return nil, xerror.Wrap(ErrProcedureNotRegistered).WithExtra("protype", protype).WithCtx(ctx)
+		return nil, nil, xerror.Wrap(ErrProcedureNotRegistered).WithExtra("protype", protype).WithCtx(ctx)
+	}
+
+	procParam := &ProcedureParam{
+		Note:  param.Note,
+		Extra: param.Extra,
 	}
 
 	// 流程初始化
-	doRecord, err := proc.BeforeExecute(ctx, note)
+	doRecord, err := proc.BeforeExecute(ctx, procParam)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "procedure manager pre start failed").
-			WithExtras("note_id", note.NoteId, "protype", protype).
+		return nil, nil, xerror.Wrapf(err, "procedure manager pre start failed").
+			WithExtras("note_id", param.Note.NoteId, "protype", protype).
 			WithCtx(ctx)
 	}
 
 	if !doRecord {
-		return proc, nil
+		return proc, procParam, nil
 	}
 
 	var params []byte
 	if paramProvider, ok := any(proc).(ProcedureParamProvider); ok {
-		params = paramProvider.Provide(note)
+		params = paramProvider.Provide(procParam)
 	}
 
 	// taskId 先留空后续再填充
 	err = m.noteProcedureBiz.CreateRecord(ctx, &biz.CreateProcedureRecordReq{
-		NoteId:      note.NoteId,
+		NoteId:      param.Note.NoteId,
 		Protype:     protype,
 		TaskId:      "",
 		MaxRetryCnt: maxRetryCnt,
 		Params:      params,
 	})
 	if err != nil {
-		return nil, xerror.Wrapf(err, "procedure manager create record failed").
-			WithExtra("note_id", note.NoteId).
+		return nil, nil, xerror.Wrapf(err, "procedure manager create record failed").
+			WithExtra("note_id", param.Note.NoteId).
 			WithCtx(ctx)
 	}
 
-	return proc, nil
+	return proc, procParam, nil
 }
 
 // Execute 执行流程
@@ -242,7 +248,7 @@ func (m *Manager) Create(
 // 根据流程类型调度处理任务 可以执行远程调用或者本地数据库操作
 func (m *Manager) Execute(
 	ctx context.Context,
-	note *model.Note,
+	param *ProcedureParam,
 	proctype model.ProcedureType,
 ) (string, error) {
 	proc, ok := m.registry.Get(proctype)
@@ -250,10 +256,10 @@ func (m *Manager) Execute(
 		return "", xerror.Wrap(ErrProcedureNotRegistered).WithExtra("proctype", proctype).WithCtx(ctx)
 	}
 
-	taskId, err := proc.Execute(ctx, note)
+	taskId, err := proc.Execute(ctx, param)
 	if err != nil {
 		return "", xerror.Wrapf(err, "procedure manager execute failed").
-			WithExtras("note_id", note.NoteId, "protype", proctype).
+			WithExtras("note_id", param.Note.NoteId, "protype", proctype).
 			WithCtx(ctx)
 	}
 
@@ -288,7 +294,7 @@ func (m *Manager) Abort(ctx context.Context,
 		return xerror.Wrap(ErrProcedureNotRegistered).WithExtra("proctype", proctype).WithCtx(ctx)
 	}
 
-	err := proc.ObAbort(ctx, note, taskId)
+	err := proc.OnAbort(ctx, note, taskId)
 	if err != nil {
 		return xerror.Wrapf(err, "procedure manager abort failed").
 			WithExtras(
@@ -720,7 +726,7 @@ func (m *Manager) doRetry(ctx context.Context, record *biz.ProcedureRecord) {
 
 func (m *Manager) autoCompleteIfNeeded(
 	ctx context.Context,
-	note *model.Note,
+	param *ProcedureParam,
 	protype model.ProcedureType,
 	taskId string,
 ) {
@@ -729,10 +735,10 @@ func (m *Manager) autoCompleteIfNeeded(
 		return
 	}
 	if proc, ok := proc.(AutoCompleter); ok {
-		success, autoComplete, arg := proc.AutoComplete(ctx, note, taskId)
+		success, autoComplete, arg := proc.AutoComplete(ctx, param, taskId)
 		if autoComplete {
 			m.Complete(ctx, &CompleteResult{
-				NoteId:  note.NoteId,
+				NoteId:  param.Note.NoteId,
 				Protype: protype,
 				TaskId:  taskId,
 				Success: success,

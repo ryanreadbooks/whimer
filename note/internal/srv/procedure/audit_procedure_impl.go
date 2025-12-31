@@ -36,7 +36,8 @@ func (p *AuditProcedure) Type() model.ProcedureType {
 }
 
 // 审核流程初始化
-func (p *AuditProcedure) BeforeExecute(ctx context.Context, note *model.Note) (bool, error) {
+func (p *AuditProcedure) BeforeExecute(ctx context.Context, param *ProcedureParam) (bool, error) {
+	note := param.Note
 	err := p.noteCreatorBiz.TransferNoteStateToAuditing(ctx, note)
 	if err != nil {
 		return false, xerror.Wrapf(err, "audit procedure set note state auditing failed").
@@ -78,7 +79,7 @@ func (p *AuditProcedure) upgradeStateCheck(
 	return note, false
 }
 
-func (p *AuditProcedure) Execute(ctx context.Context, note *model.Note) (string, error) {
+func (p *AuditProcedure) Execute(ctx context.Context, param *ProcedureParam) (string, error) {
 	// TODO 调用审核系统
 	return "", nil
 }
@@ -128,7 +129,7 @@ func (p *AuditProcedure) OnFailure(ctx context.Context, result *ProcedureResult)
 	return true, nil
 }
 
-func (p *AuditProcedure) ObAbort(ctx context.Context, note *model.Note, taskId string) error {
+func (p *AuditProcedure) OnAbort(ctx context.Context, note *model.Note, taskId string) error {
 	return nil
 }
 
@@ -144,7 +145,7 @@ func (p *AuditProcedure) Retry(ctx context.Context, record *biz.ProcedureRecord)
 
 func (p *AuditProcedure) AutoComplete(
 	ctx context.Context,
-	note *model.Note,
+	param *ProcedureParam,
 	taskId string,
 ) (success, autoComplete bool, arg any) {
 	return true, true, nil

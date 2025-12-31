@@ -18,6 +18,14 @@ type NoteCore struct {
 	Owner    int64     `json:"-"`
 }
 
+func (n *NoteCore) IsPublic() bool {
+	return n.Privacy == PrivacyPublic
+}
+
+func (n *NoteCore) IsPrivate() bool {
+	return n.Privacy == PrivacyPrivate
+}
+
 func NoteCoreFromNote(n *Note) *NoteCore {
 	if n == nil {
 		return &NoteCore{}
@@ -60,10 +68,10 @@ type Note struct {
 	Desc     string        `json:"desc"`
 	Privacy  Privacy       `json:"privacy,omitempty"`
 	Type     NoteType      `json:"type"`
-	Owner    int64         `json:"-"`     // unexported to user
-	State    NoteState     `json:"state"` // 笔记状态
-	CreateAt int64         `json:"create_at,omitempty"`
-	UpdateAt int64         `json:"update_at,omitempty"`
+	Owner    int64         `json:"-"`                   // unexported to user
+	State    NoteState     `json:"state"`               // 笔记状态
+	CreateAt int64         `json:"create_at,omitempty"` // 笔记创建时间
+	UpdateAt int64         `json:"update_at,omitempty"` // 笔记更新时间
 	Ip       string        `json:"ip"`
 	Images   NoteImageList `json:"images"`
 	Videos   *NoteVideo    `json:"videos"`  // 包含多种编码的视频资源
@@ -73,6 +81,14 @@ type Note struct {
 	// ext字段
 	Tags    []*NoteTag `json:"tags,omitempty"`
 	AtUsers []*AtUser  `json:"at_users,omitempty"`
+}
+
+func (n *Note) IsPublic() bool {
+	return n.Privacy == PrivacyPublic
+}
+
+func (n *Note) IsPrivate() bool {
+	return n.Privacy == PrivacyPrivate
 }
 
 func (n *Note) AsSlice() []*Note {

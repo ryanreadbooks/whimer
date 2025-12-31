@@ -142,6 +142,7 @@ func (s *NoteCreatorSrv) Update(ctx context.Context, req *UpdateNoteRequest) err
 		proceed, errTx = s.procedureMgr.RunPipeline(ctx, &procedure.RunPipelineParam{
 			Note:       newNote,
 			StartStage: startAt,
+			Extra:      oldNoteCore,
 		})
 		if errTx != nil {
 			return xerror.Wrapf(errTx, "srv creator init procedure failed").WithCtx(ctx)
@@ -216,6 +217,8 @@ func (s *NoteCreatorSrv) Delete(ctx context.Context, req *DeleteNoteRequest) err
 				Errorx(ctx)
 		}
 	}
+
+	// 删除不用走流程
 
 	return nil
 }

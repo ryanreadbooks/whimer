@@ -2,6 +2,7 @@ package procedure
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/ryanreadbooks/whimer/misc/uuid"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -12,8 +13,9 @@ import (
 )
 
 var (
-	_ Procedure     = (*PublishProcedure)(nil)
-	_ AutoCompleter = (*PublishProcedure)(nil)
+	_ Procedure              = (*PublishProcedure)(nil)
+	_ AutoCompleter          = (*PublishProcedure)(nil)
+	_ ProcedureParamProvider = (*PublishProcedure)(nil)
 )
 
 // 笔记发布
@@ -37,7 +39,8 @@ func (p *PublishProcedure) Type() model.ProcedureType {
 	return model.ProcedureTypePublish
 }
 
-func (p *PublishProcedure) BeforeExecute(ctx context.Context, note *model.Note) (bool, error) {
+func (p *PublishProcedure) BeforeExecute(ctx context.Context, param *ProcedureParam) (bool, error) {
+	note := param.Note
 	err := p.noteCreatorBiz.TransferNoteStateToPublished(ctx, note)
 	if err != nil {
 		return false, xerror.Wrapf(err, "publish procedure set note state published failed").
@@ -48,13 +51,25 @@ func (p *PublishProcedure) BeforeExecute(ctx context.Context, note *model.Note) 
 	return true, nil
 }
 
-func (p *PublishProcedure) doExecute(ctx context.Context, note *model.Note) (string, error) {
-	if note.Privacy == model.PrivacyPrivate {
-		// TODO 这里需要分辨情况
-		// 这里要按照privacy来处理吗 还是留给事件处理方来处理
-		return "", nil
+func (p *PublishProcedure) doExecute(ctx context.Context, note *model.Note, pubDeleted bool) (string, error) {
+	if pubDeleted {
+		return p.doPublishDelete(ctx, note)
 	}
 
+	return p.doPublish(ctx, note)
+}
+
+func (p *PublishProcedure) doPublishDelete(ctx context.Context, note *model.Note) (string, error) {
+	err := p.noteEventBus.NoteDeleted(ctx, note)
+	if err != nil {
+		return "", xerror.Wrapf(err, "publish procedure note deleted event failed").
+			WithExtra("note_id", note.NoteId).
+			WithCtx(ctx)
+	}
+	return uuid.NewUUID().String(), nil
+}
+
+func (p *PublishProcedure) doPublish(ctx context.Context, note *model.Note) (string, error) {
 	// 获取完整的note数据 包括asset资源数据
 	// 此处的note是流程发起早期的数据 有些异步生成的数据包含在内
 	fullNote, err := p.noteBiz.GetNote(ctx, note.NoteId)
@@ -83,12 +98,46 @@ func (p *PublishProcedure) doExecute(ctx context.Context, note *model.Note) (str
 }
 
 // 广播笔记发布事件
-func (p *PublishProcedure) Execute(ctx context.Context, note *model.Note) (string, error) {
-	if note.Privacy == model.PrivacyPrivate {
-		return "", nil
+func (p *PublishProcedure) Execute(ctx context.Context, param *ProcedureParam) (string, error) {
+	var (
+		oldNote *model.NoteCore
+		updated bool
+	)
+
+	if param.Extra != nil {
+		var ok bool
+		oldNote, ok = param.Extra.(*model.NoteCore)
+		if ok && oldNote != nil {
+			updated = true
+		}
 	}
 
-	return p.doExecute(ctx, note)
+	newNote := param.Note
+	pubDeleted := false
+
+	if updated {
+		// 外层执行的是更新操作 并且privacy发生了改变 需要任务笔记被删除了
+		// 如果是私有变公开 需要执行发布
+		// 如果是公开变私有 需要执行删除
+		// 公开变公开 需要执行执行发布
+		// 私有变私有 无需执行操作
+		if oldNote.IsPrivate() && newNote.IsPublic() {
+			pubDeleted = false
+		} else if oldNote.IsPublic() && newNote.IsPrivate() {
+			pubDeleted = true
+		} else if oldNote.IsPublic() && newNote.IsPublic() {
+			pubDeleted = false
+		} else if oldNote.IsPrivate() && newNote.IsPrivate() {
+			return "", nil
+		}
+	} else {
+		// 外层执行的是新建 此处如果是公有笔记则需要执行发布流程
+		if newNote.IsPrivate() {
+			return "", nil
+		}
+	}
+
+	return p.doExecute(ctx, newNote, pubDeleted)
 }
 
 // 消息队列信息发送成功
@@ -125,14 +174,19 @@ func (p *PublishProcedure) Retry(ctx context.Context, record *biz.ProcedureRecor
 		return "", err
 	}
 
-	return p.executeForRetry(ctx, note)
+	return p.executeForRetry(ctx, note, record.Params)
 }
 
-func (p *PublishProcedure) executeForRetry(ctx context.Context,
-	note *model.Note,
-) (string, error) {
+func (p *PublishProcedure) executeForRetry(ctx context.Context, note *model.Note, params []byte) (string, error) {
+	publishParam, err := p.deserializePublishParam(params)
+	if err != nil {
+		return "", xerror.Wrapf(err, "publish procedure deserialize publish param failed").
+			WithExtra("params", string(params)).
+			WithCtx(ctx)
+	}
+
 	// 重新尝试写入消息队列
-	taskId, err := p.doExecute(ctx, note)
+	taskId, err := p.doExecute(ctx, note, publishParam.Updated)
 	if err != nil {
 		return "", xerror.Wrapf(err, "publish procedure execute for retry failed").
 			WithExtra("note_id", note.NoteId).
@@ -142,13 +196,57 @@ func (p *PublishProcedure) executeForRetry(ctx context.Context,
 	return taskId, nil
 }
 
-func (p *PublishProcedure) ObAbort(ctx context.Context, note *model.Note, taskId string) error {
+func (p *PublishProcedure) OnAbort(ctx context.Context, note *model.Note, taskId string) error {
 	return nil
 }
 
 // 自动成功 只要Execute成功了就是视为成功了
 func (p *PublishProcedure) AutoComplete(ctx context.Context,
-	note *model.Note, taskId string,
+	param *ProcedureParam, taskId string,
 ) (success, autoComplete bool, arg any) {
 	return true, true, nil
+}
+
+type publishParam struct {
+	Updated bool            `json:"updated"`
+	OldNote *model.NoteCore `json:"old_note"`
+}
+
+func (p *PublishProcedure) Provide(param *ProcedureParam) []byte {
+	return p.serializePublishParam(param)
+}
+
+func (p *PublishProcedure) serializePublishParam(param *ProcedureParam) []byte {
+	publishParam := &publishParam{}
+
+	if param.Extra != nil {
+		var ok bool
+		publishParam.OldNote, ok = param.Extra.(*model.NoteCore)
+		if ok && publishParam.OldNote != nil {
+			publishParam.Updated = true
+		}
+
+		paramBytes, err := json.Marshal(publishParam)
+		if err != nil {
+			return nil
+		}
+		return paramBytes
+
+	}
+	return nil
+}
+
+func (p *PublishProcedure) deserializePublishParam(params []byte) (*publishParam, error) {
+	publishParam := &publishParam{}
+	if len(params) == 0 {
+		return publishParam, nil
+	}
+
+	err := json.Unmarshal(params, publishParam)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "publish procedure deserialize publish param failed").
+			WithExtra("params", string(params))
+	}
+
+	return publishParam, nil
 }

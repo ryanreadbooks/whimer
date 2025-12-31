@@ -47,7 +47,8 @@ func (p *AssetProcedure) Type() model.ProcedureType {
 	return model.ProcedureTypeAssetProcess
 }
 
-func (p *AssetProcedure) BeforeExecute(ctx context.Context, note *model.Note) (bool, error) {
+func (p *AssetProcedure) BeforeExecute(ctx context.Context, param *ProcedureParam) (bool, error) {
+	note := param.Note
 	// 如果是笔记更新场景 不需要更新资源key的情况下不需要重走资源流程
 	if note.State == model.NoteStateInit {
 		err := p.noteCreatorBiz.TransferNoteStateToProcessing(ctx, note)
@@ -62,7 +63,8 @@ func (p *AssetProcedure) BeforeExecute(ctx context.Context, note *model.Note) (b
 	return false, nil
 }
 
-func (p *AssetProcedure) Execute(ctx context.Context, note *model.Note) (string, error) {
+func (p *AssetProcedure) Execute(ctx context.Context, param *ProcedureParam) (string, error) {
+	note := param.Note
 	if note.Type == model.AssetTypeVideo {
 		processor := assetprocess.NewProcessor(note.Type, p.bizz)
 		taskId, err := processor.Process(ctx, note)
@@ -193,7 +195,7 @@ func (p *AssetProcedure) OnFailure(ctx context.Context, result *ProcedureResult)
 	return true, nil
 }
 
-func (p *AssetProcedure) ObAbort(ctx context.Context, note *model.Note, taskId string) error {
+func (p *AssetProcedure) OnAbort(ctx context.Context, note *model.Note, taskId string) error {
 	if note.Type != model.AssetTypeVideo {
 		return nil
 	}
@@ -267,17 +269,18 @@ func (p *AssetProcedure) executeForRetry(ctx context.Context, note *model.Note, 
 
 func (p *AssetProcedure) AutoComplete(
 	ctx context.Context,
-	note *model.Note,
+	param *ProcedureParam,
 	taskId string,
 ) (success, autoComplete bool, arg any) {
-	if note.Type == model.AssetTypeImage {
+	if param.Note.Type == model.AssetTypeImage {
 		return true, true, nil
 	}
 
 	return false, false, nil
 }
 
-func (p *AssetProcedure) Provide(note *model.Note) []byte {
+func (p *AssetProcedure) Provide(param *ProcedureParam) []byte {
+	note := param.Note
 	if note.Type == model.AssetTypeVideo {
 		// 保存原始视频的参数 比如key等
 		return p.serializeVideoParam(note.Videos)

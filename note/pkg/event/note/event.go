@@ -13,3 +13,15 @@ const (
 	NoteLiked     = event.NoteLiked
 	NoteCommented = event.NoteCommented
 )
+
+type Note = event.Note
+
+type (
+	NoteEvent              = event.NoteEvent
+	NotePublishedEventData = event.NotePublishedEventData
+	NoteDeletedEventData   = event.NoteDeletedEventData
+	NoteRejectedEventData  = event.NoteRejectedEventData
+	NoteBannedEventData    = event.NoteBannedEventData
+	NoteLikedEventData     = event.NoteLikedEventData
+	NoteCommentedEventData = event.NoteCommentedEventData
+)
