@@ -67,7 +67,7 @@ func (e *NoteEventBus) NotePublished(ctx context.Context, note *model.Note) erro
 			WithCtx(ctx)
 	}
 
-	err = e.pub.Writer().WriteMessages(ctx, kafka.Message{
+	err = e.pub.AsyncWriter().WriteMessages(ctx, kafka.Message{
 		Topic: NoteEventTopic,
 		Key:   []byte(noteId),
 		Value: evtBytes,
@@ -95,7 +95,7 @@ func (e *NoteEventBus) NoteDeleted(ctx context.Context, note *model.Note, reason
 			WithCtx(ctx)
 	}
 
-	err = e.pub.Writer().WriteMessages(ctx, kafka.Message{
+	err = e.pub.AsyncWriter().WriteMessages(ctx, kafka.Message{
 		Topic: NoteEventTopic,
 		Key:   []byte(noteId),
 		Value: evtBytes,
@@ -103,6 +103,60 @@ func (e *NoteEventBus) NoteDeleted(ctx context.Context, note *model.Note, reason
 	if err != nil {
 		return xerror.Wrapf(err, "note event bus note deleted failed to write message").
 			WithExtra("note_id", note.NoteId).
+			WithCtx(ctx)
+	}
+
+	return nil
+}
+
+func (e *NoteEventBus) makeNoteEventById(ctx context.Context,
+	noteId int64,
+	eventType eventmodel.EventType,
+	payload any,
+) (string, []byte, error) {
+	now := time.Now()
+	noteIdStr := pkgid.NoteId(noteId).String()
+	evt := &eventmodel.NoteEvent{
+		Type:      eventType,
+		NoteId:    noteIdStr,
+		Timestamp: now.UnixMilli(),
+		Payload:   payload,
+	}
+
+	evtBytes, err := json.Marshal(evt)
+	if err != nil {
+		return "", nil, xerror.Wrapf(err, "note event bus make note event by id failed to marshal event").
+			WithExtra("note_id", noteId).
+			WithCtx(ctx)
+	}
+
+	return noteIdStr, evtBytes, nil
+}
+
+func (e *NoteEventBus) NoteLiked(ctx context.Context, noteId, userId, ownerId int64, isLiked bool) error {
+	noteIdStr, evtBytes, err := e.makeNoteEventById(ctx,
+		noteId,
+		eventmodel.NoteLiked,
+		&eventmodel.NoteLikedEventData{
+			NoteId:  noteId,
+			UserId:  userId,
+			OwnerId: ownerId,
+			IsLiked: isLiked,
+		})
+	if err != nil {
+		return xerror.Wrapf(err, "note event bus note liked failed to make note event").
+			WithExtra("note_id", noteId).
+			WithCtx(ctx)
+	}
+
+	err = e.pub.AsyncWriter().WriteMessages(ctx, kafka.Message{
+		Topic: NoteEventTopic,
+		Key:   []byte(noteIdStr),
+		Value: evtBytes,
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "note event bus note liked failed to write message").
+			WithExtra("note_id", noteId).
 			WithCtx(ctx)
 	}
 

@@ -41,17 +41,19 @@ type NoteDeletedEventData struct {
 	Reason NoteDeleteReason `json:"reason"`
 }
 
-// 笔记审核拒绝事件
+// TODO 笔记审核拒绝事件
 type NoteRejectedEventData struct{}
 
-// 笔记被封禁事件
+// TODO 笔记被封禁事件
 type NoteBannedEventData struct{}
 
-// 笔记被点赞事件
-type NoteLikedEventData struct{}
-
-// 笔记被评论事件
-type NoteCommentedEventData struct{}
+// 笔记点赞/取消点赞事件
+type NoteLikedEventData struct {
+	NoteId  int64 `json:"note_id"`
+	UserId  int64 `json:"user_id"`
+	OwnerId int64 `json:"owner_id"`
+	IsLiked bool  `json:"is_liked"`
+}
 
 type NoteEvent struct {
 	Type      EventType `json:"type"`      // 事件类型

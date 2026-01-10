@@ -11,7 +11,6 @@ const (
 	NoteRejected  = event.NoteRejected
 	NoteBanned    = event.NoteBanned
 	NoteLiked     = event.NoteLiked
-	NoteCommented = event.NoteCommented
 )
 
 type Note = event.Note
@@ -23,5 +22,4 @@ type (
 	NoteRejectedEventData  = event.NoteRejectedEventData
 	NoteBannedEventData    = event.NoteBannedEventData
 	NoteLikedEventData     = event.NoteLikedEventData
-	NoteCommentedEventData = event.NoteCommentedEventData
 )

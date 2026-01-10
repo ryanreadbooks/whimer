@@ -13,6 +13,7 @@ type Biz struct {
 	Interact  *NoteInteractBiz
 	Creator   *NoteCreatorBiz
 	Procedure *NoteProcedureBiz
+	NoteEvent *NoteEventBiz
 }
 
 func New(dt *data.Data) *Biz {
@@ -20,6 +21,7 @@ func New(dt *data.Data) *Biz {
 	creator := NewNoteCreatorBiz(dt, note)
 	interact := NewNoteInteractBiz(dt, note)
 	procedure := NewNoteProcedureBiz(dt)
+	noteEvent := NewNoteEventBiz(dt)
 
 	return &Biz{
 		data:      dt,
@@ -27,6 +29,7 @@ func New(dt *data.Data) *Biz {
 		Interact:  interact,
 		Creator:   creator,
 		Procedure: procedure,
+		NoteEvent: noteEvent,
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
-	"github.com/ryanreadbooks/whimer/note/internal/data/event"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 	eventmodel "github.com/ryanreadbooks/whimer/note/internal/model/event"
@@ -30,7 +29,7 @@ type NoteCreatorSrv struct {
 	noteProcedureBiz *biz.NoteProcedureBiz
 	noteCreatorBiz   *biz.NoteCreatorBiz
 	noteInteractBiz  *biz.NoteInteractBiz
-	noteEventBus     *event.NoteEventBus
+	noteEventBiz     *biz.NoteEventBiz
 	procedureMgr     *procedure.Manager
 }
 
@@ -42,7 +41,7 @@ func NewNoteCreatorSrv(p *Service, biz *biz.Biz, procedureMgr *procedure.Manager
 		noteProcedureBiz: biz.Procedure,
 		noteCreatorBiz:   biz.Creator,
 		noteInteractBiz:  biz.Interact,
-		noteEventBus:     biz.Data().NoteEventBus,
+		noteEventBiz:     biz.NoteEvent,
 
 		procedureMgr: procedureMgr,
 	}
@@ -222,7 +221,7 @@ func (s *NoteCreatorSrv) Delete(ctx context.Context, req *DeleteNoteRequest) err
 	}
 
 	// 发布删除事件
-	if err := s.noteEventBus.NoteDeleted(ctx, oldNote, eventmodel.NoteDeleteReasonPureDelete); err != nil {
+	if err := s.noteEventBiz.NoteDeleted(ctx, oldNote, eventmodel.NoteDeleteReasonPureDelete); err != nil {
 		// 这步失败仅打日志
 		xlog.Msg("srv creator publish note deleted event failed").
 			Err(err).

@@ -7,7 +7,6 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
-	"github.com/ryanreadbooks/whimer/note/internal/data/event"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 	eventmodel "github.com/ryanreadbooks/whimer/note/internal/model/event"
 )
@@ -23,14 +22,14 @@ var (
 type PublishProcedure struct {
 	noteBiz        *biz.NoteBiz
 	noteCreatorBiz *biz.NoteCreatorBiz
-	noteEventBus   *event.NoteEventBus
+	noteEventBiz   *biz.NoteEventBiz
 }
 
 func NewPublishProcedure(bizz *biz.Biz) *PublishProcedure {
 	return &PublishProcedure{
 		noteBiz:        bizz.Note,
 		noteCreatorBiz: bizz.Creator,
-		noteEventBus:   bizz.Data().NoteEventBus,
+		noteEventBiz:   bizz.NoteEvent,
 	}
 }
 
@@ -59,7 +58,7 @@ func (p *PublishProcedure) doExecute(ctx context.Context, note *model.Note, pubD
 }
 
 func (p *PublishProcedure) doPublishDelete(ctx context.Context, note *model.Note) (string, error) {
-	err := p.noteEventBus.NoteDeleted(ctx, note, eventmodel.NoteDeleteReasonPrivacyChange)
+	err := p.noteEventBiz.NoteDeleted(ctx, note, eventmodel.NoteDeleteReasonPrivacyChange)
 	if err != nil {
 		return "", xerror.Wrapf(err, "publish procedure note deleted event failed").
 			WithExtra("note_id", note.NoteId).
@@ -86,7 +85,7 @@ func (p *PublishProcedure) doPublish(ctx context.Context, note *model.Note) (str
 			WithCtx(ctx)
 	}
 
-	err = p.noteEventBus.NotePublished(ctx, fullNote)
+	err = p.noteEventBiz.NotePublished(ctx, fullNote)
 	if err != nil {
 		return "", xerror.Wrapf(err, "publish procedure note published event failed").
 			WithExtra("note_id", note.NoteId).
