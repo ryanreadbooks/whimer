@@ -28,7 +28,8 @@ type CreateProcedureRecordReq struct {
 	Protype     model.ProcedureType
 	TaskId      string
 	MaxRetryCnt int
-	Params      []byte // 自定义调用参数
+	Params      []byte        // 自定义调用参数
+	ExpiredTTL  time.Duration // 任务过期时间，0 表示永不过期
 }
 
 // 创建一条任务记录 如果存在且状态非处理中则更新
@@ -53,7 +54,16 @@ func (b *NoteProcedureBiz) CreateRecord(
 		return xerror.Wrap(global.ErrNoteProcessing)
 	}
 
-	nextCheckTime := time.Now().Add(config.Conf.RetryConfig.ProcedureRetry.TaskRegister.RetryInterval).Unix()
+	now := time.Now()
+	nextCheckTime := now.Add(config.Conf.RetryConfig.ProcedureRetry.TaskRegister.RetryInterval).Unix()
+
+	// 计算过期时间，默认 1 小时
+	expiredTTL := req.ExpiredTTL
+	if expiredTTL <= 0 {
+		expiredTTL = time.Hour
+	}
+	expiredTime := now.Add(expiredTTL).Unix()
+
 	newRecord := &notedao.ProcedureRecordPO{
 		NoteId:        req.NoteId,
 		Protype:       req.Protype,
@@ -62,6 +72,7 @@ func (b *NoteProcedureBiz) CreateRecord(
 		MaxRetryCnt:   req.MaxRetryCnt,
 		NextCheckTime: nextCheckTime,
 		Params:        req.Params,
+		ExpiredTime:   expiredTime,
 	}
 
 	// 任务已经处理完就直接覆盖 taskId也可以覆盖 给新的任务用

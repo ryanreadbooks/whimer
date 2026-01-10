@@ -26,8 +26,7 @@ type ProcedureResult struct {
 }
 
 type ProcedureParam struct {
-	Note  *model.Note
-	Extra any
+	Note *model.Note
 }
 
 // Procedure 流程处理器接口

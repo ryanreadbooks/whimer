@@ -8,8 +8,10 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
+	"github.com/ryanreadbooks/whimer/note/internal/data/event"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
+	eventmodel "github.com/ryanreadbooks/whimer/note/internal/model/event"
 	"github.com/ryanreadbooks/whimer/note/internal/srv/procedure"
 )
 
@@ -28,8 +30,8 @@ type NoteCreatorSrv struct {
 	noteProcedureBiz *biz.NoteProcedureBiz
 	noteCreatorBiz   *biz.NoteCreatorBiz
 	noteInteractBiz  *biz.NoteInteractBiz
-
-	procedureMgr *procedure.Manager
+	noteEventBus     *event.NoteEventBus
+	procedureMgr     *procedure.Manager
 }
 
 func NewNoteCreatorSrv(p *Service, biz *biz.Biz, procedureMgr *procedure.Manager) *NoteCreatorSrv {
@@ -40,7 +42,9 @@ func NewNoteCreatorSrv(p *Service, biz *biz.Biz, procedureMgr *procedure.Manager
 		noteProcedureBiz: biz.Procedure,
 		noteCreatorBiz:   biz.Creator,
 		noteInteractBiz:  biz.Interact,
-		procedureMgr:     procedureMgr,
+		noteEventBus:     biz.Data().NoteEventBus,
+
+		procedureMgr: procedureMgr,
 	}
 }
 
@@ -142,7 +146,6 @@ func (s *NoteCreatorSrv) Update(ctx context.Context, req *UpdateNoteRequest) err
 		proceed, errTx = s.procedureMgr.RunPipeline(ctx, &procedure.RunPipelineParam{
 			Note:       newNote,
 			StartStage: startAt,
-			Extra:      oldNoteCore,
 		})
 		if errTx != nil {
 			return xerror.Wrapf(errTx, "srv creator init procedure failed").WithCtx(ctx)
@@ -218,7 +221,14 @@ func (s *NoteCreatorSrv) Delete(ctx context.Context, req *DeleteNoteRequest) err
 		}
 	}
 
-	// 删除不用走流程
+	// 发布删除事件
+	if err := s.noteEventBus.NoteDeleted(ctx, oldNote, eventmodel.NoteDeleteReasonPureDelete); err != nil {
+		// 这步失败仅打日志
+		xlog.Msg("srv creator publish note deleted event failed").
+			Err(err).
+			Extras("note_id", oldNote.NoteId).
+			Errorx(ctx)
+	}
 
 	return nil
 }

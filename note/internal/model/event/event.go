@@ -28,9 +28,17 @@ type NotePublishedEventData struct {
 	Note *Note `json:"note"`
 }
 
+type NoteDeleteReason string
+
+const (
+	NoteDeleteReasonPureDelete    NoteDeleteReason = "pure_delete"
+	NoteDeleteReasonPrivacyChange NoteDeleteReason = "privacy_change"
+)
+
 // 笔记删除事件
-type NoteDeletedEventData struct{
-	Note *Note `json:"note"`
+type NoteDeletedEventData struct {
+	Note   *Note            `json:"note"`
+	Reason NoteDeleteReason `json:"reason"`
 }
 
 // 笔记审核拒绝事件

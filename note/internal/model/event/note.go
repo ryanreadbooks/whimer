@@ -11,8 +11,8 @@ type Note struct {
 	Ctime   int64            `json:"create_at"`
 	Utime   int64            `json:"update_at"`
 	Ip      string           `json:"ip"`
-	Images  []string         `json:"images"` // asset keys
-	Videos  []string         `json:"videos"` // asset keys
+	Images  []string         `json:"images,omitempty"` // asset keys
+	Videos  []string         `json:"videos,omitempty"` // asset keys
 	Tags    []*model.NoteTag `json:"tags,omitempty"`
 	AtUsers []*model.AtUser  `json:"at_users,omitempty"`
 }

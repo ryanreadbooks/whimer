@@ -30,6 +30,7 @@ type ProcedureRecordPO struct {
 	MaxRetryCnt   int                   `db:"max_retry_cnt"`
 	NextCheckTime int64                 `db:"next_check_time"` // unix second
 	Params        []byte                `db:"params"`          // 调用参数
+	ExpiredTime   int64                 `db:"expired_time"`    // unix second
 }
 
 func (ProcedureRecordPO) TableName() string {
@@ -52,6 +53,7 @@ func (p *ProcedureRecordPO) InsertValues() []any {
 		p.MaxRetryCnt,
 		p.NextCheckTime,
 		params,
+		p.ExpiredTime,
 	}
 }
 
@@ -88,7 +90,8 @@ func (d *ProcedureRecordRepo) Upsert(
 			"cur_retry=VALUES(cur_retry), " +
 			"max_retry_cnt=VALUES(max_retry_cnt), " +
 			"next_check_time=VALUES(next_check_time), " +
-			"params=VALUES(params)")
+			"params=VALUES(params), " +
+			"expired_time=VALUES(expired_time)")
 	}
 
 	sql, args := ib.Build()

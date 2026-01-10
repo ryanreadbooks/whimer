@@ -81,12 +81,13 @@ func (e *NoteEventBus) NotePublished(ctx context.Context, note *model.Note) erro
 	return nil
 }
 
-func (e *NoteEventBus) NoteDeleted(ctx context.Context, note *model.Note) error {
+func (e *NoteEventBus) NoteDeleted(ctx context.Context, note *model.Note, reason eventmodel.NoteDeleteReason) error {
 	noteId, evtBytes, err := e.makeNoteEvent(ctx,
 		note,
 		eventmodel.NoteDeleted,
 		&eventmodel.NoteDeletedEventData{
-			Note: modelNoteToEventNote(note),
+			Note:   modelNoteToEventNote(note),
+			Reason: reason,
 		})
 	if err != nil {
 		return xerror.Wrapf(err, "note event bus note deleted failed to make note event").

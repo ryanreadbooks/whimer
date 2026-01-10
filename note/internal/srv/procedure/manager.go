@@ -118,7 +118,6 @@ func (m *Manager) selectPool(protype model.ProcedureType) *ants.Pool {
 type RunPipelineParam struct {
 	Note       *model.Note
 	StartStage pipelineStage
-	Extra      any
 }
 
 // 从某个流程节点开始运行流水线
@@ -139,17 +138,17 @@ func (m *Manager) RunPipeline(
 	ppl := m.pipeline
 	procType := ppl.startAt(param.StartStage)
 	// 本地执行记录
-	_, procParam, err := m.Create(ctx, param, procType, defaultRetry)
+	_, procParam, err := m.CreateRecord(ctx, param, procType, defaultRetry)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "procedure manager run pipeline failed").
 			WithExtras("note_id", param.Note.NoteId, "ppltype", param.StartStage).WithCtx(ctx)
 	}
 
-	return m.pipelineProceed(procParam, procType), nil
+	return m.proceedPipeline(procParam, procType), nil
 }
 
 // 外部需要调用此函数来继续执行后续流程
-func (m *Manager) pipelineProceed(
+func (m *Manager) proceedPipeline(
 	param *ProcedureParam,
 	targetProcType model.ProcedureType,
 ) func(context.Context) bool {
@@ -190,10 +189,10 @@ func (m *Manager) pipelineProceed(
 	}
 }
 
-// Create 初始化流程
+// CreateRecord 初始化流程
 //
 // 创建流程记录并标记笔记状态为处理中, 应该作为本地事务的一部分
-func (m *Manager) Create(
+func (m *Manager) CreateRecord(
 	ctx context.Context,
 	param *RunPipelineParam,
 	protype model.ProcedureType,
@@ -205,8 +204,7 @@ func (m *Manager) Create(
 	}
 
 	procParam := &ProcedureParam{
-		Note:  param.Note,
-		Extra: param.Extra,
+		Note: param.Note,
 	}
 
 	// 流程初始化
@@ -677,6 +675,16 @@ exec:
 		curRecord = record
 	}
 
+	// 检查任务是否已过期
+	if curRecord.IsExpired() {
+		xlog.Msg("procedure manager task expired, mark as failed").
+			Extras("note_id", curRecord.NoteId, "protype", curRecord.Protype,
+				"expired_time", curRecord.ExpiredTime, "record_id", curRecord.Id).
+			Infox(ctx)
+		m.handleExpired(newCtx, curRecord)
+		return
+	}
+
 	m.doRetry(newCtx, curRecord)
 }
 
@@ -691,6 +699,32 @@ func (m *Manager) shouldExit(ctx context.Context) (exit bool) {
 	default:
 	}
 	return
+}
+
+// handleExpired 处理过期任务，标记为失败并触发 OnFailure
+func (m *Manager) handleExpired(ctx context.Context, record *biz.ProcedureRecord) {
+	proc, ok := m.registry.Get(record.Protype)
+	if !ok {
+		xlog.Msg("procedure manager handle expired unknown protype").
+			Extras("protype", record.Protype, "record_id", record.Id).
+			Errorx(ctx)
+		return
+	}
+
+	// 标记为失败并触发 OnFailure
+	err := m.txHelper.txHandleFailure(ctx, &CompleteResult{
+		NoteId:  record.NoteId,
+		Protype: record.Protype,
+		TaskId:  record.TaskId,
+		Success: false,
+		Arg:     nil, // 过期场景 Arg 为 nil
+	}, proc.OnFailure)
+	if err != nil {
+		xlog.Msg("procedure manager handle expired failure failed").
+			Err(err).
+			Extras("note_id", record.NoteId, "protype", record.Protype, "record_id", record.Id).
+			Errorx(ctx)
+	}
 }
 
 // doRetry 执行重试

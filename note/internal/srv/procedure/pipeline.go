@@ -110,8 +110,7 @@ func (b *pipelineAssembler) assemble() (*pipeline, error) {
 //
 // 标准笔记发布流程: 资源处理 -> 审核 -> 发布
 func innerStandardPipeline(mgr *Manager) (*pipeline, error) {
-	assembler := newPipelineAssembler(mgr)
-	return assembler.
+	return newPipelineAssembler(mgr).
 		addProcedure(model.ProcedureTypeAssetProcess).
 		addProcedure(model.ProcedureTypeAudit). // TODO 审核暂未实现
 		addProcedure(model.ProcedureTypePublish).
