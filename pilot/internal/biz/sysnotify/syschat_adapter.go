@@ -35,14 +35,14 @@ func (a *mentionedMsgLazyAdapter) getCommentIds() []int64 {
 func (a *mentionedMsgLazyAdapter) shouldRuleOut(noteExistence, commentExistence map[int64]bool) bool {
 	noteId := int64(a.MentionedMsg.NoteId)
 	switch a.MentionedMsg.Type {
-	case model.NotifyMsgOnComment:
+	case model.NotifyMsgOnComment: // 评论中at我
 		noteOk, _ := noteExistence[noteId]
 		commentOk, _ := commentExistence[a.CommentId]
 		if !noteOk || !commentOk {
 			a.MentionedMsg.DoNotReveal()
 			return true
 		}
-	case model.NotifyMsgOnNote:
+	case model.NotifyMsgOnNote: // 笔记中at我
 		noteOk, _ := noteExistence[noteId]
 		if !noteOk {
 			a.MentionedMsg.DoNotReveal()
