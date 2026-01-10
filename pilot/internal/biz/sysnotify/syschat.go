@@ -42,22 +42,25 @@ type ListUserLikesMsgResp struct {
 }
 
 // 获取用户uid的被@消息
-func (b *Biz) ListUserMentionMsg(ctx context.Context, uid int64, cursor string, count int32) (*ListUserMentionMsgResp, error) {
+func (b *Biz) ListUserMentionMsg(ctx context.Context,
+	uid int64,
+	cursor string,
+	count int32,
+) (*ListUserMentionMsgResp, error) {
 	result := &ListUserMentionMsgResp{}
-	resp, err := dep.SystemChatter().ListSystemMentionMsg(ctx, &sysnotifyv1.ListSystemMentionMsgRequest{
-		RecvUid: uid,
-		Cursor:  cursor,
-		Count:   count,
-	})
+	resp, err := dep.SystemChatter().ListSystemMentionMsg(ctx,
+		&sysnotifyv1.ListSystemMentionMsgRequest{
+			RecvUid: uid,
+			Cursor:  cursor,
+			Count:   count,
+		})
 	if err != nil {
 		return nil, xerror.Wrapf(err, "system chatter list mention msg failed").
 			WithExtras("uid", uid, "cursor", cursor, "count", count).
 			WithCtx(ctx)
 	}
 
-	var (
-		mLen = len(resp.GetMessages())
-	)
+	mLen := len(resp.GetMessages())
 
 	mentionMsgs := make([]*model.MentionedMsg, 0, mLen)
 	for _, msg := range resp.GetMessages() {
@@ -130,21 +133,24 @@ func (b *Biz) ListUserMentionMsg(ctx context.Context, uid int64, cursor string, 
 }
 
 // 获取用户uid被回复的消息
-func (b *Biz) ListUserReplyMsg(ctx context.Context, uid int64, cursor string, count int32) (*ListUserReplyMsgResp, error) {
-	resp, err := dep.SystemChatter().ListSystemReplyMsg(ctx, &systemv1.ListSystemReplyMsgRequest{
-		RecvUid: uid,
-		Cursor:  cursor,
-		Count:   count,
-	})
+func (b *Biz) ListUserReplyMsg(ctx context.Context,
+	uid int64,
+	cursor string,
+	count int32,
+) (*ListUserReplyMsgResp, error) {
+	resp, err := dep.SystemChatter().ListSystemReplyMsg(ctx,
+		&systemv1.ListSystemReplyMsgRequest{
+			RecvUid: uid,
+			Cursor:  cursor,
+			Count:   count,
+		})
 	if err != nil {
 		return nil, xerror.Wrapf(err, "system chatter list system reply msg failed").
 			WithExtras("uid", uid, "cursor", cursor, "count", count).
 			WithCtx(ctx)
 	}
 
-	var (
-		mLen = len(resp.GetMessages())
-	)
+	mLen := len(resp.GetMessages())
 
 	replyMsgs := make([]*model.ReplyMsg, 0, mLen)
 	for _, msg := range resp.GetMessages() {
@@ -212,11 +218,12 @@ func (b *Biz) ListUserReplyMsg(ctx context.Context, uid int64, cursor string, co
 
 // 获取用户收到的赞消息
 func (b *Biz) ListUserLikeMsg(ctx context.Context, uid int64, cursor string) (*ListUserLikesMsgResp, error) {
-	resp, err := dep.SystemChatter().ListSystemLikesMsg(ctx, &systemv1.ListSystemLikesMsgRequest{
-		RecvUid: uid,
-		Cursor:  cursor,
-		Count:   20,
-	})
+	resp, err := dep.SystemChatter().ListSystemLikesMsg(ctx,
+		&systemv1.ListSystemLikesMsgRequest{
+			RecvUid: uid,
+			Cursor:  cursor,
+			Count:   20,
+		})
 	if err != nil {
 		return nil, xerror.Wrapf(err, "system chatter list likes msg failed").
 			WithExtras("uid", uid, "cursor", cursor).WithCtx(ctx)
@@ -289,9 +296,12 @@ func (b *Biz) ListUserLikeMsg(ctx context.Context, uid int64, cursor string) (*L
 	}, nil
 }
 
-func (b *Biz) findLikeMsgExtraLazyMsgIds(ctx context.Context,
-	msgs []*model.LikesMsg, noteLikings, commentLikings map[int64][]int64) ([]string, error) {
-
+func (b *Biz) findLikeMsgExtraLazyMsgIds(
+	ctx context.Context,
+	msgs []*model.LikesMsg,
+	noteLikings,
+	commentLikings map[int64][]int64,
+) ([]string, error) {
 	var (
 		uidCurNoteLikeStatus    map[int64]*notev1.LikeStatusList
 		uidCurCommentLikeStatus map[int64]*commentv1.BatchCheckUserLikeCommentResponse_CommentLikedList
@@ -395,10 +405,11 @@ func (b *Biz) findLikeMsgExtraLazyMsgIds(ctx context.Context,
 
 // 清除系统会话已读
 func (b *Biz) ClearChatUnread(ctx context.Context, uid int64, chatId string) error {
-	_, err := dep.SystemChatter().ClearChatUnread(ctx, &systemv1.ClearChatUnreadRequest{
-		Uid:    uid,
-		ChatId: chatId,
-	})
+	_, err := dep.SystemChatter().ClearChatUnread(ctx,
+		&systemv1.ClearChatUnreadRequest{
+			Uid:    uid,
+			ChatId: chatId,
+		})
 	if err != nil {
 		return xerror.Wrapf(err, "system chatter clear chat unread failed").
 			WithExtra("chat_id", chatId).
@@ -410,9 +421,10 @@ func (b *Biz) ClearChatUnread(ctx context.Context, uid int64, chatId string) err
 
 // 获取系统会话的未读数
 func (b *Biz) GetChatUnread(ctx context.Context, uid int64) (*model.ChatsUnreadCount, error) {
-	resp, err := dep.SystemChatter().GetAllChatsUnread(ctx, &systemv1.GetAllChatsUnreadRequest{
-		Uid: uid,
-	})
+	resp, err := dep.SystemChatter().GetAllChatsUnread(ctx,
+		&systemv1.GetAllChatsUnreadRequest{
+			Uid: uid,
+		})
 	if err != nil {
 		return nil, xerror.Wrapf(err, "system chatter get all chats unread failed").
 			WithExtra("uid", uid).
@@ -430,7 +442,10 @@ func (b *Biz) GetChatUnread(ctx context.Context, uid int64) (*model.ChatsUnreadC
 }
 
 // 模板方法: 检查原始信息是否存在 不存在时需要屏蔽消息
-func (b *Biz) lazyCheckMsgSourceTemplate(ctx context.Context, msgs []lazyCheckedMsg, extraMsgIds ...string) error {
+func (b *Biz) lazyCheckMsgSourceTemplate(ctx context.Context,
+	msgs []lazyCheckedMsg,
+	extraMsgIds ...string,
+) error {
 	var (
 		uid        = metadata.Uid(ctx)
 		numMsgs    = len(msgs)
@@ -471,8 +486,8 @@ func (b *Biz) lazyCheckMsgSourceTemplate(ctx context.Context, msgs []lazyChecked
 }
 
 func (b *Biz) checkSourcesExistence(ctx context.Context, noteIds, commentIds []int64) (
-	noteExistence, commentExistence map[int64]bool, err error) {
-
+	noteExistence, commentExistence map[int64]bool, err error,
+) {
 	noteExistence = make(map[int64]bool)
 	commentExistence = make(map[int64]bool)
 
@@ -520,13 +535,16 @@ func (b *Biz) checkSourcesExistence(ctx context.Context, noteIds, commentIds []i
 // 删除系统消息
 func (b *Biz) DeleteSysMsg(ctx context.Context, uid int64, msgId string) error {
 	if uid == 0 || msgId == "" {
-		return xerror.Wrapf(xerror.ErrArgs, "invalid params").WithExtras("uid", uid, "msg_id", msgId).WithCtx(ctx)
+		return xerror.Wrapf(xerror.ErrArgs, "invalid params").
+			WithExtras("uid", uid, "msg_id", msgId).
+			WithCtx(ctx)
 	}
 
-	_, err := dep.SystemChatter().DeleteMsg(ctx, &systemv1.DeleteMsgRequest{
-		MsgId: msgId,
-		Uid:   uid,
-	})
+	_, err := dep.SystemChatter().DeleteMsg(ctx,
+		&systemv1.DeleteMsgRequest{
+			MsgId: msgId,
+			Uid:   uid,
+		})
 	if err != nil {
 		return xerror.Wrapf(err, "sysmsg biz failed to delete msg").WithCtx(ctx)
 	}
@@ -540,10 +558,12 @@ func (b *Biz) asyncBatchDeleteMsgs(ctx context.Context, uid int64, msgIds []stri
 		xlog.Msgf("sysmsg check pending msgids length = %d", len(msgIds)).Debugx(ctx)
 		deletions := make([]*sysmsgkfkdao.DeletionEvent, 0, len(msgIds))
 		for _, msgId := range msgIds {
-			deletions = append(deletions, &sysmsgkfkdao.DeletionEvent{
-				Uid:   uid,
-				MsgId: msgId,
-			})
+			if uid != 0 && msgId != "" {
+				deletions = append(deletions, &sysmsgkfkdao.DeletionEvent{
+					Uid:   uid,
+					MsgId: msgId,
+				})
+			}
 		}
 
 		if err := kafka.Dao().SysMsgEventProducer.AsyncPutDeletion(ctx, deletions); err != nil {

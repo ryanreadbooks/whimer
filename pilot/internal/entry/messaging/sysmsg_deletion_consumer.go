@@ -16,9 +16,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-var (
-	sysMsgDeletionConsumer *kafka.Reader
-)
+var sysMsgDeletionConsumer *kafka.Reader
 
 func startSysMsgDeletionConsumer(bizz *biz.Biz) {
 	backoff := xretry.NewPermenantBackoff(time.Millisecond*100, time.Second*8, 2.0)
@@ -65,9 +63,11 @@ func startSysMsgDeletionConsumer(bizz *biz.Biz) {
 				}
 
 				msgCtx := xkafka.ContextFromKafkaHeaders(kMsg.Headers)
-				err = bizz.SysNotifyBiz.DeleteSysMsg(msgCtx, ev.Uid, ev.MsgId)
-				if err != nil {
-					xlog.Msg("pilot sysmsg.deletion.consumer biz delete sysmsg err").Err(err).Errorx(ctx)
+				if ev.Uid != 0 && ev.MsgId != "" {
+					err = bizz.SysNotifyBiz.DeleteSysMsg(msgCtx, ev.Uid, ev.MsgId)
+					if err != nil {
+						xlog.Msg("pilot sysmsg.deletion.consumer biz delete sysmsg err").Err(err).Errorx(ctx)
+					}
 				}
 			}
 

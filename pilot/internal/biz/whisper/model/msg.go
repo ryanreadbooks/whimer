@@ -6,7 +6,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	pbmsg "github.com/ryanreadbooks/whimer/msger/api/msg"
 	pbuserchatv1 "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
-	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/user/model"
+	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 )
 

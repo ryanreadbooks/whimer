@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package conductor.api.namespace.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/conductor/api/namespace/v1;namespace";
+
+message Namespace {
+  // 命名空间id
+  string id = 1;
+
+  // 命名空间名称
+  string name = 2;
+}
+

@@ -27,6 +27,10 @@ func NewProducer(w, sw *xkafka.Writer) *SysMsgProducer {
 }
 
 func (p *SysMsgProducer) AsyncPutDeletion(ctx context.Context, evs []*DeletionEvent) error {
+	if len(evs) == 0 {
+		return nil
+	}
+
 	msgs := makeDeletionEventKafkaMessages(evs)
 
 	ctx = context.WithoutCancel(ctx)
@@ -34,6 +38,10 @@ func (p *SysMsgProducer) AsyncPutDeletion(ctx context.Context, evs []*DeletionEv
 }
 
 func (p *SysMsgProducer) PutDeletion(ctx context.Context, evs []*DeletionEvent) error {
+	if len(evs) == 0 {
+		return nil
+	}
+
 	msgs := makeDeletionEventKafkaMessages(evs)
 
 	return p.syncWriter.WriteMessages(ctx, msgs...)

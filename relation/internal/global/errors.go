@@ -3,7 +3,7 @@ package global
 import "github.com/ryanreadbooks/whimer/misc/xerror"
 
 const (
-	RelationErrCode = 60000
+	RelationErrCode = xerror.BizRelation
 
 	ErrInvalidArgsCode = RelationErrCode + iota*1000
 	ErrInternalCode

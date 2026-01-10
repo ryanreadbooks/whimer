@@ -3,11 +3,11 @@ package model
 import (
 	"context"
 
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model"
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
-	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 )
 
 // 包含发起请求的用户和该笔记的交互记录
@@ -18,6 +18,8 @@ type Interaction struct {
 }
 
 type NoteItemImageList []*model.NoteItemImage
+
+type NoteItemVideoList []*model.NoteItemVideo
 
 type Author struct {
 	Uid      int64  `json:"uid"`
@@ -41,9 +43,11 @@ type FeedNoteItem struct {
 	CreateAt int64             `json:"create_at"`
 	UpdateAt int64             `json:"update_at"`
 	Images   NoteItemImageList `json:"images"`
+	Videos   NoteItemVideoList `json:"videos"`
 	Likes    int64             `json:"likes"` // 笔记总点赞数
 	Ip       string            `json:"-"`
 	IpLoc    string            `json:"ip_loc"`
+	Type     imodel.NoteType   `json:"type"`
 
 	// 下面这些字段要单独设置 不从note grpc接口中拿
 	Author   *Author     `json:"author"`   // 作者信息
@@ -65,9 +69,23 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 		return nil
 	}
 
-	images := make(NoteItemImageList, 0, len(pb.Images))
-	for _, img := range pb.Images {
-		images = append(images, model.NewNoteImageFromPb(img))
+	var (
+		images NoteItemImageList
+		videos NoteItemVideoList
+	)
+
+	if len(pb.Images) > 0 {
+		images = make(NoteItemImageList, 0, len(pb.Images))
+		for _, img := range pb.Images {
+			images = append(images, model.NewNoteImageFromPb(img, false))
+		}
+	}
+
+	if len(pb.Videos) > 0 {
+		videos = make(NoteItemVideoList, 0, len(pb.Videos))
+		for _, video := range pb.Videos {
+			videos = append(videos, model.NewNoteVideoFromPb(video))
+		}
 	}
 
 	ctx := context.Background()
@@ -80,8 +98,10 @@ func NewFeedNoteItemFromPb(pb *notev1.FeedNoteItem) *FeedNoteItem {
 		CreateAt: pb.CreatedAt,
 		UpdateAt: pb.UpdatedAt,
 		Images:   images,
+		Videos:   videos,
 		Likes:    pb.Likes,
 		Ip:       pb.Ip,
 		IpLoc:    ipLoc,
+		Type:     imodel.ConvertNoteTypeFromPb(pb.NoteType),
 	}
 }

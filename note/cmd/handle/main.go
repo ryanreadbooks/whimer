@@ -33,13 +33,17 @@ func main() {
 	infra.Init(&config.Conf)
 	defer infra.Close()
 
-	bizz := biz.New()
-	svc := srv.NewService(&config.Conf, bizz)
+	// 获取 data 层实例
+	dt := infra.Data()
+
+	// 创建 biz 层，注入 data 依赖
+	bizz := biz.New(dt)
+	svc := srv.MustNewService(&config.Conf, bizz, dt)
 
 	var err error
 	switch *handleType {
 	case NoteSyncToEs:
-		err = notesynces.Handle(&config.Conf, bizz, svc)
+		err = notesynces.Handle(&config.Conf, bizz, svc, dt)
 	default:
 		xlog.Msgf("unsupported handle type: %s", *handleType).Error()
 		os.Exit(1)

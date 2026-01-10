@@ -18,6 +18,12 @@ log:
   serviceName: pilot
   stat: false
 
+mysql:
+  user: ${ENV_DB_USER}
+  pass: ${ENV_DB_PASS}
+  addr: ${ENV_DB_ADDR}
+  db_name: ${ENV_DB_NAME}
+
 backend:
   note:
     hosts: ${ENV_ETCD_HOSTS}
@@ -40,6 +46,9 @@ backend:
   wslink:
     hosts: ${ENV_ETCD_HOSTS}
     key: whimer.wslink.rpc
+  conductor:
+    hosts: ${ENV_ETCD_HOSTS}
+    key: whimer.conductor.rpc
 
 obfuscate:
   note:
@@ -68,8 +77,12 @@ upload_auth_sign:
   sk: ${ENV_OSS_SK}
 
 oss:
+  use_secure: false
   endpoint: ${ENV_OSS_ENDPOINT}
   location: ${ENV_OSS_LOCATION}
+  user: ${ENV_OSS_USER}
+  password: ${ENV_OSS_PASS}
+  credential_duration_sec: 1800
   display_endpoint: http://s1-file.whimer.com
   upload_endpoint: http://s1-upload.whimer.com
 
@@ -79,6 +92,19 @@ upload_resource_define:
       bucket: nota
       prefix: assets
       prepend_bucket: true
+  - name: note_video
+    meta:
+      bucket: videos
+      prefix: note/cosmic
+      prepend_bucket: true
+      prepend_prefix: true
+      prefix_segment: note # 取prefix开头的note
+  - name: note_video_cover
+    meta:
+      bucket: nota
+      prefix: cover
+      prepend_bucket: true
+      prepend_prefix: true
   - name: comment_image
     meta:
       bucket: pics

@@ -2,42 +2,234 @@ package srv
 
 import (
 	"context"
+	"errors"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
+	"github.com/ryanreadbooks/whimer/misc/xlog"
+	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
+	"github.com/ryanreadbooks/whimer/note/internal/global"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
+	eventmodel "github.com/ryanreadbooks/whimer/note/internal/model/event"
+	"github.com/ryanreadbooks/whimer/note/internal/srv/procedure"
+)
+
+// type alias for convenience
+type (
+	CreateNoteRequest = biz.CreateNoteRequest
+	UpdateNoteRequest = biz.UpdateNoteRequest
+	DeleteNoteRequest = biz.DeleteNoteRequest
 )
 
 type NoteCreatorSrv struct {
 	parent *Service
 
-	noteBiz         biz.NoteBiz
-	noteCreatorBiz  biz.NoteCreatorBiz
-	noteInteractBiz biz.NoteInteractBiz
+	biz              *biz.Biz
+	noteBiz          *biz.NoteBiz
+	noteProcedureBiz *biz.NoteProcedureBiz
+	noteCreatorBiz   *biz.NoteCreatorBiz
+	noteInteractBiz  *biz.NoteInteractBiz
+	noteEventBiz     *biz.NoteEventBiz
+	procedureMgr     *procedure.Manager
 }
 
-func NewNoteCreatorSrv(p *Service, biz biz.Biz) *NoteCreatorSrv {
+func NewNoteCreatorSrv(p *Service, biz *biz.Biz, procedureMgr *procedure.Manager) *NoteCreatorSrv {
 	return &NoteCreatorSrv{
-		parent:          p,
-		noteBiz:         biz.Note,
-		noteCreatorBiz:  biz.Creator,
-		noteInteractBiz: biz.Interact,
+		parent:           p,
+		biz:              biz,
+		noteBiz:          biz.Note,
+		noteProcedureBiz: biz.Procedure,
+		noteCreatorBiz:   biz.Creator,
+		noteInteractBiz:  biz.Interact,
+		noteEventBiz:     biz.NoteEvent,
+
+		procedureMgr: procedureMgr,
 	}
 }
 
 // 新建笔记
-func (s *NoteCreatorSrv) Create(ctx context.Context, req *model.CreateNoteRequest) (int64, error) {
-	return s.noteCreatorBiz.CreateNote(ctx, req)
+func (s *NoteCreatorSrv) Create(ctx context.Context, req *CreateNoteRequest) (int64, error) {
+	// check tag ids
+	tagIds := req.TagIds
+	if len(tagIds) > 0 {
+		reqTag, err := s.noteBiz.BatchGetTag(ctx, tagIds)
+		if err != nil {
+			return 0, xerror.Wrapf(err, "srv creator batch get tag failed").WithCtx(ctx)
+		}
+
+		if len(reqTag) != len(tagIds) {
+			return 0, global.ErrTagNotFound
+		}
+	}
+
+	var (
+		newNote *model.Note
+		proceed func(ctx context.Context) bool
+	)
+
+	// create note
+	err := s.biz.Tx(ctx, func(ctx context.Context) error {
+		var errTx error
+		newNote, errTx = s.noteCreatorBiz.CreateNote(ctx, req)
+		if errTx != nil {
+			return xerror.Wrapf(errTx, "srv creator create note failed").WithCtx(ctx)
+		}
+
+		// 初始化流程记录
+		proceed, errTx = s.procedureMgr.RunPipeline(ctx, &procedure.RunPipelineParam{
+			Note:       newNote,
+			StartStage: procedure.StartAtAssetProcess(),
+		})
+		if errTx != nil {
+			return xerror.Wrapf(errTx, "srv creator init procedure failed").WithCtx(ctx)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return 0, xerror.Wrapf(err, "srv creator create note tx failed").WithCtx(ctx)
+	}
+
+	// 继续执行流程任务
+	_ = proceed(ctx)
+
+	return newNote.NoteId, nil
 }
 
 // 更新笔记
-func (s *NoteCreatorSrv) Update(ctx context.Context, req *model.UpdateNoteRequest) error {
-	return s.noteCreatorBiz.UpdateNote(ctx, req)
+func (s *NoteCreatorSrv) Update(ctx context.Context, req *UpdateNoteRequest) error {
+	var (
+		newNote      *model.Note
+		proceed      func(ctx context.Context) bool
+		oldNoteCore  *model.NoteCore
+		abortCurrent bool
+		curTaskId    string
+		curProcStage model.ProcedureType
+	)
+
+	err := s.biz.Tx(ctx, func(ctx context.Context) error {
+		var errTx error
+		newNote, oldNoteCore, errTx = s.noteCreatorBiz.UpdateNote(ctx, req)
+		if errTx != nil {
+			return xerror.Wrapf(errTx, "srv creator update note failed").WithCtx(ctx)
+		}
+
+		// 某些笔记状态下执行更新操作时需要中断正在处理的流程
+		if model.IsNoteStateConsideredAsAuditing(oldNoteCore.State) {
+			abortCurrent = true
+			curProcStage = model.MapNoteStateToProcedureType(oldNoteCore.State)
+			curTask, errTx := s.procedureMgr.GetTask(ctx, newNote.NoteId, curProcStage)
+			if errTx != nil {
+				// log but not return error
+				xlog.Msg("srv creator get task id failed").
+					Err(errTx).
+					Extras("note_id", newNote.NoteId, "proctype", curProcStage).
+					Errorx(ctx)
+			}
+			if curTask != nil {
+				curTaskId = curTask.TaskId
+			}
+
+			// 取消不了就认为整体流程都失败
+			errTx = s.procedureMgr.CancelTask(ctx, newNote.NoteId, curProcStage)
+			if errTx != nil {
+				return xerror.Wrapf(errTx, "srv creator cancel task failed").WithCtx(ctx)
+			}
+		}
+
+		startAt := procedure.StartAtAssetProcess()
+		if newNote.State != model.NoteStateInit {
+			startAt = procedure.StartAtAudit()
+		}
+
+		proceed, errTx = s.procedureMgr.RunPipeline(ctx, &procedure.RunPipelineParam{
+			Note:       newNote,
+			StartStage: startAt,
+		})
+		if errTx != nil {
+			return xerror.Wrapf(errTx, "srv creator init procedure failed").WithCtx(ctx)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "srv creator update note tx failed").WithCtx(ctx)
+	}
+
+	if abortCurrent && curProcStage != "" && curTaskId != "" {
+		// 有必要时终止当前流程
+		err = s.procedureMgr.Abort(ctx, newNote, curProcStage, curTaskId)
+		if err != nil {
+			xlog.Msg("srv creator abort procedure failed").
+				Err(err).
+				Extras("note_id", newNote.NoteId, "proctype", curProcStage, "task_id", curTaskId).
+				Errorx(ctx)
+		}
+	}
+
+	// 继续后续流程
+	_ = proceed(ctx)
+
+	return nil
 }
 
 // 删除笔记
-func (s *NoteCreatorSrv) Delete(ctx context.Context, req *model.DeleteNoteRequest) error {
-	return s.noteCreatorBiz.DeleteNote(ctx, req)
+func (s *NoteCreatorSrv) Delete(ctx context.Context, req *DeleteNoteRequest) error {
+	var (
+		oldNote      *model.Note
+		curTaskId    string
+		curProcStage model.ProcedureType
+	)
+
+	err := s.biz.Tx(ctx, func(ctx context.Context) error {
+		var errTx error
+		old, errTx := s.noteCreatorBiz.DeleteNote(ctx, req)
+		if errTx != nil {
+			return xerror.Wrapf(errTx, "srv create delete note failed").WithCtx(ctx)
+		}
+
+		curTask, errTx := s.procedureMgr.GetTask(ctx, old.NoteId,
+			model.MapNoteStateToProcedureType(old.State))
+		if errTx != nil {
+			if errors.Is(errTx, global.ErrNoteProcedureNotFound) {
+				return nil
+			}
+			return xerror.Wrapf(errTx, "srv creator get task id failed").WithCtx(ctx)
+		}
+
+		if curTask != nil {
+			curTaskId = curTask.TaskId
+		}
+		curProcStage = model.MapNoteStateToProcedureType(old.State)
+		oldNote = model.NoteFromNoteCore(old)
+
+		return nil
+	})
+	if err != nil {
+		return xerror.Wrapf(err, "srv creator delete note tx failed").WithCtx(ctx)
+	}
+
+	// 删除笔记成功 此时abort掉现有procedure
+	if curTaskId != "" && curProcStage != "" {
+		err = s.procedureMgr.Abort(ctx, oldNote, curProcStage, curTaskId)
+		if err != nil {
+			xlog.Msg("srv creator abort procedure failed").
+				Err(err).
+				Extras("note_id", oldNote.NoteId, "proctype", curProcStage, "task_id", curTaskId).
+				Errorx(ctx)
+		}
+	}
+
+	// 发布删除事件
+	if err := s.noteEventBiz.NoteDeleted(ctx, oldNote, eventmodel.NoteDeleteReasonPureDelete); err != nil {
+		// 这步失败仅打日志
+		xlog.Msg("srv creator publish note deleted event failed").
+			Err(err).
+			Extras("note_id", oldNote.NoteId).
+			Errorx(ctx)
+	}
+
+	return nil
 }
 
 // 列出某用户所有笔记
@@ -53,8 +245,8 @@ func (s *NoteCreatorSrv) List(ctx context.Context, cursor int64, count int32) (*
 	return resp, nextPage, nil
 }
 
-func (s *NoteCreatorSrv) PageList(ctx context.Context, page, count int32) (*model.Notes, int64, error) {
-	resp, total, err := s.noteCreatorBiz.PageListNote(ctx, page, count)
+func (s *NoteCreatorSrv) PageList(ctx context.Context, page, count int32, lcState notev1.NoteLifeCycleState) (*model.Notes, int64, error) {
+	resp, total, err := s.noteCreatorBiz.PageListNote(ctx, page, count, lcState)
 	if err != nil {
 		return nil, 0, xerror.Wrapf(err, "srv creator page list note failed").WithCtx(ctx)
 	}

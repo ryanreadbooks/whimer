@@ -16,6 +16,54 @@ enum NoteAssetType {
   VIDEO                       = 2;
 }
 
+// 笔记生命周期状态
+enum NoteLifeCycleState {
+  NOTE_LIFE_CYCLE_STATE_UNSPECIFIED = 0;
+
+  // 已发布
+  LIFE_CYCLE_STATE_PUBLISHED = 1;
+
+  // 审核中
+  LIFE_CYCLE_STATE_AUDITING = 2;
+
+  // 审核未通过
+  LIFE_CYCLE_STATE_REJECTED = 3;
+
+  // 被锁定
+  LIFE_CYCLE_STATE_BANNED = 4;
+}
+
+// 笔记状态的值的顺序有特殊含义 不能改变 否则会影响状态升级的逻辑
+//
+// 枚举值小的状态表示状态更靠前
+enum NoteState {
+  NOTE_STATE_UNSPECIFIED = 0;
+
+  // 资源处理中
+  PROCESSING = 10;
+
+  // 资源处理完成
+  PROCESSED = 11;
+
+  // 资源处理失败
+  PROCESS_FAILED = 12;
+
+  // 审核中
+  AUDITING = 20;
+
+  // 审核不通过
+  REJECTED = 21;
+
+  // 审核通过
+  AUDIT_PASSED = 22;
+
+  // 已发布
+  PUBLISHED = 100;
+
+  // 被封禁
+  BANNED = 101;
+}
+
 message NoteTag {
   int64  id    = 1;
   string name  = 2;
@@ -29,19 +77,23 @@ message NoteAtUser {
 
 // 笔记全量信息
 message NoteItem {
-  int64               note_id   = 1;
-  string              title     = 2;
-  string              desc      = 3;
-  int32               privacy   = 4;
-  int64               create_at = 5;
-  int64               update_at = 6;
-  repeated NoteImage  images    = 7;
-  int64               likes     = 8;   // 点赞数量
-  int64               replies   = 9;   //评论数量
-  repeated NoteTag    tags      = 10;  // 笔记的标签
-  int64               owner     = 11;
-  string              ip        = 12;
-  repeated NoteAtUser at_users  = 13;  // @人
+  int64               note_id          = 1;
+  string              title            = 2;
+  string              desc             = 3;
+  int32               privacy          = 4;
+  int64               create_at        = 5;
+  int64               update_at        = 6;
+  repeated NoteImage  images           = 7;
+  int64               likes            = 8;   // 点赞数量
+  int64               replies          = 9;   //评论数量
+  repeated NoteTag    tags             = 10;  // 笔记的标签
+  int64               owner            = 11;
+  string              ip               = 12;
+  repeated NoteAtUser at_users         = 13;  // @人
+  NoteAssetType       note_type        = 14;  // 笔记类型 图片笔记或者视频笔记
+  NoteState           state            = 15;  // 笔记状态(内部状态)
+  repeated NoteVideo  videos           = 16;
+  NoteLifeCycleState  life_cycle_state = 17;  // 笔记生命周期状态(对外状态)
 }
 
 message NoteImageMeta {
@@ -54,7 +106,23 @@ message NoteImage {
   string        key  = 1;
   int32         type = 2;
   NoteImageMeta meta = 3;
-  // string        url_prv = 3;
+}
+
+message NoteVideo {
+  string        key  = 1;
+  int32         type = 2;  // 资源类型 恒为VIDEO
+  NoteVideoMeta meta = 3;
+}
+
+message NoteVideoMeta {
+  uint32 width       = 1;
+  uint32 height      = 2;
+  string format      = 3;
+  double duration    = 4;
+  int64  bitrate     = 5;
+  string codec       = 6;
+  double framerate   = 7;
+  string audio_codec = 8;
 }
 
 // 笔记信息的概览（一般用于首页，其它非创作者获取笔记的场景）
@@ -69,6 +137,8 @@ message FeedNoteItem {
   int64              replies    = 8;  // 点赞数
   int64              updated_at = 9;
   string             ip         = 10;
+  NoteAssetType      note_type  = 11;  // 笔记类型 图片笔记或者视频笔记
+  repeated NoteVideo videos     = 12;  // 笔记视频
 }
 
 message FeedNoteItemExt {

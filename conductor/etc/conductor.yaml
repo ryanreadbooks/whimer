@@ -1,0 +1,52 @@
+grpc:
+  mode: dev
+  name: conductor-rpc
+  listenon: 0.0.0.0:10200
+  methodtimeouts:
+    - fullmethod: /conductor.api.workerservice.v1.WorkerService/LongPoll
+      timeout: 30s
+  log:
+    level: debug
+  etcd:
+    hosts: ${ENV_ETCD_HOSTS}
+    key: whimer.conductor.rpc
+  telemetry:
+    name: conductor
+    endpoint: ${ENV_JAEGER_ENDPOINT}
+    sampler: 1.0
+    batcher: jaeger
+  
+
+log:
+  servicename: conductor
+  stat: false
+
+mysql:
+  user: ${ENV_DB_USER}
+  pass: ${ENV_DB_PASS}
+  addr: ${ENV_DB_ADDR}
+  db_name: ${ENV_DB_NAME}
+
+redis:
+  host: ${ENV_REDIS_HOST}
+
+kafka:
+  brokers: ${ENV_KFK_BROKERS}
+  username: ${ENV_KFK_USERNAME}
+  password: ${ENV_KFK_PASSWORD}
+  
+etcd:
+  hosts: ${ENV_ETCD_HOSTS}
+  key: /whimer/conductor/shard
+
+shard:
+  claim_retry_interval: 500ms
+  check_interval: 5s
+
+scan_config:
+  process_interval: 1s
+  retry_interval: 1s
+  expire_interval: 500ms
+
+worker_config:
+  long_poll_timeout: 30s

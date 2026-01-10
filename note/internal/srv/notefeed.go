@@ -13,23 +13,26 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xmap"
 	maps "github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
+	"github.com/ryanreadbooks/whimer/note/internal/data"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
-	"github.com/ryanreadbooks/whimer/note/internal/infra"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
+	"github.com/ryanreadbooks/whimer/note/internal/model/convert"
 )
 
 type NoteFeedSrv struct {
 	Ctx *Service
 
-	noteBiz         biz.NoteBiz
-	noteCreatorBiz  biz.NoteCreatorBiz
-	noteInteractBiz biz.NoteInteractBiz
+	data            *data.Data
+	noteBiz         *biz.NoteBiz
+	noteCreatorBiz  *biz.NoteCreatorBiz
+	noteInteractBiz *biz.NoteInteractBiz
 }
 
-func NewNoteFeedSrv(ctx *Service, biz biz.Biz) *NoteFeedSrv {
+func NewNoteFeedSrv(ctx *Service, biz *biz.Biz, dt *data.Data) *NoteFeedSrv {
 	s := &NoteFeedSrv{
 		Ctx:             ctx,
+		data:            dt,
 		noteBiz:         biz.Note,
 		noteCreatorBiz:  biz.Creator,
 		noteInteractBiz: biz.Interact,
@@ -49,14 +52,14 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 		err    error
 		lastId int64
 		wg     sync.WaitGroup
-		items  []*notedao.Note // items为随机获取的结果
+		items  []*notedao.NotePO // items为随机获取的结果
 	)
 
 	wg.Add(1)
 	concurrent.DoneInCtx(ctx, time.Second*10, func(sCtx context.Context) {
 		defer wg.Done()
 		//  TODO optimize by using local cache
-		id, sErr := infra.Dao().NoteDao.GetPublicLastId(sCtx)
+		id, sErr := s.data.Note.GetPublicLastId(sCtx)
 		if sErr != nil {
 			xlog.Msg("note repo get public last id failed").Err(err).Errorx(sCtx)
 		}
@@ -64,28 +67,28 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 	})
 
 	// TODO optimize by using local cache
-	maxCnt, err := infra.Dao().NoteDao.GetPublicCount(ctx)
+	maxCnt, err := s.data.Note.GetPublicCount(ctx)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "note repo get public count failed").WithCtx(ctx)
 	}
 
 	wg.Wait()
 
-	itemsMap := make(map[int64]*notedao.Note, count)
+	itemsMap := make(map[int64]*notedao.NotePO, count)
 	if maxCnt <= int64(count) {
 		// we fetch all
-		items, err = infra.Dao().NoteDao.GetPublicAll(ctx)
+		items, err = s.data.Note.GetPublicAll(ctx)
 		if err != nil {
 			return nil, xerror.Wrapf(err, "note repo get public all failed").WithCtx(ctx).WithExtra("count", count)
 		}
 	} else {
-		var notes []*notedao.Note
+		var notes []*notedao.NotePO
 		for tryCnt := 1; tryCnt <= 8 && len(itemsMap) < count; tryCnt++ {
 			begin := rand.Int63n(int64(lastId))
 			if begin == 0 {
 				begin = 1
 			}
-			notes, err = infra.Dao().NoteDao.GetPublicByCursor(ctx, int64(begin), count)
+			notes, err = s.data.Note.GetPublicByCursor(ctx, int64(begin), count)
 			if err != nil {
 				return nil, xerror.Wrapf(err, "note repo get public by cursor failed").
 					WithExtra("begin", begin).
@@ -99,7 +102,7 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 		items = maps.Values(itemsMap)
 	}
 
-	result, err := s.noteBiz.AssembleNotes(ctx, model.NoteSliceFromDao(items))
+	result, err := s.noteBiz.AssembleNotes(ctx, convert.NoteSliceFromDao(items))
 	if err != nil {
 		return nil, xerror.Wrapf(err, "feed srv assemble notes failed")
 	}
@@ -112,17 +115,19 @@ func (s *NoteFeedSrv) randomGet(ctx context.Context, count int) (*model.Notes, e
 
 // 获取笔记详情 不包含private范围的笔记
 func (s *NoteFeedSrv) GetNoteDetail(ctx context.Context, noteId int64) (*model.Note, error) {
-	var (
-		uid = metadata.Uid(ctx)
-	)
+	uid := metadata.Uid(ctx)
 
 	note, err := s.noteBiz.GetNote(ctx, noteId)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "get note detail failed").WithExtra("noteId", noteId).WithCtx(ctx)
 	}
 
-	if note.Privacy == global.PrivacyPrivate && note.Owner != uid {
+	if note.Privacy == model.PrivacyPrivate && note.Owner != uid {
 		return nil, global.ErrNoteNotPublic
+	}
+
+	if note.State != model.NoteStatePublished {
+		return nil, global.ErrNoteNotFound
 	}
 
 	res := &model.Notes{Items: []*model.Note{note}}
@@ -145,6 +150,8 @@ func (s *NoteFeedSrv) GetNoteAuthor(ctx context.Context, noteId int64) (int64, e
 
 // 批量获取笔记详情 不包含private范围的笔记
 func (s *NoteFeedSrv) BatchGetNoteDetail(ctx context.Context, noteIds []int64) (map[int64]*model.Note, error) {
+	operator := metadata.Uid(ctx)
+
 	notes, err := s.noteBiz.BatchGetNote(ctx, noteIds)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "batch get note failed").WithCtx(ctx)
@@ -155,8 +162,19 @@ func (s *NoteFeedSrv) BatchGetNoteDetail(ctx context.Context, noteIds []int64) (
 	}
 
 	// 过滤掉private的笔记
+	// 过滤掉未发布的笔记
 	pNotes := xmap.Filter(notes, func(k int64, v *model.Note) bool {
-		return v.Privacy == global.PrivacyPrivate
+		// 如果请求者不是笔记作者 则需要过滤掉private
+		// 并且还要过滤掉未发布的笔记
+		if operator != v.Owner && v.Privacy == model.PrivacyPrivate {
+			return true
+		}
+
+		if v.State != model.NoteStatePublished {
+			return true
+		}
+
+		return false
 	})
 
 	nns := &model.Notes{Items: xmap.Values(pNotes)}
@@ -191,7 +209,8 @@ func (s *NoteFeedSrv) GetUserRecentNotes(ctx context.Context, user int64, maxCou
 
 // 列出用户公开的笔记
 func (s *NoteFeedSrv) ListUserPublicNotes(ctx context.Context, user int64, cursor int64, count int32) (*model.Notes,
-	model.PageResult, error) {
+	model.PageResult, error,
+) {
 	result, page, err := s.noteBiz.ListUserPublicNote(ctx, user, cursor, count)
 	if err != nil {
 		return nil, page, xerror.Wrapf(err, "feed srv failed to lsit user public note")
@@ -220,20 +239,18 @@ func (s *NoteFeedSrv) GetUserPublicPostedCount(ctx context.Context, user int64) 
 }
 
 func (s *NoteFeedSrv) BatchCheckNoteExistence(ctx context.Context, noteIds []int64) (map[int64]bool, error) {
-	var (
-		reqUid = metadata.Uid(ctx)
-	)
+	reqUid := metadata.Uid(ctx)
 
 	notes, err := s.noteBiz.BatchGetNoteWithoutAsset(ctx, noteIds)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "note biz failed to batch get")
 	}
 
-	var result = make(map[int64]bool, len(notes))
+	result := make(map[int64]bool, len(notes))
 	for _, noteId := range noteIds {
 		if target, ok := notes[noteId]; ok {
 			// 如果笔记存在，公开笔记所有人都可访问，私有笔记只有所有者可访问
-			result[noteId] = target.Privacy != global.PrivacyPrivate || target.Owner == reqUid
+			result[noteId] = target.Privacy != model.PrivacyPrivate || target.Owner == reqUid
 		} else {
 			result[noteId] = false
 		}

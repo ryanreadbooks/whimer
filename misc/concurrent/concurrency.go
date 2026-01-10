@@ -35,9 +35,10 @@ const (
 )
 
 type SafeGo2Opt struct {
-	Name       string
-	Job        func(ctx context.Context) error
-	LogOnError bool
+	Name             string
+	Job              func(ctx context.Context) error
+	LogOnError       bool
+	InheritCtxCancel bool
 }
 
 func spanCtxWithoutCancel(parent context.Context, spanName, jobName string) (context.Context, oteltrace.Span) {
@@ -79,7 +80,13 @@ func SafeGo2(ctx context.Context, opt SafeGo2Opt) {
 	}
 
 	go func() {
-		newCtx, span := spanCtxWithoutCancel(ctx, traceSafeGoSpanName, opt.Name)
+		var newCtx context.Context
+		var span oteltrace.Span
+		if opt.InheritCtxCancel {
+			newCtx, span = spanCtxFrom(ctx, traceSafeGoSpanName, opt.Name)
+		} else {
+			newCtx, span = spanCtxWithoutCancel(ctx, traceSafeGoSpanName, opt.Name)
+		}
 		defer func() {
 			if err := recover(); err != nil {
 				logx.ErrorStackf("panic: %v", err)
@@ -94,6 +101,16 @@ func SafeGo2(ctx context.Context, opt SafeGo2Opt) {
 
 		setSpanStatus(span, err)
 	}()
+}
+
+func SimpleSafeGo(
+	ctx context.Context,
+	name string,
+	job func(ctx context.Context) error) {
+	SafeGo2(ctx, SafeGo2Opt{
+		Name: name,
+		Job:  job,
+	})
 }
 
 type DoneInJob func(ctx context.Context)

@@ -33,7 +33,7 @@ func (m *ReplyMsg) DoNotReveal() {
 
 	m.Content = ""
 	m.Status = MsgStatusNoReveal
-	m.Id = ""
+	// m.Id = "" // id需要保留在外部删除使用
 	m.Type = ""
 	m.SendAt = 0
 	m.Uid = 0

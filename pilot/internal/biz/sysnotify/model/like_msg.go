@@ -24,7 +24,7 @@ func (m *LikesMsg) DoNotReveal() {
 	}
 
 	m.Status = MsgStatusNoReveal
-	m.Id = ""
+	// m.Id = "" // Id需要保留外部删除使用
 	m.SendAt = 0
 	m.Type = ""
 	m.Uid = 0

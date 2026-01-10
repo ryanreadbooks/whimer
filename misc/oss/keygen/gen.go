@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	googleuuid "github.com/google/uuid"
 	"github.com/ryanreadbooks/whimer/misc/utils"
+	"github.com/ryanreadbooks/whimer/misc/uuid"
 )
 
 type Stringer interface {
@@ -19,13 +20,13 @@ type Stringer interface {
 type RandomStringer struct{}
 
 func (s RandomStringer) GetRandomString() string {
-	return uuid.NewString() + strconv.FormatInt(time.Now().UnixNano(), 10)
+	return googleuuid.NewString() + strconv.FormatInt(time.Now().UnixNano(), 10)
 }
 
 type RandomStringerV7 struct{}
 
 func (s RandomStringerV7) GetRandomString() string {
-	return utils.Must1(uuid.NewV7()).String()
+	return uuid.NewUUID().String()
 }
 
 type Generator struct {
@@ -78,7 +79,8 @@ func WithStringer(stringer Stringer) Option {
 
 func NewGenerator(opts ...Option) *Generator {
 	gen := &Generator{
-		stringer: RandomStringer{},
+		stringer:      RandomStringer{},
+		prependBucket: true,
 	}
 
 	for _, o := range opts {
@@ -127,4 +129,55 @@ func (g *Generator) Gen() string {
 	}
 
 	return prefix + res
+}
+
+// format:
+// /[bucket]/[prefix]/string_[suffix]
+//
+// unwrap bucket and key
+func (g *Generator) Unwrap(s string) (bucket, key string, ok bool) {
+	if !g.prependBucket {
+		return g.bucket, s, true
+	}
+
+	// bucket is prepended
+	if !strings.HasPrefix(s, g.bucket+"/") {
+		ok = false
+		return
+	}
+
+	key = strings.TrimPrefix(s, g.bucket+"/")
+	return g.bucket, key, true
+}
+
+// 检查s是否是由该生成器生成的
+func (g *Generator) Check(s string) (ok bool) {
+	if g.prependBucket {
+		if !strings.HasPrefix(s, g.bucket+"/") {
+			return false
+		}
+	}
+
+	s = strings.TrimPrefix(s, g.bucket+"/")
+
+	if g.prependPrefix {
+		if !strings.HasPrefix(s, g.prefix+"/") {
+			return false
+		}
+	}
+
+	return true
+}
+
+// 去除s中的bucket和prefix前缀 只返回key本身
+func (g *Generator) TrimBucketAndPrefix(s string) string {
+	if g.prependBucket {
+		s = strings.TrimPrefix(s, g.bucket+"/")
+	}
+
+	if g.prependPrefix {
+		s = strings.TrimPrefix(s, g.prefix+"/")
+	}
+
+	return s
 }

@@ -17,4 +17,5 @@ inputs:
   - directory: msger/api
   - directory: wslink/api
   - directory: search/api
+  - directory: conductor/api
   - directory: apiextension
