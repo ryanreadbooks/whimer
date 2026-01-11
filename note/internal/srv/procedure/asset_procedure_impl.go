@@ -81,7 +81,7 @@ func (p *AssetProcedure) Execute(ctx context.Context, param *ProcedureParam) (st
 }
 
 // 返回的note只有basic信息 没有额外信息
-func (p *AssetProcedure) upgradeStateCheck(
+func (p *AssetProcedure) upgradeNoteStateCheck(
 	ctx context.Context,
 	noteId int64,
 	compareState model.NoteState,
@@ -110,7 +110,7 @@ func (p *AssetProcedure) OnSuccess(ctx context.Context, result *ProcedureResult)
 	noteId, taskId, arg := result.NoteId, result.TaskId, result.Arg
 
 	// 简单幂等保证
-	note, abort := p.upgradeStateCheck(ctx, noteId, model.NoteStateProcessed)
+	note, abort := p.upgradeNoteStateCheck(ctx, noteId, model.NoteStateProcessed)
 	if abort {
 		return true, nil
 	}
@@ -172,7 +172,7 @@ func (p *AssetProcedure) OnFailure(ctx context.Context, result *ProcedureResult)
 	noteId, taskId := result.NoteId, result.TaskId
 
 	// 简单幂等保证
-	note, abort := p.upgradeStateCheck(ctx, noteId, model.NoteStateProcessFailed)
+	note, abort := p.upgradeNoteStateCheck(ctx, noteId, model.NoteStateProcessFailed)
 	if abort {
 		return true, nil
 	}
