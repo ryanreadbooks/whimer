@@ -28,6 +28,6 @@ kafka:
   password: ${ENV_KFK_PASSWORD}
 
 consumer_topic_config:
-  es_note_event:
+  search_note_index_events:
     batch_size: 50
     batch_timeout: 2s

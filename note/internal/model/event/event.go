@@ -59,5 +59,5 @@ type NoteEvent struct {
 	Type      EventType `json:"type"`      // 事件类型
 	NoteId    string    `json:"note_id"`   // 笔记id 可用于对外暴露为混淆字符串类型
 	Timestamp int64     `json:"timestamp"` // 事件时间戳 unix milisecond
-	Payload   any       `json:"payload"`   // 事件payload
+	Payload   []byte    `json:"payload"`   // 事件payload
 }

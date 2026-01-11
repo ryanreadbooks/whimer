@@ -85,7 +85,7 @@ func (b *Biz) PageListNotes(ctx context.Context, page, count int32, status model
 
 // AfterNoteUpserted 笔记创建/更新后的处理
 func (b *Biz) AfterNoteUpserted(ctx context.Context, note *notev1.NoteItem) {
-	b.AsyncNoteToSearcher(ctx, note.NoteId, note)
+	// b.AsyncNoteToSearcher(ctx, note.NoteId, note) // 改为note_event处理
 	b.NotifyWhenAtUsers(ctx, note)
 	b.AppendRecentContacts(ctx, note)
 }

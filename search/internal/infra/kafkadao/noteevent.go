@@ -28,8 +28,8 @@ type NoteEvent struct {
 }
 
 const (
-	EsNoteTopic      = "es_note_events"       // 笔记相关事件主题
-	EsNoteTopicGroup = "es_note_events_group" // 笔记相关事件消费者组名称
+	EsNoteTopic      = "search_note_index_events"       // 笔记相关事件主题
+	EsNoteTopicGroup = "search_note_index_events.group" // 笔记相关事件消费者组名称
 )
 
 type NoteLikeEventPayload struct {

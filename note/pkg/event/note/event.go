@@ -8,6 +8,7 @@ type EventType = event.EventType
 
 const (
 	NotePublished = event.NotePublished
+	NoteDeleted   = event.NoteDeleted
 	NoteRejected  = event.NoteRejected
 	NoteBanned    = event.NoteBanned
 	NoteLiked     = event.NoteLiked
