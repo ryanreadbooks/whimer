@@ -192,6 +192,24 @@ func (b *NoteProcedureBiz) GetRecord(
 	return ProcedureRecordFromPO(record), nil
 }
 
+func (b *NoteProcedureBiz) GetRecordForUpdate(
+	ctx context.Context,
+	noteId int64,
+	protype model.ProcedureType,
+) (*ProcedureRecord, error) {
+	record, err := b.data.ProcedureRecord.GetForUpdate(ctx, noteId, protype)
+	if err != nil {
+		if xsql.IsNoRecord(err) {
+			return nil, global.ErrNoteProcedureNotFound
+		}
+		return nil, xerror.Wrapf(err, "biz get process record failed").
+			WithExtras("noteId", noteId, "protype", protype).
+			WithCtx(ctx)
+	}
+
+	return ProcedureRecordFromPO(record), nil
+}
+
 func (b *NoteProcedureBiz) Delete(
 	ctx context.Context,
 	noteId int64,

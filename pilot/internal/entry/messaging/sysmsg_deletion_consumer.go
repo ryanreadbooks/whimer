@@ -12,12 +12,11 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xretry"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/kafka/sysmsg"
-
-	"github.com/segmentio/kafka-go"
 )
 
-var sysMsgDeletionConsumer *kafka.Reader
-
+// 系统消息懒删除事件消费
+//
+// Topic: pilot_sysmsg_deletion_topic
 func startSysMsgDeletionConsumer(bizz *biz.Biz) {
 	backoff := xretry.NewPermenantBackoff(time.Millisecond*100, time.Second*8, 2.0)
 	concurrent.SafeGo2(rootCtx, concurrent.SafeGo2Opt{

@@ -3,6 +3,7 @@ package event
 import (
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 	"github.com/ryanreadbooks/whimer/note/internal/model/event"
+	pkgid "github.com/ryanreadbooks/whimer/note/pkg/id"
 )
 
 func modelNoteToEventNote(note *model.Note) *event.Note {
@@ -19,8 +20,19 @@ func modelNoteToEventNote(note *model.Note) *event.Note {
 		}
 	}
 
+	noteTags := make([]*event.NoteTag, 0, len(note.Tags))
+	for _, tag := range note.Tags {
+		noteTags = append(noteTags, &event.NoteTag{
+			Id:    tag.Id,
+			Tid:   pkgid.TagId(tag.Id).String(),
+			Name:  tag.Name,
+			Ctime: tag.Ctime,
+		})
+	}
+
 	return &event.Note{
 		Id:      note.NoteId,
+		Nid:     pkgid.NoteId(note.NoteId).String(),
 		Title:   note.Title,
 		Desc:    note.Desc,
 		Type:    note.Type.String(),
@@ -30,7 +42,7 @@ func modelNoteToEventNote(note *model.Note) *event.Note {
 		Ip:      note.Ip,
 		Images:  images,
 		Videos:  videos,
-		Tags:    note.Tags,
+		Tags:    noteTags,
 		AtUsers: note.AtUsers,
 	}
 }

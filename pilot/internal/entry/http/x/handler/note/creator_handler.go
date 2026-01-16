@@ -165,9 +165,10 @@ func (h *Handler) CreatorDeleteNote() http.HandlerFunc {
 					// todo
 				}
 				return nil
-			})
+			},
+		)
 
-		h.noteBiz.AsyncDeleteNoteFromSearcher(ctx, int64(req.NoteId))
+		// h.noteBiz.AsyncDeleteNoteFromSearcher(ctx, int64(req.NoteId)) // 改为note_event处理
 
 		httpx.OkJson(w, nil)
 	}

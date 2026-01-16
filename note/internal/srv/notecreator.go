@@ -118,7 +118,7 @@ func (s *NoteCreatorSrv) Update(ctx context.Context, req *UpdateNoteRequest) err
 		if model.IsNoteStateConsideredAsAuditing(oldNoteCore.State) {
 			abortCurrent = true
 			curProcStage = model.MapNoteStateToProcedureType(oldNoteCore.State)
-			curTask, errTx := s.procedureMgr.GetTask(ctx, newNote.NoteId, curProcStage)
+			curTask, errTx := s.procedureMgr.GetTaskForUpdate(ctx, newNote.NoteId, curProcStage)
 			if errTx != nil {
 				// log but not return error
 				xlog.Msg("srv creator get task id failed").

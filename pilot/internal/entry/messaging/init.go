@@ -14,20 +14,27 @@ import (
 )
 
 var (
-	rootCtx context.Context
+	rootCtx    context.Context
 	rootCancel context.CancelFunc
+)
+
+var (
+	sysMsgDeletionConsumer *kafka.Reader
+	noteEventConsumer      *kafka.Reader
 )
 
 func Init(c *config.Config, bizz *biz.Biz) {
 	rootCtx, rootCancel = context.WithCancel(context.Background())
 	addrs := strings.Split(c.Kafka.Brokers, ",")
 	sysMsgDeletionConsumer = newKafkaReader(c, addrs, sysmsgkfkdao.DeletionTopic, sysmsgkfkdao.DeletionTopicGroup)
+	noteEventConsumer = newKafkaReader(c, addrs, NoteEventTopic, NoteEventTopicGroupName)
 
 	start(bizz)
 }
 
 func start(bizz *biz.Biz) {
 	startSysMsgDeletionConsumer(bizz)
+	startNoteEventConsumer(bizz)
 }
 
 func Close() {

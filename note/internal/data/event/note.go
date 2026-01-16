@@ -36,11 +36,17 @@ func (e *NoteEventBus) makeNoteEvent(ctx context.Context,
 ) (string, []byte, error) {
 	now := time.Now()
 	noteId := pkgid.NoteId(note.NoteId).String()
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", nil, xerror.Wrapf(err, "note event bus make note event failed to marshal payload").
+			WithExtra("note_id", note.NoteId).
+			WithCtx(ctx)
+	}
 	evt := &eventmodel.NoteEvent{
 		Type:      eventType,
 		NoteId:    noteId,
 		Timestamp: now.UnixMilli(),
-		Payload:   payload,
+		Payload:   payloadBytes,
 	}
 
 	evtBytes, err := json.Marshal(evt)
@@ -116,11 +122,17 @@ func (e *NoteEventBus) makeNoteEventById(ctx context.Context,
 ) (string, []byte, error) {
 	now := time.Now()
 	noteIdStr := pkgid.NoteId(noteId).String()
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", nil, xerror.Wrapf(err, "note event bus make note event by id failed to marshal payload").
+			WithExtra("note_id", noteId).
+			WithCtx(ctx)
+	}
 	evt := &eventmodel.NoteEvent{
 		Type:      eventType,
 		NoteId:    noteIdStr,
 		Timestamp: now.UnixMilli(),
-		Payload:   payload,
+		Payload:   payloadBytes,
 	}
 
 	evtBytes, err := json.Marshal(evt)

@@ -320,6 +320,21 @@ func (m *Manager) GetTask(
 	return record, nil
 }
 
+func (m *Manager) GetTaskForUpdate(
+	ctx context.Context,
+	noteId int64,
+	proctype model.ProcedureType,
+) (*biz.ProcedureRecord, error) {
+	record, err := m.noteProcedureBiz.GetRecord(ctx, noteId, proctype)
+	if err != nil {
+		return nil, xerror.Wrapf(err, "procedure manager get record failed").
+			WithExtras("note_id", noteId, "proctype", proctype).
+			WithCtx(ctx)
+	}
+
+	return record, nil
+}
+
 // 取消任务 标记为失败
 func (m *Manager) CancelTask(ctx context.Context, noteId int64, proctype model.ProcedureType) error {
 	err := m.noteProcedureBiz.MarkFailed(ctx, noteId, proctype)
