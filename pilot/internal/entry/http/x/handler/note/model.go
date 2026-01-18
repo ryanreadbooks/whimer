@@ -426,7 +426,7 @@ func (r *SearchTagsReq) Validate() error {
 
 	r.Name = strings.TrimSpace(r.Name)
 	if r.Name == "" {
-		return xerror.ErrInvalidArgs.Msg("输入标签目标")
+		return nil
 	}
 
 	if err := checkTagName(r.Name); err != nil {

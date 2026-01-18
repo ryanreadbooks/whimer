@@ -149,6 +149,11 @@ func (h *Handler) SearchTags() http.HandlerFunc {
 			return
 		}
 
+		if req.Name == "" {
+			xhttp.OkJson(w, []SearchTagsRes{})
+			return
+		}
+
 		tags, err := h.noteBiz.SearchTags(r.Context(), req.Name)
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -219,7 +224,7 @@ func (b *Handler) ListLikedNotes() http.HandlerFunc {
 }
 
 func (h *Handler) asyncNotifyLikeNote(ctx context.Context, noteId imodel.NoteId) {
-	var uid = metadata.Uid(ctx)
+	uid := metadata.Uid(ctx)
 
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
 		Name:       "note.handler.notify_like_note",
