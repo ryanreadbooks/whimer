@@ -105,6 +105,13 @@ type CommentItem struct {
 	User *userv1.UserInfo `json:"user"`
 }
 
+// CommentRes 评论列表响应
+type CommentRes struct {
+	Items      []*CommentItem `json:"items"`
+	NextCursor int64          `json:"next_cursor"`
+	HasNext    bool           `json:"has_next"`
+}
+
 func NewCommentItemBaseFromPb(p *commentv1.CommentItem) *CommentItemBase {
 	if p == nil {
 		return &CommentItemBase{}
@@ -155,9 +162,17 @@ type DetailedCommentItem struct {
 	SubComments *DetailedSubComment `json:"sub_comments"`
 }
 
-func NewDetailedCommentItemFromPb(item *commentv1.DetailedCommentItem,
-	userMap map[string]*userv1.UserInfo) *DetailedCommentItem {
+// DetailedCommentRes 带子评论的评论列表响应
+type DetailedCommentRes struct {
+	Comments   []*DetailedCommentItem `json:"comments"`
+	PinComment *DetailedCommentItem   `json:"pin_comment,omitempty"`
+	NextCursor int64                  `json:"next_cursor"`
+	HasNext    bool                   `json:"has_next"`
+}
 
+func NewDetailedCommentItemFromPb(item *commentv1.DetailedCommentItem,
+	userMap map[string]*userv1.UserInfo,
+) *DetailedCommentItem {
 	details := &DetailedCommentItem{}
 	details.Root = &CommentItem{
 		CommentItemBase: NewCommentItemBaseFromPb(item.Root),

@@ -1,4 +1,4 @@
-package model
+package comment
 
 import (
 	"fmt"
@@ -11,20 +11,28 @@ import (
 )
 
 const (
-	maxContentLen = 2000
+	maxContentLen       = 2000
+	maxNumCommentImages = 9
 )
 
-type PubReq struct {
-	CommentType int32        `json:"type"`
-	Oid         model.NoteId `json:"oid"`
-	Content     string       `json:"content"`
-	RootId      int64        `json:"root_id,omitempty,optional"`
-	ParentId    int64        `json:"parent_id,omitempty,optional"`
-	ReplyUid    int64        `json:"reply_uid"`
+// CommentImage 评论图片
+type CommentImage struct {
+	StoreKey string `json:"store_key"`
+	Width    uint32 `json:"width"`
+	Height   uint32 `json:"height"`
+	Format   string `json:"format"`
+}
 
-	// optional
-	Images  []*CommentImage  `json:"images,omitempty,optional"`   // 评论图片资源
-	AtUsers model.AtUserList `json:"at_users,omitempty,optional"` // at_users 被@的用户列表
+// PubReq 发布评论请求
+type PubReq struct {
+	CommentType int32          `json:"type"`
+	Oid         model.NoteId   `json:"oid"`
+	Content     string         `json:"content"`
+	RootId      int64          `json:"root_id,omitempty,optional"`
+	ParentId    int64          `json:"parent_id,omitempty,optional"`
+	ReplyUid    int64          `json:"reply_uid"`
+	Images      []CommentImage `json:"images,omitempty,optional"`
+	AtUsers     model.AtUserList `json:"at_users,omitempty,optional"`
 }
 
 func (r *PubReq) PubOnOidDirectly() bool {
@@ -42,7 +50,6 @@ func (r *PubReq) Validate() error {
 	}
 
 	if len(r.AtUsers) > 0 {
-		// 过滤重复用户
 		r.AtUsers = r.AtUsers.Filter()
 	}
 
@@ -90,7 +97,6 @@ func (r *PubReq) AsPb() *commentv1.AddCommentRequest {
 		})
 	}
 
-	// 转换@用户列表
 	atUsers := make([]*commentv1.CommentAtUser, 0, len(r.AtUsers))
 	for _, atUser := range r.AtUsers {
 		atUsers = append(atUsers, &commentv1.CommentAtUser{
@@ -111,10 +117,12 @@ func (r *PubReq) AsPb() *commentv1.AddCommentRequest {
 	}
 }
 
+// PubRes 发布评论响应
 type PubRes struct {
 	CommentId int64 `json:"comment_id"`
 }
 
+// GetCommentsReq 获取评论请求
 type GetCommentsReq struct {
 	Oid    model.NoteId `form:"oid"`
 	Cursor int64        `form:"cursor,optional"`
@@ -138,12 +146,7 @@ func (r *GetCommentsReq) AsDetailedPb() *commentv1.PageGetDetailedCommentRequest
 	}
 }
 
-type CommentRes struct {
-	Items      []*CommentItem `json:"items"`
-	NextCursor int64          `json:"next_cursor"`
-	HasNext    bool           `json:"has_next"`
-}
-
+// GetSubCommentsReq 获取子评论请求
 type GetSubCommentsReq struct {
 	Oid    model.NoteId `form:"oid"`
 	RootId int64        `form:"root"`
@@ -158,27 +161,20 @@ func (r *GetSubCommentsReq) AsPb() *commentv1.PageGetSubCommentRequest {
 	}
 }
 
-type DetailedCommentRes struct {
-	Comments   []*DetailedCommentItem `json:"comments"`
-	PinComment *DetailedCommentItem   `json:"pin_comment,omitempty"` // 置顶评论
-	NextCursor int64                  `json:"next_cursor"`
-	HasNext    bool                   `json:"has_next"`
-}
-
-// 删除评论
+// DelReq 删除评论请求
 type DelReq struct {
 	CommentId int64        `json:"comment_id"`
-	Oid       model.NoteId `json:"oid"` // 被评论对象id
+	Oid       model.NoteId `json:"oid"`
 }
 
 type PinAction int8
 
 const (
-	PinActionUnpin = 0
-	PinActionPin   = 1
+	PinActionUnpin PinAction = 0
+	PinActionPin   PinAction = 1
 )
 
-// 置顶评论
+// PinReq 置顶评论请求
 type PinReq struct {
 	Oid       model.NoteId `json:"oid"`
 	CommentId int64        `json:"comment_id"`
@@ -196,8 +192,8 @@ func (r *PinReq) Validate() error {
 type ThumbAction uint8
 
 const (
-	ThumbActionUndo ThumbAction = ThumbAction(commentv1.CommentAction_COMMENT_ACTION_UNDO) // 取消 0
-	ThumbActionDo   ThumbAction = ThumbAction(commentv1.CommentAction_COMMENT_ACTION_DO)   // 执行 1
+	ThumbActionUndo ThumbAction = ThumbAction(commentv1.CommentAction_COMMENT_ACTION_UNDO)
+	ThumbActionDo   ThumbAction = ThumbAction(commentv1.CommentAction_COMMENT_ACTION_DO)
 )
 
 type thumbActionChecker struct{}
@@ -210,7 +206,7 @@ func (c thumbActionChecker) check(action ThumbAction) error {
 	return nil
 }
 
-// 点赞评论/取消点赞评论
+// ThumbUpReq 点赞评论请求
 type ThumbUpReq struct {
 	thumbActionChecker
 	CommentId int64       `json:"comment_id"`
@@ -221,7 +217,7 @@ func (r *ThumbUpReq) Validate() error {
 	return r.check(r.Action)
 }
 
-// 点踩评论/取消点踩评论
+// ThumbDownReq 点踩评论请求
 type ThumbDownReq struct {
 	thumbActionChecker
 	CommentId int64       `json:"comment_id"`
@@ -232,6 +228,7 @@ func (r *ThumbDownReq) Validate() error {
 	return r.check(r.Action)
 }
 
+// GetLikeCountReq 获取点赞数请求
 type GetLikeCountReq struct {
 	CommentId int64 `form:"comment_id"`
 }
@@ -244,18 +241,16 @@ func (r *GetLikeCountReq) Validate() error {
 	return nil
 }
 
+// GetLikeCountRes 获取点赞数响应
 type GetLikeCountRes struct {
 	Comment int64 `json:"comment_id"`
 	Likes   int64 `json:"likes"`
 }
 
+// UploadImagesReq 上传评论图片请求
 type UploadImagesReq struct {
 	Count int32 `form:"count"`
 }
-
-const (
-	maxNumCommentImages = 9
-)
 
 func (r *UploadImagesReq) Validate() error {
 	if r.Count <= 0 {

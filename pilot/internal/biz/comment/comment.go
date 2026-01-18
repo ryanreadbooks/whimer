@@ -20,29 +20,31 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 )
 
-type Biz struct {
-}
+type Biz struct{}
 
 func NewBiz() *Biz { return &Biz{} }
 
-func (b *Biz) PublishNoteComment(ctx context.Context, req *model.PubReq) (*model.PubRes, error) {
+// PublishNoteComment 发布评论
+func (b *Biz) PublishNoteComment(ctx context.Context, req *commentv1.AddCommentRequest) (int64, error) {
 	if err := b.checkPubReqValid(ctx, req); err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	resp, err := dep.Commenter().AddComment(ctx, req.AsPb())
+	resp, err := dep.Commenter().AddComment(ctx, req)
 	if err != nil {
-		return nil, xerror.Wrapf(err, "remote commenter add comment failed")
+		return 0, xerror.Wrapf(err, "remote commenter add comment failed")
 	}
 
-	return &model.PubRes{CommentId: resp.CommentId}, nil
+	return resp.CommentId, nil
 }
 
-func (b *Biz) checkPubReqValid(ctx context.Context, req *model.PubReq) error {
-	if req.PubOnOidDirectly() {
+func (b *Biz) checkPubReqValid(ctx context.Context, req *commentv1.AddCommentRequest) error {
+	pubOnOidDirectly := req.RootId == 0 && req.ParentId == 0
+	if pubOnOidDirectly {
 		// comment on note directly
 		resp, err := dep.NoteFeedServer().GetNoteAuthor(ctx, &notev1.GetNoteAuthorRequest{
-			NoteId: int64(req.Oid)})
+			NoteId: req.Oid,
+		})
 		if err != nil {
 			return xerror.Wrapf(err, "remote check note author when pub on note failed").
 				WithExtras("req", req).WithCtx(ctx)
@@ -68,14 +70,15 @@ func (b *Biz) checkPubReqValid(ctx context.Context, req *model.PubReq) error {
 	return nil
 }
 
-func (b *Biz) PageGetNoteRootComments(ctx context.Context, req *model.GetCommentsReq) (*model.CommentRes, error) {
-	rootReplies, err := dep.Commenter().PageGetComment(ctx, req.AsPb())
+// PageGetNoteRootComments 分页获取主评论
+func (b *Biz) PageGetNoteRootComments(ctx context.Context, req *commentv1.PageGetCommentRequest) (*model.CommentRes, error) {
+	rootReplies, err := dep.Commenter().PageGetComment(ctx, req)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "remote commenter page get comment failed")
 	}
 
 	// 整合用户的信息
-	var comments = []*model.CommentItem{}
+	comments := []*model.CommentItem{}
 	if len(rootReplies.Comments) > 0 {
 		comments, err = attachCommentsUsers(ctx, rootReplies.Comments)
 		if err != nil {
@@ -92,14 +95,15 @@ func (b *Biz) PageGetNoteRootComments(ctx context.Context, req *model.GetComment
 	}, nil
 }
 
-func (b *Biz) PageGetNoteSubComments(ctx context.Context, req *model.GetSubCommentsReq) (*model.CommentRes, error) {
-	subReplies, err := dep.Commenter().PageGetSubComment(ctx, req.AsPb())
+// PageGetNoteSubComments 分页获取子评论
+func (b *Biz) PageGetNoteSubComments(ctx context.Context, req *commentv1.PageGetSubCommentRequest) (*model.CommentRes, error) {
+	subReplies, err := dep.Commenter().PageGetSubComment(ctx, req)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "remote commenter page get sub comment failed")
 	}
 
 	// 填充评论的用户信息
-	var comments = []*model.CommentItem{}
+	comments := []*model.CommentItem{}
 	if len(subReplies.Comments) > 0 {
 		comments, err = attachCommentsUsers(ctx, subReplies.Comments)
 		if err != nil {
@@ -116,13 +120,11 @@ func (b *Biz) PageGetNoteSubComments(ctx context.Context, req *model.GetSubComme
 	}, nil
 }
 
-func (b *Biz) getPinnedComment(ctx context.Context, req *model.GetCommentsReq) (*model.DetailedCommentItem, error) {
-	var (
-		comment *commentv1.DetailedCommentItem
-	)
+func (b *Biz) getPinnedComment(ctx context.Context, oid int64) (*model.DetailedCommentItem, error) {
+	var comment *commentv1.DetailedCommentItem
 
 	resp, err := dep.Commenter().GetPinnedComment(ctx,
-		&commentv1.GetPinnedCommentRequest{Oid: int64(req.Oid)})
+		&commentv1.GetPinnedCommentRequest{Oid: oid})
 	if err != nil {
 		return nil, xerror.Wrapf(err, "remote get pinned comment failed").WithCtx(ctx)
 	}
@@ -149,21 +151,19 @@ func (b *Biz) getPinnedComment(ctx context.Context, req *model.GetCommentsReq) (
 	return nil, nil // before careful
 }
 
-func (b *Biz) getSeekedComment(ctx context.Context, req *model.GetCommentsReq) (*model.DetailedCommentItem, error) {
-	var (
-		seekedComment *commentv1.DetailedCommentItem
-	)
+func (b *Biz) getSeekedComment(ctx context.Context, oid, seekId int64) (*model.DetailedCommentItem, error) {
+	var seekedComment *commentv1.DetailedCommentItem
 
 	resp, err := dep.Commenter().GetComment(ctx,
 		&commentv1.GetCommentRequest{
-			CommentId: req.SeekId,
+			CommentId: seekId,
 		})
 	if err != nil {
 		return nil, xerror.Wrapf(err, "remote get seek comment failed").WithCtx(ctx)
 	}
 
 	seekCommentResp := resp.GetItem()
-	if seekCommentResp.Oid != int64(req.Oid) { // oid does not match
+	if seekCommentResp.Oid != oid { // oid does not match
 		return nil, nil
 	}
 
@@ -178,7 +178,7 @@ func (b *Biz) getSeekedComment(ctx context.Context, req *model.GetCommentsReq) (
 			})
 		if err != nil {
 			return nil, xerror.Wrapf(err, "remote get page sub comment failed").
-				WithExtras("oid", seekCommentResp.Oid, "root_id", seekCommentResp.RootId, "seek_id", req.SeekId).WithCtx(ctx)
+				WithExtras("oid", seekCommentResp.Oid, "root_id", seekCommentResp.RootId, "seek_id", seekId).WithCtx(ctx)
 		}
 
 		seekedComment.Root = seekCommentResp
@@ -195,7 +195,7 @@ func (b *Biz) getSeekedComment(ctx context.Context, req *model.GetCommentsReq) (
 			})
 		if err != nil {
 			return nil, xerror.Wrapf(err, "remote get comment failed").
-				WithExtras("oid", seekCommentResp.Oid, "root_id", seekCommentResp.RootId, "seek_id", req.SeekId).WithCtx(ctx)
+				WithExtras("oid", seekCommentResp.Oid, "root_id", seekCommentResp.RootId, "seek_id", seekId).WithCtx(ctx)
 		}
 		seekedComment.Root = seekRootComment.Item
 		seekedComment.SubComments = &commentv1.DetailedSubComment{
@@ -223,8 +223,16 @@ func (b *Biz) getSeekedComment(ctx context.Context, req *model.GetCommentsReq) (
 	return nil, nil // be careful
 }
 
-// 获取主评论信息（包含其下子评论）
-func (b *Biz) PageGetNoteComments(ctx context.Context, req *model.GetCommentsReq) (*model.DetailedCommentRes, error) {
+// PageGetNoteCommentsReq 获取评论请求参数
+type PageGetNoteCommentsReq struct {
+	Oid    int64
+	Cursor int64
+	SortBy int32
+	SeekId int64
+}
+
+// PageGetNoteComments 获取主评论信息（包含其下子评论）
+func (b *Biz) PageGetNoteComments(ctx context.Context, req *PageGetNoteCommentsReq) (*model.DetailedCommentRes, error) {
 	var (
 		wg sync.WaitGroup
 
@@ -238,7 +246,7 @@ func (b *Biz) PageGetNoteComments(ctx context.Context, req *model.GetCommentsReq
 		concurrent.SafeGo(func() {
 			defer wg.Done()
 			var err error
-			pinned, err = b.getPinnedComment(ctx, req)
+			pinned, err = b.getPinnedComment(ctx, req.Oid)
 			if err != nil {
 				xlog.Msg("get pinned comment failed").Extras("req", req).Err(err).Errorx(ctx)
 			}
@@ -251,21 +259,23 @@ func (b *Biz) PageGetNoteComments(ctx context.Context, req *model.GetCommentsReq
 		concurrent.SafeGo(func() {
 			defer wg.Done()
 			var err error
-			seeked, err = b.getSeekedComment(ctx, req)
+			seeked, err = b.getSeekedComment(ctx, req.Oid, req.SeekId)
 			if err != nil {
 				xlog.Msg("get seeked comment failed").Extras("req", req).Err(err).Errorx(ctx)
 			}
 		})
 	}
 
-	resp, err := dep.Commenter().PageGetDetailedComment(ctx, req.AsDetailedPb())
+	resp, err := dep.Commenter().PageGetDetailedComment(ctx, &commentv1.PageGetDetailedCommentRequest{
+		Oid:    req.Oid,
+		Cursor: req.Cursor,
+		SortBy: commentv1.SortType(req.SortBy),
+	})
 	if err != nil {
 		return nil, xerror.Wrapf(err, "remote commenter page get detailed comment failed")
 	}
 
-	var (
-		comments = []*model.DetailedCommentItem{}
-	)
+	comments := []*model.DetailedCommentItem{}
 
 	if len(resp.Comments) > 0 {
 		uidsMap := extractUidsMap(resp.Comments)
@@ -314,10 +324,11 @@ func (b *Biz) PageGetNoteComments(ctx context.Context, req *model.GetCommentsReq
 	}, nil
 }
 
-func (b *Biz) DelNoteComment(ctx context.Context, req *model.DelReq) error {
+// DelNoteComment 删除评论
+func (b *Biz) DelNoteComment(ctx context.Context, commentId, oid int64) error {
 	_, err := dep.Commenter().DelComment(ctx, &commentv1.DelCommentRequest{
-		CommentId: req.CommentId,
-		Oid:       int64(req.Oid),
+		CommentId: commentId,
+		Oid:       oid,
 	})
 	if err != nil {
 		return xerror.Wrapf(err, "remote commenter del comment failed")
@@ -326,11 +337,12 @@ func (b *Biz) DelNoteComment(ctx context.Context, req *model.DelReq) error {
 	return err
 }
 
-func (b *Biz) PinNoteComment(ctx context.Context, req *model.PinReq) error {
+// PinNoteComment 置顶评论
+func (b *Biz) PinNoteComment(ctx context.Context, oid, commentId int64, action int8) error {
 	_, err := dep.Commenter().PinComment(ctx, &commentv1.PinCommentRequest{
-		Oid:       int64(req.Oid),
-		CommentId: req.CommentId,
-		Action:    commentv1.CommentAction(req.Action),
+		Oid:       oid,
+		CommentId: commentId,
+		Action:    commentv1.CommentAction(action),
 	})
 	if err != nil {
 		return xerror.Wrapf(err, "remote commenter pin comment failed")
@@ -339,10 +351,11 @@ func (b *Biz) PinNoteComment(ctx context.Context, req *model.PinReq) error {
 	return err
 }
 
-func (b *Biz) LikeNoteComment(ctx context.Context, req *model.ThumbUpReq) error {
+// LikeNoteComment 点赞评论
+func (b *Biz) LikeNoteComment(ctx context.Context, commentId int64, action uint8) error {
 	_, err := dep.Commenter().LikeAction(ctx, &commentv1.LikeActionRequest{
-		CommentId: req.CommentId,
-		Action:    commentv1.CommentAction(req.Action),
+		CommentId: commentId,
+		Action:    commentv1.CommentAction(action),
 	})
 	if err != nil {
 		return xerror.Wrapf(err, "remote commenter like action failed")
@@ -351,10 +364,11 @@ func (b *Biz) LikeNoteComment(ctx context.Context, req *model.ThumbUpReq) error 
 	return err
 }
 
-func (b *Biz) DislikeNoteComment(ctx context.Context, req *model.ThumbDownReq) error {
+// DislikeNoteComment 点踩评论
+func (b *Biz) DislikeNoteComment(ctx context.Context, commentId int64, action uint8) error {
 	_, err := dep.Commenter().DislikeAction(ctx, &commentv1.DislikeActionRequest{
-		CommentId: req.CommentId,
-		Action:    commentv1.CommentAction(req.Action),
+		CommentId: commentId,
+		Action:    commentv1.CommentAction(action),
 	})
 	if err != nil {
 		return xerror.Wrapf(err, "remote commenter dislike action failed")
@@ -363,18 +377,16 @@ func (b *Biz) DislikeNoteComment(ctx context.Context, req *model.ThumbDownReq) e
 	return err
 }
 
-func (b *Biz) GetNoteCommentLikeCount(ctx context.Context, req *model.GetLikeCountReq) (*model.GetLikeCountRes, error) {
+// GetNoteCommentLikeCount 获取评论点赞数
+func (b *Biz) GetNoteCommentLikeCount(ctx context.Context, commentId int64) (int64, error) {
 	resp, err := dep.Commenter().GetCommentLikeCount(ctx, &commentv1.GetCommentLikeCountRequest{
-		CommentId: req.CommentId,
+		CommentId: commentId,
 	})
 	if err != nil {
-		return nil, xerror.Wrapf(err, "remote commenter get comment like count failed")
+		return 0, xerror.Wrapf(err, "remote commenter get comment like count failed")
 	}
 
-	return &model.GetLikeCountRes{
-		Comment: resp.CommentId,
-		Likes:   resp.Count,
-	}, nil
+	return resp.Count, nil
 }
 
 // 填入用户信息
@@ -410,7 +422,7 @@ func attachCommentItemInteract(ctx context.Context, items []*model.CommentItem) 
 		return
 	}
 
-	var uid = metadata.Uid(ctx)
+	uid := metadata.Uid(ctx)
 
 	if len(items) == 0 {
 		return
@@ -446,7 +458,6 @@ func attachCommentItemInteract(ctx context.Context, items []*model.CommentItem) 
 
 		return nil
 	})
-
 	if err != nil {
 		xlog.Msg("comment biz failed to check user like comment status").Errorx(ctx)
 		return
@@ -493,9 +504,7 @@ func (b *Biz) GetCommentContent(ctx context.Context, id int64) (*globalmodel.Com
 		return nil, xerror.Wrapf(err, "remote get comment by id failed").WithExtra("comment_id", id).WithCtx(ctx)
 	}
 
-	var (
-		content = resp.Item.Content
-	)
+	content := resp.Item.Content
 
 	atUsers := make([]globalmodel.AtUser, 0, len(resp.Item.AtUsers))
 	for _, au := range resp.Item.AtUsers {
