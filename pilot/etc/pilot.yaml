@@ -116,3 +116,7 @@ upload_resource_define:
 img_proxy_auth:
   key: ${IMGPROXY_KEY}
   salt: ${IMGPROXY_SALT}
+
+img_quality:
+  quality: "100"
+  quality_preview: "20"

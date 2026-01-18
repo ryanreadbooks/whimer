@@ -2,6 +2,7 @@ package model
 
 import (
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 )
 
 type User = userv1.UserInfo
@@ -37,13 +38,13 @@ type HoverInfo struct {
 	} `json:"relation"`
 
 	// 返回最近的发布信息
-	RecentPosts []PostAsset `json:"recent_posts"`
+	RecentPosts []RecentPost `json:"recent_posts"`
 }
 
-type PostAsset struct {
-	Url    string `json:"url"`
-	Type   int    `json:"type"`
-	UrlPrv string `json:"url_prv"`
+type RecentPost struct {
+	NoteId imodel.NoteId   `json:"note_id"`
+	Type   imodel.NoteType `json:"type"`
+	Cover  string          `json:"cover"`
 }
 
 // 模糊化处理数字

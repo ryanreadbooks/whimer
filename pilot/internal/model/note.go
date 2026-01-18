@@ -111,7 +111,7 @@ func NoteTagsFromPbs(ts []*notev1.NoteTag) []*NoteTag {
 		return []*NoteTag{}
 	}
 
-	var r = make([]*NoteTag, 0, len(ts))
+	r := make([]*NoteTag, 0, len(ts))
 	for _, t := range ts {
 		r = append(r, NoteTagFromPb(t))
 	}
@@ -123,7 +123,7 @@ func AtUsersFromNotePbs(us []*notev1.NoteAtUser) []*AtUser {
 		return []*AtUser{}
 	}
 
-	var r = make([]*AtUser, 0, len(us))
+	r := make([]*AtUser, 0, len(us))
 	for _, u := range us {
 		r = append(r, &AtUser{
 			Nickname: u.Nickname,
@@ -160,7 +160,7 @@ func NewNoteImageItemUrl(pbimg *notev1.NoteImage) string {
 		pbimg.Key,
 		config.Conf.ImgProxyAuth.GetKey(),
 		config.Conf.ImgProxyAuth.GetSalt(),
-		imgproxy.WithQuality("15"))
+		imgproxy.WithQuality(config.Conf.ImgQuality.Quality))
 	return url
 }
 
@@ -172,7 +172,7 @@ func NewNoteImageItemUrlPrv(pbimg *notev1.NoteImage) string {
 		pbimg.GetKey(),
 		config.Conf.ImgProxyAuth.GetKey(),
 		config.Conf.ImgProxyAuth.GetSalt(),
-		imgproxy.WithQuality("1"))
+		imgproxy.WithQuality(config.Conf.ImgQuality.QualityPreview))
 	return url
 }
 

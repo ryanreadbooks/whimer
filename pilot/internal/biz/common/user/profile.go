@@ -24,9 +24,7 @@ func (b *Biz) GetHoverProfile(ctx context.Context, targetUid int64) (*usermodel.
 	)
 
 	eg, ctx := errgroup.WithContext(ctx)
-	var (
-		targetUser *userv1.UserInfo
-	)
+	var targetUser *userv1.UserInfo
 
 	// 基本信息
 	eg.Go(func() error {
@@ -76,7 +74,7 @@ func (b *Biz) GetHoverProfile(ctx context.Context, targetUid int64) (*usermodel.
 	})
 
 	// 用户最近发布的笔记信息
-	var postAssets = make([]usermodel.PostAsset, 0, 3)
+	postAssets := make([]usermodel.RecentPost, 0, 3)
 	eg.Go(func() error {
 		return recovery.Do(func() error {
 			resp, err := dep.NoteFeedServer().GetUserRecentPost(ctx, &notev1.GetUserRecentPostRequest{
@@ -90,10 +88,10 @@ func (b *Biz) GetHoverProfile(ctx context.Context, targetUid int64) (*usermodel.
 			for _, item := range resp.Items {
 				// 此处只需要封面
 				if len(item.Images) > 0 {
-					postAssets = append(postAssets, usermodel.PostAsset{
-						Url:    model.NewNoteImageItemUrl(item.Images[0]),
-						UrlPrv: model.NewNoteImageItemUrlPrv(item.Images[0]),
-						Type:   int(item.Images[0].Type),
+					postAssets = append(postAssets, usermodel.RecentPost{
+						NoteId: model.NoteId(item.NoteId),
+						Cover:  model.NewNoteImageItemUrlPrv(item.Images[0]),
+						Type:   model.ConvertNoteTypeFromPb(item.NoteType),
 					})
 				}
 			}
@@ -102,9 +100,7 @@ func (b *Biz) GetHoverProfile(ctx context.Context, targetUid int64) (*usermodel.
 		})
 	})
 
-	var (
-		followed bool
-	)
+	var followed bool
 	if isAuthedRequest {
 		// 获取请求用户和目标用户的关注关系
 		eg.Go(func() error {

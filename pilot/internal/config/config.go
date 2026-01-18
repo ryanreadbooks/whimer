@@ -13,9 +13,7 @@ import (
 	"github.com/zeromicro/go-zero/rest"
 )
 
-var (
-	Conf Config
-)
+var Conf Config
 
 // 各服务配置
 type Config struct {
@@ -60,6 +58,13 @@ type Config struct {
 	Oss Oss `json:"oss"`
 
 	ImgProxyAuth imgproxy.Auth `json:"img_proxy_auth"`
+
+	ImgQuality ImgQuality `json:"img_quality"`
+}
+
+type ImgQuality struct {
+	Quality        string `json:"quality,default=90"`
+	QualityPreview string `json:"quality_preview,default=1"`
 }
 
 func (c *Config) GetUploadResourceBucket(resource uploadresource.Type) string {

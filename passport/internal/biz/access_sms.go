@@ -6,6 +6,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
+	"github.com/ryanreadbooks/whimer/passport/internal/config"
 	global "github.com/ryanreadbooks/whimer/passport/internal/global"
 	"github.com/ryanreadbooks/whimer/passport/internal/infra"
 	"github.com/ryanreadbooks/whimer/passport/internal/infra/dep"
@@ -80,6 +81,11 @@ func (b *accessSmsBiz) RequestSendSms(ctx context.Context, tel string) (err erro
 	}
 
 	smsCode := MakeSmsCode()
+	if config.Conf.IsDev { // 开发环境下固定smscode
+		if config.Conf.DevSmsCode != "" {
+			smsCode = config.Conf.DevSmsCode
+		}
+	}
 	err = infra.Cache().SetexCtx(ctx, getSmsCodeTelKey(tel), smsCode, 5*minute)
 	if err != nil {
 		return xerror.Wrapf(global.ErrRequestSms, "access sms biz failed to set smscode in cache").WithExtra("cause", err).WithCtx(ctx)
