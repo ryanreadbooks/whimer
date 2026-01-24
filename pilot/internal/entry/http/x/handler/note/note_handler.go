@@ -8,15 +8,18 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	"github.com/ryanreadbooks/whimer/misc/xlog"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app"
+	commondto "github.com/ryanreadbooks/whimer/pilot/internal/app/common/dto"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/notecreator"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/noteinteract"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/noteinteract/dto"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	bizstorage "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/storage"
 	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user"
 	bizfeed "github.com/ryanreadbooks/whimer/pilot/internal/biz/feed"
 	feedmodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/feed/model"
 	biznote "github.com/ryanreadbooks/whimer/pilot/internal/biz/note"
-	notemodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/note/model"
 	bizsearch "github.com/ryanreadbooks/whimer/pilot/internal/biz/search"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
@@ -28,6 +31,9 @@ import (
 )
 
 type Handler struct {
+	noteCreatorApp  *notecreator.Service
+	noteInteractApp *noteinteract.Service
+
 	feedBiz    *bizfeed.Biz
 	searchBiz  *bizsearch.Biz
 	userBiz    *bizuser.Biz
@@ -36,61 +42,58 @@ type Handler struct {
 	noteBiz    *biznote.Biz
 }
 
-func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
+func NewHandler(c *config.Config, bizz *biz.Biz, manager *app.Manager) *Handler {
 	return &Handler{
-		feedBiz:    bizz.FeedBiz,
-		searchBiz:  bizz.SearchBiz,
-		userBiz:    bizz.UserBiz,
-		notifyBiz:  bizz.SysNotifyBiz,
-		storageBiz: bizz.UploadBiz,
-		noteBiz:    bizz.NoteBiz,
+		feedBiz:         bizz.FeedBiz,
+		searchBiz:       bizz.SearchBiz,
+		userBiz:         bizz.UserBiz,
+		notifyBiz:       bizz.SysNotifyBiz,
+		storageBiz:      bizz.UploadBiz,
+		noteBiz:         bizz.NoteBiz,
+		noteCreatorApp:  manager.NoteCreatorApp,
+		noteInteractApp: manager.NoteInteractApp,
 	}
 }
 
 // 点赞/取消点赞笔记
 func (h *Handler) LikeNote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[LikeReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[dto.LikeNoteCommand](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
 			return
 		}
 
 		ctx := r.Context()
-		noteId := req.NoteId
-		noteIdStr := noteId.String()
-
-		err = h.noteBiz.LikeNote(ctx, &notemodel.LikeNoteReq{
-			NoteId: noteId,
-			Action: req.Action,
-		})
+		err = h.noteInteractApp.LikeNote(ctx, req)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-			Name: "note.handler.likenote.synces",
-			Job: func(ctx context.Context) error {
-				var incr int64 = 1
-				if req.Action == imodel.LikeReqActionUndo {
-					incr = -1
-				}
+		// TODO 放到service中进行同步
+		// concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
+		// 	Name: "note.handler.likenote.synces",
+		// 	Job: func(ctx context.Context) error {
+		// 		var incr int64 = 1
+		// 		if req.Action == imodel.LikeReqActionUndo {
+		// 			incr = -1
+		// 		}
 
-				err := h.searchBiz.NoteStatSyncer.AddLikeCount(ctx, noteIdStr, incr)
-				if err != nil {
-					xlog.Msg("note stat add like count failed").
-						Extras("note_id", noteId, "note_id_str", noteIdStr).
-						Err(err).Errorx(ctx)
-				}
+		// 		err := h.searchBiz.NoteStatSyncer.AddLikeCount(ctx, noteIdStr, incr)
+		// 		if err != nil {
+		// 			xlog.Msg("note stat add like count failed").
+		// 				Extras("note_id", noteId, "note_id_str", noteIdStr).
+		// 				Err(err).Errorx(ctx)
+		// 		}
 
-				return err
-			},
-		})
+		// 		return err
+		// 	},
+		// })
 
-		if req.Action == imodel.LikeReqActionDo {
-			h.asyncNotifyLikeNote(ctx, noteId)
-		}
+		// if req.Action == imodel.LikeReqActionDo {
+		// 	h.asyncNotifyLikeNote(ctx, noteId)
+		// }
 
 		xhttp.OkJson(w, nil)
 	}
@@ -99,21 +102,21 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 // 获取笔记点赞数量
 func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[NoteIdReq](httpx.ParsePath, r)
+		req, err := xhttp.ParseValidate[commondto.NoteIdReq](httpx.ParsePath, r)
 		if err != nil {
 			xhttp.Error(r, w, xerror.ErrArgs.Msg(err.Error()))
 			return
 		}
 
-		resp, err := h.noteBiz.GetNoteLikeCount(r.Context(), req.NoteId)
+		cnt, err := h.noteInteractApp.GetLikeCount(r.Context(), req.NoteId.Int64())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
 		xhttp.OkJson(w, &GetLikesRes{
-			NoteId: resp.NoteId,
-			Count:  resp.Count,
+			NoteId: req.NoteId,
+			Count:  cnt,
 		})
 	}
 }

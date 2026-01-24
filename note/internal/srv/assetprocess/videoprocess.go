@@ -116,7 +116,8 @@ func (p *VideoProcessor) Process(ctx context.Context, note *model.Note) (string,
 
 func FormatVideoProcessParam(note *model.Note) *VideoProcessReqParam {
 	rawFileId := note.Videos.GetRawUrl()
-	rawBucket := note.Videos.GetRawBucket()
+	idx := strings.Index(rawFileId, "/")
+	rawBucket := rawFileId[:idx]
 	inputKey := strings.TrimPrefix(rawFileId, rawBucket+"/")
 
 	param := &VideoProcessReqParam{

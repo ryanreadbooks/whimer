@@ -26,14 +26,11 @@ type CreateNoteRequestImage struct {
 	Width  uint32 `json:"width"`
 	Height uint32 `json:"height"`
 	Format string `json:"format"`
-	Bucket string `json:"-"`
 }
 
 type CreateNoteRequestVideo struct {
 	FileId       string `json:"file_id"`
-	Bucket       string `json:"-"`
 	TargetFileId string `json:"target_file_id"`
-	TargetBucket string `json:"-"`
 	CoverFileId  string `json:"cover_file_id"`
 }
 
@@ -42,7 +39,7 @@ func (r *CreateNoteRequestVideo) Validate() error {
 		return global.ErrNilReq
 	}
 
-	if r.FileId == "" || r.TargetFileId == "" || r.Bucket == "" || r.TargetBucket == "" {
+	if r.FileId == "" || r.TargetFileId == "" {
 		return global.ErrArgs.Msg("未指定视频资源")
 	}
 	if r.CoverFileId == "" {

@@ -14,7 +14,7 @@ import (
 var (
 	ossCli        *minio.Client
 	displayOssCli *minio.Client
-	uploadOssCli *minio.Client
+	uploadOssCli  *minio.Client
 )
 
 // InitOss 初始化对象存储客户端
@@ -57,4 +57,12 @@ func InitOss(c *config.Config) {
 
 func OssClient() *minio.Client {
 	return ossCli
+}
+
+func DisplayOssClient() *minio.Client {
+	return displayOssCli
+}
+
+func UploadOssClient() *minio.Client {
+	return uploadOssCli
 }

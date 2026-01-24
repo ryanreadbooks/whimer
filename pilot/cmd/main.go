@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/ryanreadbooks/whimer/misc/must"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http"
@@ -29,12 +30,14 @@ func main() {
 	infra.Init(&config.Conf)
 	defer infra.Close()
 
+	appMgr := app.NewManager(&config.Conf)
+
 	bizz := biz.New(&config.Conf)
 	messaging.Init(&config.Conf, bizz)
 	defer messaging.Close()
 
 	apiserver := rest.MustNewServer(config.Conf.Http)
-	http.Register(apiserver, &config.Conf, bizz)
+	http.Register(apiserver, &config.Conf, bizz, appMgr)
 
 	servgroup := zeroservice.NewServiceGroup()
 	defer servgroup.Stop()

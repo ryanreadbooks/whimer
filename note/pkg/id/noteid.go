@@ -36,6 +36,10 @@ func (n NoteId) String() string {
 	return result
 }
 
+func (n NoteId) Int64() int64 {
+	return int64(n)
+}
+
 // MarshalJSON implements the encoding json interface.
 func (id NoteId) MarshalJSON() ([]byte, error) {
 	if id == 0 {

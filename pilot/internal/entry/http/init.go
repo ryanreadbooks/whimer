@@ -1,6 +1,7 @@
 package http
 
 import (
+	"github.com/ryanreadbooks/whimer/pilot/internal/app"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	innerhandler "github.com/ryanreadbooks/whimer/pilot/internal/entry/http/inner/handler"
@@ -12,8 +13,8 @@ import (
 	"github.com/zeromicro/go-zero/rest"
 )
 
-func Register(engine *rest.Server, conf *config.Config, bizz *biz.Biz) {
-	xrouter.RegisterX(engine, xhandler.NewHandler(conf, bizz))
+func Register(engine *rest.Server, conf *config.Config, bizz *biz.Biz, manager *app.Manager) {
+	xrouter.RegisterX(engine, xhandler.NewHandler(conf, bizz, manager))
 	innerrouter.RegisterInner(engine, innerhandler.NewHandler(conf, bizz))
 
 	mod := conf.Http.Mode

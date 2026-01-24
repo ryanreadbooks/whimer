@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/x/handler/comment"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http/x/handler/feed"
@@ -24,11 +25,11 @@ type Handler struct {
 	Upload   *upload.Handler
 }
 
-func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
+func NewHandler(c *config.Config, bizz *biz.Biz, manager *app.Manager) *Handler {
 	h := &Handler{
 		Config:   c,
 		Comment:  comment.NewHandler(c, bizz),
-		Note:     note.NewHandler(c, bizz),
+		Note:     note.NewHandler(c, bizz, manager),
 		Relation: relation.NewHandler(c, bizz),
 		Chat:     msg.NewHandler(c, bizz),
 		User:     user.NewUserHandler(c, bizz),

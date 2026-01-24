@@ -6,7 +6,6 @@ import (
 	"unicode/utf8"
 
 	feedmodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/feed/model"
-	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
@@ -31,163 +30,160 @@ const (
 	maxTagNameLen = 255
 )
 
-type CreateReqBasic struct {
-	Title   string         `json:"title"`
-	Desc    string         `json:"desc"`
-	Privacy int8           `json:"privacy"`
-	Type    model.NoteType `json:"type"`
-}
+// type CreateReqBasic struct {
+// 	Title   string         `json:"title"`
+// 	Desc    string         `json:"desc"`
+// 	Privacy int8           `json:"privacy"`
+// 	Type    model.NoteType `json:"type"`
+// }
 
-func (v *CreateReqBasic) Validate() error {
-	if v.Privacy != VisibilityPublic && v.Privacy != VisibilityPrivate {
-		return xerror.ErrArgs.Msg("不支的可见范围")
-	}
+// func (v *CreateReqBasic) Validate() error {
+// 	if v.Privacy != VisibilityPublic && v.Privacy != VisibilityPrivate {
+// 		return xerror.ErrArgs.Msg("不支的可见范围")
+// 	}
 
-	titleLen := utf8.RuneCountInString(v.Title)
-	if titleLen > maxTitleLen {
-		return xerror.ErrArgs.Msg("标题长度错误")
-	}
-	descLen := utf8.RuneCountInString(v.Desc)
-	if descLen > maxDescLen {
-		return xerror.ErrArgs.Msg("简介超长")
-	}
+// 	titleLen := utf8.RuneCountInString(v.Title)
+// 	if titleLen > maxTitleLen {
+// 		return xerror.ErrArgs.Msg("标题长度错误")
+// 	}
+// 	descLen := utf8.RuneCountInString(v.Desc)
+// 	if descLen > maxDescLen {
+// 		return xerror.ErrArgs.Msg("简介超长")
+// 	}
 
-	if !model.IsNoteTypeValid(v.Type) {
-		return xerror.ErrArgs.Msg("不支持资源类型")
-	}
+// 	if !model.IsNoteTypeValid(v.Type) {
+// 		return xerror.ErrArgs.Msg("不支持资源类型")
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (b *CreateReqBasic) AsPb() *notev1.CreateReqBasic {
-	return &notev1.CreateReqBasic{
-		Title:     b.Title,
-		Desc:      b.Desc,
-		Privacy:   int32(b.Privacy),
-		AssetType: model.ConvertNoteTypeAsPb(b.Type),
-	}
-}
+// func (b *CreateReqBasic) AsPb() *notev1.CreateReqBasic {
+// 	return &notev1.CreateReqBasic{
+// 		Title:     b.Title,
+// 		Desc:      b.Desc,
+// 		Privacy:   int32(b.Privacy),
+// 		AssetType: model.ConvertNoteTypeAsPb(b.Type),
+// 	}
+// }
 
-type CreateReqImage struct {
-	FileId string `json:"file_id"`
-	Width  uint32 `json:"width"`
-	Height uint32 `json:"height"`
-	Format string `json:"format"`
-}
+// type CreateReqImage struct {
+// 	FileId string `json:"file_id"`
+// 	Width  uint32 `json:"width"`
+// 	Height uint32 `json:"height"`
+// 	Format string `json:"format"`
+// }
 
-type CreateReqImageList []CreateReqImage
+// type CreateReqImageList []CreateReqImage
 
-func (r CreateReqImageList) AsPb() []*notev1.CreateReqImage {
-	images := make([]*notev1.CreateReqImage, 0, len(r))
-	for _, img := range r {
-		images = append(images, &notev1.CreateReqImage{
-			FileId: img.FileId,
-			Width:  img.Width,
-			Height: img.Height,
-			Format: img.Format,
-			Bucket: config.Conf.GetUploadResourceBucket(uploadresource.NoteImage),
-		})
-	}
+// func (r CreateReqImageList) AsPb() []*notev1.CreateReqImage {
+// 	images := make([]*notev1.CreateReqImage, 0, len(r))
+// 	for _, img := range r {
+// 		images = append(images, &notev1.CreateReqImage{
+// 			FileId: img.FileId,
+// 			Width:  img.Width,
+// 			Height: img.Height,
+// 			Format: img.Format,
+// 		})
+// 	}
 
-	return images
-}
+// 	return images
+// }
 
-type CreateReqVideo struct {
-	FileId      string `json:"file_id,optional"`
-	CoverFileId string `json:"cover_file_id,optional"`
-}
+// type CreateReqVideo struct {
+// 	FileId      string `json:"file_id,optional"`
+// 	CoverFileId string `json:"cover_file_id,optional"`
+// }
 
-func (r *CreateReqVideo) AsPb() *notev1.CreateReqVideo {
-	if r == nil {
-		return nil
-	}
+// func (r *CreateReqVideo) AsPb() *notev1.CreateReqVideo {
+// 	if r == nil {
+// 		return nil
+// 	}
 
-	return &notev1.CreateReqVideo{
-		FileId: r.FileId,
-		// TargetFileId: , target字段由后面的biz流程填充
-		FileBucket:       config.Conf.GetUploadResourceBucket(uploadresource.NoteVideo),
-		TargetFileBucket: config.Conf.GetUploadResourceBucket(uploadresource.NoteVideo),
-		CoverFileId:      r.CoverFileId,
-	}
-}
+// 	return &notev1.CreateReqVideo{
+// 		FileId: r.FileId,
+// 		// TargetFileId: , target字段由后面的biz流程填充
+// 		CoverFileId:      r.CoverFileId,
+// 	}
+// }
 
-func (r *CreateReqVideo) Validate() error {
-	if r == nil {
-		return xerror.ErrNilArg
-	}
+// func (r *CreateReqVideo) Validate() error {
+// 	if r == nil {
+// 		return xerror.ErrNilArg
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-type CreateReq struct {
-	Basic   CreateReqBasic     `json:"basic"`
-	Images  CreateReqImageList `json:"images"`
-	Video   *CreateReqVideo    `json:"video,omitempty,optional"`
-	TagList []TagId            `json:"tag_list,omitempty,optional"`
-	AtUsers model.AtUserList   `json:"at_users,omitempty,optional"`
-}
+// type CreateReq struct {
+// 	Basic   CreateReqBasic     `json:"basic"`
+// 	Images  CreateReqImageList `json:"images"`
+// 	Video   *CreateReqVideo    `json:"video,omitempty,optional"`
+// 	TagList []TagId            `json:"tag_list,omitempty,optional"`
+// 	AtUsers model.AtUserList   `json:"at_users,omitempty,optional"`
+// }
 
 type TagId struct { // 必须再包一层 直接用数组无法解析
 	Id model.TagId `json:"id"`
 }
 
-func (r *CreateReq) ValidateImages() error {
-	for _, img := range r.Images {
-		if img.FileId == "" {
-			return xerror.ErrArgs.Msg("上传图片无标识")
-		}
+// func (r *CreateReq) ValidateImages() error {
+// 	for _, img := range r.Images {
+// 		if img.FileId == "" {
+// 			return xerror.ErrArgs.Msg("上传图片无标识")
+// 		}
 
-		if img.Width == 0 || img.Height == 0 || img.Format == "" {
-			return xerror.ErrArgs.Msg("上传图片未指定图片信息")
-		}
+// 		if img.Width == 0 || img.Height == 0 || img.Format == "" {
+// 			return xerror.ErrArgs.Msg("上传图片未指定图片信息")
+// 		}
 
-		if err := model.CheckImageFormat(img.Format); err != nil {
-			return err
-		}
-	}
+// 		if err := model.CheckImageFormat(img.Format); err != nil {
+// 			return err
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (r *CreateReq) ValidateVideo() error {
-	return r.Video.Validate()
-}
+// func (r *CreateReq) ValidateVideo() error {
+// 	return r.Video.Validate()
+// }
 
-func (r *CreateReq) ValidateTags() error {
-	if len(r.TagList) > 10 {
-		return xerror.ErrArgs.Msg("标签超出限制")
-	}
-	return nil
-}
+// func (r *CreateReq) ValidateTags() error {
+// 	if len(r.TagList) > 10 {
+// 		return xerror.ErrArgs.Msg("标签超出限制")
+// 	}
+// 	return nil
+// }
 
-func (r *CreateReq) Validate() error {
-	if r == nil {
-		return xerror.ErrNilArg
-	}
+// func (r *CreateReq) Validate() error {
+// 	if r == nil {
+// 		return xerror.ErrNilArg
+// 	}
 
-	if err := r.Basic.Validate(); err != nil {
-		return err
-	}
+// 	if err := r.Basic.Validate(); err != nil {
+// 		return err
+// 	}
 
-	var err error
-	switch r.Basic.Type {
-	case model.NoteTypeImage:
-		err = r.ValidateImages()
-	case model.NoteTypeVideo:
-		err = r.ValidateVideo()
-	}
-	if err != nil {
-		return err
-	}
+// 	var err error
+// 	switch r.Basic.Type {
+// 	case model.NoteTypeImage:
+// 		err = r.ValidateImages()
+// 	case model.NoteTypeVideo:
+// 		err = r.ValidateVideo()
+// 	}
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if err := r.ValidateTags(); err != nil {
-		return err
-	}
+// 	if err := r.ValidateTags(); err != nil {
+// 		return err
+// 	}
 
-	r.AtUsers = r.AtUsers.Filter()
+// 	r.AtUsers = r.AtUsers.Filter()
 
-	return nil
-}
+// 	return nil
+// }
 
 func AtUsersAsPb(atUsers model.AtUserList) []*notev1.NoteAtUser {
 	users := make([]*notev1.NoteAtUser, 0, len(atUsers))
@@ -201,44 +197,44 @@ func AtUsersAsPb(atUsers model.AtUserList) []*notev1.NoteAtUser {
 	return users
 }
 
-func (r *CreateReq) AsPb() *notev1.CreateNoteRequest {
-	tagList := []int64{}
-	for _, t := range r.TagList {
-		tagList = append(tagList, int64(t.Id))
-	}
-	return &notev1.CreateNoteRequest{
-		Basic:   r.Basic.AsPb(),
-		Images:  r.Images.AsPb(),
-		Tags:    &notev1.CreateReqTag{TagList: tagList},
-		AtUsers: AtUsersAsPb(r.AtUsers),
-		Video:   r.Video.AsPb(),
-	}
-}
+// func (r *CreateReq) AsPb() *notev1.CreateNoteRequest {
+// 	tagList := []int64{}
+// 	for _, t := range r.TagList {
+// 		tagList = append(tagList, int64(t.Id))
+// 	}
+// 	return &notev1.CreateNoteRequest{
+// 		Basic:   r.Basic.AsPb(),
+// 		Images:  r.Images.AsPb(),
+// 		Tags:    &notev1.CreateReqTag{TagList: tagList},
+// 		AtUsers: AtUsersAsPb(r.AtUsers),
+// 		Video:   r.Video.AsPb(),
+// 	}
+// }
 
-type CreateRes struct {
-	NoteId model.NoteId `json:"note_id"`
-}
+// type CreateRes struct {
+// 	NoteId model.NoteId `json:"note_id"`
+// }
 
-type UpdateReq struct {
-	NoteId model.NoteId `json:"note_id"`
-	CreateReq
-}
+// type UpdateReq struct {
+// 	NoteId model.NoteId `json:"note_id"`
+// 	CreateReq
+// }
 
-func (r *UpdateReq) Validate() error {
-	if r.NoteId <= 0 {
-		return errors.ErrNoteNotFound
-	}
+// func (r *UpdateReq) Validate() error {
+// 	if r.NoteId <= 0 {
+// 		return errors.ErrNoteNotFound
+// 	}
 
-	if err := r.CreateReq.Validate(); err != nil {
-		return err
-	}
+// 	if err := r.CreateReq.Validate(); err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-type UpdateRes struct {
-	NoteId model.NoteId `json:"note_id"`
-}
+// type UpdateRes struct {
+// 	NoteId model.NoteId `json:"note_id"`
+// }
 
 type NoteIdReq struct {
 	NoteId model.NoteId `json:"note_id" path:"note_id" form:"note_id"`

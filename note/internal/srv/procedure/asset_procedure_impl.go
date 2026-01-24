@@ -303,7 +303,6 @@ type assetVideoParamItem struct {
 func (p *AssetProcedure) serializeVideoParam(video *model.NoteVideo) []byte {
 	param := &assetVideoParam{
 		RawUrl:    video.GetRawUrl(),
-		RawBucket: video.GetRawBucket(),
 	}
 	for _, item := range video.Items {
 		param.Items = append(param.Items, &assetVideoParamItem{
@@ -347,12 +346,10 @@ func (p *AssetProcedure) deserializeVideoParam(input []byte) (*model.NoteVideo, 
 	}
 	video := &model.NoteVideo{}
 	video.SetRawUrl(param.RawUrl)
-	video.SetRawBucket(param.RawBucket)
 	for _, item := range param.Items {
 		vi := &model.NoteVideoItem{
 			Key: item.Key,
 		}
-		vi.SetBucket(item.Bucket)
 		video.Items = append(video.Items, vi)
 	}
 

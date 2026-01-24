@@ -32,7 +32,6 @@ var uploaders *Uploaders
 
 type Uploaders struct {
 	uploaders        map[uploadresource.Type]*uploader
-	ossClient        *minio.Client
 	displayOssClient *minio.Client
 	uploadOssClient  *minio.Client
 	ossConfig        *config.Oss
@@ -41,7 +40,6 @@ type Uploaders struct {
 func initUploaders(c *config.Config) {
 	uploaders = &Uploaders{
 		uploaders:        make(map[uploadresource.Type]*uploader),
-		ossClient:        ossCli,
 		displayOssClient: displayOssCli,
 		uploadOssClient:  uploadOssCli,
 		ossConfig:        &c.Oss,

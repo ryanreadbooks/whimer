@@ -1,14 +1,11 @@
 package uploadresource
 
 import (
-	"slices"
-
-	"github.com/gabriel-vasile/mimetype"
 	"github.com/ryanreadbooks/whimer/misc/oss/keygen"
-	"github.com/ryanreadbooks/whimer/misc/xerror"
+	storagevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/storage/vo"
 )
 
-// 定义每类资源对应的桶名称和key前缀
+// Metadata 定义每类资源对应的桶名称和key前缀（配置解析用）
 type Metadata struct {
 	Bucket        string `json:"bucket"`
 	Prefix        string `json:"prefix"`
@@ -22,76 +19,21 @@ func (m *Metadata) GetStringer() keygen.Stringer {
 	if m.Stringer == "random_v7" {
 		return keygen.RandomStringerV7{}
 	}
-
 	return keygen.RandomStringer{}
 }
 
+// Type 类型别名，用于配置解析和 infra 层
+type Type = storagevo.ObjectType
+
+// 类型常量别名，保持向后兼容
 const (
-	kB = 1024
-	mB = 1024 * kB
+	NoteImage      = storagevo.ObjectTypeNoteImage
+	NoteVideo      = storagevo.ObjectTypeNoteVideo
+	NoteVideoCover = storagevo.ObjectTypeNoteVideoCover
+	CommentImage   = storagevo.ObjectTypeCommentImage
 )
 
-type Type string
-
-const (
-	NoteImage      Type = "note_image"
-	NoteVideo      Type = "note_video"
-	NoteVideoCover Type = "note_video_cover"
-	CommentImage   Type = "comment_image"
-)
-
-func (t Type) PermitSize() int64 {
-	switch t {
-	case NoteImage:
-		return 10 * mB
-	case NoteVideo:
-		return 500 * mB
-	case NoteVideoCover:
-		return 2 * mB
-	case CommentImage:
-		return 10 * mB
-	}
-
-	return 0
-}
-
-var (
-	allowedImageType = []string{"image/jpeg", "image/png", "image/webp"}
-	allowedVideoType = []string{"video/mp4"}
-)
-
-func (t Type) PermitContentType() []string {
-	switch t {
-	case NoteImage, CommentImage, NoteVideoCover:
-		return allowedImageType
-	case NoteVideo:
-		return allowedVideoType
-	}
-
-	return nil
-}
-
-func (t Type) Check(b []byte, total int64) error {
-	mimeType := mimetype.Detect(b).String()
-	permitSize := t.PermitSize()
-	permitType := t.PermitContentType()
-	if slices.Contains(permitType, mimeType) && total <= permitSize {
-		return nil
-	}
-
-	return xerror.ErrArgs.Msg("资源格式非法")
-}
-
-var (
-	validType = map[Type]struct{}{
-		NoteImage:      {},
-		NoteVideo:      {},
-		CommentImage:   {},
-		NoteVideoCover: {},
-	}
-)
-
+// CheckValid 检查类型是否有效
 func CheckValid(s string) bool {
-	_, ok := validType[Type(s)]
-	return ok
+	return Type(s).IsValid()
 }
