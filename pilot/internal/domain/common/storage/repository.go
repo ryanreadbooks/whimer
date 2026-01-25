@@ -26,6 +26,7 @@ type ObjectPathResolver interface {
 
 // 上传凭证处理
 type UploadTicketProvider interface {
+	GetUploadTicketDeprecated(ctx context.Context, objType vo.ObjectType, count int32) (*vo.UploadTicketDeprecated, error)
 	GetUploadTicket(ctx context.Context, objType vo.ObjectType, count int32) (*vo.UploadTicket, error)
 	GetPostPolicyTicket(ctx context.Context, objType vo.ObjectType, sha256 string, mimeType string) (*vo.PostPolicyTicket, error)
 	PresignGetUrl(ctx context.Context, objType vo.ObjectType, fileId string) (string, error)

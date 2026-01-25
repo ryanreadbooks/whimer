@@ -76,7 +76,7 @@ func convertCommandToCreateNoteParams(cmd *dto.CreateNoteCommand) *entity.Create
 
 	// atUsers
 	for _, user := range cmd.AtUsers {
-		params.AtUsers = append(params.AtUsers, mentionvo.AtUser{
+		params.AtUsers = append(params.AtUsers, &mentionvo.AtUser{
 			Uid:      user.Uid,
 			Nickname: user.Nickname,
 		})

@@ -20,7 +20,7 @@ type NotifyUserReplyReq struct {
 	SrcUid         int64                   `json:"src_uid"`
 	RecvUid        int64                   `json:"recv_uid"`
 	NoteId         imodel.NoteId           `json:"note_id"`
-	Content        []byte                  `json:"content"` // see model.CommentContent
+	Content        []byte                  `json:"content"` // see CommentContent
 }
 
 // 通知用户被回复了

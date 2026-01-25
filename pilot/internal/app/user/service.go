@@ -5,37 +5,37 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/ryanreadbooks/whimer/misc/concurrent"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/user/dto"
+	noteentity "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/entity"
+	noterepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/repository"
+	relationrepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/relation/repository"
+	userdomain "github.com/ryanreadbooks/whimer/pilot/internal/domain/user"
+	"github.com/ryanreadbooks/whimer/pilot/internal/domain/user/repository"
+	"github.com/ryanreadbooks/whimer/pilot/internal/domain/user/vo"
+
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
-	"github.com/ryanreadbooks/whimer/pilot/internal/app/user/dto"
-	noteentity "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/entity"
-	noterepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/repository"
-	relationrepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/relation/repository"
-	"github.com/ryanreadbooks/whimer/pilot/internal/domain/user/entity"
-	"github.com/ryanreadbooks/whimer/pilot/internal/domain/user/repository"
-	"github.com/ryanreadbooks/whimer/pilot/internal/domain/user/vo"
-	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 
 	"golang.org/x/sync/errgroup"
 )
 
 type Service struct {
-	userAdapter       repository.UserServiceAdapter
-	relationAdapter   relationrepo.RelationAdapter
+	userDomainService  *userdomain.DomainService
+	userAdapter        repository.UserServiceAdapter
+	relationAdapter    relationrepo.RelationAdapter
 	noteCreatorAdapter noterepo.NoteCreatorAdapter
-	noteFeedAdapter   noterepo.NoteFeedAdapter
-	userSettingRepo   repository.UserSettingRepository
-	recentContactRepo repository.RecentContactRepository
+	noteFeedAdapter    noterepo.NoteFeedAdapter
+	userSettingRepo    repository.UserSettingRepository
+	recentContactRepo  repository.RecentContactRepository
 }
 
 func NewService(
+	userDomainService *userdomain.DomainService,
 	userAdapter repository.UserServiceAdapter,
 	relationAdapter relationrepo.RelationAdapter,
 	noteCreatorAdapter noterepo.NoteCreatorAdapter,
@@ -44,6 +44,7 @@ func NewService(
 	recentContactRepo repository.RecentContactRepository,
 ) *Service {
 	return &Service{
+		userDomainService:  userDomainService,
 		userAdapter:        userAdapter,
 		relationAdapter:    relationAdapter,
 		noteCreatorAdapter: noteCreatorAdapter,
@@ -74,102 +75,6 @@ func (s *Service) GetUser(ctx context.Context, uid int64) (*dto.User, error) {
 	}
 
 	return dto.ConvertVoUserToDto(user), nil
-}
-
-// 批量获取关注状态并填充到结果中
-func (s *Service) batchGetFollowingStatus(
-	ctx context.Context,
-	uid int64,
-	targets []int64,
-	output []*vo.UserWithRelation,
-) (map[int64]bool, error) {
-	statuses, err := s.relationAdapter.BatchGetFollowStatus(ctx, uid, targets)
-	if err != nil {
-		return nil, xerror.Wrapf(err, "batch check user followed failed")
-	}
-
-	for _, item := range output {
-		if item == nil || item.User == nil {
-			continue
-		}
-		if followed, ok := statuses[item.User.Uid]; ok && followed {
-			item.Relation = vo.RelationFollowing
-		} else {
-			item.Relation = vo.RelationNone
-		}
-	}
-
-	return statuses, nil
-}
-
-// 获取用户及其关注状态
-func (s *Service) getUserWithFollowStatus(ctx context.Context, targetUids []int64) ([]*vo.UserWithRelation, error) {
-	uid := metadata.Uid(ctx)
-	isAuthedRequest := uid != 0
-
-	result := make([]*vo.UserWithRelation, len(targetUids))
-	if len(targetUids) > 0 {
-		users, err := s.userAdapter.BatchGetUser(ctx, targetUids)
-		if err != nil {
-			return nil, err
-		}
-
-		for idx, targetUid := range targetUids {
-			result[idx] = &vo.UserWithRelation{
-				User:     users[targetUid],
-				Relation: vo.RelationNone,
-			}
-		}
-	}
-
-	if isAuthedRequest {
-		_, err := s.batchGetFollowingStatus(ctx, uid, targetUids, result)
-		if err != nil {
-			xlog.Msg("batch get following status failed").Err(err).Errorx(ctx)
-		}
-	}
-
-	return result, nil
-}
-
-// 分页获取用户粉丝列表
-func (s *Service) ListUserFans(ctx context.Context, targetUid int64, page, count int32) (*dto.FanOrFollowingListResult, error) {
-	fansId, total, err := s.relationAdapter.PageGetFanList(ctx, targetUid, page, count)
-	if err != nil {
-		return nil, xerror.Wrapf(err, "page get fan list failed").WithCtx(ctx)
-	}
-
-	usersWithRelation, err := s.getUserWithFollowStatus(ctx, fansId)
-	if err != nil {
-		return nil, xerror.Wrapf(err, "get user with follow status failed").WithCtx(ctx)
-	}
-
-	items := make([]*dto.UserWithRelation, 0, len(usersWithRelation))
-	for _, u := range usersWithRelation {
-		items = append(items, dto.ConvertVoUserWithRelationToDto(u))
-	}
-
-	return &dto.FanOrFollowingListResult{Items: items, Total: total}, nil
-}
-
-// 分页获取用户关注列表
-func (s *Service) ListUserFollowings(ctx context.Context, targetUid int64, page, count int32) (*dto.FanOrFollowingListResult, error) {
-	followingsId, total, err := s.relationAdapter.PageGetFollowingList(ctx, targetUid, page, count)
-	if err != nil {
-		return nil, xerror.Wrapf(err, "page get following list failed").WithCtx(ctx)
-	}
-
-	usersWithRelation, err := s.getUserWithFollowStatus(ctx, followingsId)
-	if err != nil {
-		return nil, xerror.Wrapf(err, "get user with follow status failed").WithCtx(ctx)
-	}
-
-	items := make([]*dto.UserWithRelation, 0, len(usersWithRelation))
-	for _, u := range usersWithRelation {
-		items = append(items, dto.ConvertVoUserWithRelationToDto(u))
-	}
-
-	return &dto.FanOrFollowingListResult{Items: items, Total: total}, nil
 }
 
 // 获取用户的投稿数量、点赞数量等信息
@@ -320,6 +225,11 @@ type followingUser struct {
 }
 
 // 按照nickname获取关注的用户
+//
+// 由于是不同服务存储关注关系和用户信息 所以此种方法可能在数据量大的时候很慢
+//
+// 这里只提供获取关注的方法不提供获取粉丝的方法 因为如果按照这种方式获取粉丝数量的话 在粉丝量庞大时会导致性能问题;
+// 由于限制了关注的人数 所以暴力获取的方式应该能接受
 func (s *Service) BrutalListFollowingsByName(ctx context.Context, uid int64, target string) ([]*vo.User, error) {
 	var (
 		offset int64 = 0
@@ -406,7 +316,7 @@ func (s *Service) GetMentionUserCandidates(ctx context.Context, uid int64, searc
 
 	// 拿最近联系人
 	eg.Go(recovery.DoV2(func() error {
-		recentContacts, err := s.GetAllRecentContacts(ctx, uid)
+		recentContacts, err := s.userDomainService.GetAllRecentContacts(ctx, uid)
 		if err != nil {
 			xlog.Msg("get recent contacts failed").Err(err).Errorx(ctx)
 		}
@@ -458,108 +368,4 @@ func (s *Service) GetMentionUserCandidates(ctx context.Context, uid int64, searc
 	}
 
 	return result, nil
-}
-
-// 新增最近联系人历史
-func (s *Service) AppendRecentContacts(ctx context.Context, uid int64, targets []int64) error {
-	if err := s.recentContactRepo.AtomicAppend(ctx, uid, targets); err != nil {
-		return xerror.Wrapf(err, "append recent contacts failed").WithCtx(ctx)
-	}
-	return nil
-}
-
-func (s *Service) AsyncAppendRecentContactsAtUser(ctx context.Context, uid int64, atUsers imodel.AtUserList) {
-	targets := make([]int64, 0, len(atUsers))
-	for _, atUser := range atUsers {
-		if atUser.Uid == uid {
-			continue
-		}
-		targets = append(targets, atUser.Uid)
-	}
-
-	if len(targets) <= 0 {
-		return
-	}
-
-	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "userapp.atuser.append_recent_contacts",
-		Job: func(ctx context.Context) error {
-			if err := s.AppendRecentContacts(ctx, uid, targets); err != nil {
-				xlog.Msg("append recent contacts failed").Err(err).Extras("targets", targets).Errorx(ctx)
-			}
-			return nil
-		},
-	})
-}
-
-// 获取最近所有联系人
-func (s *Service) GetAllRecentContacts(ctx context.Context, uid int64) ([]*vo.User, error) {
-	recents, err := s.recentContactRepo.GetAll(ctx, uid)
-	if err != nil {
-		return nil, xerror.Wrapf(err, "get all recent contacts failed").WithCtx(ctx)
-	}
-
-	uids := make([]int64, 0, len(recents))
-	for _, recent := range recents {
-		uids = append(uids, recent.Uid)
-	}
-
-	users, err := s.userAdapter.BatchGetUser(ctx, uids)
-	if err != nil {
-		return nil, xerror.Wrapf(err, "list users failed").WithCtx(ctx)
-	}
-
-	// 保持uid的返回顺序
-	orderedUsers := make([]*vo.User, 0, len(recents))
-	for _, recent := range recents {
-		orderedUsers = append(orderedUsers, users[recent.Uid])
-	}
-
-	return orderedUsers, nil
-}
-
-// 获取用户设置
-func (s *Service) GetSettings(ctx context.Context) (*dto.UserSettings, error) {
-	uid := metadata.Uid(ctx)
-
-	fullSetting, err := s.userSettingRepo.GetFullSetting(ctx, uid)
-	if err != nil {
-		return nil, xerror.Wrapf(err, "get full setting failed").WithCtx(ctx)
-	}
-
-	return &dto.UserSettings{
-		ShowFanList:    fullSetting.ShowFanList,
-		ShowFollowList: fullSetting.ShowFollowList,
-		ShowNoteLikes:  fullSetting.ShowNoteLikes,
-	}, nil
-}
-
-// 设置笔记展示相关设置
-func (s *Service) SetNoteShowSettings(ctx context.Context, uid int64, cmd *dto.SetNoteShowSettingReq) error {
-	now := time.Now().Unix()
-
-	setting, err := s.userSettingRepo.GetLocalSettingForUpdate(ctx, uid)
-	if err != nil {
-		return xerror.Wrapf(err, "get local setting for update failed").WithCtx(ctx)
-	}
-
-	setting.SetShowNoteLikes(cmd.ShowNoteLikes)
-	setting.Ctime = now
-	setting.Utime = now
-
-	if err := s.userSettingRepo.UpsertLocalSetting(ctx, setting); err != nil {
-		return xerror.Wrapf(err, "upsert local setting failed").WithCtx(ctx)
-	}
-
-	return nil
-}
-
-// 获取整体用户设置
-func (s *Service) GetIntegralUserSettings(ctx context.Context, uid int64) (*entity.UserSetting, error) {
-	setting, err := s.userSettingRepo.GetLocalSetting(ctx, uid)
-	if err != nil {
-		return nil, xerror.Wrapf(err, "get local setting failed").WithCtx(ctx)
-	}
-
-	return setting, nil
 }

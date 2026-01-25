@@ -171,7 +171,7 @@ func BatchPbAtUsersToVos(atUsers []*notev1.NoteAtUser) mentionvo.AtUserList {
 	}
 	vos := make(mentionvo.AtUserList, 0, len(atUsers))
 	for _, u := range atUsers {
-		vos = append(vos, mentionvo.AtUser{
+		vos = append(vos, &mentionvo.AtUser{
 			Uid:      u.GetUid(),
 			Nickname: u.GetNickname(),
 		})

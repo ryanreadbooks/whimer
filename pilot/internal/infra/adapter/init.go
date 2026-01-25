@@ -6,6 +6,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/note"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/relation"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/storage"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/systemnotify"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/user"
 	infracache "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/cache"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao"
@@ -28,6 +29,8 @@ var (
 	userAdapter        *user.UserAdapter
 
 	relationAdapter *relation.RelationAdapterImpl
+
+	systemNotifyAdapter *systemnotify.SystemNotifyAdapterImpl
 )
 
 func Init(c *config.Config, cache *redis.Redis) {
@@ -55,7 +58,10 @@ func Init(c *config.Config, cache *redis.Redis) {
 		dep.DisplayOssClient(),
 	)
 
-	commentAdapter = comment.NewCommentAdapterImpl(dep.Commenter())
+	commentAdapter = comment.NewCommentAdapterImpl(
+		dep.Commenter(),
+		infracache.NoteStatStore(),
+	)
 
 	userSettingAdapter = user.NewUserSettingAdapter(
 		dao.Database().UserSettingDao,
@@ -66,6 +72,8 @@ func Init(c *config.Config, cache *redis.Redis) {
 	)
 
 	relationAdapter = relation.NewRelationAdapterImpl(dep.RelationServer())
+
+	systemNotifyAdapter = systemnotify.NewSystemNotifyAdapterImpl(dep.SystemNotifier())
 }
 
 func NoteCreatorAdapter() *note.CreatorAdapterImpl {
@@ -102,4 +110,8 @@ func UserAdapter() *user.UserAdapter {
 
 func RelationAdapter() *relation.RelationAdapterImpl {
 	return relationAdapter
+}
+
+func SystemNotifyAdapter() *systemnotify.SystemNotifyAdapterImpl {
+	return systemNotifyAdapter
 }

@@ -88,7 +88,7 @@ type ObjectMeta struct {
 	PrefixSegment string
 }
 
-// UploadTicket 上传凭证（STS 临时凭证）
+// UploadTicket 上传凭证
 type UploadTicket struct {
 	FileIds      []string
 	Bucket       string
@@ -104,4 +104,12 @@ type PostPolicyTicket struct {
 	FileId     string
 	UploadAddr string
 	Form       map[string]string
+}
+
+type UploadTicketDeprecated struct {
+	FileIds     []string `json:"file_ids"`
+	CurrentTime int64    `json:"current_time"`
+	ExpireTime  int64    `json:"expire_time"`
+	UploadAddr  string   `json:"upload_addr"`
+	Token       string   `json:"token"`
 }

@@ -20,7 +20,6 @@ type NoteFeedAdapter interface {
 	// 获取笔记
 	RandomGet(ctx context.Context, count int32) ([]*entity.FeedNote, error)
 
-	// TODO 还有ext
 	GetNote(ctx context.Context, noteId int64) (*entity.FeedNote, *entity.FeedNoteExt, error)
 
 	BatchGetNotes(ctx context.Context, noteIds []int64) (map[int64]*entity.FeedNote, error)

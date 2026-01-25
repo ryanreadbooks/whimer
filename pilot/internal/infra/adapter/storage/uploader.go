@@ -207,6 +207,36 @@ func (u *uploader) GetCredentials(ctx context.Context) (*miniocreds.Value, error
 	return &val, err
 }
 
+type UploadTicket struct {
+	FileIds     []string `json:"file_ids"`
+	CurrentTime int64    `json:"current_time"`
+	ExpireTime  int64    `json:"expire_time"`
+	UploadAddr  string   `json:"upload_addr"`
+	Token       string   `json:"token"`
+}
+
+// Should be deprecated in the future
+func (u *uploader) GenerateUploadTicket(count int32, source string) (*UploadTicket, error) {
+	fileIds := make([]string, 0, count)
+	for range count {
+		fileIds = append(fileIds, u.keyGen.Gen())
+	}
+
+	res, err := u.signer.BatchGetUploadAuth(fileIds, string(u.resourceType))
+	if err != nil {
+		xlog.Msg("signer batch get upload auth failed").Err(err).Error()
+		return nil, modelerr.ErrServerSignFailure
+	}
+
+	return &UploadTicket{
+		FileIds:     fileIds,
+		CurrentTime: res.CurrentTime,
+		ExpireTime:  res.ExpireTime,
+		Token:       res.Token,
+		UploadAddr:  u.ossConfig.UploadEndpoint,
+	}, nil
+}
+
 // GetPostPolicyRequest Post Policy 请求参数
 type GetPostPolicyRequest struct {
 	ContentType string

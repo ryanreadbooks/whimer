@@ -20,7 +20,7 @@ func NewRecentContactRepo(store *recentcontact.Store) *RecentContactRepo {
 	}
 }
 
-func (r *RecentContactRepo) AtomicAppend(ctx context.Context, uid int64, targets []int64) error {
+func (r *RecentContactRepo) Append(ctx context.Context, uid int64, targets []int64) error {
 	return r.store.AtomicAppend(ctx, uid, targets)
 }
 

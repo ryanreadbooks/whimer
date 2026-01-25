@@ -19,7 +19,7 @@ func (a *AtUser) GetUid() int64 {
 	return 0
 }
 
-type AtUserList []AtUser
+type AtUserList []*AtUser
 
 func (a AtUserList) Filter() AtUserList {
 	filtered := make(AtUserList, 0, len(a))

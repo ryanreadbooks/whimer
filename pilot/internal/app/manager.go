@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/comment"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/notecreator"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/noteevent"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/notefeed"
@@ -8,6 +9,8 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/relation"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/user"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
+	"github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify"
+	userdomain "github.com/ryanreadbooks/whimer/pilot/internal/domain/user"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/repo"
 )
@@ -19,10 +22,19 @@ type Manager struct {
 	NoteEventApp    *noteevent.Service
 	RelationApp     *relation.Service
 	UserApp         *user.Service
+	CommentApp      *comment.Service
 }
 
 func NewManager(c *config.Config) *Manager {
-	return &Manager{
+	userDomainService := userdomain.NewDomainService(
+		adapter.UserAdapter(),
+		repo.RecentContactRepo(),
+	)
+	systemNotifyDomainService := systemnotify.NewDomainService(
+		adapter.SystemNotifyAdapter(),
+	)
+
+	m := &Manager{
 		NoteCreatorApp: notecreator.NewService(
 			adapter.NoteCreatorAdapter(),
 			adapter.NoteInteractAdapter(),
@@ -31,7 +43,9 @@ func NewManager(c *config.Config) *Manager {
 		),
 		NoteInteractApp: noteinteract.NewService(
 			adapter.NoteInteractAdapter(),
+			adapter.NoteFeedAdapter(),
 			adapter.CommentAdapter(),
+			systemNotifyDomainService,
 		),
 		NoteFeedApp: notefeed.NewService(
 			adapter.NoteFeedAdapter(),
@@ -44,13 +58,17 @@ func NewManager(c *config.Config) *Manager {
 			adapter.UserSettingAdapter(),
 		),
 		NoteEventApp: noteevent.NewService(
+			adapter.NoteFeedAdapter(),
 			adapter.NoteSearchAdapter(),
 			adapter.UserAdapter(),
+			systemNotifyDomainService,
+			userDomainService,
 		),
 		RelationApp: relation.NewService(
 			adapter.RelationAdapter(),
 		),
 		UserApp: user.NewService(
+			userDomainService,
 			adapter.UserAdapter(),
 			adapter.RelationAdapter(),
 			adapter.NoteCreatorAdapter(),
@@ -58,5 +76,15 @@ func NewManager(c *config.Config) *Manager {
 			adapter.UserSettingAdapter(),
 			repo.RecentContactRepo(),
 		),
+		CommentApp: comment.NewService(
+			adapter.CommentAdapter(),
+			userDomainService,
+			adapter.UserAdapter(),
+			adapter.NoteFeedAdapter(),
+			adapter.NoteCreatorAdapter(),
+			adapter.StorageAdapter(),
+		),
 	}
+
+	return m
 }

@@ -253,6 +253,31 @@ func (r *OssRepositoryImpl) GetUploadTicket(
 	}, nil
 }
 
+// TODO
+//
+// Should be deprecated in the future
+func (r *OssRepositoryImpl) GetUploadTicketDeprecated(
+	ctx context.Context, objType vo.ObjectType, count int32,
+) (*vo.UploadTicketDeprecated, error) {
+	uploader, err := r.uploaders.GetUploader(r.toUploadObjectType(objType))
+	if err != nil {
+		return nil, err
+	}
+
+	ticket, err := uploader.GenerateUploadTicket(count, "")
+	if err != nil {
+		return nil, xerror.Wrapf(err, "uploader generate ticket failed").WithCtx(ctx)
+	}
+
+	return &vo.UploadTicketDeprecated{
+		FileIds:     ticket.FileIds,
+		CurrentTime: ticket.CurrentTime,
+		ExpireTime:  ticket.ExpireTime,
+		UploadAddr:  ticket.UploadAddr,
+		Token:       ticket.Token,
+	}, nil
+}
+
 func (r *OssRepositoryImpl) GetPostPolicyTicket(
 	ctx context.Context, objType vo.ObjectType, sha256 string, mimeType string,
 ) (*vo.PostPolicyTicket, error) {
