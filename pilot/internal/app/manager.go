@@ -5,6 +5,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/noteevent"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/notefeed"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/noteinteract"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/relation"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter"
 )
@@ -14,6 +15,7 @@ type Manager struct {
 	NoteInteractApp *noteinteract.Service
 	NoteFeedApp     *notefeed.Service
 	NoteEventApp    *noteevent.Service
+	RelationApp     *relation.Service
 }
 
 func NewManager(c *config.Config) *Manager {
@@ -41,6 +43,9 @@ func NewManager(c *config.Config) *Manager {
 		NoteEventApp: noteevent.NewService(
 			adapter.NoteSearchAdapter(),
 			adapter.UserAdapter(),
+		),
+		RelationApp: relation.NewService(
+			adapter.RelationAdapter(),
 		),
 	}
 }

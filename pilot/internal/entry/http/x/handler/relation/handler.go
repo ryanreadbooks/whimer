@@ -3,40 +3,38 @@ package relation
 import (
 	"net/http"
 
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
-	bizrelation "github.com/ryanreadbooks/whimer/pilot/internal/biz/relation"
-	bizmodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/relation/model"
-	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app"
+	apprelation "github.com/ryanreadbooks/whimer/pilot/internal/app/relation"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/relation/dto"
+	"github.com/ryanreadbooks/whimer/pilot/internal/config"
+
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 type Handler struct {
-	relationBiz *bizrelation.Biz
+	relationApp *apprelation.Service
 }
 
-func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
+func NewHandler(c *config.Config, manager *app.Manager) *Handler {
 	return &Handler{
-		relationBiz: bizz.RelationBiz,
+		relationApp: manager.RelationApp,
 	}
 }
 
 func (h *Handler) UserFollowAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			ctx = r.Context()
-			uid = metadata.Uid(ctx)
-		)
-
-		req, err := xhttp.ParseValidate[bizmodel.FollowReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[dto.FollowCommand](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		// 关注或者取消关注
-		err = h.relationBiz.FollowOrUnfollow(ctx, uid, req)
+		ctx := r.Context()
+		uid := metadata.Uid(ctx)
+
+		err = h.relationApp.FollowOrUnfollow(ctx, uid, req)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -46,10 +44,9 @@ func (h *Handler) UserFollowAction() http.HandlerFunc {
 	}
 }
 
-// 检查是否关注了某个用户
 func (h *Handler) GetIsFollowing() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[bizmodel.GetIsFollowingReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[dto.CheckFollowingQuery](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -58,12 +55,11 @@ func (h *Handler) GetIsFollowing() http.HandlerFunc {
 		ctx := r.Context()
 		uid := metadata.Uid(ctx)
 		if uid == 0 {
-			// 未登录
 			xhttp.OkJson(w, false)
 			return
 		}
 
-		followed, err := h.relationBiz.CheckUserFollows(ctx, uid, req.Uid)
+		followed, err := h.relationApp.CheckFollowing(ctx, uid, req.Uid)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -73,21 +69,18 @@ func (h *Handler) GetIsFollowing() http.HandlerFunc {
 	}
 }
 
-// 用户关注设置
 func (h *Handler) UpdateSettings() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[bizmodel.UpdateSettingReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[dto.UpdateSettingsCommand](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		var (
-			ctx = r.Context()
-			uid = metadata.Uid(ctx)
-		)
+		ctx := r.Context()
+		uid := metadata.Uid(ctx)
 
-		err = h.relationBiz.UpdateRelationSettings(ctx, uid, req)
+		err = h.relationApp.UpdateSettings(ctx, uid, req)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

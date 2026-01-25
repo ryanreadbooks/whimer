@@ -8,8 +8,6 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/app"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/notefeed"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/notefeed/dto"
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
-	bizfeed "github.com/ryanreadbooks/whimer/pilot/internal/biz/feed"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
 
@@ -17,13 +15,11 @@ import (
 )
 
 type Handler struct {
-	feedBiz     *bizfeed.Biz
 	noteFeedApp *notefeed.Service
 }
 
-func NewHandler(c *config.Config, bizz *biz.Biz, manager *app.Manager) *Handler {
+func NewHandler(c *config.Config, manager *app.Manager) *Handler {
 	return &Handler{
-		feedBiz:     bizz.FeedBiz,
 		noteFeedApp: manager.NoteFeedApp,
 	}
 }
