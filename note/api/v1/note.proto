@@ -134,7 +134,7 @@ message FeedNoteItem {
   repeated NoteImage images     = 5;
   int64              likes      = 6;  // 点赞数量
   int64              author     = 7;  // 笔记作者
-  int64              replies    = 8;  // 点赞数
+  int64              replies    = 8;
   int64              updated_at = 9;
   string             ip         = 10;
   NoteAssetType      note_type  = 11;  // 笔记类型 图片笔记或者视频笔记

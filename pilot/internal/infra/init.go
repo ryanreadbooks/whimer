@@ -5,8 +5,10 @@ import (
 
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter"
+	infracache "github.com/ryanreadbooks/whimer/pilot/internal/infra/cache"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/syncjob"
 )
 
 var initOnce sync.Once
@@ -17,10 +19,17 @@ func Init(c *config.Config) {
 		dao.Init(c, Cache())
 		dep.Init(c)
 		initMisc(c)
-		adapter.Init(c)
+		adapter.Init(c, Cache())
+		syncjob.InitNoteStatSyncJob(syncjob.NoteStatSyncJobConfig{
+			Tick:      c.JobConfig.NoteEventJob.Interval,
+			NumOfList: int(c.JobConfig.NoteEventJob.NumOfList),
+		}, dep.DocumentServer(), infracache.NoteStatStore())
+
+		syncjob.GetNoteStatSyncJob().Start()
 	})
 }
 
 func Close() {
+	syncjob.GetNoteStatSyncJob().Stop()
 	dao.Close()
 }

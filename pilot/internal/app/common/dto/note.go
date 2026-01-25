@@ -3,6 +3,7 @@ package dto
 import (
 	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
+	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/entity"
 	notevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
 )
 
@@ -30,6 +31,24 @@ func NewNoteImageUrl(key string) string {
 		imgproxy.WithQuality(config.Conf.ImgQuality.Quality),
 	)
 	return url
+}
+
+func ConvertEntityNoteImageToDto(image *entity.NoteImage) *NoteImage {
+	if image == nil {
+		return nil
+	}
+
+	return &NoteImage{
+		Key:        image.FileId,
+		Url:        NewNoteImageUrl(image.FileId),
+		UrlPreview: NewNoteImagePreviewUrl(image.FileId),
+		Type:       notevo.AssetTypeImage,
+		Metadata: NoteImageMetadata{
+			Width:  image.Width,
+			Height: image.Height,
+			Format: image.Format,
+		},
+	}
 }
 
 func NewNoteImagePreviewUrl(key string) string {
@@ -61,6 +80,28 @@ type NoteVideo struct {
 	Url      string           `json:"url"`
 	Type     notevo.AssetType `json:"type"`
 	Metadata NoteVideoMeta    `json:"metadata"`
+}
+
+func ConvertEntityNoteVideoToDto(video *entity.NoteVideo, url string) *NoteVideo {
+	if video == nil {
+		return nil
+	}
+
+	return &NoteVideo{
+		Key:  video.FileId,
+		Url:  url,
+		Type: notevo.AssetTypeVideo,
+		Metadata: NoteVideoMeta{
+			Width:      video.GetMetadata().Width,
+			Height:     video.GetMetadata().Height,
+			Format:     video.GetMetadata().Format,
+			Duration:   video.GetMetadata().Duration,
+			Bitrate:    video.GetMetadata().Bitrate,
+			Codec:      video.GetMetadata().Codec,
+			Framerate:  video.GetMetadata().Framerate,
+			AudioCodec: video.GetMetadata().AudioCodec,
+		},
+	}
 }
 
 type NoteVideoList []*NoteVideo

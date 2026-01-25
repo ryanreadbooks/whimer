@@ -13,7 +13,8 @@ func regFeedRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 		{
 			v1Group.Get("/recommend", h.Feed.GetRecommend())
 			v1Group.Get("/note/:note_id", h.Feed.GetNoteDetail())
-			v1Group.Get("/note/by_user", h.Feed.GetNotesByUser())
+			v1Group.Get("/note/user/list", h.Feed.GetNotesByUser())
+			v1Group.Get("/note/user/liked/history", h.Feed.GetLikedNotesByUser())
 		}
 	}
 }

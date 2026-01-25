@@ -88,3 +88,11 @@ const (
 	LikeActionUndo LikeAction = 0
 	LikeActionDo   LikeAction = 1
 )
+
+func (a LikeAction) IsDo() bool {
+	return a == LikeActionDo
+}
+
+func (a LikeAction) IsUndo() bool {
+	return a == LikeActionUndo
+}

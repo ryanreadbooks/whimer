@@ -29,10 +29,6 @@ func isGuestFromCtx(ctx context.Context) bool {
 	return imodel.IsGuestFromCtx(ctx)
 }
 
-func isGuest(uid int64) bool {
-	return imodel.IsGuest(uid)
-}
-
 // 收集作者信息
 func (b *Biz) collectAuthor(ctx context.Context, uids []int64) (map[int64]*userv1.UserInfo, error) {
 	authors := make(map[int64]*userv1.UserInfo)
@@ -253,47 +249,6 @@ func (b *Biz) AssembleNoteFeeds(ctx context.Context, notes []*notev1.FeedNoteIte
 	return feedNotes, nil
 }
 
-func (b *Biz) RandomFeed(ctx context.Context, req *model.FeedRecommendRequest) ([]*model.FeedNoteItem, error) {
-	// 1. 获取笔记基础信息
-	resp, err := dep.NoteFeedServer().RandomGet(ctx, &notev1.RandomGetRequest{
-		Count: int32(req.NeedNum),
-	})
-	if err != nil {
-		return nil, xerror.Wrapf(err, "feed biz random get note failed").WithExtras("req", req).WithCtx(ctx)
-	}
-
-	notes := resp.GetItems()
-	if len(notes) == 0 {
-		return []*model.FeedNoteItem{}, nil
-	}
-
-	// 2. 组装所有需要的信息
-	return b.AssembleNoteFeeds(ctx, notes)
-}
-
-// 获取详细的笔记信息
-func (b *Biz) GetNote(ctx context.Context, noteId int64) (*model.FullFeedNoteItem, error) {
-	// 1. 获取指定笔记
-	resp, err := dep.NoteFeedServer().GetFeedNote(ctx, &notev1.GetFeedNoteRequest{
-		NoteId: noteId,
-	})
-	if err != nil {
-		return nil, xerror.Wrapf(err, "feed biz failed to get note").WithExtra("noteId", noteId).WithCtx(ctx)
-	}
-
-	note := resp.GetItem()
-	feeds, err := b.AssembleNoteFeeds(ctx, []*notev1.FeedNoteItem{note})
-	if err != nil {
-		return nil, err
-	}
-
-	return &model.FullFeedNoteItem{
-		FeedNoteItem: feeds[0],
-		TagList:      imodel.NoteTagsFromPbs(resp.GetExt().GetTags()),
-		AtUsers:      imodel.AtUsersFromNotePbs(resp.GetExt().GetAtUsers()),
-	}, nil
-}
-
 func (b *Biz) BatchGetNote(ctx context.Context, noteIds []int64) ([]*model.FeedNoteItem, error) {
 	noteResp, err := dep.NoteFeedServer().BatchGetFeedNotes(ctx, &notev1.BatchGetFeedNotesRequest{
 		NoteIds: noteIds,
@@ -332,35 +287,6 @@ func (b *Biz) BatchGetNote(ctx context.Context, noteIds []int64) ([]*model.FeedN
 	filtered := xslice.Filter(ret, func(_ int, v *model.FeedNoteItem) bool { return v == nil })
 
 	return filtered, nil
-}
-
-func (b *Biz) ListNotesByUser(ctx context.Context, uid int64, cursor int64, count int32) ([]*model.FeedNoteItem,
-	*model.PageResult, error) {
-
-	// 1. 笔记基础信息
-	resp, err := dep.NoteFeedServer().ListFeedByUid(ctx, &notev1.ListFeedByUidRequest{
-		Uid:    uid,
-		Cursor: cursor,
-		Count:  int32(count),
-	})
-	if err != nil {
-		return nil, nil, xerror.Wrapf(err, "feed biz failed to list note").WithExtra("uid", uid).WithCtx(ctx)
-	}
-
-	notes := resp.GetItems()
-	if len(notes) == 0 {
-		return []*model.FeedNoteItem{}, &model.PageResult{}, nil
-	}
-
-	// 2. 组装所有需要的信息
-	result, err := b.AssembleNoteFeeds(ctx, notes)
-	if err != nil {
-		return nil, nil, xerror.Wrapf(err, "feed biz failed to assemble").WithExtra("uid", uid).WithCtx(ctx)
-	}
-
-	return result,
-		&model.PageResult{NextCursor: resp.NextCursor, HasNext: resp.HasNext},
-		nil
 }
 
 func (b *Biz) GetNoteAuthor(ctx context.Context, noteId int64) (int64, error) {

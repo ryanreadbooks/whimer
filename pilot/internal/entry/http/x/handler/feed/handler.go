@@ -4,34 +4,39 @@ import (
 	"math/rand"
 	"net/http"
 
+	"github.com/ryanreadbooks/whimer/misc/xhttp"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/notefeed"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/notefeed/dto"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	bizfeed "github.com/ryanreadbooks/whimer/pilot/internal/biz/feed"
-	feedmodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/feed/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model"
-	"github.com/ryanreadbooks/whimer/misc/xhttp"
+	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
+
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 type Handler struct {
-	feedBiz *bizfeed.Biz
+	feedBiz     *bizfeed.Biz
+	noteFeedApp *notefeed.Service
 }
 
-func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
+func NewHandler(c *config.Config, bizz *biz.Biz, manager *app.Manager) *Handler {
 	return &Handler{
-		feedBiz: bizz.FeedBiz,
+		feedBiz:     bizz.FeedBiz,
+		noteFeedApp: manager.NoteFeedApp,
 	}
 }
 
 func (h *Handler) GetRecommend() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[feedmodel.FeedRecommendRequest](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[dto.GetRandomQuery](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		resp, err := h.feedBiz.RandomFeed(r.Context(), req)
+		resp, err := h.noteFeedApp.GetRandom(r.Context(), req)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -46,13 +51,13 @@ func (h *Handler) GetRecommend() http.HandlerFunc {
 
 func (h *Handler) GetNoteDetail() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[feedmodel.FeedDetailRequest](httpx.ParsePath, r)
+		req, err := xhttp.ParseValidate[dto.GetFeedNoteQuery](httpx.ParsePath, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		resp, err := h.feedBiz.GetNote(r.Context(), int64(req.NoteId))
+		resp, err := h.noteFeedApp.GetFeedNote(r.Context(), req)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -64,26 +69,44 @@ func (h *Handler) GetNoteDetail() http.HandlerFunc {
 
 func (h *Handler) GetNotesByUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[feedmodel.FeedByUserRequest](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[dto.ListUserFeedNotesQuery](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		resp, page, err := h.feedBiz.ListNotesByUser(r.Context(), req.Uid, int64(req.Cursor), req.Count)
+		resp, page, err := h.noteFeedApp.ListUserFeedNotes(r.Context(), req.Uid, int64(req.Cursor), req.Count)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		nextCursor := model.NoteId(page.NextCursor)
-		if !page.HasNext {
-			nextCursor = 0
-		}
-
-		xhttp.OkJson(w, &feedmodel.FeedByUserResponse{
+		xhttp.OkJson(w, &dto.ListUserFeedNotesResult{
 			Items:      resp,
-			NextCursor: nextCursor,
+			NextCursor: vo.NoteId(page.NextCursor),
+			HasNext:    page.HasNext,
+		})
+	}
+}
+
+// 获取用户点赞过的笔记
+func (h *Handler) GetLikedNotesByUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[dto.ListUserLikedNoteQuery](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		resp, page, err := h.noteFeedApp.ListUserLikedNotes(r.Context(), req.Uid, req.Cursor, req.Count)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, &dto.ListUserLikedNoteResult{
+			Items:      resp,
+			NextCursor: page.NextCursor,
 			HasNext:    page.HasNext,
 		})
 	}

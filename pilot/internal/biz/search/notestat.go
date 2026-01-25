@@ -5,26 +5,19 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	notecache "github.com/ryanreadbooks/whimer/pilot/internal/infra/cache/note"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
-
-	// "github.com/ryanreadbooks/whimer/misc/xlog"
-	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 )
 
-type NoteStatSyncer struct {
-	NoteCache *notecache.Store
+type NoteInteractStatSyncer struct {
+	NoteCache *notecache.StatStore
 }
 
-func (s *NoteStatSyncer) AddLikeCount(ctx context.Context, noteId string, increment int64) error {
-	return s.addStatCount(ctx, notecache.NoteLikeCountStat, noteId, increment)
-}
-
-func (s *NoteStatSyncer) AddCommentCount(ctx context.Context, noteId string, increment int64) error {
+func (s *NoteInteractStatSyncer) AddCommentCount(ctx context.Context, noteId string, increment int64) error {
 	return s.addStatCount(ctx, notecache.NoteCommentCountStat, noteId, increment)
 }
 
-func (s *NoteStatSyncer) addStatCount(ctx context.Context, statType notecache.NoteInteractStatType,
-	noteId string, increment int64) error {
+func (s *NoteInteractStatSyncer) addStatCount(ctx context.Context, statType notecache.NoteInteractStatType,
+	noteId string, increment int64,
+) error {
 	err := s.NoteCache.Add(ctx, statType, notecache.NoteStatRepr{
 		NoteId: noteId,
 		Inc:    increment,
@@ -36,75 +29,4 @@ func (s *NoteStatSyncer) addStatCount(ctx context.Context, statType notecache.No
 	}
 
 	return nil
-}
-
-// consume note like count event
-func (s *NoteStatSyncer) PollLikeCount(ctx context.Context) error {
-	stats, err := s.NoteCache.ConsumeLikeCount(ctx, 1)
-	if err != nil {
-		return xerror.Wrapf(err, "note stat syncer failed to poll like count").WithCtx(ctx)
-	}
-
-	// xlog.Msgf("note stat poll like count len = %d", len(stats)).Debugx(ctx)
-
-	// remove duplicates
-	reqs := s.removeDupAndDoMap(stats)
-	if len(reqs) != 0 {
-		_, err := dep.DocumentServer().BatchUpdateNoteLikeCount(ctx,
-			&searchv1.BatchUpdateNoteLikeCountRequest{Counts: reqs})
-		if err != nil {
-			return xerror.Wrapf(err, "note stat syncer update note like count failed").WithCtx(ctx)
-		}
-	} else {
-		// xlog.Msg("note stat poll like count result empty").Debugx(ctx)
-	}
-
-	return nil
-}
-
-// consume note comment count event
-func (s *NoteStatSyncer) PollCommentCount(ctx context.Context) error {
-	stats, err := s.NoteCache.ConsumeCommentCount(ctx, 1)
-	if err != nil {
-		return xerror.Wrapf(err, "note stat syncer failed to poll comment count").WithCtx(ctx)
-	}
-
-	// xlog.Msgf("note stat poll comment count len = %d", len(stats)).Debugx(ctx)
-
-	reqs := s.removeDupAndDoMap(stats)
-	if len(reqs) != 0 {
-		_, err := dep.DocumentServer().BatchUpdateNoteCommentCount(ctx,
-			&searchv1.BatchUpdateNoteCommentCountRequest{Counts: reqs})
-		if err != nil {
-			return xerror.Wrapf(err, "note stat syncer update note comment count failed").WithCtx(ctx)
-		}
-	} else {
-		// xlog.Msg("note stat poll comment count result empty").Debugx(ctx)
-	}
-
-	return nil
-}
-
-func (s *NoteStatSyncer) removeDupAndDoMap(stats []notecache.NoteStatRepr) map[string]int64 {
-	tmp := make(map[string]int64, len(stats))
-	for _, stat := range stats {
-		tmp[stat.NoteId] += stat.Inc
-	}
-
-	res := make([]notecache.NoteStatRepr, 0, len(stats))
-	for noteId, incr := range tmp {
-		if incr != 0 { // 0 means updatign to es is unnecessary
-			res = append(res, notecache.NoteStatRepr{
-				NoteId: noteId,
-				Inc:    incr,
-			})
-		}
-	}
-
-	reqs := make(map[string]int64, len(res))
-	for _, s := range res {
-		reqs[s.NoteId] = s.Inc
-	}
-
-	return reqs
 }

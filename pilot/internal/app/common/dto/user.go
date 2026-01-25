@@ -16,3 +16,9 @@ func (a AtUserList) Filter() AtUserList {
 	}
 	return filtered
 }
+
+type User struct {
+	Uid      int64  `json:"uid"`
+	Nickname string `json:"nickname"`
+	Avatar   string `json:"avatar"`
+}

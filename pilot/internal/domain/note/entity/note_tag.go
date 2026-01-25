@@ -5,8 +5,9 @@ type NoteTag struct {
 	Name string
 }
 
-// SearchedNoteTag 搜索结果中的标签（ID 为字符串格式）
+// SearchedNoteTag 搜索结果中的标签
 type SearchedNoteTag struct {
-	Id   string
-	Name string
+	Id    string
+	Name  string
+	Ctime int64 // optional
 }

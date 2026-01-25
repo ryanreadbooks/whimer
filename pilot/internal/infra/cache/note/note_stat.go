@@ -17,7 +17,7 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
-const defaultNumNoteInteractStatList uint32 = 6
+const defaultNumNoteInteractStatList uint32 = 6 // do not modify this value
 
 const (
 	// number of key
@@ -36,17 +36,17 @@ const (
 //	list.0: [{"nid": "xxx", "inc": 1}, {"nid": "xxx", "inc": 1}]
 //	list.1: [{"nid": "xxx", "inc": -1}, {"nid": "xxx", "inc": -1}]
 //	list.2: [{"nid": "xxx", "inc": 1}, {"nid": "xxx", "inc": -1}]
-type Store struct {
+type StatStore struct {
 	rd              *redis.Redis
 	likeStatKeys    []string
 	commentStatKeys []string
 }
 
-func New(rd *redis.Redis, numOfList uint32) *Store {
+func NewStatStore(rd *redis.Redis, numOfList uint32) *StatStore {
 	if numOfList == 0 {
 		numOfList = defaultNumNoteInteractStatList
 	}
-	s := &Store{
+	s := &StatStore{
 		rd: rd,
 	}
 	for idx := range numOfList {
@@ -71,9 +71,9 @@ type NoteStatRepr struct {
 }
 
 // 数据先行写入redis
-func (b *Store) Add(ctx context.Context,
-	statType NoteInteractStatType, stat NoteStatRepr) error {
-
+func (b *StatStore) Add(ctx context.Context,
+	statType NoteInteractStatType, stat NoteStatRepr,
+) error {
 	hasher := fnv.New32a()
 	hasher.Write(xstring.AsBytes(stat.NoteId))
 	slotIdx := int(hasher.Sum32()) % int(defaultNumNoteInteractStatList)
@@ -105,7 +105,6 @@ func (b *Store) Add(ctx context.Context,
 		p.LPush(ctx, listKey, listValue)
 		return nil
 	})
-
 	if err != nil {
 		return xerror.Wrapf(err, "lpush to %s failed, body: %s", listKey, listValue)
 	}
@@ -113,16 +112,16 @@ func (b *Store) Add(ctx context.Context,
 	return nil
 }
 
-func (b *Store) ConsumeLikeCount(ctx context.Context, want int) ([]NoteStatRepr, error) {
+func (b *StatStore) ConsumeLikeCount(ctx context.Context, want int) ([]NoteStatRepr, error) {
 	return b.consumeByType(ctx, NoteLikeCountStat, int64(want))
 }
 
-func (b *Store) ConsumeCommentCount(ctx context.Context, want int) ([]NoteStatRepr, error) {
+func (b *StatStore) ConsumeCommentCount(ctx context.Context, want int) ([]NoteStatRepr, error) {
 	return b.consumeByType(ctx, NoteCommentCountStat, int64(want))
 }
 
 // want：每次获取sorted set中的元素的个数
-func (b *Store) consumeByType(ctx context.Context, statType NoteInteractStatType, want int64) ([]NoteStatRepr, error) {
+func (b *StatStore) consumeByType(ctx context.Context, statType NoteInteractStatType, want int64) ([]NoteStatRepr, error) {
 	pipe, err := b.rd.TxPipeline()
 	if err != nil {
 		return nil, xsql.ConvertError(err)
@@ -208,7 +207,7 @@ func (b *Store) consumeByType(ctx context.Context, statType NoteInteractStatType
 		totalItems = append(totalItems, listItems...)
 	}
 
-	var ret = make([]NoteStatRepr, 0, len(totalItems))
+	ret := make([]NoteStatRepr, 0, len(totalItems))
 	for _, item := range totalItems {
 		var itemStat NoteStatRepr
 		err = json.Unmarshal(xstring.AsBytes(item), &itemStat)

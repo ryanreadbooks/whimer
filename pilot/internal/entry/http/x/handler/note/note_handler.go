@@ -8,7 +8,6 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app"
 	commondto "github.com/ryanreadbooks/whimer/pilot/internal/app/common/dto"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/notecreator"
@@ -18,14 +17,11 @@ import (
 	bizstorage "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/storage"
 	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user"
 	bizfeed "github.com/ryanreadbooks/whimer/pilot/internal/biz/feed"
-	feedmodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/feed/model"
 	biznote "github.com/ryanreadbooks/whimer/pilot/internal/biz/note"
 	bizsearch "github.com/ryanreadbooks/whimer/pilot/internal/biz/search"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
-	modelerr "github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -71,26 +67,7 @@ func (h *Handler) LikeNote() http.HandlerFunc {
 			return
 		}
 
-		// TODO 放到service中进行同步
-		// concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		// 	Name: "note.handler.likenote.synces",
-		// 	Job: func(ctx context.Context) error {
-		// 		var incr int64 = 1
-		// 		if req.Action == imodel.LikeReqActionUndo {
-		// 			incr = -1
-		// 		}
-
-		// 		err := h.searchBiz.NoteStatSyncer.AddLikeCount(ctx, noteIdStr, incr)
-		// 		if err != nil {
-		// 			xlog.Msg("note stat add like count failed").
-		// 				Extras("note_id", noteId, "note_id_str", noteIdStr).
-		// 				Err(err).Errorx(ctx)
-		// 		}
-
-		// 		return err
-		// 	},
-		// })
-
+		// TODO 通知用户笔记被点赞了
 		// if req.Action == imodel.LikeReqActionDo {
 		// 	h.asyncNotifyLikeNote(ctx, noteId)
 		// }
@@ -118,60 +95,6 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 			NoteId: req.NoteId,
 			Count:  cnt,
 		})
-	}
-}
-
-
-// 获取用户点赞过的笔记
-func (b *Handler) ListLikedNotes() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[GetLikedNoteRequest](httpx.ParseForm, r)
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		var (
-			ctx    = r.Context()
-			curUid = metadata.Uid(ctx)
-		)
-
-		if curUid != req.Uid {
-			// 检查req.Uid的点赞记录是否公开
-			userSetting, _ := b.userBiz.GetIntegralUserSettings(ctx, req.Uid)
-			if !userSetting.ShowNoteLikes {
-				xhttp.Error(r, w, modelerr.ErrLikesHistoryHidden)
-				return
-			}
-		}
-
-		noteResp, err := dep.NoteInteractServer().PageListUserLikedNote(ctx,
-			&notev1.PageListUserLikedNoteRequest{
-				Uid:    req.Uid,
-				Cursor: req.Cursor,
-				Count:  req.Count,
-			})
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		resp := &GetLikedNoteResponse{
-			Items:      []*feedmodel.FeedNoteItem{},
-			NextCursor: noteResp.NextCursor,
-			HasNext:    noteResp.HasNext,
-		}
-
-		if len(noteResp.Items) > 0 {
-			targets, err := b.feedBiz.AssembleNoteFeeds(ctx, noteResp.GetItems())
-			if err != nil {
-				xhttp.Error(r, w, err)
-				return
-			}
-			resp.Items = targets
-		}
-
-		xhttp.OkJson(w, resp)
 	}
 }
 

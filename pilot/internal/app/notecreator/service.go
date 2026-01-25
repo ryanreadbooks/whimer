@@ -285,37 +285,13 @@ func (s *Service) convertEntityNoteToDto(ctx context.Context, note *entity.Creat
 	videos := make(commondto.NoteVideoList, 0, len(note.Videos))
 
 	for _, img := range note.Images {
-		images = append(images, &commondto.NoteImage{
-			Key:        img.FileId,
-			Url:        commondto.NewNoteImageUrl(img.FileId),
-			UrlPreview: commondto.NewNoteImagePreviewUrl(img.FileId),
-			Type:       notevo.AssetTypeImage,
-			Metadata: commondto.NoteImageMetadata{
-				Format: img.Format,
-				Width:  img.Width,
-				Height: img.Height,
-			},
-		})
+		images = append(images, commondto.ConvertEntityNoteImageToDto(img))
 	}
 
 	for _, video := range note.Videos {
 		if video != nil {
 			url, _ := s.storageRepository.PresignGetUrl(ctx, storagevo.ObjectTypeNoteVideo, video.FileId)
-			videos = append(videos, &commondto.NoteVideo{
-				Key:  video.FileId,
-				Type: notevo.AssetTypeVideo,
-				Url:  url,
-				Metadata: commondto.NoteVideoMeta{
-					Width:      video.GetMetadata().Width,
-					Height:     video.GetMetadata().Height,
-					Format:     video.GetMetadata().Format,
-					Duration:   video.GetMetadata().Duration,
-					Bitrate:    video.GetMetadata().Bitrate,
-					Codec:      video.GetMetadata().Codec,
-					Framerate:  video.GetMetadata().Framerate,
-					AudioCodec: video.GetMetadata().AudioCodec,
-				},
-			})
+			videos = append(videos, commondto.ConvertEntityNoteVideoToDto(video, url))
 		}
 	}
 
@@ -364,8 +340,8 @@ func (s *Service) getNoteInteraction(ctx context.Context, uid, noteId int64) (
 
 	eg.Go(func() error {
 		return recovery.Do(func() error {
-			commentStatus, err := s.commentAdapter.CheckCommented(ctx,
-				&commentrepo.CheckCommentedParams{
+			commentStatus, err := s.commentAdapter.BatchCheckCommented(ctx,
+				&commentrepo.BatchCheckCommentedParams{
 					Uid:     uid,
 					NoteIds: []int64{noteId},
 				})
@@ -393,7 +369,7 @@ func (s *Service) batchGetNoteInteraction(ctx context.Context, uid int64, noteId
 	var (
 		eg            = errgroup.Group{}
 		likeStatus    *noterepo.BatchGetLikeStatusResult
-		commentStatus *commentrepo.CheckCommentedResult
+		commentStatus *commentrepo.BatchCheckCommentedResult
 	)
 
 	eg.Go(func() error {
@@ -416,8 +392,8 @@ func (s *Service) batchGetNoteInteraction(ctx context.Context, uid int64, noteId
 	eg.Go(func() error {
 		return recovery.Do(func() error {
 			var err error
-			commentStatus, err = s.commentAdapter.CheckCommented(ctx,
-				&commentrepo.CheckCommentedParams{
+			commentStatus, err = s.commentAdapter.BatchCheckCommented(ctx,
+				&commentrepo.BatchCheckCommentedParams{
 					Uid:     uid,
 					NoteIds: noteIds,
 				})

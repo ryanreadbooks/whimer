@@ -20,9 +20,12 @@ func NewCommentAdapterImpl(c v1.CommentServiceClient) *CommentAdapterImpl {
 
 var _ repository.CommentAdapter = &CommentAdapterImpl{}
 
-func (c *CommentAdapterImpl) CheckCommented(ctx context.Context,
-	p *repository.CheckCommentedParams,
-) (*repository.CheckCommentedResult, error) {
+// 发表评论
+
+
+func (c *CommentAdapterImpl) BatchCheckCommented(ctx context.Context,
+	p *repository.BatchCheckCommentedParams,
+) (*repository.BatchCheckCommentedResult, error) {
 	m := make(map[int64]*v1.BatchCheckUserOnObjectRequest_Objects)
 	m[p.Uid] = &v1.BatchCheckUserOnObjectRequest_Objects{Oids: p.NoteIds}
 	req := &v1.BatchCheckUserOnObjectRequest{
@@ -39,7 +42,7 @@ func (c *CommentAdapterImpl) CheckCommented(ctx context.Context,
 		commented[item.GetOid()] = item.GetCommented()
 	}
 
-	return &repository.CheckCommentedResult{
+	return &repository.BatchCheckCommentedResult{
 		Commented: commented,
 	}, nil
 }

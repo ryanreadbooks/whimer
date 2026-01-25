@@ -7,6 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/noteinteract/dto"
 	commentrepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/comment/repository"
 	noterepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/repository"
+	notevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
 )
 
 // 只负责业务逻辑编排
@@ -35,6 +36,10 @@ func (s *Service) LikeNote(ctx context.Context, cmd *dto.LikeNoteCommand) error 
 	})
 	if err != nil {
 		return err
+	}
+
+	if cmd.Action == notevo.LikeActionDo {
+		// TODO 通知用户你的笔记被点赞了
 	}
 
 	return nil

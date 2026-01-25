@@ -271,3 +271,46 @@ func LikeActionAsPbLikeOperation(action vo.LikeAction) notev1.LikeNoteRequest_Op
 		return notev1.LikeNoteRequest_OPERATION_UNDO_LIKE
 	}
 }
+
+func PbFeedNoteToEntity(note *notev1.FeedNoteItem) *entity.FeedNote {
+	if note == nil {
+		return nil
+	}
+
+	return &entity.FeedNote{
+		Id:        vo.NoteId(note.GetNoteId()),
+		Title:     note.GetTitle(),
+		Desc:      note.GetDesc(),
+		CreateAt:  note.GetCreatedAt(),
+		UpdateAt:  note.GetUpdatedAt(),
+		Images:    BatchPbNoteImagesToEntities(note.GetImages()),
+		Videos:    BatchPbNoteVideosToEntities(note.GetVideos()),
+		Likes:     note.GetLikes(),
+		Comments:  note.GetReplies(),
+		Ip:        note.GetIp(),
+		Type:      PbNoteAssetTypeToVo(note.GetNoteType()).AsNoteType(),
+		AuthorUid: note.GetAuthor(),
+	}
+}
+
+func PbFeedNoteExtToEntity(ext *notev1.FeedNoteItemExt) *entity.FeedNoteExt {
+	if ext == nil {
+		return nil
+	}
+
+	return &entity.FeedNoteExt{
+		Tags:    BatchPbNoteTagsToEntities(ext.GetTags()),
+		AtUsers: BatchPbAtUsersToVos(ext.GetAtUsers()),
+	}
+}
+
+func BatchPbFeedNotesToEntities(notes []*notev1.FeedNoteItem) []*entity.FeedNote {
+	if len(notes) == 0 {
+		return nil
+	}
+	entities := make([]*entity.FeedNote, 0, len(notes))
+	for _, note := range notes {
+		entities = append(entities, PbFeedNoteToEntity(note))
+	}
+	return entities
+}

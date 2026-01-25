@@ -2,17 +2,17 @@ package repository
 
 import "context"
 
-type CheckCommentedParams struct {
+type BatchCheckCommentedParams struct {
 	Uid     int64
 	NoteIds []int64
 }
 
-type CheckCommentedResult struct {
+type BatchCheckCommentedResult struct {
 	// noteId -> commented
 	Commented map[int64]bool
 }
 
 type CommentAdapter interface {
 	// 检查是否评论过
-	CheckCommented(ctx context.Context, p *CheckCommentedParams) (*CheckCommentedResult, error)
+	BatchCheckCommented(ctx context.Context, p *BatchCheckCommentedParams) (*BatchCheckCommentedResult, error)
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/messaging"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
-	"github.com/ryanreadbooks/whimer/pilot/internal/job"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 	zeroservice "github.com/zeromicro/go-zero/core/service"
@@ -33,7 +32,7 @@ func main() {
 	appMgr := app.NewManager(&config.Conf)
 
 	bizz := biz.New(&config.Conf)
-	messaging.Init(&config.Conf, bizz)
+	messaging.Init(&config.Conf, bizz, appMgr)
 	defer messaging.Close()
 
 	apiserver := rest.MustNewServer(config.Conf.Http)
@@ -42,15 +41,7 @@ func main() {
 	servgroup := zeroservice.NewServiceGroup()
 	defer servgroup.Stop()
 
-	noteEvtJob := job.NewNoteEventManager(
-		job.NoteEventManagerConfig{
-			Tick: config.Conf.JobConfig.NoteEventJob.Interval,
-		},
-		bizz,
-	)
-
 	servgroup.Add(apiserver)
-	servgroup.Add(noteEvtJob)
 
 	logx.Info("pilot server is running...")
 	servgroup.Start()
