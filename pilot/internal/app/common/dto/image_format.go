@@ -1,4 +1,4 @@
-package model
+package dto
 
 import "github.com/ryanreadbooks/whimer/misc/xerror"
 

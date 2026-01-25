@@ -1,10 +1,11 @@
 package dto
 
 import (
+	"unicode"
 	"unicode/utf8"
 
+	commondto "github.com/ryanreadbooks/whimer/pilot/internal/app/common/dto"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/notecreator/errors"
-	shareddto "github.com/ryanreadbooks/whimer/pilot/internal/app/shared/dto"
 	notevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
 )
 
@@ -59,7 +60,7 @@ func (i *ImageForCreateNote) Validate() error {
 		return errors.ErrEmptyImageInfo
 	}
 
-	if err := shareddto.CheckImageFormat(i.Format); err != nil {
+	if err := commondto.CheckImageFormat(i.Format); err != nil {
 		return err
 	}
 
@@ -107,7 +108,7 @@ type CreateNoteCommand struct {
 	Images  ImageListForCreateNote `json:"images"`
 	Video   *VideoForCreateNote    `json:"video,optional"`
 	TagList []TagId                `json:"tag_list,optional"`
-	AtUsers AtUserList             `json:"at_users,optional"`
+	AtUsers commondto.AtUserList   `json:"at_users,optional"`
 
 	// internal usage only
 	strictVideo bool `json:"-"`
@@ -200,4 +201,54 @@ func (c *UpdateNoteCommand) Validate() error {
 
 type UpdateNoteResult struct {
 	NoteId notevo.NoteId `json:"note_id"`
+}
+
+// 新增标签
+type AddTagCommand struct {
+	Name string `json:"name"`
+}
+
+func checkTagName(s string) error {
+	if !utf8.ValidString(s) {
+		return errors.ErrTagNameInvalid
+	}
+
+	for _, r := range s {
+		if unicode.IsSpace(r) {
+			return errors.ErrTagNameSpace
+		}
+	}
+
+	for _, r := range s {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			return errors.ErrTagNameSpecialChar
+		}
+	}
+
+	return nil
+}
+
+func (r *AddTagCommand) Validate() error {
+	if r == nil {
+		return errors.ErrNilArg
+	}
+
+	if r.Name == "" {
+		return errors.ErrTagNameInvalid
+	}
+
+	if l := utf8.RuneCountInString(r.Name); l > maxTagNameLen {
+		return errors.ErrTagNameTooLong
+	}
+
+	if err := checkTagName(r.Name); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AddTagResult 添加标签响应
+type AddTagResult struct {
+	TagId notevo.TagId `json:"tag_id"`
 }

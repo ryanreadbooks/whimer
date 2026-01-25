@@ -19,10 +19,19 @@ var (
 )
 
 func Init(c *config.Config) {
-	noteCreatorAdapter = note.NewCreatorAdapterImpl(dep.NoteCreatorServer())
+	noteCreatorAdapter = note.NewCreatorAdapterImpl(
+		dep.NoteCreatorServer(),
+		dep.NoteFeedServer(),
+		dep.SearchServer(),
+		dep.DocumentServer(),
+	)
 	noteInteractAdapter = note.NewInteractAdapterImpl(dep.NoteInteractServer())
 
-	storageAdapter = storage.NewOssRepositoryImpl(storage.NewUploaders(c, dep.OssClient()), dep.OssClient(), dep.DisplayOssClient())
+	storageAdapter = storage.NewOssRepositoryImpl(
+		storage.NewUploaders(c, dep.OssClient()),
+		dep.OssClient(),
+		dep.DisplayOssClient(),
+	)
 
 	commentAdapter = comment.NewCommentAdapterImpl(dep.Commenter())
 }

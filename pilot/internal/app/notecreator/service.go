@@ -279,7 +279,7 @@ func (s *Service) convertEntityNoteToDto(ctx context.Context, note *entity.Creat
 		return nil
 	}
 
-	atUsers := make([]*dto.AtUser, 0, len(note.AtUsers))
+	atUsers := make([]*commondto.AtUser, 0, len(note.AtUsers))
 	tagList := make([]*commondto.NoteTag, 0, len(note.Tags))
 	images := make(commondto.NoteImageList, 0, len(note.Images))
 	videos := make(commondto.NoteVideoList, 0, len(note.Videos))
@@ -452,4 +452,30 @@ func (s *Service) batchGetNoteInteraction(ctx context.Context, uid int64, noteId
 	}
 
 	return m, nil
+}
+
+// AddTag 新增标签
+func (s *Service) AddTag(ctx context.Context, name string) (*dto.AddTagResult, error) {
+	tagId, err := s.noteCreatorAdapter.AddTag(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	return &dto.AddTagResult{TagId: notevo.TagId(tagId)}, nil
+}
+
+// SearchTags 搜索标签
+func (s *Service) SearchTags(ctx context.Context, name string) ([]*dto.SearchedTag, error) {
+	tags, err := s.noteCreatorAdapter.SearchTags(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*dto.SearchedTag, 0, len(tags))
+	for _, tag := range tags {
+		result = append(result, &dto.SearchedTag{
+			Id:   tag.Id,
+			Name: tag.Name,
+		})
+	}
+	return result, nil
 }

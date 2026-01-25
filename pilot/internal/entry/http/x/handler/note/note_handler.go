@@ -114,64 +114,13 @@ func (h *Handler) GetNoteLikeCount() http.HandlerFunc {
 			return
 		}
 
-		xhttp.OkJson(w, &GetLikesRes{
+		xhttp.OkJson(w, &dto.GetLikeCountResult{
 			NoteId: req.NoteId,
 			Count:  cnt,
 		})
 	}
 }
 
-// 创建新标签
-func (h *Handler) AddNewTag() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[AddTagReq](httpx.ParseJsonBody, r)
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		ctx := r.Context()
-		resp, err := h.noteBiz.AddTag(ctx, req.Name)
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		h.noteBiz.AsyncTagToSearcher(ctx, int64(resp.TagId))
-
-		xhttp.OkJson(w, &AddTagRes{TagId: resp.TagId})
-	}
-}
-
-// 搜索笔记标签
-func (h *Handler) SearchTags() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[SearchTagsReq](httpx.ParseJsonBody, r)
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		if req.Name == "" {
-			xhttp.OkJson(w, []SearchTagsRes{})
-			return
-		}
-
-		tags, err := h.noteBiz.SearchTags(r.Context(), req.Name)
-		if err != nil {
-			xhttp.Error(r, w, err)
-			return
-		}
-
-		result := make([]SearchedNoteTag, len(tags))
-		for idx, tag := range tags {
-			result[idx].Id = tag.Id
-			result[idx].Name = tag.Name
-		}
-
-		xhttp.OkJson(w, result)
-	}
-}
 
 // 获取用户点赞过的笔记
 func (b *Handler) ListLikedNotes() http.HandlerFunc {

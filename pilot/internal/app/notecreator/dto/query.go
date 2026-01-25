@@ -1,7 +1,10 @@
 package dto
 
 import (
+	"strings"
+
 	commondto "github.com/ryanreadbooks/whimer/pilot/internal/app/common/dto"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/notecreator/errors"
 	notevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
 )
 
@@ -47,7 +50,7 @@ type Note struct {
 	Likes   int64 `json:"likes"`
 	Replies int64 `json:"replies"`
 
-	AtUsers []*AtUser            `json:"at_users,omitempty"`
+	AtUsers []*commondto.AtUser  `json:"at_users,omitempty"`
 	TagList []*commondto.NoteTag `json:"tag_list,omitempty"`
 
 	Interact commondto.NoteInteraction `json:"interact"`
@@ -56,4 +59,31 @@ type Note struct {
 type NoteList struct {
 	Total int64   `json:"total"`
 	Items []*Note `json:"items"`
+}
+
+// SearchedTag 搜索到的标签
+type SearchedTag struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type SearchTagsQuery struct {
+	Name string `json:"name"`
+}
+
+func (r *SearchTagsQuery) Validate() error {
+	if r == nil {
+		return errors.ErrNilArg
+	}
+
+	r.Name = strings.TrimSpace(r.Name)
+	if r.Name == "" {
+		return nil
+	}
+
+	if err := checkTagName(r.Name); err != nil {
+		return err
+	}
+
+	return nil
 }

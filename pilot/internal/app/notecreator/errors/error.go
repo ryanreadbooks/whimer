@@ -17,4 +17,8 @@ var (
 	ErrNilArg                = xerror.ErrArgs.Msg("参数为空")
 	ErrResourceNotFound      = xerror.ErrArgs.Msg("资源不存在")
 	ErrNoteNotFound          = xerror.ErrArgs.Msg("笔记不存在")
+	ErrTagNameInvalid        = xerror.ErrArgs.Msg("标签名不支持的字符格式")
+	ErrTagNameSpace          = xerror.ErrArgs.Msg("标签名不能存在空格")
+	ErrTagNameSpecialChar    = xerror.ErrArgs.Msg("标签名不能包含特殊字符")
+	ErrTagNameTooLong        = xerror.ErrArgs.Msg("标签名太长")
 )

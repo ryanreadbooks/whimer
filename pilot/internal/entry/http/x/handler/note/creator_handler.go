@@ -5,8 +5,8 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	"github.com/ryanreadbooks/whimer/pilot/internal/app/notecreator/dto"
 	commondto "github.com/ryanreadbooks/whimer/pilot/internal/app/common/dto"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/notecreator/dto"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -107,5 +107,49 @@ func (h *Handler) CreatorGetNote() http.HandlerFunc {
 		}
 
 		xhttp.OkJson(w, result)
+	}
+}
+
+// 创建新标签
+func (h *Handler) AddNewTag() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[dto.AddTagCommand](httpx.ParseJsonBody, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		ctx := r.Context()
+		resp, err := h.noteCreatorApp.AddTag(ctx, req.Name)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, resp)
+	}
+}
+
+// 搜索笔记标签
+func (h *Handler) SearchTags() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidate[dto.SearchTagsQuery](httpx.ParseJsonBody, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		if req.Name == "" {
+			xhttp.OkJson(w, []*dto.SearchedTag{})
+			return
+		}
+
+		tags, err := h.noteCreatorApp.SearchTags(r.Context(), req.Name)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, tags)
 	}
 }

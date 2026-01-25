@@ -13,4 +13,9 @@ type NoteCreatorAdapter interface {
 	UpdateNote(ctx context.Context, params *entity.UpdateNoteParams) (int64, error)
 	DeleteNote(ctx context.Context, noteId int64) error
 	PageListNotes(ctx context.Context, params *entity.PageListNotesParams) (*entity.PageListNotesResult, error)
+
+	// Tag 相关
+	AddTag(ctx context.Context, name string) (int64, error)
+	SearchTags(ctx context.Context, name string) ([]*entity.SearchedNoteTag, error)
+	GetTag(ctx context.Context, tagId int64) (*entity.NoteTag, error)
 }
