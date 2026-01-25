@@ -33,4 +33,10 @@ type NoteFeedAdapter interface {
 
 	// 获取用户点赞过的笔记
 	ListUserLikedNote(ctx context.Context, uid int64, cursor string, count int32) ([]*entity.FeedNote, *CursorPageResultV2, error)
+
+	// 用户公开投稿数
+	GetPublicPostedCount(ctx context.Context, uid int64) (int64, error)
+
+	// 获取用户最近发布
+	GetUserRecentPost(ctx context.Context, uid int64, count int32) ([]*entity.RecentPost, error)
 }

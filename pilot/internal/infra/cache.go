@@ -2,7 +2,7 @@ package infra
 
 import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	infracache "github.com/ryanreadbooks/whimer/pilot/internal/infra/cache"
+	infracache "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/cache"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 

@@ -1,7 +1,9 @@
 package convert
 
 import (
+	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	mentionvo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/mention/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/entity"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
@@ -313,4 +315,27 @@ func BatchPbFeedNotesToEntities(notes []*notev1.FeedNoteItem) []*entity.FeedNote
 		entities = append(entities, PbFeedNoteToEntity(note))
 	}
 	return entities
+}
+
+func NewNoteImageItemUrlPrv(pbimg *notev1.NoteImage) string {
+	noteAssetBucket := config.Conf.UploadResourceDefineMap["note_image"].Bucket
+
+	url := imgproxy.GetSignedUrl(
+		config.Conf.Oss.DisplayEndpointBucket(noteAssetBucket),
+		pbimg.GetKey(),
+		config.Conf.ImgProxyAuth.GetKey(),
+		config.Conf.ImgProxyAuth.GetSalt(),
+		imgproxy.WithQuality(config.Conf.ImgQuality.QualityPreview))
+	return url
+}
+
+func PbNoteTypeToVoNoteType(n notev1.NoteAssetType) vo.NoteType {
+	switch n {
+	case notev1.NoteAssetType_IMAGE:
+		return vo.NoteTypeImage
+	case notev1.NoteAssetType_VIDEO:
+		return vo.NoteTypeVideo
+	default:
+		return ""
+	}
 }

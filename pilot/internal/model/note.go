@@ -6,7 +6,7 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 
 	"github.com/ryanreadbooks/whimer/misc/imgproxy"

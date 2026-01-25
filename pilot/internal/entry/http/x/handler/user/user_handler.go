@@ -9,27 +9,27 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
-	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user"
-	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app"
+	appuser "github.com/ryanreadbooks/whimer/pilot/internal/app/user"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/user/dto"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 type UserHandler struct {
-	userBiz *bizuser.Biz
+	userApp *appuser.Service
 }
 
-func NewUserHandler(c *config.Config, bizz *biz.Biz) *UserHandler {
+func NewUserHandler(c *config.Config, manager *app.Manager) *UserHandler {
 	return &UserHandler{
-		userBiz: bizz.UserBiz,
+		userApp: manager.UserApp,
 	}
 }
 
 func (h *UserHandler) ListInfos() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[usermodel.ListInfosReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[dto.ListUsersReq](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -51,7 +51,7 @@ func (h *UserHandler) ListInfos() http.HandlerFunc {
 
 		ctx := r.Context()
 		uids = xslice.Uniq(uids)
-		resp, err := h.userBiz.ListUsers(ctx, uids)
+		resp, err := h.userApp.ListUsers(ctx, uids)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -63,14 +63,14 @@ func (h *UserHandler) ListInfos() http.HandlerFunc {
 
 func (h *UserHandler) GetUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[usermodel.GetUserReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[dto.GetUserReq](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
 		ctx := r.Context()
-		resp, err := h.userBiz.GetUser(ctx, req.Uid)
+		resp, err := h.userApp.GetUser(ctx, req.Uid)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -83,80 +83,66 @@ func (h *UserHandler) GetUser() http.HandlerFunc {
 // 获取用户粉丝列表
 func (h *UserHandler) ListUserFans() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[usermodel.GetFanOrFollowingListReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[dto.GetFanOrFollowingListReq](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		var (
-			ctx = r.Context()
-		)
-
-		resp, total, err := h.userBiz.ListUserFans(ctx, req.Uid, req.Page, req.Count)
+		ctx := r.Context()
+		resp, err := h.userApp.ListUserFans(ctx, req.Uid, req.Page, req.Count)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		xhttp.OkJson(w, &usermodel.GetFanOrFollowingListResp{
-			Items: resp,
-			Total: total,
-		})
+		xhttp.OkJson(w, resp)
 	}
 }
 
 // 获取用户关注列表
 func (h *UserHandler) ListUserFollowings() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[usermodel.GetFanOrFollowingListReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[dto.GetFanOrFollowingListReq](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		var (
-			ctx = r.Context()
-		)
-
-		resp, total, err := h.userBiz.ListUserFollowings(ctx, req.Uid, req.Page, req.Count)
+		ctx := r.Context()
+		resp, err := h.userApp.ListUserFollowings(ctx, req.Uid, req.Page, req.Count)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		xhttp.OkJson(w, &usermodel.GetFanOrFollowingListResp{
-			Items: resp,
-			Total: total,
-		})
+		xhttp.OkJson(w, resp)
 	}
 }
 
 // 获取用户的投稿数量、点赞数量等信息
 func (h *UserHandler) GetUserStat() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[usermodel.HoverReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[dto.HoverReq](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
-		var (
-			ctx = r.Context()
-		)
+		ctx := r.Context()
 
-		stat, err := h.userBiz.GetUserStat(ctx, req.Uid)
+		stat, err := h.userApp.GetUserStat(ctx, req.Uid)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		httpx.OkJson(w, &stat)
+		httpx.OkJson(w, stat)
 	}
 }
 
 func (h *UserHandler) GetAllSettings() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		resp, err := h.userBiz.GetSettings(r.Context())
+		resp, err := h.userApp.GetSettings(r.Context())
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -168,7 +154,7 @@ func (h *UserHandler) GetAllSettings() http.HandlerFunc {
 
 func (h *UserHandler) AtUserCandidates() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[MentionUserReq](httpx.ParseForm, r)
+		req, err := xhttp.ParseValidate[dto.MentionUserReq](httpx.ParseForm, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -179,12 +165,56 @@ func (h *UserHandler) AtUserCandidates() http.HandlerFunc {
 			uid = metadata.Uid(ctx)
 		)
 
-		result, err := h.userBiz.GetMentionUserCandidates(ctx, uid, req.Search)
+		result, err := h.userApp.GetMentionUserCandidates(ctx, uid, req.Search)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		xhttp.OkJson(w, &result)
+		xhttp.OkJson(w, result)
+	}
+}
+
+// 获取用户卡片信息
+func (h *UserHandler) GetHoverProfile() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		req, err := xhttp.ParseValidate[dto.HoverReq](httpx.ParseForm, r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		res, err := h.userApp.GetHoverProfile(ctx, req.Uid)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, res)
+	}
+}
+
+func (h *UserHandler) SetNoteShowSettings() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req, err := xhttp.ParseValidateJsonBody[dto.SetNoteShowSettingReq](r)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		var (
+			ctx = r.Context()
+			uid = metadata.Uid(ctx)
+		)
+
+		err = h.userApp.SetNoteShowSettings(ctx, uid, req)
+		if err != nil {
+			xhttp.Error(r, w, err)
+			return
+		}
+
+		xhttp.OkJson(w, nil)
 	}
 }

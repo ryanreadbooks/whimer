@@ -11,7 +11,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xretry"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/kafka/sysmsg"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/kafka/sysmsg"
 )
 
 // 系统消息懒删除事件消费

@@ -15,7 +15,6 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/noteinteract/dto"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	bizstorage "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/storage"
-	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user"
 	bizfeed "github.com/ryanreadbooks/whimer/pilot/internal/biz/feed"
 	biznote "github.com/ryanreadbooks/whimer/pilot/internal/biz/note"
 	bizsearch "github.com/ryanreadbooks/whimer/pilot/internal/biz/search"
@@ -32,7 +31,6 @@ type Handler struct {
 
 	feedBiz    *bizfeed.Biz
 	searchBiz  *bizsearch.Biz
-	userBiz    *bizuser.Biz
 	notifyBiz  *bizsysnotify.Biz
 	storageBiz *bizstorage.Biz
 	noteBiz    *biznote.Biz
@@ -42,7 +40,6 @@ func NewHandler(c *config.Config, bizz *biz.Biz, manager *app.Manager) *Handler 
 	return &Handler{
 		feedBiz:         bizz.FeedBiz,
 		searchBiz:       bizz.SearchBiz,
-		userBiz:         bizz.UserBiz,
 		notifyBiz:       bizz.SysNotifyBiz,
 		storageBiz:      bizz.UploadBiz,
 		noteBiz:         bizz.NoteBiz,

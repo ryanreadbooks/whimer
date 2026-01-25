@@ -11,7 +11,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/user/entity"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/user/repository"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/user/vo"
-	usersettingdao "github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/database/usersetting"
+	usersettingdao "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/database/usersetting"
 	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 	"golang.org/x/sync/errgroup"
 )

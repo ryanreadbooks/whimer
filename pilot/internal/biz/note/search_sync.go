@@ -9,7 +9,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 )

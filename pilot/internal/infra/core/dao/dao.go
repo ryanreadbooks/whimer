@@ -2,8 +2,8 @@ package dao
 
 import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/database"
-	kafkadao "github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/kafka"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/database"
+	kafkadao "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/kafka"
 
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )

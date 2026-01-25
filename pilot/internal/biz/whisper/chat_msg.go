@@ -15,7 +15,7 @@ import (
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/common/pushcenter"
 	whispermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/whisper/model"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	globalmodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 )
 

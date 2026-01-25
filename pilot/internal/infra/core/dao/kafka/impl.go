@@ -2,7 +2,7 @@ package kafka
 
 import (
 	xkafka "github.com/ryanreadbooks/whimer/misc/xkq/kafka"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/kafka/sysmsg"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/kafka/sysmsg"
 )
 
 type impl struct {

@@ -1,7 +1,7 @@
 package comment
 
 import (
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 )
 
 type UploadTicket struct {

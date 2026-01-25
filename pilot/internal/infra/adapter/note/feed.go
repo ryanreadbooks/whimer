@@ -3,12 +3,12 @@ package note
 import (
 	"context"
 
+	"github.com/ryanreadbooks/whimer/misc/xerror"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/entity"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/repository"
+	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/note/convert"
-
-	"github.com/ryanreadbooks/whimer/misc/xerror"
 )
 
 type NoteFeedAdapterImpl struct {
@@ -135,4 +135,37 @@ func (a *NoteFeedAdapterImpl) ListUserLikedNote(ctx context.Context,
 			NextCursor: resp.GetNextCursor(),
 			HasNext:    resp.GetHasNext(),
 		}, nil
+}
+
+func (a *NoteFeedAdapterImpl) GetPublicPostedCount(ctx context.Context, uid int64) (int64, error) {
+	resp, err := a.noteFeedServer.GetPublicPostedCount(ctx, &notev1.GetPublicPostedCountRequest{
+		Uid: uid,
+	})
+	if err != nil {
+		return 0, xerror.Wrap(err)
+	}
+	return resp.GetCount(), nil
+}
+
+func (a *NoteFeedAdapterImpl) GetUserRecentPost(ctx context.Context, uid int64, count int32) ([]*entity.RecentPost, error) {
+	resp, err := a.noteFeedServer.GetUserRecentPost(ctx, &notev1.GetUserRecentPostRequest{
+		Uid:   uid,
+		Count: count,
+	})
+	if err != nil {
+		return nil, xerror.Wrap(err)
+	}
+
+	posts := make([]*entity.RecentPost, 0, len(resp.GetItems()))
+	for _, item := range resp.GetItems() {
+		if len(item.Images) > 0 {
+			posts = append(posts, &entity.RecentPost{
+				NoteId: vo.NoteId(item.NoteId),
+				Cover:  convert.NewNoteImageItemUrlPrv(item.Images[0]),
+				Type:   convert.PbNoteTypeToVoNoteType(item.NoteType),
+			})
+		}
+	}
+
+	return posts, nil
 }

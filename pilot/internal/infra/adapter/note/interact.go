@@ -8,7 +8,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/repository"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/note/convert"
-	notecache "github.com/ryanreadbooks/whimer/pilot/internal/infra/cache/note"
+	notecache "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/cache/note"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"

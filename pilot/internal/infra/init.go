@@ -5,9 +5,10 @@ import (
 
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter"
-	infracache "github.com/ryanreadbooks/whimer/pilot/internal/infra/cache"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	infracache "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/cache"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/repo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/syncjob"
 )
 
@@ -20,6 +21,7 @@ func Init(c *config.Config) {
 		dep.Init(c)
 		initMisc(c)
 		adapter.Init(c, Cache())
+		repo.Init(infracache.RecentContactStore())
 		syncjob.InitNoteStatSyncJob(syncjob.NoteStatSyncJobConfig{
 			Tick:      c.JobConfig.NoteEventJob.Interval,
 			NumOfList: int(c.JobConfig.NoteEventJob.NumOfList),

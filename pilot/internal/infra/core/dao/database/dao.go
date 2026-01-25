@@ -5,7 +5,7 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/database/usersetting"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/database/usersetting"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )

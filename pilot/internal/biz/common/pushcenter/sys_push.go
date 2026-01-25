@@ -3,7 +3,7 @@ package pushcenter
 import (
 	"context"
 
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/pushcmd"
 	pushv1 "github.com/ryanreadbooks/whimer/wslink/api/push/v1"
 )

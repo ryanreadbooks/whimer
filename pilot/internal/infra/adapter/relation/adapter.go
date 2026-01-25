@@ -68,3 +68,79 @@ func (a *RelationAdapterImpl) UpdateSettings(
 
 	return nil
 }
+
+func (a *RelationAdapterImpl) CheckFollowed(ctx context.Context, uid, target int64) (bool, error) {
+	resp, err := a.relationCli.CheckUserFollowed(ctx, &relationv1.CheckUserFollowedRequest{
+		Uid:   uid,
+		Other: target,
+	})
+	if err != nil {
+		return false, xerror.Wrap(err)
+	}
+	return resp.GetFollowed(), nil
+}
+
+func (a *RelationAdapterImpl) GetFanCount(ctx context.Context, uid int64) (int64, error) {
+	resp, err := a.relationCli.GetUserFanCount(ctx, &relationv1.GetUserFanCountRequest{
+		Uid: uid,
+	})
+	if err != nil {
+		return 0, xerror.Wrap(err)
+	}
+	return resp.GetCount(), nil
+}
+
+func (a *RelationAdapterImpl) GetFollowingCount(ctx context.Context, uid int64) (int64, error) {
+	resp, err := a.relationCli.GetUserFollowingCount(ctx, &relationv1.GetUserFollowingCountRequest{
+		Uid: uid,
+	})
+	if err != nil {
+		return 0, xerror.Wrap(err)
+	}
+	return resp.GetCount(), nil
+}
+
+func (a *RelationAdapterImpl) PageGetFanList(ctx context.Context, uid int64, page, count int32) ([]int64, int64, error) {
+	resp, err := a.relationCli.PageGetUserFanList(ctx, &relationv1.PageGetUserFanListRequest{
+		Target: uid,
+		Page:   page,
+		Count:  count,
+	})
+	if err != nil {
+		return nil, 0, xerror.Wrap(err)
+	}
+	return resp.GetFansId(), resp.GetTotal(), nil
+}
+
+func (a *RelationAdapterImpl) PageGetFollowingList(ctx context.Context, uid int64, page, count int32) ([]int64, int64, error) {
+	resp, err := a.relationCli.PageGetUserFollowingList(ctx, &relationv1.PageGetUserFollowingListRequest{
+		Target: uid,
+		Page:   page,
+		Count:  count,
+	})
+	if err != nil {
+		return nil, 0, xerror.Wrap(err)
+	}
+	return resp.GetFollowingsId(), resp.GetTotal(), nil
+}
+
+func (a *RelationAdapterImpl) GetUserFollowingList(
+	ctx context.Context, uid int64, offset int64, count int32,
+) (*repository.FollowingListResult, error) {
+	resp, err := a.relationCli.GetUserFollowingList(ctx, &relationv1.GetUserFollowingListRequest{
+		Uid: uid,
+		Cond: &relationv1.QueryCondition{
+			Offset: offset,
+			Count:  count,
+		},
+	})
+	if err != nil {
+		return nil, xerror.Wrap(err)
+	}
+	return &repository.FollowingListResult{
+		Followings:  resp.GetFollowings(),
+		FollowTimes: resp.GetFollowTimes(),
+		HasMore:     resp.GetHasMore(),
+		NextOffset:  resp.GetNextOffset(),
+	}, nil
+}

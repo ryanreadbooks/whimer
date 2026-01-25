@@ -7,7 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	xhttputil "github.com/ryanreadbooks/whimer/misc/xhttp/util"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 )
 

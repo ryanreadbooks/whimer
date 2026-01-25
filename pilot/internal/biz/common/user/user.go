@@ -16,8 +16,8 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/cache/recentcontact"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/cache/recentcontact"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 
 	"golang.org/x/sync/errgroup"

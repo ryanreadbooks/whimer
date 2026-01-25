@@ -4,10 +4,11 @@ import (
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app"
+	appuser "github.com/ryanreadbooks/whimer/pilot/internal/app/user"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	bizcomment "github.com/ryanreadbooks/whimer/pilot/internal/biz/comment"
 	bizstorage "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/storage"
-	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user"
 	bizsearch "github.com/ryanreadbooks/whimer/pilot/internal/biz/search"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
@@ -17,16 +18,16 @@ import (
 )
 
 type Handler struct {
-	userBiz    *bizuser.Biz
+	userApp    *appuser.Service
 	searchBiz  *bizsearch.Biz
 	commentBiz *bizcomment.Biz
 	notifyBiz  *bizsysnotify.Biz
 	storageBiz *bizstorage.Biz
 }
 
-func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
+func NewHandler(c *config.Config, bizz *biz.Biz, manager *app.Manager) *Handler {
 	return &Handler{
-		userBiz:    bizz.UserBiz,
+		userApp:    manager.UserApp,
 		searchBiz:  bizz.SearchBiz,
 		commentBiz: bizz.CommentBiz,
 		notifyBiz:  bizz.SysNotifyBiz,

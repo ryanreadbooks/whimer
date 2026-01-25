@@ -12,9 +12,9 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/database/usersetting"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/database/usersetting"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	v1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 	"golang.org/x/sync/errgroup"
 )

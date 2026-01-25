@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	notecache "github.com/ryanreadbooks/whimer/pilot/internal/infra/cache/note"
+	notecache "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/cache/note"
 )
 
 type NoteInteractStatSyncer struct {

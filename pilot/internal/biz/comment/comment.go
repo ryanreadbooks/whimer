@@ -15,7 +15,7 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/comment/model"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	globalmodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 )

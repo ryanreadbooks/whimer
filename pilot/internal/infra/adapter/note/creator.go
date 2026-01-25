@@ -151,6 +151,16 @@ func (a *CreatorAdapterImpl) GetTag(ctx context.Context, tagId int64) (*entity.N
 	}, nil
 }
 
+func (a *CreatorAdapterImpl) GetPostedCount(ctx context.Context, uid int64) (int64, error) {
+	resp, err := a.noteCreatorCli.GetPostedCount(ctx, &notev1.GetPostedCountRequest{
+		Uid: uid,
+	})
+	if err != nil {
+		return 0, xerror.Wrap(err)
+	}
+	return resp.GetCount(), nil
+}
+
 func (a *CreatorAdapterImpl) asyncPutTagToSearch(ctx context.Context, tagId int64) {
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
 		Name:       "pilot.adapter.sync_tag",

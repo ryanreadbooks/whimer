@@ -10,7 +10,7 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/common/pushcenter"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify/model"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 )
 

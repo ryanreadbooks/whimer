@@ -13,9 +13,9 @@ import (
 	systemv1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify/model"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/kafka"
-	sysmsgkfkdao "github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/kafka/sysmsg"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/kafka"
+	sysmsgkfkdao "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/kafka/sysmsg"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 	"golang.org/x/sync/errgroup"
 

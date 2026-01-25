@@ -8,7 +8,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app"
-	sysmsgkfkdao "github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/kafka/sysmsg"
+	sysmsgkfkdao "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/kafka/sysmsg"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/plain"

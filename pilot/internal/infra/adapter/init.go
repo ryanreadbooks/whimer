@@ -7,9 +7,9 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/relation"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/storage"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/user"
-	infracache "github.com/ryanreadbooks/whimer/pilot/internal/infra/cache"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dao"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	infracache "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/cache"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 

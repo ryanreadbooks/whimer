@@ -18,4 +18,7 @@ type NoteCreatorAdapter interface {
 	AddTag(ctx context.Context, name string) (int64, error)
 	SearchTags(ctx context.Context, name string) ([]*entity.SearchedNoteTag, error)
 	GetTag(ctx context.Context, tagId int64) (*entity.NoteTag, error)
+
+	// 用户投稿数（包含私密）
+	GetPostedCount(ctx context.Context, uid int64) (int64, error)
 }

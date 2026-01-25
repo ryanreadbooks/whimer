@@ -28,11 +28,11 @@ type Handler struct {
 func NewHandler(c *config.Config, bizz *biz.Biz, manager *app.Manager) *Handler {
 	h := &Handler{
 		Config:   c,
-		Comment:  comment.NewHandler(c, bizz),
+		Comment:  comment.NewHandler(c, bizz, manager),
 		Note:     note.NewHandler(c, bizz, manager),
 		Relation: relation.NewHandler(c, manager),
 		Chat:     msg.NewHandler(c, bizz),
-		User:     user.NewUserHandler(c, bizz),
+		User:     user.NewUserHandler(c, manager),
 		Feed:     feed.NewHandler(c, manager),
 		Upload:   upload.NewHandler(c, bizz),
 	}

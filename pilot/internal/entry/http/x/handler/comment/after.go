@@ -11,7 +11,7 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
 	sysnotifymodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify/model"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model"
 )
 
@@ -41,7 +41,7 @@ func (h *Handler) afterNoteCommented(ctx context.Context, commentId int64, req *
 
 func (h *Handler) appendRecentContacts(ctx context.Context, atUsers model.AtUserList) {
 	uid := metadata.Uid(ctx)
-	h.userBiz.AsyncAppendRecentContactsAtUser(ctx, uid, atUsers)
+	h.userApp.AsyncAppendRecentContactsAtUser(ctx, uid, atUsers)
 }
 
 func (h *Handler) syncCommentCountToSearcher(ctx context.Context, noteId string, incr int64) {

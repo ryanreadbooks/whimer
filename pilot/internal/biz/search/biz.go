@@ -4,7 +4,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
 
-	notecache "github.com/ryanreadbooks/whimer/pilot/internal/infra/cache/note"
+	notecache "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/cache/note"
 )
 
 type Biz struct {
