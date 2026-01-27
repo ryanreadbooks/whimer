@@ -2,6 +2,7 @@ package vo
 
 import (
 	noteid "github.com/ryanreadbooks/whimer/note/pkg/id"
+	mentionvo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/mention/vo"
 )
 
 type NotifyUserReplyParam struct {
@@ -12,4 +13,9 @@ type NotifyUserReplyParam struct {
 	RecvUid        int64             `json:"recv_uid"`
 	NoteId         noteid.NoteId     `json:"note_id"`
 	Content        []byte            `json:"content"` // see CommentContent
+}
+
+type CommentContent struct {
+	Text    string              `json:"text"`
+	AtUsers []*mentionvo.AtUser `json:"at_users"`
 }

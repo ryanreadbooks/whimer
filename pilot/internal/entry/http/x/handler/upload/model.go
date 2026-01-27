@@ -99,3 +99,9 @@ func (r *GetPostPolicyCredsReq) Validate() error {
 
 	return nil
 }
+
+type GetPostPolicyCredsResp struct {
+	FileId     string            `json:"file_id"`
+	UploadAddr string            `json:"upload_addr"`
+	Form       map[string]string `json:"form"`
+}

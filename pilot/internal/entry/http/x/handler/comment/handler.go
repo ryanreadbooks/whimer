@@ -160,11 +160,6 @@ func (h *Handler) LikeNoteComment() http.HandlerFunc {
 			return
 		}
 
-		// 暂时注释掉通知
-		// if cmd.Action == dto.ThumbActionDo {
-		// 	h.asyncNotifyLikeComment(ctx, cmd.CommentId)
-		// }
-
 		httpx.OkJson(w, nil)
 	}
 }

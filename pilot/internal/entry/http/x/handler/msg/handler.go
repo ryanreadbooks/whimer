@@ -1,23 +1,25 @@
 package msg
 
 import (
+	"github.com/ryanreadbooks/whimer/pilot/internal/app"
+	sysnotifyapp "github.com/ryanreadbooks/whimer/pilot/internal/app/systemnotify"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
-	bizsysnotify "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify"
-	bizuser "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user"
 	bizwhisper "github.com/ryanreadbooks/whimer/pilot/internal/biz/whisper"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter"
+	adapteruser "github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/user"
 )
 
 type Handler struct {
-	sysNotifyBiz *bizsysnotify.Biz
-	userBiz      *bizuser.Biz
+	sysNotifyApp *sysnotifyapp.Service
 	whisperBiz   *bizwhisper.Biz
+	userAdapter  *adapteruser.UserAdapter
 }
 
-func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
+func NewHandler(c *config.Config, bizz *biz.Biz, appMgr *app.Manager) *Handler {
 	return &Handler{
-		userBiz:      bizz.UserBiz,
-		sysNotifyBiz: bizz.SysNotifyBiz,
+		sysNotifyApp: appMgr.SystemNotifyApp,
 		whisperBiz:   bizz.WhisperBiz,
+		userAdapter:  adapter.UserAdapter(),
 	}
 }

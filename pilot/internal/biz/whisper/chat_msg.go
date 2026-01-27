@@ -13,8 +13,8 @@ import (
 	pbmsg "github.com/ryanreadbooks/whimer/msger/api/msg"
 	userchatv1 "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
 	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz/common/pushcenter"
 	whispermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/whisper/model"
+	"github.com/ryanreadbooks/whimer/pilot/internal/domain/common/pushcenter"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	globalmodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 )
@@ -46,9 +46,7 @@ func (b *Biz) CreateGroupChat(ctx context.Context) (string, error) {
 
 // 发消息
 func (b *Biz) SendChatMsg(ctx context.Context, chatId, cid string, msg *whispermodel.MsgReq) (string, error) {
-	var (
-		uid = metadata.Uid(ctx)
-	)
+	uid := metadata.Uid(ctx)
 
 	req := &userchatv1.SendMsgToChatRequest{
 		Sender: uid,
@@ -99,7 +97,8 @@ func (b *Biz) asyncNotifyWhisperEvent(ctx context.Context, uid int64, chatId str
 
 // 列出用户最近会话列表
 func (b *Biz) ListRecentChats(ctx context.Context, uid int64,
-	cursor string, cnt int32) ([]*whispermodel.RecentChat, *globalmodel.ListResult[string], error) {
+	cursor string, cnt int32,
+) ([]*whispermodel.RecentChat, *globalmodel.ListResult[string], error) {
 	resp, err := dep.UserChatter().ListRecentChats(ctx,
 		&userchatv1.ListRecentChatsRequest{
 			Uid:    uid,
@@ -181,8 +180,8 @@ func (b *Biz) ListRecentChats(ctx context.Context, uid int64,
 }
 
 func (b *Biz) ListChatMsgs(ctx context.Context, uid int64, chatId string,
-	pos int64, cnt int32) ([]*whispermodel.Msg, error) {
-
+	pos int64, cnt int32,
+) ([]*whispermodel.Msg, error) {
 	resp, err := dep.UserChatter().ListChatMsgs(ctx, &userchatv1.ListChatMsgsRequest{
 		ChatId: chatId,
 		Uid:    uid,
@@ -203,9 +202,7 @@ func (b *Biz) ListChatMsgs(ctx context.Context, uid int64, chatId string,
 
 // 撤回消息
 func (b *Biz) RecallChatMsg(ctx context.Context, chatId, msgId string) error {
-	var (
-		uid = metadata.Uid(ctx)
-	)
+	uid := metadata.Uid(ctx)
 
 	_, err := dep.UserChatter().RecallMsg(ctx, &userchatv1.RecallMsgRequest{
 		Uid:    uid,
@@ -225,15 +222,12 @@ func (b *Biz) RecallChatMsg(ctx context.Context, chatId, msgId string) error {
 
 // 清除用户会话未读数
 func (b *Biz) ClearChatUnread(ctx context.Context, chatId string) error {
-	var (
-		uid = metadata.Uid(ctx)
-	)
+	uid := metadata.Uid(ctx)
 
 	_, err := dep.UserChatter().ClearChatUnread(ctx, &userchatv1.ClearChatUnreadRequest{
 		ChatId: chatId,
 		Uid:    uid,
 	})
-
 	if err != nil {
 		return xerror.Wrapf(err, "remote clear chat unread failed").
 			WithCtx(ctx).WithExtras("chat_id", chatId)

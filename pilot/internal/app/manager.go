@@ -7,6 +7,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/notefeed"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/noteinteract"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/relation"
+	sysnotifyapp "github.com/ryanreadbooks/whimer/pilot/internal/app/systemnotify"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/user"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify"
@@ -23,6 +24,7 @@ type Manager struct {
 	RelationApp     *relation.Service
 	UserApp         *user.Service
 	CommentApp      *comment.Service
+	SystemNotifyApp *sysnotifyapp.Service
 }
 
 func NewManager(c *config.Config) *Manager {
@@ -83,6 +85,14 @@ func NewManager(c *config.Config) *Manager {
 			adapter.NoteFeedAdapter(),
 			adapter.NoteCreatorAdapter(),
 			adapter.StorageAdapter(),
+			systemNotifyDomainService,
+		),
+		SystemNotifyApp: sysnotifyapp.NewService(
+			systemNotifyDomainService,
+			adapter.NoteFeedAdapter(),
+			adapter.NoteInteractAdapter(),
+			adapter.CommentAdapter(),
+			adapter.UserAdapter(),
 		),
 	}
 

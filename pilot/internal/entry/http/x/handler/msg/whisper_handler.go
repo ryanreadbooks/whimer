@@ -82,7 +82,7 @@ func (h *Handler) RecallWhisperChatMsg() http.HandlerFunc {
 			return
 		}
 
-		var ctx = r.Context()
+		ctx := r.Context()
 		err = h.whisperBiz.RecallChatMsg(ctx, req.ChatId, req.MsgId)
 		if err != nil {
 			xhttp.Error(r, w, err)
@@ -145,13 +145,13 @@ func (h *Handler) ListWhisperChatMsgs() http.HandlerFunc {
 		})
 		senderUids = xslice.Uniq(senderUids)
 
-		userInfos, err := h.userBiz.ListUsersV2(ctx, senderUids)
+		userInfos, err := h.userAdapter.BatchGetUser(ctx, senderUids)
 		if err != nil {
-			xlog.Msgf("user biz list users failed").Err(err).Errorx(ctx)
+			xlog.Msgf("user adapter batch get user failed").Err(err).Errorx(ctx)
 		} else {
 			for _, msg := range msgs {
 				if user, ok := userInfos[msg.SenderUid]; ok {
-					msg.Sender = user
+					msg.SetSenderFromVo(user)
 				}
 			}
 		}

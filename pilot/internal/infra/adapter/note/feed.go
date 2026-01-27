@@ -74,6 +74,17 @@ func (a *NoteFeedAdapterImpl) BatchGetNotes(ctx context.Context, noteIds []int64
 	return results, nil
 }
 
+func (a *NoteFeedAdapterImpl) BatchCheckNoteExist(ctx context.Context, noteIds []int64) (map[int64]bool, error) {
+	resp, err := a.noteFeedServer.BatchCheckFeedNoteExist(ctx,
+		&notev1.BatchCheckFeedNoteExistRequest{
+			NoteIds: noteIds,
+		})
+	if err != nil {
+		return nil, xerror.Wrap(err).WithCtx(ctx)
+	}
+	return resp.GetExistence(), nil
+}
+
 func (a *NoteFeedAdapterImpl) ListUserNote(ctx context.Context,
 	uid int64, cursor int64, count int32) (
 	[]*entity.FeedNote, *repository.CursorPageResult, error,

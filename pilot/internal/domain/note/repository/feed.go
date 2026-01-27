@@ -24,6 +24,9 @@ type NoteFeedAdapter interface {
 
 	BatchGetNotes(ctx context.Context, noteIds []int64) (map[int64]*entity.FeedNote, error)
 
+	// 批量检查笔记是否存在
+	BatchCheckNoteExist(ctx context.Context, noteIds []int64) (map[int64]bool, error)
+
 	// 获取用户的笔记
 	ListUserNote(ctx context.Context, uid int64, cursor int64, count int32) ([]*entity.FeedNote, *CursorPageResult, error)
 

@@ -10,6 +10,7 @@ import (
 	xkafka "github.com/ryanreadbooks/whimer/misc/xkq/kafka"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xretry"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app"
 	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/kafka/sysmsg"
 )
@@ -17,7 +18,7 @@ import (
 // 系统消息懒删除事件消费
 //
 // Topic: pilot_sysmsg_deletion_topic
-func startSysMsgDeletionConsumer(bizz *biz.Biz) {
+func startSysMsgDeletionConsumer(bizz *biz.Biz, manager *app.Manager) {
 	backoff := xretry.NewPermenantBackoff(time.Millisecond*100, time.Second*8, 2.0)
 	concurrent.SafeGo2(rootCtx, concurrent.SafeGo2Opt{
 		Name: "pilot.sysmsg.deletion.consumer",
@@ -63,9 +64,9 @@ func startSysMsgDeletionConsumer(bizz *biz.Biz) {
 
 				msgCtx := xkafka.ContextFromKafkaHeaders(kMsg.Headers)
 				if ev.Uid != 0 && ev.MsgId != "" {
-					err = bizz.SysNotifyBiz.DeleteSysMsg(msgCtx, ev.Uid, ev.MsgId)
+					err = manager.SystemNotifyApp.DeleteSysMsg(msgCtx, ev.Uid, ev.MsgId)
 					if err != nil {
-						xlog.Msg("pilot sysmsg.deletion.consumer biz delete sysmsg err").Err(err).Errorx(ctx)
+						xlog.Msg("pilot sysmsg.deletion.consumer app delete sysmsg err").Err(err).Errorx(ctx)
 					}
 				}
 			}

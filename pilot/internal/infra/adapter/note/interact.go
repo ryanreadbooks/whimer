@@ -115,3 +115,30 @@ func (a *InteractAdapterImpl) GetLikeCount(ctx context.Context, noteId int64) (i
 
 	return resp.GetLikes(), nil
 }
+
+func (a *InteractAdapterImpl) BatchCheckUserLikeStatus(ctx context.Context,
+	mappings map[int64][]int64,
+) (map[int64]map[int64]bool, error) {
+	reqMappings := make(map[int64]*notev1.NoteIdList)
+	for uid, noteIds := range mappings {
+		reqMappings[uid] = &notev1.NoteIdList{NoteIds: noteIds}
+	}
+
+	resp, err := a.noteInteractCli.BatchCheckUserLikeStatus(ctx,
+		&notev1.BatchCheckUserLikeStatusRequest{
+			Mappings: reqMappings,
+		})
+	if err != nil {
+		return nil, xerror.Wrap(err).WithCtx(ctx)
+	}
+
+	result := make(map[int64]map[int64]bool)
+	for uid, statusList := range resp.GetResults() {
+		result[uid] = make(map[int64]bool)
+		for _, item := range statusList.GetList() {
+			result[uid][item.GetNoteId()] = item.GetLiked()
+		}
+	}
+
+	return result, nil
+}

@@ -34,7 +34,7 @@ func Init(c *config.Config, bizz *biz.Biz, manager *app.Manager) {
 }
 
 func start(bizz *biz.Biz, manager *app.Manager) {
-	startSysMsgDeletionConsumer(bizz)
+	startSysMsgDeletionConsumer(bizz, manager)
 	startNoteEventConsumer(bizz, manager)
 }
 

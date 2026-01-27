@@ -31,10 +31,10 @@ func NewHandler(c *config.Config, bizz *biz.Biz, manager *app.Manager) *Handler 
 		Comment:  comment.NewHandler(c, manager),
 		Note:     note.NewHandler(c, bizz, manager),
 		Relation: relation.NewHandler(c, manager),
-		Chat:     msg.NewHandler(c, bizz),
+		Chat:     msg.NewHandler(c, bizz, manager),
 		User:     user.NewUserHandler(c, manager),
 		Feed:     feed.NewHandler(c, manager),
-		Upload:   upload.NewHandler(c, bizz),
+		Upload:   upload.NewHandler(c),
 	}
 
 	return h

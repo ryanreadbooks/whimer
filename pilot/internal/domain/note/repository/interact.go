@@ -38,6 +38,9 @@ type NoteLikesAdapter interface {
 	// 判断用户是否点赞多多篇笔记
 	BatchGetLikeStatus(ctx context.Context, p *BatchGetLikeStatusParams) (*BatchGetLikeStatusResult, error)
 
+	// 批量检查多个用户对多篇笔记的点赞状态 mappings: uid -> noteIds
+	BatchCheckUserLikeStatus(ctx context.Context, mappings map[int64][]int64) (map[int64]map[int64]bool, error)
+
 	// 点赞/取消点赞笔记
 	LikeNote(ctx context.Context, p *LikeNoteParams) error
 

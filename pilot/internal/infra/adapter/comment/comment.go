@@ -57,6 +57,42 @@ func (a *CommentAdapterImpl) BatchCheckCommented(ctx context.Context,
 	}, nil
 }
 
+func (a *CommentAdapterImpl) BatchCheckCommentExist(ctx context.Context, commentIds []int64) (map[int64]bool, error) {
+	resp, err := a.commentCli.BatchCheckCommentExist(ctx, &commentv1.BatchCheckCommentExistRequest{
+		Ids: commentIds,
+	})
+	if err != nil {
+		return nil, xerror.Wrap(err).WithCtx(ctx)
+	}
+	return resp.GetExistence(), nil
+}
+
+func (a *CommentAdapterImpl) BatchCheckUsersLikeComment(ctx context.Context,
+	mappings map[int64][]int64,
+) (map[int64]map[int64]bool, error) {
+	reqMappings := make(map[int64]*commentv1.BatchCheckUserLikeCommentRequest_CommentIdList)
+	for uid, commentIds := range mappings {
+		reqMappings[uid] = &commentv1.BatchCheckUserLikeCommentRequest_CommentIdList{Ids: commentIds}
+	}
+
+	resp, err := a.commentCli.BatchCheckUserLikeComment(ctx, &commentv1.BatchCheckUserLikeCommentRequest{
+		Mappings: reqMappings,
+	})
+	if err != nil {
+		return nil, xerror.Wrap(err).WithCtx(ctx)
+	}
+
+	result := make(map[int64]map[int64]bool)
+	for uid, statusList := range resp.GetResults() {
+		result[uid] = make(map[int64]bool)
+		for _, item := range statusList.GetList() {
+			result[uid][item.GetCommentId()] = item.GetLiked()
+		}
+	}
+
+	return result, nil
+}
+
 func (a *CommentAdapterImpl) AddComment(ctx context.Context, p *repository.AddCommentParams) (int64, error) {
 	images := make([]*commentv1.CommentReqImage, 0, len(p.Images))
 	for _, img := range p.Images {

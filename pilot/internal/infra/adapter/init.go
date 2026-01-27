@@ -2,8 +2,10 @@ package adapter
 
 import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
+	domainpushcenter "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/pushcenter"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/comment"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/note"
+	adapterpushcenter "github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/pushcenter"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/relation"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/storage"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/systemnotify"
@@ -73,7 +75,12 @@ func Init(c *config.Config, cache *redis.Redis) {
 
 	relationAdapter = relation.NewRelationAdapterImpl(dep.RelationServer())
 
-	systemNotifyAdapter = systemnotify.NewSystemNotifyAdapterImpl(dep.SystemNotifier())
+	systemNotifyAdapter = systemnotify.NewSystemNotifyAdapterImpl(
+		dep.SystemNotifier(),
+		dep.SystemChatter(),
+	)
+
+	domainpushcenter.SetPusher(adapterpushcenter.NewWsPusher())
 }
 
 func NoteCreatorAdapter() *note.CreatorAdapterImpl {

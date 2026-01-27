@@ -6,7 +6,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	pbmsg "github.com/ryanreadbooks/whimer/msger/api/msg"
 	pbuserchatv1 "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
-	usermodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/user/model"
+	uservo "github.com/ryanreadbooks/whimer/pilot/internal/domain/user/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 )
 
@@ -50,16 +50,16 @@ func AssignPbMsgReqContent(msg *MsgReq, pbMsg *pbuserchatv1.MsgReq) error {
 
 // Msg model definition
 type Msg struct {
-	Id        string          `json:"id,omitempty"`
-	Cid       string          `json:"cid,omitempty"`
-	Type      MsgType         `json:"type,omitempty"`
-	Status    MsgStatus       `json:"status,omitempty"`
-	Mtime     int64           `json:"mtime,omitempty"`
-	SenderUid int64           `json:"sender_uid,omitempty"`
-	Sender    *usermodel.User `json:"sender,omitempty"`
-	Content   *MsgContent     `json:"content,omitempty"`
-	Pos       int64           `json:"pos"`
-	Ext       *MsgExt         `json:"ext,omitempty"`
+	Id        string       `json:"id,omitempty"`
+	Cid       string       `json:"cid,omitempty"`
+	Type      MsgType      `json:"type,omitempty"`
+	Status    MsgStatus    `json:"status,omitempty"`
+	Mtime     int64        `json:"mtime,omitempty"`
+	SenderUid int64        `json:"sender_uid,omitempty"`
+	Sender    *uservo.User `json:"sender,omitempty"`
+	Content   *MsgContent  `json:"content,omitempty"`
+	Pos       int64        `json:"pos"`
+	Ext       *MsgExt      `json:"ext,omitempty"`
 }
 
 func MsgFromChatMsgPb(pbChatMsg *pbuserchatv1.ChatMsg) *Msg {
@@ -89,7 +89,7 @@ func MsgFromChatMsgPb(pbChatMsg *pbuserchatv1.ChatMsg) *Msg {
 	return msg
 }
 
-func (m *Msg) SetSender(u *usermodel.User) {
+func (m *Msg) SetSenderFromVo(u *uservo.User) {
 	m.Sender = u
 }
 

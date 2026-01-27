@@ -11,6 +11,12 @@ type CommentAdapter interface {
 	// 检查是否评论过
 	BatchCheckCommented(ctx context.Context, p *BatchCheckCommentedParams) (*BatchCheckCommentedResult, error)
 
+	// 批量检查评论是否存在
+	BatchCheckCommentExist(ctx context.Context, commentIds []int64) (map[int64]bool, error)
+
+	// 批量检查多个用户对多条评论的点赞状态 mappings: uid -> commentIds
+	BatchCheckUsersLikeComment(ctx context.Context, mappings map[int64][]int64) (map[int64]map[int64]bool, error)
+
 	// 发布评论
 	AddComment(ctx context.Context, p *AddCommentParams) (int64, error)
 	// 获取评论

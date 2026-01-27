@@ -12,6 +12,9 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/common/storage"
 	storagevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/storage/vo"
 	noterepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/repository"
+	notevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
+	"github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify"
+	notifyvo "github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify/vo"
 	userdomain "github.com/ryanreadbooks/whimer/pilot/internal/domain/user"
 	userrepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/user/repository"
 	uservo "github.com/ryanreadbooks/whimer/pilot/internal/domain/user/vo"
@@ -27,12 +30,13 @@ import (
 )
 
 type Service struct {
-	commentAdapter     repository.CommentAdapter
-	userAdapter        userrepo.UserServiceAdapter
-	userDomainService  *userdomain.DomainService
-	noteFeedAdapter    noterepo.NoteFeedAdapter
-	noteCreatorAdapter noterepo.NoteCreatorAdapter
-	storageAdapter     storage.Repository
+	commentAdapter            repository.CommentAdapter
+	userAdapter               userrepo.UserServiceAdapter
+	userDomainService         *userdomain.DomainService
+	noteFeedAdapter           noterepo.NoteFeedAdapter
+	noteCreatorAdapter        noterepo.NoteCreatorAdapter
+	storageAdapter            storage.Repository
+	systemNotifyDomainService *systemnotify.DomainService
 }
 
 func NewService(
@@ -42,14 +46,16 @@ func NewService(
 	noteFeedAdapter noterepo.NoteFeedAdapter,
 	noteCreatorAdapter noterepo.NoteCreatorAdapter,
 	storageAdapter storage.Repository,
+	systemNotifyDomainService *systemnotify.DomainService,
 ) *Service {
 	return &Service{
-		commentAdapter:     commentAdapter,
-		userDomainService:  userDomainService,
-		userAdapter:        userAdapter,
-		noteFeedAdapter:    noteFeedAdapter,
-		noteCreatorAdapter: noteCreatorAdapter,
-		storageAdapter:     storageAdapter,
+		commentAdapter:            commentAdapter,
+		userDomainService:         userDomainService,
+		userAdapter:               userAdapter,
+		noteFeedAdapter:           noteFeedAdapter,
+		noteCreatorAdapter:        noteCreatorAdapter,
+		storageAdapter:            storageAdapter,
+		systemNotifyDomainService: systemNotifyDomainService,
 	}
 }
 
@@ -390,12 +396,31 @@ func (s *Service) PinComment(ctx context.Context, cmd *dto.PinCommentCommand) er
 
 // LikeComment 点赞评论
 func (s *Service) LikeComment(ctx context.Context, cmd *dto.LikeCommentCommand) error {
-	err := s.commentAdapter.LikeComment(ctx, cmd.CommentId, cmd.Action)
+	cmt, err := s.commentAdapter.GetComment(ctx, cmd.CommentId)
+	if err != nil {
+		return xerror.Wrapf(err, "get comment failed").WithCtx(ctx)
+	}
+
+	err = s.commentAdapter.LikeComment(ctx, cmd.CommentId, cmd.Action)
 	if err != nil {
 		return xerror.Wrapf(err, "comment adapter like comment failed").WithCtx(ctx)
 	}
 
-	// TODO 通知被点赞的用户
+	operator := metadata.Uid(ctx)
+	if cmt.Uid == 0 || cmt.Uid == operator { // 自己给自己评论不用管
+		return nil
+	}
+
+	//  通知被点赞的用户
+	err = s.systemNotifyDomainService.NotifyUserLikesOnComment(ctx, operator, cmt.Uid,
+		&notifyvo.NotifyLikesOnCommentParam{
+			NoteId:    notevo.NoteId(cmt.Oid),
+			CommentId: cmd.CommentId,
+		})
+	if err != nil {
+		// log only
+		xlog.Msg("notify user likes on comment failed").Err(err).Errorx(ctx)
+	}
 
 	return nil
 }
