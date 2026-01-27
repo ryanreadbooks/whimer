@@ -8,7 +8,6 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/notecreator"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/noteinteract"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/noteinteract/dto"
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
@@ -22,7 +21,7 @@ type Handler struct {
 	noteInteractApp *noteinteract.Service
 }
 
-func NewHandler(c *config.Config, bizz *biz.Biz, manager *app.Manager) *Handler {
+func NewHandler(c *config.Config, manager *app.Manager) *Handler {
 	return &Handler{
 		noteCreatorApp:  manager.NoteCreatorApp,
 		noteInteractApp: manager.NoteInteractApp,

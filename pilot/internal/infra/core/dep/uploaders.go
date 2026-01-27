@@ -20,8 +20,12 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xstring"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	modelerr "github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
+)
+
+var (
+	errUnsupportedResource = xerror.ErrArgs.Msg("不支持的资源类型")
+	errServerSignFailure   = xerror.ErrInternal.Msg("服务器签名失败")
 )
 
 const (
@@ -57,7 +61,7 @@ func (u *Uploaders) GetUploader(resource uploadresource.Type) (*uploader, error)
 	if uploader, ok := u.uploaders[resource]; ok {
 		return uploader, nil
 	}
-	return nil, modelerr.ErrUnsupportedResource
+	return nil, errUnsupportedResource
 }
 
 // 对外返回预签名url获取资源
@@ -232,7 +236,7 @@ func (u *uploader) GenerateUploadTicket(count int32, source string) (*UploadTick
 	res, err := u.signer.BatchGetUploadAuth(fileIds, string(u.resourceType))
 	if err != nil {
 		xlog.Msg("signer batch get upload auth failed").Err(err).Error()
-		return nil, modelerr.ErrServerSignFailure
+		return nil, errServerSignFailure
 	}
 
 	return &UploadTicket{

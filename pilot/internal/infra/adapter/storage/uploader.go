@@ -20,8 +20,12 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xstring"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	modelerr "github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
+)
+
+var (
+	ErrUnsupportedResource = xerror.ErrArgs.Msg("不支持的资源类型")
+	ErrServerSignFailure   = xerror.ErrInternal.Msg("服务器签名失败")
 )
 
 const (
@@ -50,7 +54,7 @@ func (u *Uploaders) GetUploader(objType uploadresource.Type) (*uploader, error) 
 	if uploader, ok := u.uploaders[objType]; ok {
 		return uploader, nil
 	}
-	return nil, modelerr.ErrUnsupportedResource
+	return nil, ErrUnsupportedResource
 }
 
 func (u *Uploaders) SeperateObject(objType uploadresource.Type, fileId string) (bucket, key string, err error) {
@@ -225,7 +229,7 @@ func (u *uploader) GenerateUploadTicket(count int32, source string) (*UploadTick
 	res, err := u.signer.BatchGetUploadAuth(fileIds, string(u.resourceType))
 	if err != nil {
 		xlog.Msg("signer batch get upload auth failed").Err(err).Error()
-		return nil, modelerr.ErrServerSignFailure
+		return nil, ErrServerSignFailure
 	}
 
 	return &UploadTicket{

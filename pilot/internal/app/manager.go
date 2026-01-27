@@ -9,6 +9,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/relation"
 	sysnotifyapp "github.com/ryanreadbooks/whimer/pilot/internal/app/systemnotify"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/user"
+	whisperapp "github.com/ryanreadbooks/whimer/pilot/internal/app/whisper"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify"
 	userdomain "github.com/ryanreadbooks/whimer/pilot/internal/domain/user"
@@ -25,6 +26,7 @@ type Manager struct {
 	UserApp         *user.Service
 	CommentApp      *comment.Service
 	SystemNotifyApp *sysnotifyapp.Service
+	WhisperApp      *whisperapp.Service
 }
 
 func NewManager(c *config.Config) *Manager {
@@ -92,6 +94,10 @@ func NewManager(c *config.Config) *Manager {
 			adapter.NoteFeedAdapter(),
 			adapter.NoteInteractAdapter(),
 			adapter.CommentAdapter(),
+			adapter.UserAdapter(),
+		),
+		WhisperApp: whisperapp.NewService(
+			adapter.UserChatAdapter(),
 			adapter.UserAdapter(),
 		),
 	}

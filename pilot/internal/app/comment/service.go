@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/comment/dto"
+	cmterrors "github.com/ryanreadbooks/whimer/pilot/internal/app/comment/errors"
 	commondto "github.com/ryanreadbooks/whimer/pilot/internal/app/common/dto"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/comment/entity"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/comment/repository"
@@ -19,7 +20,6 @@ import (
 	userrepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/user/repository"
 	uservo "github.com/ryanreadbooks/whimer/pilot/internal/domain/user/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model/errors"
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
@@ -112,7 +112,7 @@ func (s *Service) checkPubReqValid(ctx context.Context, cmd *dto.PublishCommentC
 			return xerror.Wrapf(err, "get note author failed").WithCtx(ctx)
 		}
 		if author != cmd.ReplyUid {
-			return xerror.Wrap(errors.ErrReplyUserDoesNotMatch)
+			return xerror.Wrap(cmterrors.ErrReplyUserDoesNotMatch)
 		}
 	} else {
 		// 在评论上回复，校验父评论的发布者
@@ -121,7 +121,7 @@ func (s *Service) checkPubReqValid(ctx context.Context, cmd *dto.PublishCommentC
 			return xerror.Wrapf(err, "get comment user failed").WithCtx(ctx)
 		}
 		if uid != cmd.ReplyUid {
-			return xerror.Wrap(errors.ErrReplyUserDoesNotMatch)
+			return xerror.Wrap(cmterrors.ErrReplyUserDoesNotMatch)
 		}
 	}
 

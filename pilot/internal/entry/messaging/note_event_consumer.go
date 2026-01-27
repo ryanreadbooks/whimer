@@ -12,12 +12,11 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xretry"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app"
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
 
 	noteevent "github.com/ryanreadbooks/whimer/note/pkg/event/note"
 )
 
-func startNoteEventConsumer(bizz *biz.Biz, manager *app.Manager) {
+func startNoteEventConsumer(manager *app.Manager) {
 	backoff := xretry.NewPermenantBackoff(time.Millisecond*100, time.Second*8, 2.0)
 	concurrent.SafeGo2(rootCtx, concurrent.SafeGo2Opt{
 		Name: "pilot.note_event.consumer",

@@ -139,7 +139,7 @@ func (s *Service) GetHoverProfile(ctx context.Context, targetUid int64) (*dto.Ho
 	uid := metadata.Uid(ctx)
 	isAuthedRequest := uid != 0
 
-	eg, ctx := errgroup.WithContext(ctx)
+	eg := errgroup.Group{}
 	var targetUser *vo.User
 
 	// 基本信息
@@ -161,10 +161,20 @@ func (s *Service) GetHoverProfile(ctx context.Context, targetUid int64) (*dto.Ho
 			var err error
 			fansCount, err = s.relationAdapter.GetFanCount(ctx, targetUid)
 			if err != nil {
-				return err
+				// log here
+				xlog.Msgf("failed to get fan count").
+					Err(err).Extras("target_uid", targetUid, "uid", uid).Errorx(ctx)
 			}
+
 			followsCount, err = s.relationAdapter.GetFollowingCount(ctx, targetUid)
-			return err
+			// 降级处理
+			if err != nil {
+				// log here
+				xlog.Msgf("failed to get following count").
+					Err(err).Extras("target_uid", targetUid, "uid", uid).Errorx(ctx)
+			}
+
+			return nil
 		})
 	})
 
@@ -187,7 +197,13 @@ func (s *Service) GetHoverProfile(ctx context.Context, targetUid int64) (*dto.Ho
 			return recovery.Do(func() error {
 				var err error
 				followed, err = s.relationAdapter.CheckFollowed(ctx, uid, targetUid)
-				return err
+				// 降级处理
+				if err != nil {
+					// log here
+					xlog.Msgf("failed to check followed").
+						Err(err).Extras("target_uid", targetUid, "uid", uid).Errorx(ctx)
+				}
+				return nil
 			})
 		})
 	}

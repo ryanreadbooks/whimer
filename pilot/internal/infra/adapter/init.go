@@ -10,6 +10,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/storage"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/systemnotify"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/user"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/whisper"
 	infracache "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/cache"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
@@ -33,6 +34,8 @@ var (
 	relationAdapter *relation.RelationAdapterImpl
 
 	systemNotifyAdapter *systemnotify.SystemNotifyAdapterImpl
+
+	userChatAdapter *whisper.UserChatAdapterImpl
 )
 
 func Init(c *config.Config, cache *redis.Redis) {
@@ -80,6 +83,8 @@ func Init(c *config.Config, cache *redis.Redis) {
 		dep.SystemChatter(),
 	)
 
+	userChatAdapter = whisper.NewUserChatAdapterImpl(dep.UserChatter())
+
 	domainpushcenter.SetPusher(adapterpushcenter.NewWsPusher())
 }
 
@@ -121,4 +126,8 @@ func RelationAdapter() *relation.RelationAdapterImpl {
 
 func SystemNotifyAdapter() *systemnotify.SystemNotifyAdapterImpl {
 	return systemNotifyAdapter
+}
+
+func UserChatAdapter() *whisper.UserChatAdapterImpl {
+	return userChatAdapter
 }

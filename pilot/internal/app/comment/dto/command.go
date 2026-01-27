@@ -8,7 +8,6 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/comment/repository"
 	cmtvo "github.com/ryanreadbooks/whimer/pilot/internal/domain/comment/vo"
 	notevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model"
 )
 
 const (
@@ -26,14 +25,14 @@ type CommentImageCommand struct {
 
 // PublishCommentCommand 发布评论命令
 type PublishCommentCommand struct {
-	CommentType cmtvo.CommentType    `json:"type"`
-	Oid         notevo.NoteId        `json:"oid"`
-	Content     string               `json:"content"`
-	RootId      int64                `json:"root_id,omitempty,optional"`
-	ParentId    int64                `json:"parent_id,omitempty,optional"`
-	ReplyUid    int64                `json:"reply_uid"`
-	Images      []CommentImageCommand       `json:"images,omitempty,optional"`
-	AtUsers     commondto.AtUserList `json:"at_users,omitempty,optional"`
+	CommentType cmtvo.CommentType     `json:"type"`
+	Oid         notevo.NoteId         `json:"oid"`
+	Content     string                `json:"content"`
+	RootId      int64                 `json:"root_id,omitempty,optional"`
+	ParentId    int64                 `json:"parent_id,omitempty,optional"`
+	ReplyUid    int64                 `json:"reply_uid"`
+	Images      []CommentImageCommand `json:"images,omitempty,optional"`
+	AtUsers     commondto.AtUserList  `json:"at_users,omitempty,optional"`
 }
 
 func (c *PublishCommentCommand) PubOnOidDirectly() bool {
@@ -76,7 +75,7 @@ func (c *PublishCommentCommand) Validate() error {
 				return errors.ErrMissingImageInfo
 			}
 
-			if err := model.CheckImageFormat(img.Format); err != nil {
+			if err := commondto.CheckImageFormat(img.Format); err != nil {
 				return err
 			}
 		}

@@ -14,13 +14,13 @@ import (
 	commentrepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/comment/repository"
 	mentionvo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/mention/vo"
 	noterepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/repository"
+	notevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify"
 	notifyentity "github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify/entity"
 	notifyvo "github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify/vo"
 	userrepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/user/repository"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/kafka"
 	sysmsgkfkdao "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/kafka/sysmsg"
-	imodel "github.com/ryanreadbooks/whimer/pilot/internal/model"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -350,9 +350,9 @@ func parseMentionMsgs(ctx context.Context, rawMsgs []*notifyvo.RawSystemMsg) []*
 			var (
 				loc       notifyvo.NotifyMsgLocation
 				sourceUid int64
-				noteId    imodel.NoteId = 0
+				noteId    notevo.NoteId
 				content   string
-				commentId int64 = 0
+				commentId int64
 			)
 
 			if v.NotifyAtUsersOnNoteParamContent != nil {
