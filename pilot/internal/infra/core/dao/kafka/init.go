@@ -55,3 +55,11 @@ func Close() {
 		syncKafkaWriter.Close()
 	}
 }
+
+func AsyncWriter() *xkafka.Writer {
+	return asyncKafkaWriter
+}
+
+func SyncWriter() *xkafka.Writer {
+	return syncKafkaWriter
+}

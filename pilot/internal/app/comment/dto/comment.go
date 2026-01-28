@@ -5,6 +5,7 @@ import (
 	commondto "github.com/ryanreadbooks/whimer/pilot/internal/app/common/dto"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/comment/entity"
+	storagevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/storage/vo"
 	uservo "github.com/ryanreadbooks/whimer/pilot/internal/domain/user/vo"
 )
 
@@ -146,7 +147,7 @@ func entityImageToDto(e *entity.CommentImage) *CommentImage {
 		return nil
 	}
 
-	bucket := config.Conf.UploadResourceDefineMap["comment_image"].Bucket
+	bucket := storagevo.ObjectTypeCommentImage.Metadata().Bucket
 	url := imgproxy.GetSignedUrl(config.Conf.Oss.DisplayEndpointBucket(bucket),
 		e.Key,
 		config.Conf.ImgProxyAuth.GetKey(),

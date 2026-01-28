@@ -3,6 +3,7 @@ package dto
 import (
 	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
+	storagevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/storage/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/entity"
 	notevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
 )
@@ -22,7 +23,7 @@ type NoteImage struct {
 }
 
 func NewNoteImageUrl(key string) string {
-	bucket := config.Conf.UploadResourceDefineMap["note_image"].Bucket
+	bucket := storagevo.ObjectTypeNoteImage.Metadata().Bucket
 	url := imgproxy.GetSignedUrl(
 		config.Conf.Oss.DisplayEndpointBucket(bucket),
 		key,
@@ -52,7 +53,7 @@ func ConvertEntityNoteImageToDto(image *entity.NoteImage) *NoteImage {
 }
 
 func NewNoteImagePreviewUrl(key string) string {
-	bucket := config.Conf.UploadResourceDefineMap["note_image"].Bucket
+	bucket := storagevo.ObjectTypeNoteImage.Metadata().Bucket
 	url := imgproxy.GetSignedUrl(
 		config.Conf.Oss.DisplayEndpointBucket(bucket),
 		key,

@@ -32,4 +32,3 @@ type NotifyAtUsersOnCommentParamContent struct {
 	RootId    int64         `json:"root_id"`    // 根评论id
 	ParentId  int64         `json:"parent_id"`  // 父评论id
 }
-

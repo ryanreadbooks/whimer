@@ -5,6 +5,7 @@ import (
 	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	mentionvo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/mention/vo"
+	storagevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/storage/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/entity"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
 )
@@ -318,7 +319,7 @@ func BatchPbFeedNotesToEntities(notes []*notev1.FeedNoteItem) []*entity.FeedNote
 }
 
 func NewNoteImageItemUrlPrv(pbimg *notev1.NoteImage) string {
-	noteAssetBucket := config.Conf.UploadResourceDefineMap["note_image"].Bucket
+	noteAssetBucket := storagevo.ObjectTypeNoteImage.Metadata().Bucket
 
 	url := imgproxy.GetSignedUrl(
 		config.Conf.Oss.DisplayEndpointBucket(noteAssetBucket),

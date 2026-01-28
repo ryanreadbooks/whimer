@@ -4,23 +4,22 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/systemnotify/dto"
+	commentrepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/comment/repository"
+	noterepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/repository"
+	"github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify"
+	notifyentity "github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify/entity"
+	"github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify/event"
+	notifyvo "github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify/vo"
+	userrepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/user/repository"
+
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/uuid"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
-	"github.com/ryanreadbooks/whimer/pilot/internal/app/systemnotify/dto"
-	commentrepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/comment/repository"
-	mentionvo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/mention/vo"
-	noterepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/repository"
-	notevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
-	"github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify"
-	notifyentity "github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify/entity"
-	notifyvo "github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify/vo"
-	userrepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/user/repository"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/kafka"
-	sysmsgkfkdao "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/kafka/sysmsg"
+
 	"golang.org/x/sync/errgroup"
 )
 
@@ -30,6 +29,7 @@ type Service struct {
 	noteLikesAdapter noterepo.NoteLikesAdapter
 	commentAdapter   commentrepo.CommentAdapter
 	userAdapter      userrepo.UserServiceAdapter
+	eventPublisher   event.EventPublisher
 }
 
 func NewService(
@@ -38,6 +38,7 @@ func NewService(
 	noteLikesAdapter noterepo.NoteLikesAdapter,
 	commentAdapter commentrepo.CommentAdapter,
 	userAdapter userrepo.UserServiceAdapter,
+	eventPublisher event.EventPublisher,
 ) *Service {
 	return &Service{
 		domainService:    domainService,
@@ -45,6 +46,7 @@ func NewService(
 		noteLikesAdapter: noteLikesAdapter,
 		commentAdapter:   commentAdapter,
 		userAdapter:      userAdapter,
+		eventPublisher:   eventPublisher,
 	}
 }
 
@@ -146,7 +148,9 @@ func (s *Service) DeleteSysMsg(ctx context.Context, uid int64, msgId string) err
 	return s.domainService.DeleteSysMsg(ctx, uid, msgId)
 }
 
-func (s *Service) lazyCheckMentionMsgSource(ctx context.Context, uid int64, msgs []*notifyentity.MentionedMsg) error {
+func (s *Service) lazyCheckMentionMsgSource(
+	ctx context.Context, uid int64, msgs []*notifyentity.MentionedMsg,
+) error {
 	noteIds, commentIds := systemnotify.ExtractMentionMsgSourceIds(msgs)
 	noteIds = xslice.FilterZero(xslice.Uniq(noteIds))
 	commentIds = xslice.FilterZero(xslice.Uniq(commentIds))
@@ -167,7 +171,9 @@ func (s *Service) lazyCheckMentionMsgSource(ctx context.Context, uid int64, msgs
 	return nil
 }
 
-func (s *Service) lazyCheckReplyMsgSource(ctx context.Context, uid int64, msgs []*notifyentity.ReplyMsg) error {
+func (s *Service) lazyCheckReplyMsgSource(
+	ctx context.Context, uid int64, msgs []*notifyentity.ReplyMsg,
+) error {
 	noteIds, commentIds := systemnotify.ExtractReplyMsgSourceIds(msgs)
 	noteIds = xslice.FilterZero(xslice.Uniq(noteIds))
 	commentIds = xslice.FilterZero(xslice.Uniq(commentIds))
@@ -303,85 +309,19 @@ func (s *Service) asyncBatchDeleteMsgs(ctx context.Context, uid int64, msgIds []
 
 	xlog.Msgf("sysmsg pending delete msgids length = %d", len(msgIds)).Debugx(ctx)
 
-	deletions := make([]*sysmsgkfkdao.DeletionEvent, 0, len(msgIds))
+	deletions := make([]*event.DeletionEvent, 0, len(msgIds))
 	for _, msgId := range msgIds {
 		if uid != 0 && msgId != "" {
-			deletions = append(deletions, &sysmsgkfkdao.DeletionEvent{
+			deletions = append(deletions, &event.DeletionEvent{
 				Uid:   uid,
 				MsgId: msgId,
 			})
 		}
 	}
 
-	if err := kafka.Dao().SysMsgEventProducer.AsyncPutDeletion(ctx, deletions); err != nil {
+	if err := s.eventPublisher.AsyncPublishDeletion(ctx, deletions); err != nil {
 		xlog.Msg("sysmsg async put deletion failed").Err(err).Extras("args", deletions).Errorx(ctx)
 	}
-}
-
-type mentionMsgContent struct {
-	*notifyvo.NotifyAtUsersOnNoteParamContent    `json:"note_content,omitempty"`
-	*notifyvo.NotifyAtUsersOnCommentParamContent `json:"comment_content,omitempty"`
-	Receivers                                    []*mentionvo.AtUser        `json:"receivers"`
-	Loc                                          notifyvo.NotifyMsgLocation `json:"loc"`
-}
-
-func parseMentionMsgs(ctx context.Context, rawMsgs []*notifyvo.RawSystemMsg) []*notifyentity.MentionedMsg {
-	msgs := make([]*notifyentity.MentionedMsg, 0, len(rawMsgs))
-
-	for _, msg := range rawMsgs {
-		mgid, err := uuid.ParseString(msg.Id)
-		if err != nil {
-			xlog.Msg("parse mention msg id failed").Err(err).Extras("msgid", msg.Id).Errorx(ctx)
-			continue
-		}
-
-		mm := notifyentity.MentionedMsg{
-			Id:     msg.Id,
-			SendAt: mgid.UnixSec(),
-		}
-
-		if msg.Status != notifyvo.MsgStatusRecalled {
-			var v mentionMsgContent
-			if err := json.Unmarshal(msg.Content, &v); err != nil {
-				xlog.Msg("unmarshal mention msg content failed").Err(err).Errorx(ctx)
-				continue
-			}
-
-			var (
-				loc       notifyvo.NotifyMsgLocation
-				sourceUid int64
-				noteId    notevo.NoteId
-				content   string
-				commentId int64
-			)
-
-			if v.NotifyAtUsersOnNoteParamContent != nil {
-				loc = notifyvo.NotifyMsgOnNote
-				sourceUid = v.NotifyAtUsersOnNoteParamContent.SourceUid
-				noteId = v.NotifyAtUsersOnNoteParamContent.NoteId
-				content = v.NotifyAtUsersOnNoteParamContent.NoteDesc
-			} else if v.NotifyAtUsersOnCommentParamContent != nil {
-				loc = notifyvo.NotifyMsgOnComment
-				sourceUid = v.NotifyAtUsersOnCommentParamContent.SourceUid
-				content = v.NotifyAtUsersOnCommentParamContent.Comment
-				commentId = v.NotifyAtUsersOnCommentParamContent.CommentId
-				noteId = v.NotifyAtUsersOnCommentParamContent.NoteId
-			}
-
-			mm.Type = loc
-			mm.Uid = sourceUid
-			mm.RecvUsers = v.Receivers
-			mm.NoteId = noteId
-			mm.CommentId = commentId
-			mm.Content = content
-			mm.Status = notifyvo.MsgStatusNormal
-		} else {
-			mm.Status = notifyvo.MsgStatusRecalled
-		}
-		msgs = append(msgs, &mm)
-	}
-
-	return msgs
 }
 
 func parseReplyMsgs(ctx context.Context, uid int64, rawMsgs []*notifyvo.RawSystemMsg) []*notifyentity.ReplyMsg {

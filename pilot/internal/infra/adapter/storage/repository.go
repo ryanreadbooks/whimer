@@ -7,15 +7,13 @@ import (
 	"io"
 	"time"
 
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/tags"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	xhttputil "github.com/ryanreadbooks/whimer/misc/xhttp/util"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	domainstorage "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/storage"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/common/storage/vo"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
-
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/tags"
 )
 
 const (
@@ -58,7 +56,7 @@ func NewOssRepositoryImpl(
 // ==================== ObjectChecker ====================
 
 func (r *OssRepositoryImpl) CheckFileIdValid(objType vo.ObjectType, fileId string) error {
-	uploader, err := r.uploaders.GetUploader(r.toUploadObjectType(objType))
+	uploader, err := r.uploaders.GetUploader(objType)
 	if err != nil {
 		return err
 	}
@@ -190,18 +188,18 @@ func (r *OssRepositoryImpl) CheckObjectContent(
 func (r *OssRepositoryImpl) SeperateObject(
 	objType vo.ObjectType, fileId string,
 ) (bucket, key string, err error) {
-	return r.uploaders.SeperateObject(r.toUploadObjectType(objType), fileId)
+	return r.uploaders.SeperateObject(objType, fileId)
 }
 
 func (r *OssRepositoryImpl) TrimBucketAndPrefix(objType vo.ObjectType, fileId string) string {
-	return r.uploaders.TrimBucketAndPrefix(r.toUploadObjectType(objType), fileId)
+	return r.uploaders.TrimBucketAndPrefix(objType, fileId)
 }
 
 func (r *OssRepositoryImpl) ResolveTargetPath(
 	objType vo.ObjectType, fileId string,
 ) (targetPath string, err error) {
-	rawKey := r.uploaders.TrimBucketAndPrefix(r.toUploadObjectType(objType), fileId)
-	uploader, err := r.uploaders.GetUploader(r.toUploadObjectType(objType))
+	rawKey := r.uploaders.TrimBucketAndPrefix(objType, fileId)
+	uploader, err := r.uploaders.GetUploader(objType)
 	if err != nil {
 		return "", err
 	}
@@ -211,11 +209,11 @@ func (r *OssRepositoryImpl) ResolveTargetPath(
 }
 
 func (r *OssRepositoryImpl) GetBucket(objType vo.ObjectType) (string, error) {
-	return r.uploaders.GetBucket(r.toUploadObjectType(objType))
+	return r.uploaders.GetBucket(objType)
 }
 
 func (r *OssRepositoryImpl) GetObjectMeta(objType vo.ObjectType) (*vo.ObjectMeta, error) {
-	uploader, err := r.uploaders.GetUploader(r.toUploadObjectType(objType))
+	uploader, err := r.uploaders.GetUploader(objType)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +230,7 @@ func (r *OssRepositoryImpl) GetObjectMeta(objType vo.ObjectType) (*vo.ObjectMeta
 func (r *OssRepositoryImpl) GetUploadTicket(
 	ctx context.Context, objType vo.ObjectType, count int32,
 ) (*vo.UploadTicket, error) {
-	uploader, err := r.uploaders.GetUploader(r.toUploadObjectType(objType))
+	uploader, err := r.uploaders.GetUploader(objType)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +257,7 @@ func (r *OssRepositoryImpl) GetUploadTicket(
 func (r *OssRepositoryImpl) GetUploadTicketDeprecated(
 	ctx context.Context, objType vo.ObjectType, count int32,
 ) (*vo.UploadTicketDeprecated, error) {
-	uploader, err := r.uploaders.GetUploader(r.toUploadObjectType(objType))
+	uploader, err := r.uploaders.GetUploader(objType)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +279,7 @@ func (r *OssRepositoryImpl) GetUploadTicketDeprecated(
 func (r *OssRepositoryImpl) GetPostPolicyTicket(
 	ctx context.Context, objType vo.ObjectType, sha256 string, mimeType string,
 ) (*vo.PostPolicyTicket, error) {
-	uploader, err := r.uploaders.GetUploader(r.toUploadObjectType(objType))
+	uploader, err := r.uploaders.GetUploader(objType)
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +302,7 @@ func (r *OssRepositoryImpl) GetPostPolicyTicket(
 func (r *OssRepositoryImpl) PresignGetUrl(
 	ctx context.Context, objType vo.ObjectType, fileId string,
 ) (string, error) {
-	uploader, err := r.uploaders.GetUploader(r.toUploadObjectType(objType))
+	uploader, err := r.uploaders.GetUploader(objType)
 	if err != nil {
 		return "", err
 	}
@@ -323,10 +321,6 @@ func (r *OssRepositoryImpl) PresignGetUrl(
 }
 
 // ==================== Internal helpers ====================
-
-func (r *OssRepositoryImpl) toUploadObjectType(objType vo.ObjectType) uploadresource.Type {
-	return uploadresource.Type(objType)
-}
 
 func (r *OssRepositoryImpl) collectObjectKeys(
 	objType vo.ObjectType, fileIds []string,

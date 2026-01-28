@@ -20,7 +20,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xstring"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
+	storagevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/storage/vo"
 )
 
 var (
@@ -35,7 +35,7 @@ const (
 var uploaders *Uploaders
 
 type Uploaders struct {
-	uploaders        map[uploadresource.Type]*uploader
+	uploaders        map[storagevo.ObjectType]*uploader
 	displayOssClient *minio.Client
 	uploadOssClient  *minio.Client
 	ossConfig        *config.Oss
@@ -43,13 +43,13 @@ type Uploaders struct {
 
 func initUploaders(c *config.Config) {
 	uploaders = &Uploaders{
-		uploaders:        make(map[uploadresource.Type]*uploader),
+		uploaders:        make(map[storagevo.ObjectType]*uploader),
 		displayOssClient: displayOssCli,
 		uploadOssClient:  uploadOssCli,
 		ossConfig:        &c.Oss,
 	}
-	for resourceType, metadata := range c.UploadResourceDefineMap {
-		uploaders.uploaders[resourceType] = newUploader(&c.UploadAuthSign, &c.Oss, uploadOssCli, resourceType, metadata)
+	for _, objType := range storagevo.AllObjectTypes() {
+		uploaders.uploaders[objType] = newUploader(&c.UploadAuthSign, &c.Oss, uploadOssCli, objType)
 	}
 }
 
@@ -57,7 +57,7 @@ func GetUploaders() *Uploaders {
 	return uploaders
 }
 
-func (u *Uploaders) GetUploader(resource uploadresource.Type) (*uploader, error) {
+func (u *Uploaders) GetUploader(resource storagevo.ObjectType) (*uploader, error) {
 	if uploader, ok := u.uploaders[resource]; ok {
 		return uploader, nil
 	}
@@ -65,7 +65,7 @@ func (u *Uploaders) GetUploader(resource uploadresource.Type) (*uploader, error)
 }
 
 // 对外返回预签名url获取资源
-func (u *Uploaders) PresignGetUrl(ctx context.Context, resource uploadresource.Type, key string) (string, error) {
+func (u *Uploaders) PresignGetUrl(ctx context.Context, resource storagevo.ObjectType, key string) (string, error) {
 	uploader, err := u.GetUploader(resource)
 	if err != nil {
 		return "", err
@@ -84,7 +84,7 @@ func (u *Uploaders) PresignGetUrl(ctx context.Context, resource uploadresource.T
 	return presignedURL.String(), nil
 }
 
-func (u *Uploaders) SeperateResource(resource uploadresource.Type, resourceId string) (bucket, key string, err error) {
+func (u *Uploaders) SeperateResource(resource storagevo.ObjectType, resourceId string) (bucket, key string, err error) {
 	uploader, err := u.GetUploader(resource)
 	if err != nil {
 		return
@@ -97,7 +97,7 @@ func (u *Uploaders) SeperateResource(resource uploadresource.Type, resourceId st
 	return
 }
 
-func (u *Uploaders) GetBucket(resource uploadresource.Type) (string, error) {
+func (u *Uploaders) GetBucket(resource storagevo.ObjectType) (string, error) {
 	uploader, err := u.GetUploader(resource)
 	if err != nil {
 		return "", err
@@ -105,7 +105,7 @@ func (u *Uploaders) GetBucket(resource uploadresource.Type) (string, error) {
 	return uploader.metadata.Bucket, nil
 }
 
-func (u *Uploaders) CheckFileIdValid(resource uploadresource.Type, fileId string) error {
+func (u *Uploaders) CheckFileIdValid(resource storagevo.ObjectType, fileId string) error {
 	uploader, err := u.GetUploader(resource)
 	if err != nil {
 		return err
@@ -114,7 +114,7 @@ func (u *Uploaders) CheckFileIdValid(resource uploadresource.Type, fileId string
 }
 
 // 去除 bucket 和 prefix
-func (u *Uploaders) TrimBucketAndPrefix(resource uploadresource.Type, fileId string) string {
+func (u *Uploaders) TrimBucketAndPrefix(resource storagevo.ObjectType, fileId string) string {
 	uploader, err := u.GetUploader(resource)
 	if err != nil {
 		return fileId
@@ -122,15 +122,15 @@ func (u *Uploaders) TrimBucketAndPrefix(resource uploadresource.Type, fileId str
 	return uploader.keyGen.TrimBucketAndPrefix(fileId)
 }
 
-func PresignGetUrl(ctx context.Context, resource uploadresource.Type, key string) (string, error) {
+func PresignGetUrl(ctx context.Context, resource storagevo.ObjectType, key string) (string, error) {
 	return uploaders.PresignGetUrl(ctx, resource, key)
 }
 
-func SeperateResource(resource uploadresource.Type, resourceId string) (bucket, key string, err error) {
+func SeperateResource(resource storagevo.ObjectType, resourceId string) (bucket, key string, err error) {
 	return uploaders.SeperateResource(resource, resourceId)
 }
 
-func GetBucket(resource uploadresource.Type) (string, error) {
+func GetBucket(resource storagevo.ObjectType) (string, error) {
 	return uploaders.GetBucket(resource)
 }
 
@@ -138,8 +138,8 @@ type uploader struct {
 	uploadSignConfig *config.UploadAuthSign
 	ossConfig        *config.Oss
 	ossCli           *minio.Client
-	resourceType     uploadresource.Type // 当前uploader只负责一种资源的上传凭证申请
-	metadata         uploadresource.Metadata
+	resourceType     storagevo.ObjectType // 当前uploader只负责一种资源的上传凭证申请
+	metadata         storagevo.ObjectTypeMetadata
 
 	keyGen      *keygen.Generator
 	credentials *credentials.STSCredentials
@@ -150,8 +150,9 @@ func newUploader(
 	c *config.UploadAuthSign,
 	ossConfig *config.Oss,
 	ossCli *minio.Client,
-	resource uploadresource.Type, metadata uploadresource.Metadata,
+	resource storagevo.ObjectType,
 ) *uploader {
+	metadata := resource.Metadata()
 	u := &uploader{
 		uploadSignConfig: c,
 		ossConfig:        ossConfig,

@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/ryanreadbooks/whimer/misc/oss/keygen"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 )
 
@@ -27,11 +28,8 @@ func (t ObjectType) String() string {
 }
 
 func (t ObjectType) IsValid() bool {
-	switch t {
-	case ObjectTypeNoteImage, ObjectTypeNoteVideo, ObjectTypeNoteVideoCover, ObjectTypeCommentImage:
-		return true
-	}
-	return false
+	_, ok := objectTypeMetadataMap[t]
+	return ok
 }
 
 // PermitSize 返回允许的最大字节数
@@ -74,6 +72,71 @@ func (t ObjectType) CheckContent(content []byte, totalSize int64) error {
 		return nil
 	}
 	return xerror.ErrArgs.Msg("对象格式非法")
+}
+
+// Metadata 返回对象类型的存储元数据
+func (t ObjectType) Metadata() ObjectTypeMetadata {
+	if m, ok := objectTypeMetadataMap[t]; ok {
+		return m
+	}
+	return ObjectTypeMetadata{}
+}
+
+// ObjectTypeMetadata 对象类型的存储元数据
+type ObjectTypeMetadata struct {
+	Bucket        string
+	Prefix        string
+	PrependBucket bool
+	PrependPrefix bool
+	PrefixSegment string
+	stringer      keygen.Stringer
+}
+
+func (m ObjectTypeMetadata) GetStringer() keygen.Stringer {
+	if m.stringer != nil {
+		return m.stringer
+	}
+	return keygen.RandomStringer{}
+}
+
+// AllObjectTypes 返回所有支持的对象类型
+func AllObjectTypes() []ObjectType {
+	return []ObjectType{
+		ObjectTypeNoteImage,
+		ObjectTypeNoteVideo,
+		ObjectTypeNoteVideoCover,
+		ObjectTypeCommentImage,
+	}
+}
+
+// objectTypeMetadataMap 所有对象类型的元数据定义
+var objectTypeMetadataMap = map[ObjectType]ObjectTypeMetadata{
+	ObjectTypeNoteImage: {
+		Bucket:        "nota",
+		Prefix:        "assets",
+		PrependBucket: true,
+		PrependPrefix: false,
+	},
+	ObjectTypeNoteVideo: {
+		Bucket:        "videos",
+		Prefix:        "note/cosmic",
+		PrependBucket: true,
+		PrependPrefix: true,
+		PrefixSegment: "note",
+	},
+	ObjectTypeNoteVideoCover: {
+		Bucket:        "nota",
+		Prefix:        "cover",
+		PrependBucket: true,
+		PrependPrefix: true,
+	},
+	ObjectTypeCommentImage: {
+		Bucket:        "pics",
+		Prefix:        "cmt_inline",
+		PrependBucket: true,
+		PrependPrefix: true,
+		stringer:      keygen.RandomStringerV7{},
+	},
 }
 
 // ObjectInfo 通用对象信息

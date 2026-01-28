@@ -95,6 +95,7 @@ func NewManager(c *config.Config) *Manager {
 			adapter.NoteInteractAdapter(),
 			adapter.CommentAdapter(),
 			adapter.UserAdapter(),
+			adapter.SysNotifyEventPublisher(),
 		),
 		WhisperApp: whisperapp.NewService(
 			adapter.UserChatAdapter(),

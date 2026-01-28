@@ -20,7 +20,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xstring"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
+	storagevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/storage/vo"
 )
 
 var (
@@ -34,30 +34,30 @@ const (
 
 // Uploaders 上传器管理
 type Uploaders struct {
-	uploaders map[uploadresource.Type]*uploader
+	uploaders map[storagevo.ObjectType]*uploader
 	ossConfig *config.Oss
 }
 
 // NewUploaders 创建上传器管理
 func NewUploaders(c *config.Config, uploadOssCli *minio.Client) *Uploaders {
 	u := &Uploaders{
-		uploaders: make(map[uploadresource.Type]*uploader),
+		uploaders: make(map[storagevo.ObjectType]*uploader),
 		ossConfig: &c.Oss,
 	}
-	for resourceType, metadata := range c.UploadResourceDefineMap {
-		u.uploaders[resourceType] = newUploader(&c.UploadAuthSign, &c.Oss, uploadOssCli, resourceType, metadata)
+	for _, objType := range storagevo.AllObjectTypes() {
+		u.uploaders[objType] = newUploader(&c.UploadAuthSign, &c.Oss, uploadOssCli, objType)
 	}
 	return u
 }
 
-func (u *Uploaders) GetUploader(objType uploadresource.Type) (*uploader, error) {
+func (u *Uploaders) GetUploader(objType storagevo.ObjectType) (*uploader, error) {
 	if uploader, ok := u.uploaders[objType]; ok {
 		return uploader, nil
 	}
 	return nil, ErrUnsupportedResource
 }
 
-func (u *Uploaders) SeperateObject(objType uploadresource.Type, fileId string) (bucket, key string, err error) {
+func (u *Uploaders) SeperateObject(objType storagevo.ObjectType, fileId string) (bucket, key string, err error) {
 	uploader, err := u.GetUploader(objType)
 	if err != nil {
 		return
@@ -70,7 +70,7 @@ func (u *Uploaders) SeperateObject(objType uploadresource.Type, fileId string) (
 	return
 }
 
-func (u *Uploaders) GetBucket(objType uploadresource.Type) (string, error) {
+func (u *Uploaders) GetBucket(objType storagevo.ObjectType) (string, error) {
 	uploader, err := u.GetUploader(objType)
 	if err != nil {
 		return "", err
@@ -78,7 +78,7 @@ func (u *Uploaders) GetBucket(objType uploadresource.Type) (string, error) {
 	return uploader.metadata.Bucket, nil
 }
 
-func (u *Uploaders) CheckFileIdValid(objType uploadresource.Type, fileId string) error {
+func (u *Uploaders) CheckFileIdValid(objType storagevo.ObjectType, fileId string) error {
 	uploader, err := u.GetUploader(objType)
 	if err != nil {
 		return err
@@ -86,7 +86,7 @@ func (u *Uploaders) CheckFileIdValid(objType uploadresource.Type, fileId string)
 	return uploader.CheckFileIdValid(fileId)
 }
 
-func (u *Uploaders) TrimBucketAndPrefix(objType uploadresource.Type, fileId string) string {
+func (u *Uploaders) TrimBucketAndPrefix(objType storagevo.ObjectType, fileId string) string {
 	uploader, err := u.GetUploader(objType)
 	if err != nil {
 		return fileId
@@ -99,8 +99,8 @@ type uploader struct {
 	uploadSignConfig *config.UploadAuthSign
 	ossConfig        *config.Oss
 	ossCli           *minio.Client
-	resourceType     uploadresource.Type
-	metadata         uploadresource.Metadata
+	resourceType     storagevo.ObjectType
+	metadata         storagevo.ObjectTypeMetadata
 
 	keyGen      *keygen.Generator
 	credentials *credentials.STSCredentials
@@ -111,8 +111,9 @@ func newUploader(
 	c *config.UploadAuthSign,
 	ossConfig *config.Oss,
 	ossCli *minio.Client,
-	resource uploadresource.Type, metadata uploadresource.Metadata,
+	resource storagevo.ObjectType,
 ) *uploader {
+	metadata := resource.Metadata()
 	u := &uploader{
 		uploadSignConfig: c,
 		ossConfig:        ossConfig,
@@ -198,7 +199,7 @@ func (u *uploader) GetBucket() string {
 	return u.metadata.Bucket
 }
 
-func (u *uploader) GetMetadata() uploadresource.Metadata {
+func (u *uploader) GetMetadata() storagevo.ObjectTypeMetadata {
 	return u.metadata
 }
 

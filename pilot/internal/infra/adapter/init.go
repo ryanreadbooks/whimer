@@ -13,6 +13,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/whisper"
 	infracache "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/cache"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/kafka"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
@@ -33,7 +34,8 @@ var (
 
 	relationAdapter *relation.RelationAdapterImpl
 
-	systemNotifyAdapter *systemnotify.SystemNotifyAdapterImpl
+	systemNotifyAdapter     *systemnotify.SystemNotifyAdapterImpl
+	sysNotifyEventPublisher *systemnotify.EventPublisherImpl
 
 	userChatAdapter *whisper.UserChatAdapterImpl
 )
@@ -82,6 +84,10 @@ func Init(c *config.Config, cache *redis.Redis) {
 		dep.SystemNotifier(),
 		dep.SystemChatter(),
 	)
+	sysNotifyEventPublisher = systemnotify.NewEventPublisherImpl(
+		kafka.AsyncWriter(),
+		kafka.SyncWriter(),
+	)
 
 	userChatAdapter = whisper.NewUserChatAdapterImpl(dep.UserChatter())
 
@@ -126,6 +132,10 @@ func RelationAdapter() *relation.RelationAdapterImpl {
 
 func SystemNotifyAdapter() *systemnotify.SystemNotifyAdapterImpl {
 	return systemNotifyAdapter
+}
+
+func SysNotifyEventPublisher() *systemnotify.EventPublisherImpl {
+	return sysNotifyEventPublisher
 }
 
 func UserChatAdapter() *whisper.UserChatAdapterImpl {
