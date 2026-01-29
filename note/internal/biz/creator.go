@@ -71,7 +71,6 @@ func assignNoteAssets(newNote *model.Note, req *CreateNoteRequest) []*notedao.As
 					Format: img.Format,
 				},
 			}
-			mmimg.SetBucket(img.Bucket)
 			newNote.Images = append(newNote.Images, mmimg)
 		}
 	case model.AssetTypeVideo:
@@ -89,9 +88,7 @@ func assignNoteAssets(newNote *model.Note, req *CreateNoteRequest) []*notedao.As
 		newNote.Videos = &model.NoteVideo{
 			Items: items,
 		}
-		newNote.Videos.SetTargetBucket(req.Video.TargetBucket)
 		newNote.Videos.SetRawUrl(req.Video.FileId)
-		newNote.Videos.SetRawBucket(req.Video.Bucket)
 
 		// 加上视频封面
 		coverImage := &model.AssetImageMeta{}

@@ -5,12 +5,12 @@ import (
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	sysmsgmodel "github.com/ryanreadbooks/whimer/pilot/internal/biz/sysnotify/model"
+	notifyentity "github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify/entity"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 type GetTotalUnreadCountResp struct {
-	System *sysmsgmodel.ChatsUnreadCount `json:"system"`
+	System *notifyentity.ChatsUnreadCount `json:"system"`
 }
 
 func (h *Handler) GetTotalUnreadCount() http.HandlerFunc {
@@ -21,7 +21,7 @@ func (h *Handler) GetTotalUnreadCount() http.HandlerFunc {
 		)
 
 		// 1. 系统会话未读
-		sysUnreads, err := h.sysNotifyBiz.GetChatUnread(ctx, uid)
+		sysUnreads, err := h.sysNotifyApp.GetChatUnread(ctx, uid)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -45,7 +45,7 @@ func (h *Handler) ClearSysChatUnread() http.HandlerFunc {
 			uid = metadata.Uid(ctx)
 		)
 
-		err = h.sysNotifyBiz.ClearChatUnread(ctx, uid, req.ChatId)
+		err = h.sysNotifyApp.ClearChatUnread(ctx, uid, req.ChatId)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return

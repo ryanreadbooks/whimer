@@ -4,10 +4,7 @@ import (
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	"github.com/ryanreadbooks/whimer/misc/xlog"
-	"github.com/ryanreadbooks/whimer/pilot/internal/infra/dep"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model"
-	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app/notefeed/dto"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -15,57 +12,16 @@ import (
 // 搜索笔记
 func (h *Handler) SearchNotes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, err := xhttp.ParseValidate[SearchNotesReq](httpx.ParseJsonBody, r)
+		req, err := xhttp.ParseValidate[dto.SearchNotesQuery](httpx.ParseJsonBody, r)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		ctx := r.Context()
-		filters := make([]*searchv1.NoteFilter, 0)
-		for _, f := range req.Filters {
-			filters = append(filters, &searchv1.NoteFilter{
-				Type:  searchv1.NoteFilterType(searchv1.NoteFilterType_value[f.Type]),
-				Value: f.Value,
-			})
-		}
-
-		searchingResp, err := dep.SearchServer().SearchNotes(ctx,
-			&searchv1.SearchNotesRequest{
-				Keyword:   req.Keyword,
-				PageToken: req.PageToken,
-				Count:     req.Count,
-				Filters:   filters,
-			})
+		resp, err := h.noteFeedApp.SearchNotes(r.Context(), req)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
-		}
-		noteIds := searchingResp.GetNoteIds() // string类型的 mixed的
-		nids := []int64{}
-		for _, n := range noteIds {
-			var id model.NoteId
-			err = id.UnmarshalText([]byte(n))
-			if err == nil {
-				nids = append(nids, int64(id))
-			} else {
-				xlog.Msgf("search notes failed to parse note id").Extra("note_id", n).Err(err).Errorx(ctx)
-			}
-		}
-
-		resp := &SearchNotesRes{}
-		if len(noteIds) != 0 {
-			xlog.Msgf("search notes got %v", noteIds).Debugx(ctx)
-			notes, err := h.feedBiz.BatchGetNote(ctx, nids)
-			if err != nil {
-				xhttp.Error(r, w, err)
-				return
-			}
-
-			resp.HasNext = searchingResp.HasNext
-			resp.Total = searchingResp.Total
-			resp.NextToken = searchingResp.NextToken
-			resp.Items = notes
 		}
 
 		xhttp.OkJson(w, resp)
@@ -75,6 +31,5 @@ func (h *Handler) SearchNotes() http.HandlerFunc {
 // 获取搜索可用的过滤器
 func (h *Handler) GetSearchNotesAvailableFilters() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 	}
 }

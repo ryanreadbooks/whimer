@@ -86,33 +86,10 @@ oss:
   display_endpoint: http://s1-file.whimer.com
   upload_endpoint: http://s1-upload.whimer.com
 
-upload_resource_define:
-  - name: note_image
-    meta:
-      bucket: nota
-      prefix: assets
-      prepend_bucket: true
-  - name: note_video
-    meta:
-      bucket: videos
-      prefix: note/cosmic
-      prepend_bucket: true
-      prepend_prefix: true
-      prefix_segment: note # 取prefix开头的note
-  - name: note_video_cover
-    meta:
-      bucket: nota
-      prefix: cover
-      prepend_bucket: true
-      prepend_prefix: true
-  - name: comment_image
-    meta:
-      bucket: pics
-      prefix: cmt_inline
-      prepend_bucket: true
-      prepend_prefix: true
-      stringer: random_v7
-
 img_proxy_auth:
   key: ${IMGPROXY_KEY}
   salt: ${IMGPROXY_SALT}
+
+img_quality:
+  quality: "100"
+  quality_preview: "20"

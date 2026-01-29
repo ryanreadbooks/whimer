@@ -46,8 +46,6 @@ func regNoteRoutes(group *xhttp.RouterGroup, h *handler.Handler) {
 				v1g.Post("/like", h.Note.LikeNote())
 				// 获取笔记点赞数量
 				v1g.Get("/like/:note_id/count", h.Note.GetNoteLikeCount())
-				// 获取点赞过的笔记
-				v1g.Get("/like/history", h.Note.ListLikedNotes())
 			}
 		}
 

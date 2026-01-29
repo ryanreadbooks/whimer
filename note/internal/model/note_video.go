@@ -39,22 +39,6 @@ func (m *NoteVideoMedia) AsPb() *notev1.NoteVideoMeta {
 type NoteVideoItem struct {
 	Key   string          `json:"key"` // 资源key 包含bucket名
 	Media *NoteVideoMedia `json:"meta"`
-
-	bucket string `json:"-"` // 非全场景必须字段 用到时手动Set
-}
-
-func (v *NoteVideoItem) SetBucket(bucket string) {
-	if v == nil {
-		return
-	}
-	v.bucket = bucket
-}
-
-func (v *NoteVideoItem) GetBucket() string {
-	if v == nil {
-		return ""
-	}
-	return v.bucket
 }
 
 func (v *NoteVideoItem) TrimBucket() string {
@@ -62,11 +46,20 @@ func (v *NoteVideoItem) TrimBucket() string {
 		return ""
 	}
 
-	if after, ok := strings.CutPrefix(v.Key, v.GetBucket()+"/"); ok {
-		return after
-	}
+	bucket := v.GetBucket()
+	return strings.TrimPrefix(v.Key, bucket+"/")
+}
 
-	return v.Key
+func (v *NoteVideoItem) GetBucket() string {
+	if v == nil {
+		return ""
+	}
+	// 第一个 / 之前都是bucket name
+	idx := strings.Index(v.Key, "/")
+	if idx == -1 {
+		return ""
+	}
+	return v.Key[:idx]
 }
 
 type SupportedVideoSuffix string
@@ -84,8 +77,7 @@ type NoteVideo struct {
 	// AV1   *NoteVideoItem   `json:"av1,omitempty"`
 	Items []*NoteVideoItem `json:"items,omitempty"`
 
-	rawUrl    string `json:"-"` // 非必要字段 需要时填充
-	rawBucket string `json:"-"` // 非必要字段 需要时填充
+	rawUrl string `json:"-"` // 非必要字段 需要时填充
 }
 
 func (v *NoteVideo) GetRawUrl() string {
@@ -100,32 +92,6 @@ func (v *NoteVideo) SetRawUrl(url string) {
 		return
 	}
 	v.rawUrl = url
-}
-
-func (v *NoteVideo) SetRawBucket(bucket string) {
-	if v == nil {
-		return
-	}
-	v.rawBucket = bucket
-}
-
-func (v *NoteVideo) GetRawBucket() string {
-	if v == nil {
-		return ""
-	}
-	return v.rawBucket
-}
-
-func (v *NoteVideo) SetTargetBucket(bucket string) {
-	if v == nil {
-		return
-	}
-	// v.H264.SetBucket(bucket)
-	// v.H265.SetBucket(bucket)
-	// v.AV1.SetBucket(bucket)
-	for _, item := range v.Items {
-		item.SetBucket(bucket)
-	}
 }
 
 func (v *NoteVideo) AsPb() []*notev1.NoteVideo {

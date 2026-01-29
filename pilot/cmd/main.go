@@ -4,12 +4,11 @@ import (
 	"flag"
 
 	"github.com/ryanreadbooks/whimer/misc/must"
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/http"
 	"github.com/ryanreadbooks/whimer/pilot/internal/entry/messaging"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra"
-	"github.com/ryanreadbooks/whimer/pilot/internal/job"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 	zeroservice "github.com/zeromicro/go-zero/core/service"
@@ -29,25 +28,18 @@ func main() {
 	infra.Init(&config.Conf)
 	defer infra.Close()
 
-	bizz := biz.New(&config.Conf)
-	messaging.Init(&config.Conf, bizz)
+	appMgr := app.NewManager(&config.Conf)
+
+	messaging.Init(&config.Conf, appMgr)
 	defer messaging.Close()
 
 	apiserver := rest.MustNewServer(config.Conf.Http)
-	http.Register(apiserver, &config.Conf, bizz)
+	http.Register(apiserver, &config.Conf, appMgr)
 
 	servgroup := zeroservice.NewServiceGroup()
 	defer servgroup.Stop()
 
-	noteEvtJob := job.NewNoteEventManager(
-		job.NoteEventManagerConfig{
-			Tick: config.Conf.JobConfig.NoteEventJob.Interval,
-		},
-		bizz,
-	)
-
 	servgroup.Add(apiserver)
-	servgroup.Add(noteEvtJob)
 
 	logx.Info("pilot server is running...")
 	servgroup.Start()

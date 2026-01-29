@@ -57,15 +57,12 @@ func convertToNoteAssets(in *notev1.CreateNoteRequest) ([]biz.CreateNoteRequestI
 				Width:  img.GetWidth(),
 				Height: img.GetHeight(),
 				Format: img.GetFormat(),
-				Bucket: img.GetBucket(),
 			})
 		}
 	} else if in.Basic.GetAssetType() == notev1.NoteAssetType_VIDEO {
 		video = &biz.CreateNoteRequestVideo{
 			FileId:       in.GetVideo().GetFileId(),
 			TargetFileId: in.GetVideo().GetTargetFileId(),
-			Bucket:       in.GetVideo().GetFileBucket(),
-			TargetBucket: in.GetVideo().GetTargetFileBucket(),
 			CoverFileId:  in.GetVideo().GetCoverFileId(),
 		}
 	}

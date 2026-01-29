@@ -15,24 +15,7 @@ type NoteImage struct {
 	Key  string        `json:"url"`
 	Type int           `json:"type"`
 	Meta NoteImageMeta `json:"meta"`
-
-	bucket string `json:"-"` // 非全场景必须字段 用到时手动Set
 }
-
-func (i *NoteImage) SetBucket(bucket string) {
-	if i == nil {
-		return
-	}
-	i.bucket = bucket
-}
-
-func (i *NoteImage) GetBucket() string {
-	if i == nil {
-		return ""
-	}
-	return i.bucket
-}
-
 type NoteImageList []*NoteImage
 
 func (l NoteImageList) AsPb() []*notev1.NoteImage {
@@ -49,10 +32,4 @@ func (l NoteImageList) AsPb() []*notev1.NoteImage {
 		})
 	}
 	return images
-}
-
-func (l NoteImageList) SetBucket(bucket string) {
-	for _, img := range l {
-		img.SetBucket(bucket)
-	}
 }

@@ -15,6 +15,9 @@ import (
 var Conf Config
 
 type Config struct {
+	IsDev      bool   `json:"is_dev"`
+	DevSmsCode string `json:"dev_sms_code"`
+
 	Http   rest.RestConf      `json:"http"`
 	Grpc   zrpc.RpcServerConf `json:"grpc"`
 	Log    logx.LogConf       `json:"log"`

@@ -430,6 +430,10 @@ func (b *RelationBiz) CheckUserFollowStatus(ctx context.Context, uid, other int6
 	if err != nil {
 		rel, err := infra.Dao().RelationDao.FindByAlphaBeta(ctx, uid, other, false)
 		if err != nil {
+			if xsql.IsNoRecord(err) {
+				return false, nil
+			}
+			
 			return false, xerror.Wrapf(err, "relation biz failed to find by alpha-beta").
 				WithExtras("uid", uid, "other", other).
 				WithCtx(ctx)

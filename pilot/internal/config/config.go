@@ -1,21 +1,17 @@
 package config
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ryanreadbooks/whimer/misc/imgproxy"
 	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/rest"
 )
 
-var (
-	Conf Config
-)
+var Conf Config
 
 // 各服务配置
 type Config struct {
@@ -54,38 +50,20 @@ type Config struct {
 
 	UploadAuthSign UploadAuthSign `json:"upload_auth_sign"`
 
-	UploadResourceDefineMap UploadResourceDefineMap     `json:"-"`
-	UploadResourceDefine    []*UploadResourceDefineItem `json:"upload_resource_define"`
-
 	Oss Oss `json:"oss"`
 
 	ImgProxyAuth imgproxy.Auth `json:"img_proxy_auth"`
+
+	ImgQuality ImgQuality `json:"img_quality"`
 }
 
-func (c *Config) GetUploadResourceBucket(resource uploadresource.Type) string {
-	return c.UploadResourceDefineMap[resource].Bucket
-}
-
-func (c *Config) GetUploadResourcePrefix(resource uploadresource.Type) string {
-	return c.UploadResourceDefineMap[resource].Prefix
+type ImgQuality struct {
+	Quality        string `json:"quality,default=90"`
+	QualityPreview string `json:"quality_preview,default=1"`
 }
 
 func (c *Config) Init() error {
-	err := c.ImgProxyAuth.Init()
-	if err != nil {
-		return err
-	}
-
-	// init upload define map
-	c.UploadResourceDefineMap = make(UploadResourceDefineMap)
-	for _, item := range c.UploadResourceDefine {
-		if !uploadresource.CheckValid(item.Name) {
-			return fmt.Errorf("uploadresource %s invalid", item.Name)
-		}
-		c.UploadResourceDefineMap[uploadresource.Type(item.Name)] = item.Meta
-	}
-
-	return nil
+	return c.ImgProxyAuth.Init()
 }
 
 type NoteEventJob struct {
@@ -107,13 +85,6 @@ type UploadAuthSign struct {
 	Ak          string        `json:"ak"`
 	Sk          string        `json:"sk"`
 }
-
-type UploadResourceDefineItem struct {
-	Name string                  `json:"name"`
-	Meta uploadresource.Metadata `json:"meta"`
-}
-
-type UploadResourceDefineMap map[uploadresource.Type]uploadresource.Metadata // string is resourceType
 
 type Oss struct {
 	UseSecure             bool   `json:"use_secure"`

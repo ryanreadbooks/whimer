@@ -4,7 +4,7 @@ import (
 	"slices"
 
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
+	storagevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/storage/vo"
 )
 
 type GetTempCredsReq struct {
@@ -15,12 +15,12 @@ type GetTempCredsReq struct {
 
 var (
 	allowedTempCredsResourceType = map[string]struct{}{
-		string(uploadresource.NoteImage): {},
-		string(uploadresource.NoteVideo): {},
+		string(storagevo.ObjectTypeNoteImage): {},
+		string(storagevo.ObjectTypeNoteVideo): {},
 	}
 
 	allowedPostPolicyResourceType = map[string]struct{}{
-		string(uploadresource.NoteVideoCover): {},
+		string(storagevo.ObjectTypeNoteVideoCover): {},
 	}
 )
 
@@ -38,11 +38,11 @@ func (r *GetTempCredsReq) Validate() error {
 		return xerror.ErrInvalidArgs.Msg("不支持的资源类型")
 	}
 
-	if r.Resource == string(uploadresource.NoteImage) {
+	if r.Resource == string(storagevo.ObjectTypeNoteImage) {
 		if r.Count > maxCountOfImageUploads {
 			return xerror.ErrInvalidArgs.Msg("不支持请求这么多上传凭证")
 		}
-	} else if r.Resource == string(uploadresource.NoteVideo) {
+	} else if r.Resource == string(storagevo.ObjectTypeNoteVideo) {
 		if r.Count > maxCountOfVideoUploads {
 			return xerror.ErrInvalidArgs.Msg("不支持请求这么多上传凭证")
 		}
@@ -89,13 +89,19 @@ func (r *GetPostPolicyCredsReq) Validate() error {
 		return xerror.ErrInvalidArgs.Msg("非法sha256")
 	}
 
-	if !slices.Contains(uploadresource.NoteVideoCover.PermitContentType(), r.MimeType) {
+	if !slices.Contains(storagevo.ObjectTypeNoteVideoCover.PermitContentType(), r.MimeType) {
 		return xerror.ErrInvalidArgs.Msg("不支持的封面类型")
 	}
 
-	if r.Size > uploadresource.NoteVideoCover.PermitSize() {
+	if r.Size > storagevo.ObjectTypeNoteVideoCover.PermitSize() {
 		return xerror.ErrInvalidArgs.Msg("封面大小超过限制")
 	}
 
 	return nil
+}
+
+type GetPostPolicyCredsResp struct {
+	FileId     string            `json:"file_id"`
+	UploadAddr string            `json:"upload_addr"`
+	Form       map[string]string `json:"form"`
 }

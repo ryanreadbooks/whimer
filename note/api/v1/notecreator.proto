@@ -38,24 +38,17 @@ message CreateReqImage {
   uint32 width   = 2 [(buf.validate.field).uint32.gt = 0];
   uint32 height  = 3 [(buf.validate.field).uint32.gt = 0];
   string format  = 4 [(buf.validate.field).string.min_len = 1];
-  string bucket  = 5 [(buf.validate.field).string.min_len = 1];  // 额外传一个bucketname
 }
 
 message CreateReqVideo {
   // 原始文件所处位置 完整的包含bucket的fileId
   string file_id = 1;
 
-  // file_id所属桶
-  string file_bucket = 2;
-
   // 目标文件所处位置 包含bucket
-  string target_file_id = 3;
-
-  // target_file_id所属桶
-  string target_file_bucket = 4;
+  string target_file_id = 2;
 
   // 封面fileId
-  string cover_file_id = 5;
+  string cover_file_id = 3;
 }
 
 message CreateReqTag {

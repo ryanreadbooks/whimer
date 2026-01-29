@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
+	"github.com/ryanreadbooks/whimer/pilot/internal/app"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	sysmsgkfkdao "github.com/ryanreadbooks/whimer/pilot/internal/infra/dao/kafka/sysmsg"
+	sysmsgkfkdao "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/kafka/sysmsg"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/plain"
@@ -23,18 +23,18 @@ var (
 	noteEventConsumer      *kafka.Reader
 )
 
-func Init(c *config.Config, bizz *biz.Biz) {
+func Init(c *config.Config, manager *app.Manager) {
 	rootCtx, rootCancel = context.WithCancel(context.Background())
 	addrs := strings.Split(c.Kafka.Brokers, ",")
 	sysMsgDeletionConsumer = newKafkaReader(c, addrs, sysmsgkfkdao.DeletionTopic, sysmsgkfkdao.DeletionTopicGroup)
 	noteEventConsumer = newKafkaReader(c, addrs, NoteEventTopic, NoteEventTopicGroupName)
 
-	start(bizz)
+	start(manager)
 }
 
-func start(bizz *biz.Biz) {
-	startSysMsgDeletionConsumer(bizz)
-	startNoteEventConsumer(bizz)
+func start(manager *app.Manager) {
+	startSysMsgDeletionConsumer(manager)
+	startNoteEventConsumer(manager)
 }
 
 func Close() {
@@ -59,7 +59,7 @@ func newKafkaReader(c *config.Config, addrs []string, topic, groupId string) *ka
 				},
 			},
 			WatchPartitionChanges: true,
-			CommitInterval:        time.Second * 1, // 异步提交offset
+			CommitInterval:        time.Second * 1,
 		},
 	)
 

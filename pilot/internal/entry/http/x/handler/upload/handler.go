@@ -4,19 +4,19 @@ import (
 	"net/http"
 
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
-	"github.com/ryanreadbooks/whimer/pilot/internal/biz"
-	bizstorage "github.com/ryanreadbooks/whimer/pilot/internal/biz/common/storage"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
-	"github.com/ryanreadbooks/whimer/pilot/internal/model/uploadresource"
+	storagevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/storage/vo"
+	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter"
+	adapterstorage "github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/storage"
 )
 
 type Handler struct {
-	storageBiz *bizstorage.Biz
+	storageAdapter *adapterstorage.OssRepositoryImpl
 }
 
-func NewHandler(c *config.Config, bizz *biz.Biz) *Handler {
+func NewHandler(c *config.Config) *Handler {
 	return &Handler{
-		storageBiz: bizz.UploadBiz,
+		storageAdapter: adapter.StorageAdapter(),
 	}
 }
 
@@ -30,13 +30,7 @@ func (h *Handler) GetTemporaryCreds() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		creds, err := h.storageBiz.GetUploadTemporaryTicket(
-			ctx,
-			&bizstorage.GetUploadTemporaryTicketRequest{
-				Resource: uploadresource.Type(req.Resource),
-				Source:   req.Source,
-				Count:    req.Count,
-			})
+		ticket, err := h.storageAdapter.GetUploadTicket(ctx, storagevo.ObjectType(req.Resource), req.Count)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
@@ -44,15 +38,15 @@ func (h *Handler) GetTemporaryCreds() http.HandlerFunc {
 
 		xhttp.OkJson(w, &GetTempCredsResp{
 			UploadFile: UploadFile{
-				Bucket: creds.Bucket,
-				Ids:    creds.FileIds,
+				Bucket: ticket.Bucket,
+				Ids:    ticket.FileIds,
 			},
 			UploadCreds: UploadCreds{
-				TmpAccessKey: creds.AccessKey,
-				TmpSecretKey: creds.SecretKey,
-				SessionToken: creds.SessionToken,
-				UploadAddr:   creds.UploadAddr,
-				ExpireAt:     creds.ExpireAt,
+				TmpAccessKey: ticket.AccessKey,
+				TmpSecretKey: ticket.SecretKey,
+				SessionToken: ticket.SessionToken,
+				UploadAddr:   ticket.UploadAddr,
+				ExpireAt:     ticket.ExpireAt,
 			},
 		})
 	}
@@ -67,19 +61,16 @@ func (h *Handler) GetPostPolicyCreds() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		resp, err := h.storageBiz.GetPostPolicyUploadTicket(
-			ctx,
-			&bizstorage.GetPostPolicyUploadTicketRequest{
-				Resource: uploadresource.Type(req.Resource),
-				Sha256:   req.Sha256,
-				Size:     req.Size,
-				MimeType: req.MimeType,
-			})
+		ticket, err := h.storageAdapter.GetPostPolicyTicket(ctx, storagevo.ObjectType(req.Resource), req.Sha256, req.MimeType)
 		if err != nil {
 			xhttp.Error(r, w, err)
 			return
 		}
 
-		xhttp.OkJson(w, resp)
+		xhttp.OkJson(w, &GetPostPolicyCredsResp{
+			FileId:     ticket.FileId,
+			UploadAddr: ticket.UploadAddr,
+			Form:       ticket.Form,
+		})
 	}
 }

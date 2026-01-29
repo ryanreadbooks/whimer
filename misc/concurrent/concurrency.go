@@ -4,21 +4,25 @@ import (
 	"context"
 	"time"
 
+	"github.com/ryanreadbooks/whimer/misc/stacktrace"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	"github.com/zeromicro/go-zero/core/logx"
+
 	"go.opentelemetry.io/otel"
 	otelattribute "go.opentelemetry.io/otel/attribute"
 	otelcodes "go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 func SafeGo(job func()) {
 	go func() {
 		defer func() {
-			if err := recover(); err != nil {
-				logx.ErrorStackf("panic: %v", err)
+			if e := recover(); e != nil {
+				logErr := xerror.Wrapf(xerror.ErrInternalPanic, "%v", e)
+				xlog.Msg("panic").
+					Err(logErr).
+					Extra("stack", stacktrace.FormatFrames(xerror.UnwrapFrames(logErr))).
+					Error()
 			}
 		}()
 
@@ -47,8 +51,8 @@ func spanCtxWithoutCancel(parent context.Context, spanName, jobName string) (con
 }
 
 func spanCtxFrom(parent context.Context, spanName, jobName string) (context.Context, oteltrace.Span) {
-	spanCtx := trace.SpanContextFromContext(parent)
-	newCtx := trace.ContextWithSpanContext(parent, spanCtx)
+	spanCtx := oteltrace.SpanContextFromContext(parent)
+	newCtx := oteltrace.ContextWithSpanContext(parent, spanCtx)
 	tracer := otel.GetTracerProvider().Tracer(tracerName)
 
 	newCtx, span := tracer.Start(
@@ -87,9 +91,14 @@ func SafeGo2(ctx context.Context, opt SafeGo2Opt) {
 		} else {
 			newCtx, span = spanCtxWithoutCancel(ctx, traceSafeGoSpanName, opt.Name)
 		}
+
 		defer func() {
 			if err := recover(); err != nil {
-				logx.ErrorStackf("panic: %v", err)
+				logErr := xerror.Wrapf(xerror.ErrInternalPanic, "%v", err)
+				xlog.Msg("panic").
+					Err(logErr).
+					Extra("stack", stacktrace.FormatFrames(xerror.UnwrapFrames(logErr))).
+					Error()
 			}
 			span.End()
 		}()
@@ -106,7 +115,8 @@ func SafeGo2(ctx context.Context, opt SafeGo2Opt) {
 func SimpleSafeGo(
 	ctx context.Context,
 	name string,
-	job func(ctx context.Context) error) {
+	job func(ctx context.Context) error,
+) {
 	SafeGo2(ctx, SafeGo2Opt{
 		Name: name,
 		Job:  job,

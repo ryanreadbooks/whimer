@@ -7,7 +7,7 @@ conductor:
   key: whimer.conductor.rpc
 
 worker:
-  concurrency: 2
+  concurrency: 10
 
 storage:
   endpoint: ${ENV_OSS_ENDPOINT}

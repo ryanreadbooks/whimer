@@ -10,9 +10,7 @@ import (
 
 type TagId int64
 
-var (
-	tagIdObfuscate obfuscate.Obfuscate
-)
+var tagIdObfuscate obfuscate.Obfuscate
 
 func InitTagIdObfuscate(opts ...obfuscate.Option) error {
 	var err error
@@ -34,6 +32,10 @@ func GetTagIdObfuscate() obfuscate.Obfuscate {
 func (id TagId) String() string {
 	res, _ := tagIdObfuscate.Mix(int64(id))
 	return res
+}
+
+func (id TagId) Int64() int64 {
+	return int64(id)
 }
 
 // MarshalJSON implements the encoding json interface.
