@@ -10,6 +10,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xmap"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
+	commondto "github.com/ryanreadbooks/whimer/pilot/internal/app/common/dto"
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/whisper/dto"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/common/pushcenter"
 	userrepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/user/repository"
@@ -76,7 +77,7 @@ func (s *Service) asyncNotifyWhisperEvent(ctx context.Context, uid int64, chatId
 			if err != nil {
 				xlog.Msg("get chat members failed").Extras("chat_id", chatId).Errorx(ctx)
 			} else {
-				members = xslice.Filter(members, func(_ int, v int64) bool { return v != uid })
+				members = xslice.Filter(members, func(_ int, v int64) bool { return v == uid })
 				if err := pushcenter.BatchNotifyWhisperMsg(ctx, members); err != nil {
 					xlog.Msg("push notify whisper msg failed").Extras("chat_id", chatId, "members", members).Errorx(ctx)
 				}
@@ -108,7 +109,7 @@ func (s *Service) ListRecentChats(ctx context.Context, query *dto.ListRecentChat
 			return nil, xerror.Wrapf(err, "batch get chat members failed").WithCtx(ctx)
 		}
 		for chatId, memberIds := range membersMap {
-			peerMembers := xslice.Filter(memberIds, func(_ int, v int64) bool { return v != query.Uid })
+			peerMembers := xslice.Filter(memberIds, func(_ int, v int64) bool { return v == query.Uid })
 			if len(peerMembers) > 0 {
 				peers[chatId] = peerMembers[0]
 			}
@@ -142,7 +143,12 @@ func (s *Service) ListRecentChats(ctx context.Context, query *dto.ListRecentChat
 				if peer, ok := userInfos[peerUid]; ok {
 					result.ChatName = peer.Nickname
 					result.Cover = peer.Avatar
-					result.Peer = peer
+					result.Peer = &commondto.User{
+						Uid:       peer.Uid,
+						Nickname:  peer.Nickname,
+						Avatar:    peer.Avatar,
+						StyleSign: peer.StyleSign,
+					}
 				}
 			}
 		}
