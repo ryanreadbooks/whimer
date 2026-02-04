@@ -7,15 +7,31 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/uuid"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
 )
 
 // 获取消息列表
-func (s *UserChatSrv) ListChatMsgs(ctx context.Context, chatId uuid.UUID, uid, pos int64, count int32) ([]*ChatMsg, error) {
-	if pos <= 0 {
-		pos = math.MaxInt64
+func (s *UserChatSrv) ListChatMsgs(ctx context.Context,
+	chatId uuid.UUID, uid, pos int64, count int32,
+	order model.Order,
+) ([]*ChatMsg, error) {
+	if order.Unspecified() {
+		order = model.OrderDesc
 	}
 
-	var logAttrs = []any{"chat_id", chatId}
+	if order.Desc() {
+		// pos降序
+		if pos <= 0 {
+			pos = math.MaxInt64
+		}
+	} else if order.Asc() {
+		// pos升序
+		if pos <= 0 {
+			pos = 0
+		}
+	}
+
+	logAttrs := []any{"chat_id", chatId}
 
 	// _, err := s.chatBiz.GetChat(ctx, chatId)
 	// if err != nil {
@@ -30,7 +46,7 @@ func (s *UserChatSrv) ListChatMsgs(ctx context.Context, chatId uuid.UUID, uid, p
 		return nil, xerror.Wrap(global.ErrUserNotInChat)
 	}
 
-	chatPos, err := s.msgBiz.ListChatPos(ctx, chatId, pos, count)
+	chatPos, err := s.msgBiz.ListChatPos(ctx, chatId, pos, count, order)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "msg biz list chat pos failed").WithExtras(logAttrs...).WithCtx(ctx)
 	}

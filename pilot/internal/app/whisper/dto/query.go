@@ -5,6 +5,17 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/app/whisper/errors"
 )
 
+type Order string
+
+const (
+	OrderAsc  Order = "asc"
+	OrderDesc Order = "desc"
+)
+
+func (o Order) Valid() bool {
+	return o == OrderAsc || o == OrderDesc
+}
+
 type ListRecentChatsQuery struct {
 	Uid    int64  `form:"-"`
 	Cursor string `form:"cursor,optional"`
@@ -29,6 +40,7 @@ type ListChatMsgsQuery struct {
 	ChatId string `form:"chat_id"`
 	Pos    int64  `form:"pos,optional"`
 	Count  int32  `form:"count,default=50"`
+	Order  Order  `form:"order,default=desc"`
 }
 
 func (q *ListChatMsgsQuery) Validate() error {
@@ -44,5 +56,14 @@ func (q *ListChatMsgsQuery) Validate() error {
 	if q.Count > 100 {
 		q.Count = 100
 	}
+
+	if q.Order == "" {
+		q.Order = OrderDesc
+	}
+
+	if !q.Order.Valid() {
+		return errors.ErrInvalidOrder
+	}
+
 	return nil
 }

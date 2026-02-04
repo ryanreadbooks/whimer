@@ -163,7 +163,9 @@ func (s *Service) ListRecentChats(ctx context.Context, query *dto.ListRecentChat
 }
 
 func (s *Service) ListChatMsgs(ctx context.Context, query *dto.ListChatMsgsQuery) ([]*dto.MsgWithSender, error) {
-	msgs, err := s.whisperAdapter.ListChatMsgs(ctx, query.ChatId, query.Uid, query.Pos, query.Count)
+	msgs, err := s.whisperAdapter.ListChatMsgs(ctx,
+		query.ChatId, query.Uid, query.Pos, query.Count, query.Order == dto.OrderDesc,
+	)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "list chat msgs failed").WithCtx(ctx)
 	}
