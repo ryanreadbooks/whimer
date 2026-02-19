@@ -27,7 +27,7 @@ type UserChatAdapter interface {
 	GetChatMembers(ctx context.Context, chatId string) ([]int64, error)
 	BatchGetChatMembers(ctx context.Context, chatIds []string) (map[string][]int64, error)
 	ListRecentChats(ctx context.Context, uid int64, cursor string, count int32) (*ListRecentChatsResult, error)
-	ListChatMsgs(ctx context.Context, chatId string, uid int64, pos int64, count int32) ([]*entity.Msg, error)
+	ListChatMsgs(ctx context.Context, chatId string, uid int64, pos int64, count int32, descOrder bool) ([]*entity.Msg, error)
 	RecallMsg(ctx context.Context, uid int64, chatId, msgId string) error
 	ClearChatUnread(ctx context.Context, uid int64, chatId string) error
 }

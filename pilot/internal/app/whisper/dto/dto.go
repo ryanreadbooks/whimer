@@ -1,16 +1,74 @@
 package dto
 
 import (
+	commondto "github.com/ryanreadbooks/whimer/pilot/internal/app/common/dto"
 	uservo "github.com/ryanreadbooks/whimer/pilot/internal/domain/user/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/whisper/entity"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/whisper/vo"
 )
 
+// MsgType 消息类型
+type MsgType string
+
+const (
+	MsgTypeText  MsgType = "text"
+	MsgTypeImage MsgType = "image"
+)
+
+// IsValid 检查消息类型是否有效
+func (t MsgType) IsValid() bool {
+	return t == MsgTypeText || t == MsgTypeImage
+}
+
+// ToVO 转换为 vo.MsgType
+func (t MsgType) ToVO() vo.MsgType {
+	switch t {
+	case MsgTypeText:
+		return vo.MsgText
+	case MsgTypeImage:
+		return vo.MsgImage
+	default:
+		return vo.MsgTypeUnspecified
+	}
+}
+
+// MsgTypeFromVO 从 vo.MsgType 转换为 MsgType
+func MsgTypeFromVO(t vo.MsgType) MsgType {
+	switch t {
+	case vo.MsgText:
+		return MsgTypeText
+	case vo.MsgImage:
+		return MsgTypeImage
+	default:
+		return ""
+	}
+}
+
+// MsgStatus 消息状态
+type MsgStatus string
+
+const (
+	MsgStatusNormal   MsgStatus = "normal"
+	MsgStatusRecalled MsgStatus = "recalled"
+)
+
+// MsgStatusFromVO 从 vo.MsgStatus 转换为 MsgStatus
+func MsgStatusFromVO(s vo.MsgStatus) MsgStatus {
+	switch s {
+	case vo.MsgStatusNormal:
+		return MsgStatusNormal
+	case vo.MsgStatusRecall:
+		return MsgStatusRecalled
+	default:
+		return ""
+	}
+}
+
 type MsgWithSender struct {
 	Id        string         `json:"id,omitempty"`
 	Cid       string         `json:"cid,omitempty"`
-	Type      vo.MsgType     `json:"type,omitempty"`
-	Status    vo.MsgStatus   `json:"status,omitempty"`
+	Type      MsgType        `json:"type,omitempty"`
+	Status    MsgStatus      `json:"status,omitempty"`
 	Mtime     int64          `json:"mtime,omitempty"`
 	SenderUid int64          `json:"sender_uid,omitempty"`
 	Content   *MsgContentDto `json:"content,omitempty"`
@@ -53,8 +111,8 @@ func MsgWithSenderFromEntity(msg *entity.Msg) *MsgWithSender {
 	result := &MsgWithSender{
 		Id:        msg.Id,
 		Cid:       msg.Cid,
-		Type:      msg.Type,
-		Status:    msg.Status,
+		Type:      MsgTypeFromVO(msg.Type),
+		Status:    MsgStatusFromVO(msg.Status),
 		Mtime:     msg.Mtime,
 		SenderUid: msg.SenderUid,
 		Pos:       msg.Pos,
@@ -90,16 +148,16 @@ func MsgWithSenderFromEntity(msg *entity.Msg) *MsgWithSender {
 }
 
 type RecentChatWithPeer struct {
-	ChatId      string         `json:"chat_id"`
-	ChatType    vo.ChatType    `json:"chat_type"`
-	ChatName    string         `json:"chat_name,omitempty"`
-	ChatCreator int64          `json:"chat_creator,omitempty"`
-	LastMsg     *MsgWithSender `json:"last_msg,omitempty"`
-	UnreadCount int64          `json:"unread_count"`
-	Mtime       int64          `json:"mtime"`
-	IsPinned    bool           `json:"is_pinned"`
-	Cover       string         `json:"cover"`
-	Peer        *uservo.User   `json:"peer,omitempty"`
+	ChatId      string          `json:"chat_id"`
+	ChatType    vo.ChatType     `json:"chat_type"`
+	ChatName    string          `json:"chat_name,omitempty"`
+	ChatCreator int64           `json:"chat_creator,omitempty"`
+	LastMsg     *MsgWithSender  `json:"last_msg,omitempty"`
+	UnreadCount int64           `json:"unread_count"`
+	Mtime       int64           `json:"mtime"`
+	IsPinned    bool            `json:"is_pinned"`
+	Cover       string          `json:"cover"`
+	Peer        *commondto.User `json:"peer,omitempty"`
 }
 
 type ListRecentChatsResult struct {

@@ -137,7 +137,7 @@ func MsgExtFromPb(pbext *pbmsg.MsgExt) *vo.MsgExt {
 }
 
 func MsgContentFromPb(msgType vo.MsgType, pb *pbmsg.Msg) *vo.MsgContent {
-	content := &vo.MsgContent{ContentType: msgType}
+	content := &vo.MsgContent{Type: msgType}
 
 	switch msgType {
 	case vo.MsgText:

@@ -1,6 +1,10 @@
 package grpc
 
-import "github.com/ryanreadbooks/whimer/msger/internal/global"
+import (
+	pbuserchat "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
+	"github.com/ryanreadbooks/whimer/msger/internal/global"
+	"github.com/ryanreadbooks/whimer/msger/internal/model"
+)
 
 type ChatIdUserIdGetter interface {
 	GetChatId() int64
@@ -34,4 +38,16 @@ func checkChatIdMsgId(g ChatIdMsgIdGetter) error {
 	}
 
 	return nil
+}
+
+func OrderFromListChatMsgsRequest(in *pbuserchat.ListChatMsgsRequest) (model.Order, error) {
+	switch in.GetOrder() {
+	case pbuserchat.ListChatMsgsRequest_ORDER_UNSPECIFIED:
+		return model.OrderUnspecified, nil
+	case pbuserchat.ListChatMsgsRequest_ORDER_ASC:
+		return model.OrderAsc, nil
+	case pbuserchat.ListChatMsgsRequest_ORDER_DESC:
+		return model.OrderDesc, nil
+	}
+	return model.OrderUnspecified, global.ErrArgs.Msg("invalid order")
 }
