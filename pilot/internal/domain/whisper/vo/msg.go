@@ -35,16 +35,16 @@ const (
 const MaxTextContentLength = 500
 
 type MsgContent struct {
-	ContentType MsgType
-	Text        *MsgTextContent
-	Image       *MsgImageContent
+	Type  MsgType
+	Text  *MsgTextContent
+	Image *MsgImageContent
 }
 
 func (c *MsgContent) Validate() error {
 	if c == nil {
 		return errors.ErrInvalidMsgContent
 	}
-	switch c.ContentType {
+	switch c.Type {
 	case MsgText:
 		return c.Text.Validate()
 	case MsgImage:

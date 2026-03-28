@@ -97,10 +97,17 @@ message ListRecentChatsResponse {
 }
 
 message ListChatMsgsRequest {
+  enum Order {
+    ORDER_UNSPECIFIED = 0;
+    ORDER_ASC         = 1;
+    ORDER_DESC        = 2;
+  }
+
   string chat_id = 1 [(buf.validate.field).string.min_len = 1];
   int64  uid     = 2 [(buf.validate.field).int64.gt = 0];
   int64  pos     = 3 [(buf.validate.field).int64.gte = 0];
   int32  count   = 4 [(buf.validate.field).int32.lte = 50];
+  Order  order   = 5 [(buf.validate.field).enum.defined_only = true];
 }
 
 message ListChatMsgsResponse {

@@ -73,8 +73,8 @@ func checkSendMsgToChatReq(msgType model.MsgType, in *pbuserchat.SendMsgToChatRe
 
 // 发起单聊
 func (s *UserChatServiceServer) CreateP2PChat(ctx context.Context,
-	in *pbuserchat.CreateP2PChatRequest) (*pbuserchat.CreateP2PChatResponse, error) {
-
+	in *pbuserchat.CreateP2PChatRequest,
+) (*pbuserchat.CreateP2PChatResponse, error) {
 	initer := in.GetUid()
 	target := in.GetTarget()
 
@@ -88,8 +88,8 @@ func (s *UserChatServiceServer) CreateP2PChat(ctx context.Context,
 
 // 在会话中发送消息
 func (s *UserChatServiceServer) SendMsgToChat(ctx context.Context,
-	in *pbuserchat.SendMsgToChatRequest) (*pbuserchat.SendMsgToChatResponse, error) {
-
+	in *pbuserchat.SendMsgToChatRequest,
+) (*pbuserchat.SendMsgToChatResponse, error) {
 	msgType, err := model.MsgTypeFromPb(in.GetMsg().GetType())
 	if err != nil {
 		return nil, err
@@ -122,7 +122,8 @@ func assignSendMsgReqContent(msgType model.MsgType, req *userchat.SendMsgReq, pb
 }
 
 func (s *UserChatServiceServer) GetChatMembers(ctx context.Context, in *pbuserchat.GetChatMembersRequest) (
-	*pbuserchat.GetChatMembersResponse, error) {
+	*pbuserchat.GetChatMembersResponse, error,
+) {
 	chatId, err := uuid.ParseString(in.ChatId)
 	if err != nil {
 		return nil, global.ErrArgs.Msg("invalid chatid")
@@ -137,7 +138,8 @@ func (s *UserChatServiceServer) GetChatMembers(ctx context.Context, in *pbuserch
 }
 
 func (s *UserChatServiceServer) BatchGetChatMembers(ctx context.Context, in *pbuserchat.BatchGetChatMembersRequest) (
-	*pbuserchat.BatchGetChatMembersResponse, error) {
+	*pbuserchat.BatchGetChatMembersResponse, error,
+) {
 	chatIds := make([]uuid.UUID, 0, len(in.GetChatIds()))
 	for _, chatId := range in.GetChatIds() {
 		id, err := uuid.ParseString(chatId)
@@ -162,8 +164,8 @@ func (s *UserChatServiceServer) BatchGetChatMembers(ctx context.Context, in *pbu
 }
 
 func (s *UserChatServiceServer) ListRecentChats(ctx context.Context, in *pbuserchat.ListRecentChatsRequest) (
-	*pbuserchat.ListRecentChatsResponse, error) {
-
+	*pbuserchat.ListRecentChatsResponse, error,
+) {
 	resp, next, err := s.Srv.UserChatSrv.ListRecentChats(ctx, in.Uid, in.Cursor, in.Count)
 	if err != nil {
 		return nil, err
@@ -182,8 +184,8 @@ func (s *UserChatServiceServer) ListRecentChats(ctx context.Context, in *pbuserc
 }
 
 func (s *UserChatServiceServer) ListChatMsgs(ctx context.Context, in *pbuserchat.ListChatMsgsRequest) (
-	*pbuserchat.ListChatMsgsResponse, error) {
-
+	*pbuserchat.ListChatMsgsResponse, error,
+) {
 	chatId, err := uuid.ParseString(in.GetChatId())
 	if err != nil {
 		return nil, global.ErrArgs.Msg("invalid chatid")
@@ -193,7 +195,13 @@ func (s *UserChatServiceServer) ListChatMsgs(ctx context.Context, in *pbuserchat
 		return nil, global.ErrArgs.Msg("invalid pos")
 	}
 
-	chatMsgs, err := s.Srv.UserChatSrv.ListChatMsgs(ctx, chatId, in.GetUid(), in.GetPos(), in.GetCount())
+	order, err := OrderFromListChatMsgsRequest(in)
+	if err != nil {
+		return nil, err
+	}
+
+	chatMsgs, err := s.Srv.UserChatSrv.ListChatMsgs(ctx,
+		chatId, in.GetUid(), in.GetPos(), in.GetCount(), order)
 	if err != nil {
 		return nil, err
 	}
@@ -204,8 +212,8 @@ func (s *UserChatServiceServer) ListChatMsgs(ctx context.Context, in *pbuserchat
 }
 
 func (s *UserChatServiceServer) RecallMsg(ctx context.Context, in *pbuserchat.RecallMsgRequest) (
-	*pbuserchat.RecallMsgResponse, error) {
-
+	*pbuserchat.RecallMsgResponse, error,
+) {
 	msgId, err := uuid.ParseString(in.GetMsgId())
 	if err != nil {
 		return nil, global.ErrArgs.Msg("invalid msgid")
@@ -224,7 +232,8 @@ func (s *UserChatServiceServer) RecallMsg(ctx context.Context, in *pbuserchat.Re
 }
 
 func (s *UserChatServiceServer) ClearChatUnread(ctx context.Context, in *pbuserchat.ClearChatUnreadRequest) (
-	*pbuserchat.ClearChatUnreadResponse, error) {
+	*pbuserchat.ClearChatUnreadResponse, error,
+) {
 	chatId, err := uuid.ParseString(in.GetChatId())
 	if err != nil {
 		return nil, global.ErrArgs.Msg("invalid chatid")

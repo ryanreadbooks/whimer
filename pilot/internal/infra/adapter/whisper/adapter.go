@@ -101,13 +101,20 @@ func (a *UserChatAdapterImpl) ListRecentChats(
 
 func (a *UserChatAdapterImpl) ListChatMsgs(
 	ctx context.Context, chatId string, uid int64, pos int64, count int32,
+	descOrder bool,
 ) ([]*entity.Msg, error) {
+	order := userchatv1.ListChatMsgsRequest_ORDER_DESC
+	if !descOrder {
+		order = userchatv1.ListChatMsgsRequest_ORDER_ASC
+	}
+
 	resp, err := a.client.ListChatMsgs(ctx,
 		&userchatv1.ListChatMsgsRequest{
 			ChatId: chatId,
 			Uid:    uid,
 			Pos:    pos,
 			Count:  count,
+			Order:  order,
 		})
 	if err != nil {
 		return nil, xerror.Wrapf(err, "list chat msgs failed").WithCtx(ctx)

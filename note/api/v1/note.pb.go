@@ -853,9 +853,9 @@ type FeedNoteItem struct {
 	Desc      string        `protobuf:"bytes,3,opt,name=desc,proto3" json:"desc,omitempty"`
 	CreatedAt int64         `protobuf:"varint,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	Images    []*NoteImage  `protobuf:"bytes,5,rep,name=images,proto3" json:"images,omitempty"`
-	Likes     int64         `protobuf:"varint,6,opt,name=likes,proto3" json:"likes,omitempty"`     // 点赞数量
-	Author    int64         `protobuf:"varint,7,opt,name=author,proto3" json:"author,omitempty"`   // 笔记作者
-	Replies   int64         `protobuf:"varint,8,opt,name=replies,proto3" json:"replies,omitempty"` // 点赞数
+	Likes     int64         `protobuf:"varint,6,opt,name=likes,proto3" json:"likes,omitempty"`   // 点赞数量
+	Author    int64         `protobuf:"varint,7,opt,name=author,proto3" json:"author,omitempty"` // 笔记作者
+	Replies   int64         `protobuf:"varint,8,opt,name=replies,proto3" json:"replies,omitempty"`
 	UpdatedAt int64         `protobuf:"varint,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	Ip        string        `protobuf:"bytes,10,opt,name=ip,proto3" json:"ip,omitempty"`
 	NoteType  NoteAssetType `protobuf:"varint,11,opt,name=note_type,json=noteType,proto3,enum=note.api.v1.NoteAssetType" json:"note_type,omitempty"` // 笔记类型 图片笔记或者视频笔记

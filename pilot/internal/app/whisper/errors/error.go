@@ -9,4 +9,5 @@ var (
 	ErrInvalidMsgContent   = xerror.ErrArgs.Msg("无效消息内容")
 	ErrChatNotExists       = xerror.ErrArgs.Msg("会话不存在")
 	ErrChatMsgNotExists    = xerror.ErrArgs.Msg("消息不存在")
+	ErrInvalidOrder        = xerror.ErrArgs.Msg("无效的排序方式")
 )

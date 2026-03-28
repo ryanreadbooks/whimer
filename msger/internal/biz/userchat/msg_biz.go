@@ -16,8 +16,7 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 )
 
-type MsgBiz struct {
-}
+type MsgBiz struct{}
 
 func NewMsgBiz() MsgBiz {
 	return MsgBiz{}
@@ -229,8 +228,8 @@ func (b *MsgBiz) recallMsg(ctx context.Context, uid int64, msg *Msg) error {
 }
 
 func (b *MsgBiz) BatchGetMsgPos(ctx context.Context,
-	chatId uuid.UUID, msgIds []uuid.UUID) (map[uuid.UUID]int64, error) {
-
+	chatId uuid.UUID, msgIds []uuid.UUID,
+) (map[uuid.UUID]int64, error) {
 	msgPos, err := infra.Dao().ChatMsgDao.BatchGetPos(ctx, chatId, msgIds)
 	if err != nil {
 		return nil, xerror.Wrapf(err, "chat msg dao batch get pos failed").WithCtx(ctx)
@@ -239,8 +238,8 @@ func (b *MsgBiz) BatchGetMsgPos(ctx context.Context,
 	return msgPos, nil
 }
 
-func (b *MsgBiz) ListChatPos(ctx context.Context, chatId uuid.UUID, pos int64, count int32) ([]*ChatPos, error) {
-	items, err := infra.Dao().ChatMsgDao.ListByPos(ctx, chatId, pos, count, true)
+func (b *MsgBiz) ListChatPos(ctx context.Context, chatId uuid.UUID, pos int64, count int32, order model.Order) ([]*ChatPos, error) {
+	items, err := infra.Dao().ChatMsgDao.ListByPos(ctx, chatId, pos, count, order.Desc())
 	if err != nil {
 		return nil, xerror.Wrapf(err, "chat msg dao list by pos failed").
 			WithCtx(ctx).WithExtras("chat_id", chatId, "pos", pos, "count", count)
