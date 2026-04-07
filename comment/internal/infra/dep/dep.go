@@ -18,16 +18,12 @@ var (
 )
 
 func Init(c *config.Config) {
-	noter = xgrpc.NewRecoverableClient(c.External.Grpc.Note,
-		notev1.NewNoteCreatorServiceClient, func(nc notev1.NoteCreatorServiceClient) {
-			noter = nc
-		},
+	noter = notev1.NewNoteCreatorServiceClient(
+		xgrpc.NewRecoverableClientConn(c.External.Grpc.Note),
 	)
 
-	counter = xgrpc.NewRecoverableClient(c.External.Grpc.Counter,
-		counterv1.NewCounterServiceClient, func(nc counterv1.CounterServiceClient) {
-			counter = nc
-		},
+	counter = counterv1.NewCounterServiceClient(
+		xgrpc.NewRecoverableClientConn(c.External.Grpc.Counter),
 	)
 
 	initCommentIdgen(c)

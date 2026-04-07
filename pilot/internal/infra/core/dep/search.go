@@ -12,13 +12,9 @@ var (
 )
 
 func InitSearch(c *config.Config) {
-	searcher = xgrpc.NewRecoverableClient(c.Backend.Search,
-		searchv1.NewSearchServiceClient,
-		func(cc searchv1.SearchServiceClient) { searcher = cc })
-
-	documenter = xgrpc.NewRecoverableClient(c.Backend.Search,
-		searchv1.NewDocumentServiceClient,
-		func(cc searchv1.DocumentServiceClient) { documenter = cc })
+	conn := xgrpc.NewRecoverableClientConn(c.Backend.Search)
+	searcher = searchv1.NewSearchServiceClient(conn)
+	documenter = searchv1.NewDocumentServiceClient(conn)
 
 }
 

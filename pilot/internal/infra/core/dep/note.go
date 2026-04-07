@@ -22,15 +22,10 @@ func InitNote(c *config.Config) {
 }
 
 func initNoteBackend(c *config.Config) {
-	noteCreator = xgrpc.NewRecoverableClient(c.Backend.Note,
-		notev1.NewNoteCreatorServiceClient,
-		func(cc notev1.NoteCreatorServiceClient) { noteCreator = cc })
-	noteFeed = xgrpc.NewRecoverableClient(c.Backend.Note,
-		notev1.NewNoteFeedServiceClient,
-		func(cc notev1.NoteFeedServiceClient) { noteFeed = cc })
-	noteInteract = xgrpc.NewRecoverableClient(c.Backend.Note,
-		notev1.NewNoteInteractServiceClient,
-		func(cc notev1.NoteInteractServiceClient) { noteInteract = cc })
+	conn := xgrpc.NewRecoverableClientConn(c.Backend.Note)
+	noteCreator = notev1.NewNoteCreatorServiceClient(conn)
+	noteFeed = notev1.NewNoteFeedServiceClient(conn)
+	noteInteract = notev1.NewNoteInteractServiceClient(conn)
 }
 
 func NoteCreatorServer() notev1.NoteCreatorServiceClient {

@@ -11,9 +11,9 @@ var (
 )
 
 func InitRelation(c *config.Config) {
-	relationer = xgrpc.NewRecoverableClient(c.Backend.Relation,
-		relationv1.NewRelationServiceClient,
-		func(cc relationv1.RelationServiceClient) { relationer = cc })
+	relationer = relationv1.NewRelationServiceClient(
+		xgrpc.NewRecoverableClientConn(c.Backend.Relation),
+	)
 }
 
 func RelationServer() relationv1.RelationServiceClient {

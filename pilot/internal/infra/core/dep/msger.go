@@ -17,23 +17,10 @@ var (
 )
 
 func InitMsger(c *config.Config) {
-	systemNotifier = xgrpc.NewRecoverableClient(c.Backend.Msger,
-		systemv1.NewNotificationServiceClient,
-		func(cc systemv1.NotificationServiceClient) {
-			systemNotifier = cc
-		})
-
-	systemChatter = xgrpc.NewRecoverableClient(c.Backend.Msger,
-		systemv1.NewChatServiceClient,
-		func(cc systemv1.ChatServiceClient) {
-			systemChatter = cc
-		})
-
-	userChatter = xgrpc.NewRecoverableClient(c.Backend.Msger,
-		userchatv1.NewUserChatServiceClient,
-		func(cc userchatv1.UserChatServiceClient) {
-			userChatter = cc
-		})
+	conn := xgrpc.NewRecoverableClientConn(c.Backend.Msger)
+	systemNotifier = systemv1.NewNotificationServiceClient(conn)
+	systemChatter = systemv1.NewChatServiceClient(conn)
+	userChatter = userchatv1.NewUserChatServiceClient(conn)
 }
 
 func SystemNotifier() systemv1.NotificationServiceClient {

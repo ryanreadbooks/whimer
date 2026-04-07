@@ -45,14 +45,11 @@ func MustAuther(c xconf.Discovery) *Auth {
 }
 
 func RecoverableAuther(c xconf.Discovery) *Auth {
-	var auth Auth
-	auth.AccessServiceClient = xgrpc.NewRecoverableClient(c,
-		accessv1.NewAccessServiceClient,
-		func(cc accessv1.AccessServiceClient) {
-			auth.AccessServiceClient = cc
-		})
-
-	return &auth
+	return &Auth{
+		AccessServiceClient: accessv1.NewAccessServiceClient(
+			xgrpc.NewRecoverableClientConn(c),
+		),
+	}
 }
 
 func rawSignInReq(sessId, platform string) *accessv1.IsCheckedInRequest {

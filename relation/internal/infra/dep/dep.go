@@ -8,13 +8,12 @@ import (
 
 var (
 	userer userv1.UserServiceClient
-
-	err error
 )
 
 func Init(c *config.Config) {
-	userer = xgrpc.NewRecoverableClient(c.Backend.Passport,
-		userv1.NewUserServiceClient, func(nc userv1.UserServiceClient) { userer = nc })
+	userer = userv1.NewUserServiceClient(
+		xgrpc.NewRecoverableClientConn(c.Backend.Passport),
+	)
 }
 
 func Userer() userv1.UserServiceClient {

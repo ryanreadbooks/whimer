@@ -19,18 +19,18 @@ var (
 )
 
 func Init(c *config.Config) {
-	counter = xgrpc.NewRecoverableClient(c.External.Grpc.Counter,
-		counterv1.NewCounterServiceClient,
-		func(nc counterv1.CounterServiceClient) { counter = nc })
-
-	commenter = xgrpc.NewRecoverableClient(c.External.Grpc.Comment,
-		commentv1.NewCommentServiceClient, func(nc commentv1.CommentServiceClient) { commenter = nc })
-
-	searchdocer = xgrpc.NewRecoverableClient(c.External.Grpc.Search,
-		searchv1.NewDocumentServiceClient, func(nc searchv1.DocumentServiceClient) { searchdocer = nc })
-
-	userer = xgrpc.NewRecoverableClient(c.External.Grpc.Passport,
-		userv1.NewUserServiceClient, func(cc userv1.UserServiceClient) { userer = cc })
+	counter = counterv1.NewCounterServiceClient(
+		xgrpc.NewRecoverableClientConn(c.External.Grpc.Counter),
+	)
+	commenter = commentv1.NewCommentServiceClient(
+		xgrpc.NewRecoverableClientConn(c.External.Grpc.Comment),
+	)
+	searchdocer = searchv1.NewDocumentServiceClient(
+		xgrpc.NewRecoverableClientConn(c.External.Grpc.Search),
+	)
+	userer = userv1.NewUserServiceClient(
+		xgrpc.NewRecoverableClientConn(c.External.Grpc.Passport),
+	)
 
 	conductProducer, _ = producer.New(producer.ClientOptions{
 		HostConf:  c.External.Grpc.Conductor,

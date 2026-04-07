@@ -14,8 +14,9 @@ var (
 
 func Init(c *config.Config) {
 	auther = auth.RecoverableAuther(c.Backend.Passport)
-	userer = xgrpc.NewRecoverableClient(c.Backend.Passport,
-		userv1.NewUserServiceClient, func(nc userv1.UserServiceClient) { userer = nc })
+	userer = userv1.NewUserServiceClient(
+		xgrpc.NewRecoverableClientConn(c.Backend.Passport),
+	)
 }
 
 func Userer() userv1.UserServiceClient {
