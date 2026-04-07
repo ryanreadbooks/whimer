@@ -242,7 +242,7 @@ func NewRecoverableClientConn(c xconf.Discovery, options ...ClientOption) grpc.C
 		readyConn:   atomic.Value{},
 	}
 
-	go func() {
+	concurrent.SafeGo(func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
 
@@ -268,7 +268,7 @@ func NewRecoverableClientConn(c xconf.Discovery, options ...ClientOption) grpc.C
 			rCc.ready.Store(true)
 			break
 		}
-	}()
+	})
 
 	return rCc
 }
