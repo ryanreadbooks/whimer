@@ -18,12 +18,12 @@ var (
 
 func Init(c *config.Config) {
 	initIdGen(c)
-	userer = xgrpc.NewRecoverableClient(c.External.Grpc.Passport,
-		userv1.NewUserServiceClient, func(cc userv1.UserServiceClient) { userer = cc },
+	userer = userv1.NewUserServiceClient(
+		xgrpc.NewRecoverableClientConn(c.External.Grpc.Passport),
 	)
 
-	wsLinker = xgrpc.NewRecoverableClient(c.External.Grpc.Wslink,
-		wspushv1.NewPushServiceClient, func(psc wspushv1.PushServiceClient) { wsLinker = psc },
+	wsLinker = wspushv1.NewPushServiceClient(
+		xgrpc.NewRecoverableClientConn(c.External.Grpc.Wslink),
 	)
 }
 

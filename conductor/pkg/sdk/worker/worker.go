@@ -96,13 +96,11 @@ func New(opts Options) (*Worker, error) {
 		doneCh:       make(chan struct{}),
 	}
 
-	client := xgrpc.NewRecoverableClient(
-		opts.HostConf,
-		workerservice.NewWorkerServiceClient,
-		func(t workerservice.WorkerServiceClient) {
-			w.client = t
-		},
-		xgrpc.WithoutDefaultInterceptor(),
+	client := workerservice.NewWorkerServiceClient(
+		xgrpc.NewRecoverableClientConn(
+			opts.HostConf,
+			xgrpc.WithoutDefaultInterceptor(),
+		),
 	)
 
 	w.client = client

@@ -12,9 +12,9 @@ var (
 )
 
 func InitCommenter(c *config.Config) {
-	commenter = xgrpc.NewRecoverableClient(c.Backend.Comment,
-		commentv1.NewCommentServiceClient,
-		func(cc commentv1.CommentServiceClient) { commenter = cc })
+	commenter = commentv1.NewCommentServiceClient(
+		xgrpc.NewRecoverableClientConn(c.Backend.Comment),
+	)
 }
 
 func Commenter() commentv1.CommentServiceClient {

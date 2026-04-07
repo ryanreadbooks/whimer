@@ -30,12 +30,8 @@ func New(opts ClientOptions) (*Client, error) {
 		opts: opts,
 	}
 
-	client := xgrpc.NewRecoverableClient(
-		opts.HostConf,
-		taskservice.NewTaskServiceClient,
-		func(t taskservice.TaskServiceClient) {
-			p.client = t
-		},
+	client := taskservice.NewTaskServiceClient(
+		xgrpc.NewRecoverableClientConn(opts.HostConf),
 	)
 
 	p.client = client

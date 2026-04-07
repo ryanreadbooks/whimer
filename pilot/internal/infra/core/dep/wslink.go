@@ -11,9 +11,9 @@ var (
 )
 
 func InitWsLink(c *config.Config) {
-	wsLinker = xgrpc.NewRecoverableClient(c.Backend.WsLink,
-		pushv1.NewPushServiceClient,
-		func(cc pushv1.PushServiceClient) { wsLinker = cc })
+	wsLinker = pushv1.NewPushServiceClient(
+		xgrpc.NewRecoverableClientConn(c.Backend.WsLink),
+	)
 }
 
 func WebsocketPusher() pushv1.PushServiceClient {
