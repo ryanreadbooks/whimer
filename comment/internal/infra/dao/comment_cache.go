@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -44,8 +45,10 @@ func getAssetListCacheKey(commentId int64) string {
 type CommentCache struct {
 	rd       *redis.Redis
 	incrOnce sync.Once
+	incrMu   sync.Mutex
 	incrSha  string
 	decrOnce sync.Once
+	decrMu   sync.Mutex
 	decrSha  string
 }
 
@@ -132,10 +135,11 @@ func (c *CommentCache) DelCommentCount(ctx context.Context, oid int64) error {
 func (c *CommentCache) IncrCommentCountWhenExist(ctx context.Context, oid int64, increment int64) error {
 	const script = `
 		local key = KEYS[1]
-		loval value = 1
+		local delta = tonumber(ARGV[1]) or 1
+		local value = 1
 		local exists = redis.call('EXISTS', key)
 		if exists == 1 then
-			value = redis.call('INCR', key)
+			value = redis.call('INCRBY', key, delta)
 		end
 		return value`
 	var err error
@@ -148,7 +152,17 @@ func (c *CommentCache) IncrCommentCountWhenExist(ctx context.Context, oid int64,
 		return err
 	}
 
-	_, err = c.rd.EvalShaCtx(ctx, c.incrSha, []string{getCommentCountCacheKey(oid)})
+	_, err = c.rd.EvalShaCtx(ctx, c.incrSha, []string{getCommentCountCacheKey(oid)}, strconv.FormatInt(increment, 10))
+	if err != nil && strings.Contains(err.Error(), "NOSCRIPT") {
+		c.incrMu.Lock()
+		defer c.incrMu.Unlock()
+
+		c.incrSha, err = c.rd.ScriptLoadCtx(ctx, script)
+		if err != nil {
+			return err
+		}
+		_, err = c.rd.EvalShaCtx(ctx, c.incrSha, []string{getCommentCountCacheKey(oid)}, strconv.FormatInt(increment, 10))
+	}
 	return err
 }
 
@@ -156,10 +170,11 @@ func (c *CommentCache) IncrCommentCountWhenExist(ctx context.Context, oid int64,
 func (c *CommentCache) DecrCommentCountWhenExist(ctx context.Context, oid int64, decrement int64) error {
 	const script = `
 		local key = KEYS[1]
-		loval value = 1
+		local delta = tonumber(ARGV[1]) or 1
+		local value = 1
 		local exists = redis.call('EXISTS', key)
 		if exists == 1 then
-			value = redis.call('DECR', key)
+			value = redis.call('DECRBY', key, delta)
 		end
 		return value`
 	var err error
@@ -172,6 +187,16 @@ func (c *CommentCache) DecrCommentCountWhenExist(ctx context.Context, oid int64,
 		return err
 	}
 
-	_, err = c.rd.EvalShaCtx(ctx, c.decrSha, []string{getCommentCountCacheKey(oid)})
+	_, err = c.rd.EvalShaCtx(ctx, c.decrSha, []string{getCommentCountCacheKey(oid)}, strconv.FormatInt(decrement, 10))
+	if err != nil && strings.Contains(err.Error(), "NOSCRIPT") {
+		c.decrMu.Lock()
+		defer c.decrMu.Unlock()
+
+		c.decrSha, err = c.rd.ScriptLoadCtx(ctx, script)
+		if err != nil {
+			return err
+		}
+		_, err = c.rd.EvalShaCtx(ctx, c.decrSha, []string{getCommentCountCacheKey(oid)}, strconv.FormatInt(decrement, 10))
+	}
 	return err
 }

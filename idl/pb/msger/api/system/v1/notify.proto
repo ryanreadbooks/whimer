@@ -4,9 +4,11 @@ package msger.api.system.v1;
 
 option go_package = "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/system/v1";
 
+import "ext/options/option.proto";
 import "msger/api/msg/msg.proto";
 
 service NotificationService {
+  option (ext.options.service).skip_metadata_uid_check = true;
   // 系统通知
   rpc NotifySystemNotice(NotifySystemNoticeRequest)
       returns (NotifySystemNoticeResponse);

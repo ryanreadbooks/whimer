@@ -103,14 +103,15 @@ func (s *Service) afterCommentPublishedHandleReplyUser(
 	}
 
 	concurrent.SafeGo2(ctx, concurrent.SafeGo2Opt{
-		Name: "pilot.commentapp.after_pub.handle_reply_user",
+		Name:       "pilot.commentapp.after_pub.handle_reply_user",
+		LogOnError: true,
 		Job: func(ctx context.Context) error {
 			comment, err := s.commentAdapter.GetComment(ctx, commentId)
 			if err != nil {
 				return xerror.Wrapf(err, "get comment failed").WithCtx(ctx)
 			}
 
-			if comment.Uid == operator { // 自己回复自己不需要处理
+			if cmd.ReplyUid == 0 || cmd.ReplyUid == operator { // 仅在目标用户是自己时跳过通知
 				return nil
 			}
 
