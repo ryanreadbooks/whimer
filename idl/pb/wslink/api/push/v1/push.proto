@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+import "buf/validate/validate.proto";
+
+package wslink.api.push.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/idl/gen/go/wslink/api/push/v1";
+
+enum Device {
+  DEVICE_UNSPECIFIED = 0;
+  DEVICE_WEB         = 1;
+}
+
+message PushRequest {
+  int64  uid    = 1;
+  Device device = 2;
+  bytes  data   = 3;  // 发送的数据
+}
+
+message PushResponse {}
+
+message BroadcastRequest {
+  repeated int64 targets = 1;
+  bytes          data    = 2;
+}
+
+message BroadcastResponse {}
+
+message BatchPushRequest {
+  repeated PushRequest targets = 1;
+}
+
+message BatchPushResponse {}
+
+// 推送相关grpc功能
+service PushService {
+  // 异步 推送给某个用户的某个设备
+  rpc Push(PushRequest) returns (PushResponse);
+
+  // 异步 广播推送 所有用户的所有设备都是同样的数据
+  rpc Broadcast(BroadcastRequest) returns (BroadcastResponse);
+  
+  // 异步 批量推送 每个用户推送的数据不一样 不保证推送顺序
+  rpc BatchPush(BatchPushRequest) returns (BatchPushResponse);
+}

@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package msger.api.system.v1;
+
+option go_package = "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/system/v1";
+
+import "msger/api/msg/msg.proto";
+
+service NotificationService {
+  // 系统通知
+  rpc NotifySystemNotice(NotifySystemNoticeRequest)
+      returns (NotifySystemNoticeResponse);
+  // 回复我的
+  rpc NotifyReplyMsg(NotifyReplyMsgRequest) returns (NotifyReplyMsgResponse);
+  // @我的
+  rpc NotifyMentionMsg(NotifyMentionMsgRequest)
+      returns (NotifyMentionMsgResponse);
+  // 收到的赞
+  rpc NotifyLikesMsg(NotifyLikesMsgRequest) returns (NotifyLikesMsgResponse);
+}
+
+message NotifySystemNoticeRequest {}
+
+message NotifySystemNoticeResponse {}
+
+message ReplyMsgContent {
+  int64 uid = 1;        // 发起者
+  int64 target_uid = 2; // 被回复的人
+  bytes content = 3;    // 自定义内容
+}
+
+message NotifyReplyMsgRequest { repeated ReplyMsgContent contents = 1; }
+
+message NotifyReplyMsgResponse {
+  map<int64, msger.api.msg.StringList> msg_ids = 1;
+}
+
+message MentionMsgContent {
+  int64 uid = 1;        // 发起者
+  int64 target_uid = 2; // 被@的人
+  bytes content = 3;    // 自定义内容
+}
+
+message NotifyMentionMsgRequest { repeated MentionMsgContent mentions = 1; }
+
+message NotifyMentionMsgResponse {
+  // uid -> msgIds
+  map<int64, msger.api.msg.StringList> msg_ids = 1;
+}
+
+message LikeMsgContent {
+  int64 uid = 1;        // 发起者
+  int64 target_uid = 2; // 被通知的
+  bytes content = 3;    // 自定义内容
+}
+
+message NotifyLikesMsgRequest { repeated LikeMsgContent contents = 1; }
+
+message NotifyLikesMsgResponse {
+  // uid -> msgIds
+  map<int64, msger.api.msg.StringList> msg_ids = 1;
+}

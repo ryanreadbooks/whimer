@@ -1,16 +1,7 @@
 # For details on buf.yaml configuration, visit https://buf.build/docs/configuration/v2/buf-yaml
 version: v2
 modules:
-  - path: comment/api
-  - path: note/api
-  - path: passport/api
-  - path: counter/api
-  - path: relation/api
-  - path: msger/api
-  - path: wslink/api
-  - path: search/api
-  - path: conductor/api
-  - path: apiextension
+  - path: idl/pb
 lint:
   use:
     - DEFAULT

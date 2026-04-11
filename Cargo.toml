@@ -1,0 +1,3 @@
+[workspace]
+members = ["idl/gen/rust"]
+resolver = "2"
