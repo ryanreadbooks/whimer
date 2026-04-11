@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math"
 
+	userv1 "github.com/ryanreadbooks/whimer/idl/gen/go/passport/api/user/v1"
+	searchv1 "github.com/ryanreadbooks/whimer/idl/gen/go/search/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
@@ -16,8 +18,6 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/model/convert"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
 	"github.com/ryanreadbooks/whimer/note/pkg/id"
-	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
-	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 )
 
 func Handle(c *config.Config, bizz *biz.Biz, svc *srv.Service, dt *data.Data) error {

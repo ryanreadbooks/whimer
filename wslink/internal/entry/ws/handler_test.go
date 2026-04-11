@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	v1 "github.com/ryanreadbooks/whimer/wslink/api/protocol/v1"
+	v1 "github.com/ryanreadbooks/whimer/idl/gen/go/wslink/api/protocol/v1"
 	protobuf "google.golang.org/protobuf/proto"
 )
 

@@ -1,7 +1,7 @@
 package dep
 
 import (
-	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
+	commentv1 "github.com/ryanreadbooks/whimer/idl/gen/go/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 )

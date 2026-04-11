@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	workerv1 "github.com/ryanreadbooks/whimer/conductor/api/worker/v1"
-	workerservice "github.com/ryanreadbooks/whimer/conductor/api/workerservice/v1"
+	workerv1 "github.com/ryanreadbooks/whimer/idl/gen/go/conductor/api/worker/v1"
+	workerservice "github.com/ryanreadbooks/whimer/idl/gen/go/conductor/api/workerservice/v1"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"

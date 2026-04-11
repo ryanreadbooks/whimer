@@ -1,7 +1,7 @@
 package model
 
 import (
-	pbmsg "github.com/ryanreadbooks/whimer/msger/api/msg"
+	pbmsg "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/msg"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
 )
 

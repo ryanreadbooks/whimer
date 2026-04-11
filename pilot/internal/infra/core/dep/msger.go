@@ -1,8 +1,8 @@
 package dep
 
 import (
-	systemv1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
-	userchatv1 "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
+	systemv1 "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/system/v1"
+	userchatv1 "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/userchat/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"

@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	searchv1 "github.com/ryanreadbooks/whimer/idl/gen/go/search/api/v1"
 	notecache "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/cache/note"
-	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xerror"

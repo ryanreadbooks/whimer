@@ -3,9 +3,9 @@ package grpc
 import (
 	"context"
 
-	taskv1 "github.com/ryanreadbooks/whimer/conductor/api/task/v1"
-	workerservice "github.com/ryanreadbooks/whimer/conductor/api/workerservice/v1"
 	"github.com/ryanreadbooks/whimer/conductor/internal/service"
+	taskv1 "github.com/ryanreadbooks/whimer/idl/gen/go/conductor/api/task/v1"
+	workerservice "github.com/ryanreadbooks/whimer/idl/gen/go/conductor/api/workerservice/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

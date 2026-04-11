@@ -1,8 +1,8 @@
 package convert
 
 import (
+	relationv1 "github.com/ryanreadbooks/whimer/idl/gen/go/relation/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/relation/vo"
-	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 )
 
 func VoFollowActionToPb(action vo.FollowAction) relationv1.FollowUserRequest_Action {

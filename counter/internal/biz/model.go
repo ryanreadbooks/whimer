@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	recorddao "github.com/ryanreadbooks/whimer/counter/internal/infra/dao/record"
 	summarydao "github.com/ryanreadbooks/whimer/counter/internal/infra/dao/summary"
+	counterv1 "github.com/ryanreadbooks/whimer/idl/gen/go/counter/api/v1"
 
 	"github.com/ryanreadbooks/whimer/misc/obfuscate"
 	"github.com/ryanreadbooks/whimer/misc/xstring"

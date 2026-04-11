@@ -4,8 +4,8 @@ import (
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 
-	forwardv1 "github.com/ryanreadbooks/whimer/wslink/api/forward/v1"
-	pushv1 "github.com/ryanreadbooks/whimer/wslink/api/push/v1"
+	forwardv1 "github.com/ryanreadbooks/whimer/idl/gen/go/wslink/api/forward/v1"
+	pushv1 "github.com/ryanreadbooks/whimer/idl/gen/go/wslink/api/push/v1"
 	"github.com/ryanreadbooks/whimer/wslink/internal/srv"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"

@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
+	searchv1 "github.com/ryanreadbooks/whimer/idl/gen/go/search/api/v1"
 	xkafka "github.com/ryanreadbooks/whimer/misc/xkq/kafka"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 	"github.com/segmentio/kafka-go"
 
 	"google.golang.org/protobuf/encoding/protojson"

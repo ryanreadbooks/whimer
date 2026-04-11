@@ -3,8 +3,8 @@ package srv
 import (
 	"context"
 
+	searchv1 "github.com/ryanreadbooks/whimer/idl/gen/go/search/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 	"github.com/ryanreadbooks/whimer/search/internal/infra"
 	noteindex "github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index/note"
 )

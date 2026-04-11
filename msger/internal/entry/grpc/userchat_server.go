@@ -3,8 +3,8 @@ package grpc
 import (
 	"context"
 
+	pbuserchat "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/userchat/v1"
 	"github.com/ryanreadbooks/whimer/misc/uuid"
-	pbuserchat "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
 	"github.com/ryanreadbooks/whimer/msger/internal/model"
 	"github.com/ryanreadbooks/whimer/msger/internal/srv"

@@ -1,8 +1,8 @@
 package grpc
 
 import (
-	v1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/counter/internal/srv"
+	v1 "github.com/ryanreadbooks/whimer/idl/gen/go/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor/checker"

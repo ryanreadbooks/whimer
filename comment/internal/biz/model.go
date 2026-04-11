@@ -3,9 +3,9 @@ package biz
 import (
 	"encoding/json"
 
-	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/comment/internal/infra/dao"
 	"github.com/ryanreadbooks/whimer/comment/internal/model"
+	commentv1 "github.com/ryanreadbooks/whimer/idl/gen/go/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 )
 

@@ -1,6 +1,6 @@
 package model
 
-import pushv1 "github.com/ryanreadbooks/whimer/wslink/api/push/v1"
+import pushv1 "github.com/ryanreadbooks/whimer/idl/gen/go/wslink/api/push/v1"
 
 type Device string
 

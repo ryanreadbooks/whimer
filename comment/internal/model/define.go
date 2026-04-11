@@ -1,7 +1,7 @@
 package model
 
 import (
-	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
+	commentv1 "github.com/ryanreadbooks/whimer/idl/gen/go/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 )
 

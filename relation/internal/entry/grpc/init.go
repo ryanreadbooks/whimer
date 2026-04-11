@@ -1,10 +1,10 @@
 package grpc
 
 import (
+	relationv1 "github.com/ryanreadbooks/whimer/idl/gen/go/relation/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor/checker"
-	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 	"github.com/ryanreadbooks/whimer/relation/internal/srv"
 
 	"github.com/zeromicro/go-zero/zrpc"

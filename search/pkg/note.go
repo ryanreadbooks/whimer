@@ -1,6 +1,6 @@
 package pkg
 
-import searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
+import searchv1 "github.com/ryanreadbooks/whimer/idl/gen/go/search/api/v1"
 
 // 对外常量定义
 

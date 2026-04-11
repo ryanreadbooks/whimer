@@ -6,12 +6,12 @@ import (
 	"errors"
 	"time"
 
+	notev1 "github.com/ryanreadbooks/whimer/idl/gen/go/note/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xnet"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
 	"github.com/ryanreadbooks/whimer/misc/xsql"
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/data"
 	"github.com/ryanreadbooks/whimer/note/internal/global"
 	notedao "github.com/ryanreadbooks/whimer/note/internal/infra/dao/note"

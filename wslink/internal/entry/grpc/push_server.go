@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 
-	pushv1 "github.com/ryanreadbooks/whimer/wslink/api/push/v1"
+	pushv1 "github.com/ryanreadbooks/whimer/idl/gen/go/wslink/api/push/v1"
 	"github.com/ryanreadbooks/whimer/wslink/internal/global"
 	"github.com/ryanreadbooks/whimer/wslink/internal/model"
 	"github.com/ryanreadbooks/whimer/wslink/internal/srv"

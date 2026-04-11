@@ -3,7 +3,7 @@ package worker
 import (
 	"encoding/json"
 
-	taskv1 "github.com/ryanreadbooks/whimer/conductor/api/task/v1"
+	taskv1 "github.com/ryanreadbooks/whimer/idl/gen/go/conductor/api/task/v1"
 )
 
 // Task 任务信息

@@ -3,8 +3,8 @@ package srv
 import (
 	"context"
 
-	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/counter/internal/biz"
+	counterv1 "github.com/ryanreadbooks/whimer/idl/gen/go/counter/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 )
 

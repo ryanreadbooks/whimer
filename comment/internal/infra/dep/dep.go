@@ -2,10 +2,10 @@ package dep
 
 import (
 	"github.com/ryanreadbooks/whimer/comment/internal/config"
-	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
+	counterv1 "github.com/ryanreadbooks/whimer/idl/gen/go/counter/api/v1"
+	notev1 "github.com/ryanreadbooks/whimer/idl/gen/go/note/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/idgen"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 
 	foliumsdk "github.com/ryanreadbooks/folium/sdk"
 )

@@ -1,8 +1,8 @@
 package model
 
 import (
+	notev1 "github.com/ryanreadbooks/whimer/idl/gen/go/note/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xslice"
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 )
 
 type NoteExt struct {

@@ -4,7 +4,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/entity"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
 
-	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
+	searchv1 "github.com/ryanreadbooks/whimer/idl/gen/go/search/api/v1"
 )
 
 func EntitySearchNoteToPb(note *entity.SearchNote) *searchv1.Note {

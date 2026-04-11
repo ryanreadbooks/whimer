@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	taskv1 "github.com/ryanreadbooks/whimer/conductor/api/task/v1"
-	taskservice "github.com/ryanreadbooks/whimer/conductor/api/taskservice/v1"
+	taskv1 "github.com/ryanreadbooks/whimer/idl/gen/go/conductor/api/task/v1"
+	taskservice "github.com/ryanreadbooks/whimer/idl/gen/go/conductor/api/taskservice/v1"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"google.golang.org/protobuf/types/known/timestamppb"

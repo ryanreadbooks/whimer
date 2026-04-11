@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
-	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/comment/internal/global"
 	"github.com/ryanreadbooks/whimer/comment/internal/model"
 	"github.com/ryanreadbooks/whimer/comment/internal/srv"
+	commentv1 "github.com/ryanreadbooks/whimer/idl/gen/go/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 )
 
