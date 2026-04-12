@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/producer"
-	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/worker"
+	"github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/producer"
+	"github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/worker"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 )
 

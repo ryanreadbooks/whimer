@@ -10,7 +10,7 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 
-	conductor "github.com/ryanreadbooks/whimer/conductor/pkg/sdk/producer"
+	conductor "github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/producer"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 )
 

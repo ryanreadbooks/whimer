@@ -1,7 +1,7 @@
 package dep
 
 import (
-	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/producer"
+	"github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/producer"
 	commentv1 "github.com/ryanreadbooks/whimer/idl/gen/go/comment/api/v1"
 	counterv1 "github.com/ryanreadbooks/whimer/idl/gen/go/counter/api/v1"
 	userv1 "github.com/ryanreadbooks/whimer/idl/gen/go/passport/api/user/v1"

@@ -81,6 +81,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e748733b7cbc798e1434b6ac524f0c1ff2ab456fe201501e6497c8417a4fc33"
 
 [[package]]
+name = "conductor-sdk-rust"
+version = "0.1.0"
+dependencies = [
+ "tonic",
+ "whimer-idl-rust",
+]
+
+[[package]]
 name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -649,7 +657,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
 
 [[package]]
-name = "whimer-pb"
+name = "whimer-idl-rust"
 version = "0.1.0"
 dependencies = [
  "prost",

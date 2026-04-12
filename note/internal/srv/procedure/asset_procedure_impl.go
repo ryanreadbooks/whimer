@@ -8,8 +8,8 @@ import (
 	"errors"
 	"io"
 
-	conductor "github.com/ryanreadbooks/whimer/conductor/pkg/sdk/producer"
-	sdktask "github.com/ryanreadbooks/whimer/conductor/pkg/sdk/task"
+	conductor "github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/producer"
+	sdktask "github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/task"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"

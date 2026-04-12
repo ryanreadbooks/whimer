@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/producer"
-	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/worker"
+	"github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/producer"
+	"github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/worker"
 )
 
 // TestAbortWithTaskHandler 测试使用 TaskHandler 时的中断检测
