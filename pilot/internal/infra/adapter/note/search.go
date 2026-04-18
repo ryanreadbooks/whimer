@@ -8,8 +8,8 @@ import (
 	notevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/note/convert"
 
+	searchv1 "github.com/ryanreadbooks/whimer/idl/gen/go/search/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 )
 
 var _ repository.NoteSearchAdapter = &NoteSearchAdapterImpl{}

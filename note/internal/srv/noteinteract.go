@@ -8,8 +8,8 @@ import (
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/note/internal/model"
 
-	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	counterv1 "github.com/ryanreadbooks/whimer/idl/gen/go/counter/api/v1"
+	notev1 "github.com/ryanreadbooks/whimer/idl/gen/go/note/api/v1"
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"

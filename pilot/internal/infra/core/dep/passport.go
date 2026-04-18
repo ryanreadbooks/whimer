@@ -1,8 +1,8 @@
 package dep
 
 import (
+	userv1 "github.com/ryanreadbooks/whimer/idl/gen/go/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
-	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/passport/pkg/middleware/auth"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 )

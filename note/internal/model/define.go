@@ -3,7 +3,7 @@ package model
 import (
 	"slices"
 
-	v1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	v1 "github.com/ryanreadbooks/whimer/idl/gen/go/note/api/v1"
 )
 
 type Privacy int8

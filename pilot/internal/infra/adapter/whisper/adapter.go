@@ -3,8 +3,8 @@ package whisper
 import (
 	"context"
 
+	userchatv1 "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/userchat/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	userchatv1 "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/whisper/entity"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/whisper/repository"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/whisper/convert"

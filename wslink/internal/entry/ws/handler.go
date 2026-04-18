@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
+	protov1 "github.com/ryanreadbooks/whimer/idl/gen/go/wslink/api/protocol/v1"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	protov1 "github.com/ryanreadbooks/whimer/wslink/api/protocol/v1"
 	"github.com/ryanreadbooks/whimer/wslink/internal/config"
 	"github.com/ryanreadbooks/whimer/wslink/internal/global"
 	"github.com/ryanreadbooks/whimer/wslink/internal/model"

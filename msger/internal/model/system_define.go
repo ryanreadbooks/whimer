@@ -1,8 +1,8 @@
 package model
 
 import (
+	v1 "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/system/v1"
 	"github.com/ryanreadbooks/whimer/misc/xmap"
-	v1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
 )
 
 // 系统消息

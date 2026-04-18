@@ -8,10 +8,10 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/note/convert"
 
+	notev1 "github.com/ryanreadbooks/whimer/idl/gen/go/note/api/v1"
+	searchv1 "github.com/ryanreadbooks/whimer/idl/gen/go/search/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
-	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 )
 
 // implement domain/note/repository/creator

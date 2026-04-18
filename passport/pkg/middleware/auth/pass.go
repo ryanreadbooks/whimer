@@ -4,11 +4,11 @@ import (
 	"context"
 	"net/http"
 
+	accessv1 "github.com/ryanreadbooks/whimer/idl/gen/go/passport/api/access/v1"
+	v1 "github.com/ryanreadbooks/whimer/idl/gen/go/passport/api/user/v1"
 	"github.com/ryanreadbooks/whimer/misc/xconf"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
-	accessv1 "github.com/ryanreadbooks/whimer/passport/api/access/v1"
-	v1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
 )

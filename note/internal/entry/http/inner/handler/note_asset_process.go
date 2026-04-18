@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	conductorsdk "github.com/ryanreadbooks/whimer/conductor/pkg/sdk/task"
+	conductorsdk "github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/task"
 	"github.com/ryanreadbooks/whimer/misc/xhttp"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 	"github.com/ryanreadbooks/whimer/note/internal/model"

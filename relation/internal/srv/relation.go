@@ -9,7 +9,7 @@ import (
 	"github.com/ryanreadbooks/whimer/relation/internal/infra/dep"
 	"github.com/ryanreadbooks/whimer/relation/internal/model"
 
-	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+	userv1 "github.com/ryanreadbooks/whimer/idl/gen/go/passport/api/user/v1"
 
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xconv"

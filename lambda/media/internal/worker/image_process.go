@@ -3,7 +3,7 @@ package worker
 import (
 	"context"
 
-	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/worker"
+	"github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/worker"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
 )
 

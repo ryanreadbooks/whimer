@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	pbuserchat "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
+	pbuserchat "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/userchat/v1"
 	"github.com/ryanreadbooks/whimer/msger/internal/global"
 	"github.com/ryanreadbooks/whimer/msger/internal/model"
 )

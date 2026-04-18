@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
+	notev1 "github.com/ryanreadbooks/whimer/idl/gen/go/note/api/v1"
 )
 
 type NoteVideoMedia struct {

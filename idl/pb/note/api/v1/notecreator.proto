@@ -1,0 +1,163 @@
+syntax = "proto3";
+
+package note.api.v1;
+
+import "buf/validate/validate.proto";
+import "note/api/v1/note.proto";
+
+option go_package = "github.com/ryanreadbooks/whimer/idl/gen/go/note/api/v1";
+
+message IsUserOwnNoteRequest {
+  int64 uid     = 1;                                      // 用户id
+  int64 note_id = 2 [(buf.validate.field).int64.gt = 0];  // 笔记id
+}
+
+message IsUserOwnNoteResponse {
+  int64 uid    = 1;
+  bool  result = 2;  // 结果
+}
+
+message IsNoteExistRequest {
+  int64 note_id = 1 [(buf.validate.field).int64.gt = 0];
+}
+
+message IsNoteExistResponse {
+  bool exist = 1;
+}
+
+message CreateReqBasic {
+  string title   = 1;
+  string desc    = 2;
+  int32  privacy = 3;
+
+  note.api.v1.NoteAssetType asset_type = 4 [(buf.validate.field).enum.defined_only = true];
+}
+
+message CreateReqImage {
+  string file_id = 1 [(buf.validate.field).string.min_len = 1];  // 完整的包含bucket name的fileId
+  uint32 width   = 2 [(buf.validate.field).uint32.gt = 0];
+  uint32 height  = 3 [(buf.validate.field).uint32.gt = 0];
+  string format  = 4 [(buf.validate.field).string.min_len = 1];
+}
+
+message CreateReqVideo {
+  // 原始文件所处位置 完整的包含bucket的fileId
+  string file_id = 1;
+
+  // 目标文件所处位置 包含bucket
+  string target_file_id = 2;
+
+  // 封面fileId
+  string cover_file_id = 3;
+}
+
+message CreateReqTag {
+  repeated int64 tag_list = 1;
+}
+
+message CreateNoteRequest {
+  CreateReqBasic          basic    = 1;
+  repeated CreateReqImage images   = 2;
+  CreateReqTag            tags     = 3;
+  repeated NoteAtUser     at_users = 4;
+  CreateReqVideo          video    = 5;
+}
+
+message CreateNoteResponse {
+  int64 note_id = 1;
+}
+
+message DeleteNoteRequest {
+  int64 note_id = 1 [(buf.validate.field).int64.gt = 0];
+}
+
+message DeleteNoteResponse {}
+
+message UpdateNoteRequest {
+  int64             note_id = 1 [(buf.validate.field).int64.gt = 0];
+  CreateNoteRequest note    = 2;
+}
+
+message UpdateNoteResponse {
+  int64 note_id = 1;
+}
+
+message GetNoteRequest {
+  int64 note_id = 1 [(buf.validate.field).int64.gt = 0];
+}
+
+message GetNoteResponse {
+  NoteItem note = 1;
+}
+
+message ListNoteRequest {
+  int64 cursor = 1;
+  int32 count  = 2;
+}
+
+message ListNoteResponse {
+  repeated NoteItem items       = 1;
+  int64             next_cursor = 2;
+  bool              has_next    = 3;
+}
+
+message GetPostedCountRequest {
+  int64 uid = 1;  // 用户id
+}
+
+message GetPostedCountResponse {
+  int64 count = 1;
+}
+
+message PageListNoteRequest {
+  int32              page             = 1;
+  int32              count            = 2;
+  NoteLifeCycleState life_cycle_state = 3;
+}
+
+message PageListNoteResponse {
+  int64             total = 1;
+  repeated NoteItem items = 2;
+}
+
+message AddTagRequest {
+  string name = 1;
+}
+
+message AddTagResponse {
+  int64 id = 1;
+}
+
+// 和笔记管理相关的服务
+// 比如发布笔记，修改笔记，删除笔记等管理笔记的功能
+service NoteCreatorService {
+  // 检查用户是否拥有指定的笔记
+  rpc IsUserOwnNote(IsUserOwnNoteRequest) returns (IsUserOwnNoteResponse);
+
+  // 判断笔记是否存在
+  rpc IsNoteExist(IsNoteExistRequest) returns (IsNoteExistResponse);
+
+  // 创建笔记
+  rpc CreateNote(CreateNoteRequest) returns (CreateNoteResponse);
+
+  // 更新笔记
+  rpc UpdateNote(UpdateNoteRequest) returns (UpdateNoteResponse);
+
+  // 删除笔记
+  rpc DeleteNote(DeleteNoteRequest) returns (DeleteNoteResponse);
+
+  // 获取笔记的信息
+  rpc GetNote(GetNoteRequest) returns (GetNoteResponse);
+
+  // 列出笔记
+  rpc ListNote(ListNoteRequest) returns (ListNoteResponse);
+
+  // 分页列出笔记
+  rpc PageListNote(PageListNoteRequest) returns (PageListNoteResponse);
+
+  // 获取用户投稿数量
+  rpc GetPostedCount(GetPostedCountRequest) returns (GetPostedCountResponse);
+
+  // 新增标签
+  rpc AddTag(AddTagRequest) returns (AddTagResponse);
+}

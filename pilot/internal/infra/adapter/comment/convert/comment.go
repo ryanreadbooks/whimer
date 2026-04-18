@@ -1,7 +1,7 @@
 package convert
 
 import (
-	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
+	commentv1 "github.com/ryanreadbooks/whimer/idl/gen/go/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/comment/entity"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/comment/vo"
 )

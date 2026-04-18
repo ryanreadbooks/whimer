@@ -3,8 +3,8 @@ package srv
 import (
 	"context"
 
+	protov1 "github.com/ryanreadbooks/whimer/idl/gen/go/wslink/api/protocol/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	protov1 "github.com/ryanreadbooks/whimer/wslink/api/protocol/v1"
 	"github.com/ryanreadbooks/whimer/wslink/internal/biz"
 	"github.com/ryanreadbooks/whimer/wslink/internal/model"
 	"github.com/ryanreadbooks/whimer/wslink/internal/model/ws"

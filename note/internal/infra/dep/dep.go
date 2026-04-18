@@ -1,13 +1,13 @@
 package dep
 
 import (
-	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
-	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/producer"
-	counterv1 "github.com/ryanreadbooks/whimer/counter/api/v1"
+	"github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/producer"
+	commentv1 "github.com/ryanreadbooks/whimer/idl/gen/go/comment/api/v1"
+	counterv1 "github.com/ryanreadbooks/whimer/idl/gen/go/counter/api/v1"
+	userv1 "github.com/ryanreadbooks/whimer/idl/gen/go/passport/api/user/v1"
+	searchv1 "github.com/ryanreadbooks/whimer/idl/gen/go/search/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/note/internal/config"
-	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
-	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 )
 
 var (

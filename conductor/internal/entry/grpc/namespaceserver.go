@@ -3,9 +3,9 @@ package grpc
 import (
 	"context"
 
-	namespacev1 "github.com/ryanreadbooks/whimer/conductor/api/namespace/v1"
-	namespaceservice "github.com/ryanreadbooks/whimer/conductor/api/namespaceservice/v1"
 	"github.com/ryanreadbooks/whimer/conductor/internal/service"
+	namespacev1 "github.com/ryanreadbooks/whimer/idl/gen/go/conductor/api/namespace/v1"
+	namespaceservice "github.com/ryanreadbooks/whimer/idl/gen/go/conductor/api/namespaceservice/v1"
 )
 
 type NamespaceServiceServer struct {

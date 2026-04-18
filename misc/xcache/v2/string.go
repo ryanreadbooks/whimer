@@ -17,8 +17,8 @@ type Fetcher[T any] func(ctx context.Context) (T, time.Duration, error)
 type MFetcher[T any] func(ctx context.Context, keys []string) (map[string]T, error)
 
 func (c *Cache[T]) setTFn(ctx context.Context, opt *cacheOption,
-	key string, t T, ttl time.Duration) error {
-
+	key string, t T, ttl time.Duration,
+) error {
 	cc, err := opt.serializer.Marshal(t)
 	if err != nil {
 		return err
@@ -144,11 +144,14 @@ func (c *Cache[T]) setMapTFn(ctx context.Context, opt *cacheOption, m map[string
 func (c *Cache[T]) mgetTotalFallback(ctx context.Context,
 	keys []string,
 	fetcher MFetcher[T],
-	opt *cacheOption) (t map[string]T, err error) {
-
+	opt *cacheOption,
+) (t map[string]T, err error) {
 	t, err = fetcher(ctx, keys)
 	if err != nil {
 		return
+	}
+	if len(t) == 0 {
+		return t, nil
 	}
 
 	// set back to cache
@@ -161,8 +164,8 @@ func (c *Cache[T]) mgetPartialFallback(ctx context.Context,
 	keys []string,
 	curResult []string,
 	fetcher MFetcher[T],
-	opt *cacheOption) (t map[string]T, err error) {
-
+	opt *cacheOption,
+) (t map[string]T, err error) {
 	t = make(map[string]T, len(keys))
 	missings := []string{}
 	for idx, str := range curResult { // len(keys) should be equal to len(curResult)
@@ -186,11 +189,12 @@ func (c *Cache[T]) mgetPartialFallback(ctx context.Context,
 
 	// we need to partial fallback
 	if fetcher != nil {
-		var (
-			ftm map[string]T
-		)
+		var ftm map[string]T
 		ftm, err = fetcher(ctx, missings)
 		if err != nil {
+			return
+		}
+		if len(ftm) == 0 {
 			return
 		}
 
@@ -207,8 +211,8 @@ func (c *Cache[T]) mgetPartialFallback(ctx context.Context,
 func (c *Cache[T]) MGetOrFetch(ctx context.Context,
 	keys []string,
 	fetcher MFetcher[T],
-	opts ...Option) (t map[string]T, err error) {
-
+	opts ...Option,
+) (t map[string]T, err error) {
 	opt := generics.MakeOpt(opts...)
 
 	resp, err := c.r.MgetCtx(ctx, keys...)

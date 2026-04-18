@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	relationv1 "github.com/ryanreadbooks/whimer/idl/gen/go/relation/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/recovery"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
@@ -12,7 +13,6 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/user/repository"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/user/vo"
 	usersettingdao "github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dao/database/usersetting"
-	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -3,7 +3,7 @@ package model
 import (
 	"unicode/utf8"
 
-	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+	userv1 "github.com/ryanreadbooks/whimer/idl/gen/go/passport/api/user/v1"
 	global "github.com/ryanreadbooks/whimer/passport/internal/global"
 	"github.com/ryanreadbooks/whimer/passport/internal/infra/dao"
 )
@@ -102,4 +102,3 @@ func (r *UpdateUserRequest) Validate() error {
 
 	return nil
 }
-

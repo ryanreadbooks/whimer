@@ -1,7 +1,7 @@
 package dep
 
 import (
-	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/producer"
+	"github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/producer"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 )
 

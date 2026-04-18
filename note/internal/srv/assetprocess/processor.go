@@ -3,7 +3,7 @@ package assetprocess
 import (
 	"context"
 
-	sdktask "github.com/ryanreadbooks/whimer/conductor/pkg/sdk/task"
+	sdktask "github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/task"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/note/internal/biz"
 	"github.com/ryanreadbooks/whimer/note/internal/infra/dep"

@@ -3,19 +3,23 @@ managed:
   enabled: true
 plugins:
   - local: protoc-gen-go
-    out: .
-    opt: module=github.com/ryanreadbooks/whimer
+    out: idl/gen/go
+    opt: module=github.com/ryanreadbooks/whimer/idl/gen/go
   - local: protoc-gen-go-grpc
-    out: .
-    opt: module=github.com/ryanreadbooks/whimer
+    out: idl/gen/go
+    opt: module=github.com/ryanreadbooks/whimer/idl/gen/go
+  - local: protoc-gen-prost
+    out: idl/gen/rust/src
+    opt:
+      - bytes=.
+      - file_descriptor_set
+  - local: protoc-gen-tonic
+    out: idl/gen/rust/src
+  - local: protoc-gen-prost-crate
+    out: idl/gen/rust
+    strategy: all
+    opt:
+      - include_file=src/lib.rs
+      - gen_crate=idl/template/rust/Cargo.toml.tpl
 inputs:
-  - directory: comment/api
-  - directory: note/api
-  - directory: passport/api
-  - directory: counter/api
-  - directory: relation/api
-  - directory: msger/api
-  - directory: wslink/api
-  - directory: search/api
-  - directory: conductor/api
-  - directory: apiextension
+  - directory: idl/pb

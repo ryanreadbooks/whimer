@@ -1,0 +1,13 @@
+[package]
+name = "conductor-sdk-rust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tonic = "0.14.5"
+whimer-idl-rust = { version = "0.1.0", path = "../../../idl/gen/rust" }
+misc-rs = { version = "0.1.0", path = "../../../misc-rs" }
+prost-types = "0.14.3"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+tokio = { version = "1.51.1", features = ["full"] }

@@ -3,8 +3,8 @@ package note
 import (
 	"context"
 
+	notev1 "github.com/ryanreadbooks/whimer/idl/gen/go/note/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/entity"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/repository"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/vo"

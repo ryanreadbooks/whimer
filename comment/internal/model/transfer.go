@@ -3,8 +3,8 @@ package model
 import (
 	"unicode/utf8"
 
-	commentv1 "github.com/ryanreadbooks/whimer/comment/api/v1"
 	"github.com/ryanreadbooks/whimer/comment/internal/global"
+	commentv1 "github.com/ryanreadbooks/whimer/idl/gen/go/comment/api/v1"
 )
 
 // 发表评论参数

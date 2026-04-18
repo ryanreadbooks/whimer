@@ -10,3 +10,7 @@ deploy
 .env
 
 .emmyrc.json
+
+# Added by cargo
+
+/target

@@ -9,7 +9,7 @@ import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/systemnotify/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/systemnotify/convert"
 
-	v1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
+	v1 "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/system/v1"
 )
 
 type SystemNotifyAdapterImpl struct {

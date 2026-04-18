@@ -1,11 +1,11 @@
 package dep
 
 import (
+	userv1 "github.com/ryanreadbooks/whimer/idl/gen/go/passport/api/user/v1"
+	wspushv1 "github.com/ryanreadbooks/whimer/idl/gen/go/wslink/api/push/v1"
 	"github.com/ryanreadbooks/whimer/misc/idgen"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/msger/internal/config"
-	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
-	wspushv1 "github.com/ryanreadbooks/whimer/wslink/api/push/v1"
 
 	foliumsdk "github.com/ryanreadbooks/folium/sdk"
 )

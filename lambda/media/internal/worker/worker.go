@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ryanreadbooks/whimer/conductor/pkg/sdk/worker"
+	"github.com/ryanreadbooks/whimer/conductor/pkg/go/sdk/worker"
 	"github.com/ryanreadbooks/whimer/lambda/media/internal/config"
 	"github.com/ryanreadbooks/whimer/lambda/media/internal/ffmpeg"
 	"github.com/ryanreadbooks/whimer/lambda/media/internal/storage"

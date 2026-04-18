@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
+	forwardv1 "github.com/ryanreadbooks/whimer/idl/gen/go/wslink/api/forward/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	forwardv1 "github.com/ryanreadbooks/whimer/wslink/api/forward/v1"
 	"github.com/ryanreadbooks/whimer/wslink/internal/biz"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"

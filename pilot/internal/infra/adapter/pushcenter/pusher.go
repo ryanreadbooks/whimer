@@ -3,8 +3,8 @@ package pushcenter
 import (
 	"context"
 
+	pushv1 "github.com/ryanreadbooks/whimer/idl/gen/go/wslink/api/push/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/core/dep"
-	pushv1 "github.com/ryanreadbooks/whimer/wslink/api/push/v1"
 )
 
 type WsPusher struct{}

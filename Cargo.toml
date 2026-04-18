@@ -1,0 +1,3 @@
+[workspace]
+members = ["conductor/pkg/rust","idl/gen/rust", "misc-rs"]
+resolver = "2"

@@ -7,7 +7,7 @@ import (
 	uservo "github.com/ryanreadbooks/whimer/pilot/internal/domain/user/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/user/convert"
 
-	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+	userv1 "github.com/ryanreadbooks/whimer/idl/gen/go/passport/api/user/v1"
 )
 
 type UserAdapter struct {

@@ -7,11 +7,11 @@ import (
 	"fmt"
 
 	"github.com/panjf2000/ants/v2"
+	searchv1 "github.com/ryanreadbooks/whimer/idl/gen/go/search/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/concurrent"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	xkafka "github.com/ryanreadbooks/whimer/misc/xkq/kafka"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	searchv1 "github.com/ryanreadbooks/whimer/search/api/v1"
 	"github.com/ryanreadbooks/whimer/search/internal/infra"
 	noteindex "github.com/ryanreadbooks/whimer/search/internal/infra/esdao/index/note"
 	"github.com/ryanreadbooks/whimer/search/internal/infra/kafkadao"

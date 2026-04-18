@@ -1,8 +1,8 @@
 package convert
 
 import (
+	notev1 "github.com/ryanreadbooks/whimer/idl/gen/go/note/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/imgproxy"
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 	mentionvo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/mention/vo"
 	storagevo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/storage/vo"

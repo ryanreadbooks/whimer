@@ -3,11 +3,11 @@ package relation
 import (
 	"context"
 
+	relationv1 "github.com/ryanreadbooks/whimer/idl/gen/go/relation/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/relation/repository"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/relation/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/infra/adapter/relation/convert"
-	relationv1 "github.com/ryanreadbooks/whimer/relation/api/v1"
 )
 
 type RelationAdapterImpl struct {

@@ -3,8 +3,8 @@ package grpc
 import (
 	"context"
 
-	pbmsg "github.com/ryanreadbooks/whimer/msger/api/msg"
-	systemv1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
+	pbmsg "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/msg"
+	systemv1 "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/system/v1"
 
 	"github.com/ryanreadbooks/whimer/msger/internal/model"
 	"github.com/ryanreadbooks/whimer/msger/internal/srv"

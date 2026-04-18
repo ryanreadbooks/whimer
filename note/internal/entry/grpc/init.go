@@ -1,10 +1,10 @@
 package grpc
 
 import (
+	notev1 "github.com/ryanreadbooks/whimer/idl/gen/go/note/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor/checker"
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	"github.com/ryanreadbooks/whimer/note/internal/srv"
 	"github.com/zeromicro/go-zero/zrpc"
 

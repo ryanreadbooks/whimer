@@ -3,8 +3,8 @@ package dep
 import (
 	"github.com/ryanreadbooks/whimer/pilot/internal/config"
 
+	notev1 "github.com/ryanreadbooks/whimer/idl/gen/go/note/api/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
-	notev1 "github.com/ryanreadbooks/whimer/note/api/v1"
 	noteid "github.com/ryanreadbooks/whimer/note/pkg/id"
 )
 

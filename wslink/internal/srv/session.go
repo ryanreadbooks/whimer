@@ -3,10 +3,10 @@ package srv
 import (
 	"context"
 
+	v1 "github.com/ryanreadbooks/whimer/idl/gen/go/wslink/api/protocol/v1"
 	"github.com/ryanreadbooks/whimer/misc/metadata"
 	"github.com/ryanreadbooks/whimer/misc/xerror"
 	"github.com/ryanreadbooks/whimer/misc/xlog"
-	v1 "github.com/ryanreadbooks/whimer/wslink/api/protocol/v1"
 	"github.com/ryanreadbooks/whimer/wslink/internal/biz"
 	"github.com/ryanreadbooks/whimer/wslink/internal/config"
 	"github.com/ryanreadbooks/whimer/wslink/internal/model/ws"

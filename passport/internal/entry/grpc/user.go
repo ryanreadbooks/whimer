@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strconv"
 
-	user "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+	user "github.com/ryanreadbooks/whimer/idl/gen/go/passport/api/user/v1"
 	global "github.com/ryanreadbooks/whimer/passport/internal/global"
 	"github.com/ryanreadbooks/whimer/passport/internal/model"
 	"github.com/ryanreadbooks/whimer/passport/internal/srv"

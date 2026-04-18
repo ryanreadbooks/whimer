@@ -5,7 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ryanreadbooks/whimer/apiextension/protobuf/options"
+	"github.com/ryanreadbooks/whimer/idl/gen/go/ext/options"
 )
 
 type IExtensionOption interface {

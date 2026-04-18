@@ -3,6 +3,7 @@ package noteevent
 import (
 	"context"
 
+	"github.com/ryanreadbooks/whimer/misc/metadata"
 	mentionvo "github.com/ryanreadbooks/whimer/pilot/internal/domain/common/mention/vo"
 	"github.com/ryanreadbooks/whimer/pilot/internal/domain/note/entity"
 	noterepo "github.com/ryanreadbooks/whimer/pilot/internal/domain/note/repository"
@@ -51,6 +52,10 @@ func NewService(
 //  2. 通知被At的人
 //  3. 如果有被At的人 这些人写入最近联系人中
 func (s *Service) OnNotePublished(ctx context.Context, ev pkgnote.NotePublishedEventData) error {
+	if metadata.Uid(ctx) == 0 && ev.Note.Owner > 0 {
+		ctx = metadata.WithUid(ctx, ev.Note.Owner)
+	}
+
 	// get user nickname
 	username := ""
 	user, err := s.userServiceAdapter.GetUser(ctx, ev.Note.Owner)

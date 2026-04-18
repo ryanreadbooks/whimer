@@ -1,11 +1,11 @@
 package grpc
 
 import (
+	systemv1 "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/system/v1"
+	pbuserchat "github.com/ryanreadbooks/whimer/idl/gen/go/msger/api/userchat/v1"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor"
 	"github.com/ryanreadbooks/whimer/misc/xgrpc/interceptor/checker"
-	systemv1 "github.com/ryanreadbooks/whimer/msger/api/system/v1"
-	pbuserchat "github.com/ryanreadbooks/whimer/msger/api/userchat/v1"
 	"github.com/ryanreadbooks/whimer/msger/internal/srv"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"

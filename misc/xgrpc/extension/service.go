@@ -6,7 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ryanreadbooks/whimer/apiextension/protobuf/options"
+	"github.com/ryanreadbooks/whimer/idl/gen/go/ext/options"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"

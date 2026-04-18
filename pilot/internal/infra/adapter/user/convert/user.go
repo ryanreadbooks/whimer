@@ -1,7 +1,7 @@
 package convert
 
 import (
-	userv1 "github.com/ryanreadbooks/whimer/passport/api/user/v1"
+	userv1 "github.com/ryanreadbooks/whimer/idl/gen/go/passport/api/user/v1"
 	uservo "github.com/ryanreadbooks/whimer/pilot/internal/domain/user/vo"
 )
 
